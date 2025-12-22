@@ -93,6 +93,7 @@ func main() {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	
 	// Register all application routes
+	routes.PublicRoutes(r) // Public routes (no auth required)
 	routes.HealthRoutes(r)
 	routes.AuthRoutes(r)
 	routes.ProtectedRoutes(r)

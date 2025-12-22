@@ -13,11 +13,16 @@ func PlatformRoutes(r *gin.Engine) {
 	platform.Use(middleware.JWTAuthMiddleware())
 	platform.Use(middleware.AdminOnly()) // TODO: Create PlatformOwnerOnly middleware
 	{
+		// Tenant Registration & Approval
+		platform.GET("/tenants/pending", controllers.GetPendingTenants)
+		platform.POST("/tenants/:id/approve", controllers.ApproveTenant)
+		platform.POST("/tenants/:id/reject", controllers.RejectTenant)
+		
 		// Tenant Management
 		platform.GET("/tenants", controllers.ListTenants)
 		platform.GET("/tenants/:id", controllers.GetTenantDetail)
 		platform.PUT("/tenants/:id", controllers.UpdateTenant)
-		platform.POST("/tenants/:id/suspend", controllers.SuspendTenant)
+		platform.POST("/tenants/:id/suspend", controllers.SuspendTenantByPlatform)
 		platform.POST("/tenants/:id/activate", controllers.ActivateTenant)
 		platform.DELETE("/tenants/:id", controllers.DeleteTenant)
 		platform.GET("/tenants/:id/statistics", controllers.GetTenantStatistics)
