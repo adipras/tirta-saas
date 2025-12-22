@@ -17,6 +17,7 @@ import UsageHistory from './pages/usage/UsageHistory';
 import InvoiceList from './pages/invoices/InvoiceList';
 import InvoiceForm from './pages/invoices/InvoiceForm';
 import InvoiceDetails from './pages/invoices/InvoiceDetails';
+import BulkInvoiceGeneration from './pages/invoices/bulk-generation/BulkInvoiceGeneration';
 import SubscriptionTypeList from './pages/subscriptions/SubscriptionTypeList';
 import SubscriptionTypeForm from './pages/subscriptions/SubscriptionTypeForm';
 import WaterRateList from './pages/water-rates/WaterRateList';
@@ -99,6 +100,7 @@ function App() {
               <Route path="water-rates/edit/:id" element={<WaterRateForm />} />
               <Route path="water-rates/history" element={<RateHistory />} />
               <Route path="invoices" element={<InvoiceList />} />
+              <Route path="invoices/bulk-generate" element={<BulkInvoiceGeneration />} />
               <Route path="invoices/new" element={<InvoiceForm />} />
               <Route path="invoices/:id" element={<InvoiceDetails />} />
               <Route path="invoices/:id/edit" element={<InvoiceForm />} />
