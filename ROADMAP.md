@@ -1,5 +1,7 @@
 # Tirta SaaS - Development Roadmap
 
+**Last Updated:** December 22, 2024
+
 ## Overview
 Dokumen ini menjelaskan prioritas pengembangan aplikasi Tirta SaaS dengan fokus utama pada **pengelolaan air bersih (Tenant Admin)** sebagai core business, dan Platform Owner sebagai fitur pendukung MVP.
 
@@ -16,6 +18,18 @@ Fitur-fitur ini adalah **inti bisnis** aplikasi - pengelolaan operasional air be
 **20% Development Effort - MVP Only**
 
 Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dikembangkan nanti.
+
+---
+
+## 📊 Progress Overview
+
+**Last Session:** December 22, 2024  
+**Completed:** 2 major features  
+**In Progress:** 1 feature (backend complete)
+
+### Recent Achievements
+- ✅ Invoice Auto-Generation (100% - Dec 22, 2024)
+- 🟡 Tenant Self-Service Registration (66% - Backend complete, Frontend pending)
 
 ---
 
@@ -59,18 +73,32 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 - [ ] **FIX:** Better reading validation
 - [ ] **FIX:** Handle meter replacement
 
-### 🟡 Invoicing (PARTIAL)
+### ✅ Invoicing (COMPLETE - Dec 22, 2024)
+**Status:** Production Ready
+
 - [x] List invoices
 - [x] Generate invoice
 - [x] Invoice details
-- [ ] **CRITICAL:** Automatic invoice generation (scheduled)
-- [ ] **CRITICAL:** Bulk invoice generation per period
+- [x] **CRITICAL:** ✅ Automatic invoice generation (scheduled) - DONE
+- [x] **CRITICAL:** ✅ Bulk invoice generation per period - DONE
+- [x] **IMPROVE:** ✅ Late payment penalty calculation - DONE
+- [x] **FIX:** ✅ Invoice number sequencing (INV-YYYYMM-XXXX) - DONE
+- [x] **Automated monthly generation via cron** - DONE
+- [x] **Preview before generation** - DONE
+- [x] **Generation history tracking** - DONE
 - [ ] **IMPROVE:** Invoice templates customization
 - [ ] **IMPROVE:** WhatsApp/SMS notification
 - [ ] **IMPROVE:** Email invoice with PDF
-- [ ] **IMPROVE:** Late payment penalty calculation
-- [ ] **FIX:** Invoice number sequencing
-- [ ] **FIX:** Better invoice preview
+- [ ] **FIX:** Better invoice preview (can enhance later)
+
+**Completed Features:**
+- Thread-safe invoice number generator
+- Bulk generation with preview
+- Automatic penalty calculation
+- Scheduled generation (1st of month)
+- Daily overdue status updates
+- Generation history logging
+- Frontend UI with preview
 
 ### 🟡 Payment Processing (PARTIAL)
 - [x] List payments
@@ -120,18 +148,51 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 - [x] Tenant statistics endpoint
 - [x] Role-based access control
 
+### 🟡 Tenant Self-Service Registration (PARTIAL - Dec 22, 2024)
+**Status:** Backend Complete (66%), Frontend Pending (2 hours)
+
+- [x] **Backend:** Public registration endpoint (no auth) - DONE
+- [x] **Backend:** Enhanced tenant model with 7 status states - DONE
+- [x] **Backend:** Pending tenants list endpoint - DONE
+- [x] **Backend:** Approve/reject/suspend endpoints - DONE
+- [x] **Backend:** Trial period management (14 days) - DONE
+- [x] **Backend:** Default tenant settings creation - DONE
+- [ ] **Frontend:** Public registration page (/register) - TODO
+- [ ] **Frontend:** Platform owner tenant management page - TODO
+- [ ] **Frontend:** Approve/reject UI with confirmation - TODO
+
+**Implemented Features:**
+- Self-service registration for new tenants
+- Status tracking (TRIAL → PENDING → ACTIVE/SUSPENDED)
+- Village code & email uniqueness validation
+- Automatic 14-day trial period
+- Platform owner approval workflow
+- Tracks approval/rejection history
+
+**Flow:**
+```
+1. Ketua RT/RW → Register (public page, no login)
+2. Fill organization + admin user details
+3. System creates: Tenant (TRIAL) + Admin + Settings
+4. Platform owner → Review pending tenants
+5. Platform owner → Approve → ACTIVE status
+6. Tenant admin → Full access to water management
+```
+
 ### 🟡 Frontend (MINIMAL - IN PROGRESS)
 - [x] Sidebar menu role-based filtering
+- [ ] **MVP:** Public tenant registration page (/register)
+- [ ] **MVP:** Pending tenants list page
+- [ ] **MVP:** Tenant approval/rejection UI
 - [ ] **MVP:** Tenant list page (simple table)
 - [ ] **MVP:** Tenant detail page (view only)
 - [ ] **MVP:** Basic platform dashboard (tenant count, MRR)
 - [ ] **LATER:** Subscription plan management UI
 - [ ] **LATER:** Detailed analytics charts
-- [ ] **LATER:** Tenant suspend/activate UI
 
 ### 🔴 Future Enhancements (LATER)
 - [ ] Multi-language support
-- [ ] Tenant onboarding wizard
+- [ ] Tenant onboarding wizard (post-approval)
 - [ ] Billing & invoicing for subscriptions
 - [ ] Usage-based pricing calculator
 - [ ] Tenant performance benchmarking
@@ -141,44 +202,52 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 
 ## 🚨 Critical Issues to Fix (Tenant Admin)
 
-### High Priority
-1. **Invoice Generation**
-   - [ ] Auto-generate monthly invoices
-   - [ ] Bulk generation with period selection
-   - [ ] Fix invoice number sequencing
+### High Priority (Next 2 Weeks)
+1. ✅ **Invoice Generation** - COMPLETED (Dec 22, 2024)
+   - [x] Auto-generate monthly invoices (scheduled cron)
+   - [x] Bulk generation with period selection
+   - [x] Invoice number sequencing (INV-YYYYMM-XXXX)
+   - [x] Late payment penalty calculation
+   - [x] Preview before generation
+   - [x] Generation history tracking
 
-2. **Payment Integration**
-   - [ ] Integrate payment gateway
+2. 🟡 **Tenant Registration** - PARTIAL (Dec 22, 2024)
+   - [x] Backend API complete (public registration + approval)
+   - [ ] Public registration page frontend (2 hours)
+   - [ ] Platform owner tenant management UI (2 hours)
+
+3. **Payment Integration** (4-5 days)
+   - [ ] Integrate payment gateway (Midtrans/Xendit)
    - [ ] Customer payment portal
    - [ ] Auto receipt generation
 
-3. **Meter Reading**
+4. **Meter Reading** (5-7 days)
    - [ ] Mobile app for meter readers
    - [ ] Offline capability
    - [ ] Photo upload & validation
 
-4. **Reports**
+5. **Reports** (2-3 days)
    - [ ] Monthly collection report
    - [ ] Outstanding payments
-   - [ ] Export functionality
+   - [ ] Export functionality (Excel/PDF)
 
-5. **Notifications**
+6. **Notifications** (2-3 days)
    - [ ] WhatsApp integration
    - [ ] Bill reminders
    - [ ] Payment confirmations
 
 ### Medium Priority
-6. **Customer Management**
-   - [ ] Bulk import customers
+7. **Customer Management**
+   - [ ] Bulk import customers (CSV/Excel)
    - [ ] Customer documents
    - [ ] Better search & filters
 
-7. **Tariff System**
+8. **Tariff System**
    - [ ] Progressive tariff (blok)
    - [ ] Rate versioning
    - [ ] Better calculator UI
 
-8. **UI/UX Improvements**
+9. **UI/UX Improvements**
    - [ ] Loading states
    - [ ] Error handling
    - [ ] Form validation
@@ -188,26 +257,44 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 
 ## 📅 Development Timeline
 
+### Current Sprint (Week of Dec 22, 2024)
+- [x] ✅ Invoice Auto-Generation (COMPLETED - Dec 22)
+- [x] ✅ Tenant Registration Backend (COMPLETED - Dec 22)
+- [ ] 🟡 Tenant Registration Frontend (In Progress - 2h remaining)
+
+### Next Sprint (Week of Dec 29, 2024)
+**Focus: Complete Onboarding & Payment**
+
+#### Week 1 (Dec 29 - Jan 4)
+- [ ] Complete tenant registration frontend (2 hours)
+- [ ] Payment gateway integration (4-5 days)
+- [ ] Monthly collection reports (2-3 days)
+
+#### Week 2 (Jan 5-11)
+- [ ] WhatsApp/SMS notifications (2-3 days)
+- [ ] Mobile meter reading app - Phase 1 (5-7 days)
+
 ### Q1 2025 (Jan-Mar): Core Features Completion
 **Focus: Make Tenant Admin Fully Functional**
 
 #### January 2025
-- [ ] Fix invoice auto-generation
-- [ ] Implement payment gateway
-- [ ] Build mobile meter reading app
-- [ ] Create monthly collection report
+- [x] ✅ Invoice auto-generation - DONE (Dec 22)
+- [ ] Payment gateway integration
+- [ ] Mobile meter reading app
+- [ ] Monthly collection report
+- [ ] Notification system
 
 #### February 2025
-- [ ] Build notification system (WhatsApp/SMS)
-- [ ] Implement customer payment portal
-- [ ] Create outstanding payments report
-- [ ] Add bulk customer import
+- [ ] Customer payment portal
+- [ ] Outstanding payments report
+- [ ] Bulk customer import
+- [ ] Service request system
 
 #### March 2025
-- [ ] Build service request system
-- [ ] Implement complaint management
-- [ ] Create water usage analytics
-- [ ] Add progressive tariff calculation
+- [ ] Complaint management
+- [ ] Water usage analytics
+- [ ] Progressive tariff calculation
+- [ ] UI/UX improvements
 
 ### Q2 2025 (Apr-Jun): Enhancement & Optimization
 **Focus: Polish & User Experience**
