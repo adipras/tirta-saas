@@ -1,12 +1,15 @@
 package controllers
 
 import (
-	"github.com/adipras/tirta-saas-backend/helpers"
+	"fmt"
 	"net/http"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -341,4 +344,196 @@ func DeleteInvoice(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice berhasil dihapus"})
+}
+
+// BulkGenerateInvoices godoc
+// @Summary Bulk generate invoices
+// @Description Generate invoices in bulk for specified month and customers
+// @Tags Invoices
+// @Accept json
+// @Produce json
+// @Param request body requests.BulkInvoiceGenerationRequest true "Bulk generation request"
+// @Security BearerAuth
+// @Success 200 {object} responses.BulkInvoiceGenerationResponse
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/invoices/bulk-generate [post]
+func BulkGenerateInvoices(c *gin.Context) {
+	var req requests.BulkInvoiceGenerationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid request body",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Tenant ID required",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	// Create service
+	service := services.NewInvoiceGenerationService()
+
+	// Generate invoices
+	result, err := service.GenerateInvoices(services.InvoiceGenerationRequest{
+		TenantID:    tenantID,
+		UsageMonth:  req.UsageMonth,
+		CustomerIDs: req.CustomerIDs,
+		DryRun:      req.Preview,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to generate invoices",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	// Convert to response format
+	invoiceItems := make([]responses.InvoicePreviewItem, len(result.Invoices))
+	for i, inv := range result.Invoices {
+		// Get customer details
+		var customer models.Customer
+		config.DB.First(&customer, "id = ?", inv.CustomerID)
+
+		invoiceItems[i] = responses.InvoicePreviewItem{
+			InvoiceNumber: inv.InvoiceNumber,
+			CustomerID:    inv.CustomerID,
+			CustomerName:  customer.Name,
+			CustomerCode:  customer.MeterNumber,
+			UsageMonth:    inv.UsageMonth,
+			UsageM3:       inv.UsageM3,
+			PricePerM3:    inv.PricePerM3,
+			WaterCharge:   inv.WaterCharge,
+			Abonemen:      inv.Abonemen,
+			PenaltyAmount: inv.PenaltyAmount,
+			SubTotal:      inv.SubTotal,
+			TotalAmount:   inv.TotalAmount,
+			DueDate:       inv.DueDate,
+			Notes:         inv.Notes,
+		}
+	}
+
+	response := responses.BulkInvoiceGenerationResponse{
+		Status:      "success",
+		Message:     getMessage(req.Preview, result),
+		Success:     result.Success,
+		Skipped:     result.Skipped,
+		Failed:      result.Failed,
+		TotalAmount: result.TotalAmount,
+		Invoices:    invoiceItems,
+		Errors:      result.Errors,
+		PreviewOnly: result.PreviewOnly,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// PreviewInvoiceGeneration godoc
+// @Summary Preview invoice generation
+// @Description Preview what invoices will be generated without actually creating them
+// @Tags Invoices
+// @Accept json
+// @Produce json
+// @Param request body requests.InvoicePreviewRequest true "Preview request"
+// @Security BearerAuth
+// @Success 200 {object} responses.BulkInvoiceGenerationResponse
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/invoices/preview-generation [post]
+func PreviewInvoiceGeneration(c *gin.Context) {
+	var req requests.InvoicePreviewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid request body",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Tenant ID required",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	// Create service
+	service := services.NewInvoiceGenerationService()
+
+	// Preview (dry run)
+	result, err := service.GenerateInvoices(services.InvoiceGenerationRequest{
+		TenantID:    tenantID,
+		UsageMonth:  req.UsageMonth,
+		CustomerIDs: req.CustomerIDs,
+		DryRun:      true, // Always preview mode
+	})
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to preview invoices",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	// Convert to response format
+	invoiceItems := make([]responses.InvoicePreviewItem, len(result.Invoices))
+	for i, inv := range result.Invoices {
+		var customer models.Customer
+		config.DB.First(&customer, "id = ?", inv.CustomerID)
+
+		invoiceItems[i] = responses.InvoicePreviewItem{
+			InvoiceNumber: inv.InvoiceNumber,
+			CustomerID:    inv.CustomerID,
+			CustomerName:  customer.Name,
+			CustomerCode:  customer.MeterNumber,
+			UsageMonth:    inv.UsageMonth,
+			UsageM3:       inv.UsageM3,
+			PricePerM3:    inv.PricePerM3,
+			WaterCharge:   inv.WaterCharge,
+			Abonemen:      inv.Abonemen,
+			PenaltyAmount: inv.PenaltyAmount,
+			SubTotal:      inv.SubTotal,
+			TotalAmount:   inv.TotalAmount,
+			DueDate:       inv.DueDate,
+			Notes:         inv.Notes,
+		}
+	}
+
+	response := responses.BulkInvoiceGenerationResponse{
+		Status:      "success",
+		Message:     fmt.Sprintf("Preview: %d invoices ready to be generated", result.Success),
+		Success:     result.Success,
+		Skipped:     result.Skipped,
+		Failed:      result.Failed,
+		TotalAmount: result.TotalAmount,
+		Invoices:    invoiceItems,
+		Errors:      result.Errors,
+		PreviewOnly: true,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// getMessage generates appropriate message based on result
+func getMessage(preview bool, result *services.InvoiceGenerationResult) string {
+	if preview {
+		return fmt.Sprintf("Preview: %d invoices ready to be generated", result.Success)
+	}
+	return fmt.Sprintf("Successfully generated %d invoices, skipped %d, failed %d", 
+		result.Success, result.Skipped, result.Failed)
 }
