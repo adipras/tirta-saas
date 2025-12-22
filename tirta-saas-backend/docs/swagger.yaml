@@ -1,0 +1,1932 @@
+basePath: /
+definitions:
+  controllers.CreateCustomerAccountInput:
+    properties:
+      address:
+        type: string
+      email:
+        type: string
+      meter_number:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone:
+        type: string
+      subscription_id:
+        type: string
+    required:
+    - email
+    - meter_number
+    - name
+    - password
+    - subscription_id
+    type: object
+  controllers.CustomerLoginInput:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  controllers.GenerateMonthlyInvoiceRequest:
+    properties:
+      usage_month:
+        description: 'format: YYYY-MM'
+        example: 2024-01
+        type: string
+    required:
+    - usage_month
+    type: object
+  controllers.LoginInput:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  controllers.PlatformOwnerRegisterInput:
+    properties:
+      email:
+        type: string
+      name:
+        minLength: 3
+        type: string
+      password:
+        minLength: 6
+        type: string
+      secret_key:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - secret_key
+    type: object
+  controllers.RegisterInput:
+    properties:
+      admin_email:
+        type: string
+      admin_name:
+        type: string
+      admin_password:
+        minLength: 6
+        type: string
+      tenant_name:
+        type: string
+      village_code:
+        type: string
+    required:
+    - admin_email
+    - admin_name
+    - admin_password
+    - tenant_name
+    - village_code
+    type: object
+  requests.CreateCustomerRequest:
+    properties:
+      address:
+        example: Jl. Merdeka No. 123, Jakarta
+        maxLength: 500
+        type: string
+      email:
+        example: john.doe@example.com
+        format: email
+        type: string
+      meter_number:
+        example: MTR-001
+        maxLength: 20
+        minLength: 3
+        type: string
+      name:
+        example: John Doe
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        example: SecurePass123!
+        maxLength: 100
+        minLength: 6
+        type: string
+      phone:
+        example: "081234567890"
+        type: string
+      subscription_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        format: uuid
+        type: string
+    required:
+    - email
+    - meter_number
+    - name
+    - password
+    - subscription_id
+    type: object
+  requests.CreatePaymentRequest:
+    properties:
+      amount:
+        example: 150000
+        minimum: 0
+        type: number
+      invoice_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        format: uuid
+        type: string
+      notes:
+        example: Paid in full
+        maxLength: 500
+        type: string
+      payment_date:
+        example: "2025-01-15"
+        format: date
+        type: string
+      payment_method:
+        example: CASH
+        type: string
+    required:
+    - amount
+    - invoice_id
+    type: object
+  requests.CreateProgressiveRateRequest:
+    properties:
+      category_id:
+        type: string
+      display_order:
+        type: integer
+      max_volume:
+        type: number
+      min_volume:
+        minimum: 0
+        type: number
+      price_per_unit:
+        type: number
+    required:
+    - category_id
+    - min_volume
+    - price_per_unit
+    type: object
+  requests.CreateServiceAreaRequest:
+    properties:
+      code:
+        type: string
+      coverage_area:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: string
+      population:
+        type: integer
+      type:
+        enum:
+        - RT
+        - RW
+        - Blok
+        - Zone
+        type: string
+    required:
+    - code
+    - name
+    - type
+    type: object
+  requests.CreateSubscriptionTypeRequest:
+    properties:
+      description:
+        example: Standard residential water subscription with basic features
+        maxLength: 500
+        type: string
+      late_fee_per_day:
+        example: 5000
+        minimum: 0
+        type: number
+      maintenance_fee:
+        example: 10000
+        minimum: 0
+        type: number
+      max_late_fee:
+        example: 100000
+        minimum: 0
+        type: number
+      monthly_fee:
+        example: 50000
+        minimum: 0
+        type: number
+      name:
+        example: Residential Standard
+        maxLength: 100
+        minLength: 3
+        type: string
+      registration_fee:
+        example: 500000
+        minimum: 0
+        type: number
+    required:
+    - monthly_fee
+    - name
+    - registration_fee
+    type: object
+  requests.CreateTariffCategoryRequest:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      type:
+        enum:
+        - residential
+        - commercial
+        - industrial
+        - social
+        - government
+        type: string
+    required:
+    - code
+    - name
+    - type
+    type: object
+  requests.CreateTenantUserRequest:
+    properties:
+      email:
+        example: operator@kampung.com
+        format: email
+        type: string
+      name:
+        example: Operator User
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        example: SecurePass123!
+        maxLength: 100
+        minLength: 6
+        type: string
+      role:
+        example: OPERATOR
+        type: string
+      tenant_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        format: uuid
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - role
+    type: object
+  requests.CreateWaterUsageRequest:
+    properties:
+      customer_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        format: uuid
+        type: string
+      meter_end:
+        example: 150.5
+        minimum: 0
+        type: number
+      notes:
+        example: Normal monthly reading
+        maxLength: 500
+        type: string
+      usage_month:
+        example: 2025-01
+        type: string
+    required:
+    - customer_id
+    - meter_end
+    - usage_month
+    type: object
+  requests.UpdateCustomerRequest:
+    properties:
+      address:
+        example: Jl. Merdeka No. 123, Jakarta Selatan
+        maxLength: 500
+        type: string
+      name:
+        example: John Doe Updated
+        maxLength: 100
+        minLength: 3
+        type: string
+      phone:
+        example: "081234567890"
+        type: string
+      subscription_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        format: uuid
+        type: string
+    required:
+    - name
+    - subscription_id
+    type: object
+  requests.UpdateSubscriptionTypeRequest:
+    properties:
+      description:
+        example: Standard residential water subscription with basic features
+        maxLength: 500
+        type: string
+      late_fee_per_day:
+        example: 5000
+        minimum: 0
+        type: number
+      maintenance_fee:
+        example: 10000
+        minimum: 0
+        type: number
+      max_late_fee:
+        example: 100000
+        minimum: 0
+        type: number
+      monthly_fee:
+        example: 50000
+        minimum: 0
+        type: number
+      name:
+        example: Residential Standard
+        maxLength: 100
+        minLength: 3
+        type: string
+      registration_fee:
+        example: 500000
+        minimum: 0
+        type: number
+    type: object
+  requests.UpdateTenantRequest:
+    properties:
+      address:
+        type: string
+      email:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      notes:
+        type: string
+      phone:
+        maxLength: 20
+        type: string
+      subscription_plan:
+        enum:
+        - BASIC
+        - PREMIUM
+        - ENTERPRISE
+        type: string
+    type: object
+  requests.UpdateTenantUserRequest:
+    properties:
+      email:
+        example: newemail@kampung.com
+        format: email
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      name:
+        example: Updated Name
+        maxLength: 100
+        minLength: 3
+        type: string
+      role:
+        example: ADMIN
+        type: string
+    type: object
+  responses.CustomerResponse:
+    properties:
+      address:
+        example: Jl. Merdeka No. 123
+        type: string
+      created_at:
+        example: "2025-01-01T00:00:00Z"
+        format: date-time
+        type: string
+      email:
+        example: john@example.com
+        format: email
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        format: uuid
+        type: string
+      is_active:
+        example: true
+        type: boolean
+      meter_number:
+        example: MTR-001
+        type: string
+      name:
+        example: John Doe
+        type: string
+      phone:
+        example: "081234567890"
+        type: string
+      subscription_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        format: uuid
+        type: string
+    type: object
+  responses.ErrorResponse:
+    properties:
+      error:
+        example: validation failed
+        type: string
+      message:
+        example: Invalid input
+        type: string
+      status:
+        example: error
+        type: string
+    type: object
+  responses.InvoiceResponse:
+    properties:
+      abonemen:
+        type: number
+      created_at:
+        type: string
+      customer_id:
+        type: string
+      id:
+        type: string
+      is_paid:
+        type: boolean
+      price_per_m3:
+        type: number
+      total_amount:
+        type: number
+      total_paid:
+        type: number
+      type:
+        type: string
+      usage_m3:
+        type: number
+      usage_month:
+        type: string
+    type: object
+  responses.PaginatedResponse:
+    properties:
+      data: {}
+      message:
+        example: Data retrieved successfully
+        type: string
+      meta:
+        $ref: '#/definitions/responses.PaginationMeta'
+      status:
+        example: success
+        type: string
+    type: object
+  responses.PaginationMeta:
+    properties:
+      current_page:
+        example: 1
+        minimum: 1
+        type: integer
+      page_size:
+        example: 20
+        maximum: 100
+        minimum: 1
+        type: integer
+      total_items:
+        example: 95
+        minimum: 0
+        type: integer
+      total_pages:
+        example: 5
+        minimum: 0
+        type: integer
+    type: object
+  responses.PaymentResponse:
+    properties:
+      amount:
+        type: number
+      id:
+        type: string
+      invoice_id:
+        type: string
+      paid_at:
+        type: string
+    type: object
+  responses.ProgressiveRateResponse:
+    properties:
+      category:
+        $ref: '#/definitions/responses.TariffCategoryResponse'
+      display_order:
+        type: integer
+      id:
+        type: string
+      is_active:
+        type: boolean
+      max_volume:
+        type: number
+      min_volume:
+        type: number
+      price_per_unit:
+        type: number
+    type: object
+  responses.ServiceAreaResponse:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/responses.ServiceAreaResponse'
+        type: array
+      code:
+        type: string
+      coverage_area:
+        type: string
+      customer_count:
+        type: integer
+      description:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      parent:
+        $ref: '#/definitions/responses.ServiceAreaResponse'
+      population:
+        type: integer
+      type:
+        type: string
+    type: object
+  responses.SubscriptionTypeResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      late_fee_per_day:
+        type: number
+      maintenance_fee:
+        type: number
+      max_late_fee:
+        type: number
+      monthly_fee:
+        type: number
+      name:
+        type: string
+      registration_fee:
+        type: number
+    type: object
+  responses.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        example: Operation completed successfully
+        type: string
+      status:
+        example: success
+        type: string
+    type: object
+  responses.TariffCategoryResponse:
+    properties:
+      code:
+        type: string
+      description:
+        type: string
+      display_order:
+        type: integer
+      id:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      type:
+        type: string
+    type: object
+  responses.TenantDetailResponse:
+    properties:
+      address:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      notes:
+        type: string
+      phone:
+        type: string
+      status:
+        type: string
+      storage_used_gb:
+        type: number
+      subscription_ends_at:
+        type: string
+      subscription_plan:
+        type: string
+      subscription_status:
+        type: string
+      suspended_at:
+        type: string
+      suspension_reason:
+        type: string
+      total_customers:
+        type: integer
+      total_users:
+        type: integer
+      updated_at:
+        type: string
+      village_code:
+        type: string
+    type: object
+  responses.UserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  responses.WaterUsageResponse:
+    properties:
+      amount_calculated:
+        type: number
+      created_at:
+        type: string
+      customer_id:
+        type: string
+      id:
+        type: string
+      meter_end:
+        type: number
+      meter_start:
+        type: number
+      usage_m3:
+        type: number
+      usage_month:
+        type: string
+    type: object
+host: localhost:8081
+info:
+  contact:
+    email: support@tirtasaas.com
+    name: Tirta SaaS Support
+    url: https://tirtasaas.com/support
+  description: Multi-Tenant Water Utility Billing System - Complete SaaS solution
+    for water utility companies
+  license:
+    name: Proprietary
+    url: https://tirtasaas.com/license
+  termsOfService: https://tirtasaas.com/terms
+  title: Tirta SaaS Backend API
+  version: "1.0"
+paths:
+  /api/customers:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all customers for the tenant
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.CustomerResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List customers
+      tags:
+      - Customers
+    post:
+      consumes:
+      - application/json
+      description: Create a new customer with subscription
+      parameters:
+      - description: Create customer request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateCustomerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.CustomerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create new customer
+      tags:
+      - Customers
+  /api/customers/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a customer by ID
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete customer
+      tags:
+      - Customers
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific customer
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.CustomerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get customer by ID
+      tags:
+      - Customers
+    put:
+      consumes:
+      - application/json
+      description: Update customer information
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update customer request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateCustomerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.CustomerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update customer
+      tags:
+      - Customers
+  /api/invoices:
+    get:
+      consumes:
+      - application/json
+      description: Get all invoices for the tenant
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by customer ID
+        in: query
+        name: customer_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.InvoiceResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List invoices
+      tags:
+      - Invoices
+  /api/invoices/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a specific invoice details
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.InvoiceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get invoice by ID
+      tags:
+      - Invoices
+  /api/invoices/generate:
+    post:
+      consumes:
+      - application/json
+      description: Generate monthly invoice for a customer
+      parameters:
+      - description: Generate invoice request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.GenerateMonthlyInvoiceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.InvoiceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Generate monthly invoice
+      tags:
+      - Invoices
+  /api/payments:
+    get:
+      consumes:
+      - application/json
+      description: Get all payments for the tenant
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.PaymentResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all payments
+      tags:
+      - Payments
+    post:
+      consumes:
+      - application/json
+      description: Record a new payment for an invoice
+      parameters:
+      - description: Create payment request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreatePaymentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.PaymentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create payment
+      tags:
+      - Payments
+  /api/payments/customer/{customer_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get all payments for a specific customer
+      parameters:
+      - description: Customer ID
+        in: path
+        name: customer_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.PaymentResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get customer payment history
+      tags:
+      - Payments
+  /api/platform/tenants:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all tenants with pagination and filters (Platform Admin
+        only)
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Search by name or email
+        in: query
+        name: search
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - default: created_at
+        description: Sort by field
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Sort order (asc/desc)
+        in: query
+        name: sort_order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.PaginatedResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all tenants
+      tags:
+      - Platform
+  /api/platform/tenants/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information of a specific tenant
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.TenantDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get tenant detail
+      tags:
+      - Platform
+    put:
+      consumes:
+      - application/json
+      description: Update tenant details (Platform Admin only)
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update tenant request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateTenantRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update tenant information
+      tags:
+      - Platform
+  /api/platform/tenants/{id}/suspend:
+    post:
+      consumes:
+      - application/json
+      description: Suspend a tenant account (Platform Admin only)
+      parameters:
+      - description: Tenant ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Suspend tenant
+      tags:
+      - Platform
+  /api/service-areas:
+    get:
+      consumes:
+      - application/json
+      description: Get all service areas for the tenant
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.ServiceAreaResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List service areas
+      tags:
+      - Service Areas
+    post:
+      consumes:
+      - application/json
+      description: Create a new service area (RT/RW zone)
+      parameters:
+      - description: Create service area request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateServiceAreaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.ServiceAreaResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create service area
+      tags:
+      - Service Areas
+  /api/subscription-types:
+    get:
+      consumes:
+      - application/json
+      description: Get all subscription types/plans for the tenant
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.SubscriptionTypeResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List subscription types
+      tags:
+      - Subscriptions
+    post:
+      consumes:
+      - application/json
+      description: Create a new subscription type/plan
+      parameters:
+      - description: Create subscription type request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateSubscriptionTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SubscriptionTypeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create subscription type
+      tags:
+      - Subscriptions
+  /api/subscription-types/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a subscription type by ID
+      parameters:
+      - description: Subscription Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete subscription type
+      tags:
+      - Subscriptions
+    get:
+      consumes:
+      - application/json
+      description: Get a specific subscription type by ID
+      parameters:
+      - description: Subscription Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SubscriptionTypeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get subscription type
+      tags:
+      - Subscriptions
+    put:
+      consumes:
+      - application/json
+      description: Update an existing subscription type
+      parameters:
+      - description: Subscription Type ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update subscription type request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateSubscriptionTypeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SubscriptionTypeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update subscription type
+      tags:
+      - Subscriptions
+  /api/tenant-users:
+    get:
+      consumes:
+      - application/json
+      description: Get all users for the current tenant or specified tenant (platform
+        owner)
+      parameters:
+      - description: Tenant ID (platform owner only)
+        in: query
+        name: tenant_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.UserResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: List tenant users
+      tags:
+      - Tenant Users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user for a tenant (admin only)
+      parameters:
+      - description: User data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateTenantUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Create tenant user
+      tags:
+      - Tenant Users
+  /api/tenant-users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Delete tenant user
+      tags:
+      - Tenant Users
+    put:
+      consumes:
+      - application/json
+      description: Update a user's name or role
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateTenantUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Update tenant user
+      tags:
+      - Tenant Users
+  /api/tenant-users/roles:
+    get:
+      consumes:
+      - application/json
+      description: Get list of roles that the current user can assign
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties:
+                type: string
+              type: object
+            type: array
+      summary: Get available roles
+      tags:
+      - Tenant Users
+  /api/water-rates/tariffs/categories:
+    get:
+      consumes:
+      - application/json
+      description: Get all tariff categories for the tenant
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.TariffCategoryResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List tariff categories
+      tags:
+      - Tariffs
+    post:
+      consumes:
+      - application/json
+      description: Create a new tariff category for water pricing
+      parameters:
+      - description: Create tariff category request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateTariffCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.TariffCategoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create tariff category
+      tags:
+      - Tariffs
+  /api/water-rates/tariffs/progressive-rates:
+    post:
+      consumes:
+      - application/json
+      description: Create a new progressive rate tier for a tariff category
+      parameters:
+      - description: Create progressive rate request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateProgressiveRateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.ProgressiveRateResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create progressive rate
+      tags:
+      - Tariffs
+  /api/water-usage:
+    get:
+      consumes:
+      - application/json
+      description: Get all water usage records for the tenant
+      parameters:
+      - description: Filter by customer ID
+        in: query
+        name: customer_id
+        type: string
+      - description: Filter by period (YYYY-MM)
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/responses.WaterUsageResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List water usage records
+      tags:
+      - Water Usage
+    post:
+      consumes:
+      - application/json
+      description: Record water meter reading and calculate usage
+      parameters:
+      - description: Create water usage request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CreateWaterUsageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.WaterUsageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create water usage record
+      tags:
+      - Water Usage
+  /auth/create-customer:
+    post:
+      consumes:
+      - application/json
+      description: Create a new customer account with meter number
+      parameters:
+      - description: Customer account data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.CreateCustomerAccountInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Create customer account
+      tags:
+      - Auth
+  /auth/customer/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate customer and get JWT token
+      parameters:
+      - description: Customer login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.CustomerLoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Customer login
+      tags:
+      - Auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and get JWT token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User login
+      tags:
+      - Auth
+  /auth/platform-owner/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new platform owner account (requires secret key)
+      parameters:
+      - description: Platform owner data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.PlatformOwnerRegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register platform owner
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new tenant organization with admin user
+      parameters:
+      - description: Registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register new tenant
+      tags:
+      - Auth
+schemes:
+- http
+- https
+securityDefinitions:
+  Bearer:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
