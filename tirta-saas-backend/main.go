@@ -10,6 +10,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/pkg/logger"
 	"github.com/adipras/tirta-saas-backend/pkg/seeder"
 	"github.com/adipras/tirta-saas-backend/routes"
+	"github.com/adipras/tirta-saas-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -51,6 +52,14 @@ func main() {
 	if os.Getenv("AUTO_SEED_ADMIN") == "true" {
 		if err := seeder.SeedDefaultPlatformAdmin(); err != nil {
 			log.Printf("⚠️  Warning: Failed to seed platform admin: %v", err)
+		}
+	}
+
+	// Start invoice scheduler for automatic monthly generation
+	if os.Getenv("ENABLE_INVOICE_SCHEDULER") != "false" {
+		scheduler := services.NewInvoiceScheduler()
+		if err := scheduler.Start(); err != nil {
+			log.Printf("⚠️  Warning: Failed to start invoice scheduler: %v", err)
 		}
 	}
 
