@@ -27,11 +27,13 @@ const PrivateRoute = ({ children, requiredRole }: PrivateRouteProps) => {
 
   if (requiredRole && user?.role !== requiredRole) {
     // Allow platform_owner to access admin routes
+    // Allow tenant_admin to access admin routes (they are the same)
     const isAdminRoute = requiredRole === 'admin';
     const isPlatformOwner = user?.role === 'platform_owner';
+    const isTenantAdmin = user?.role === 'tenant_admin';
     
-    if (isAdminRoute && isPlatformOwner) {
-      console.log('✅ Platform owner accessing admin route - ALLOWED');
+    if (isAdminRoute && (isPlatformOwner || isTenantAdmin)) {
+      console.log('✅ Platform owner or Tenant admin accessing admin route - ALLOWED');
       return <>{children}</>;
     }
     
