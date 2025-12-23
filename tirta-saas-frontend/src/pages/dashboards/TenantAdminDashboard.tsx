@@ -3,7 +3,7 @@ import {
   CurrencyDollarIcon,
   DocumentTextIcon,
   ExclamationCircleIcon,
-  DropletIcon,
+  BeakerIcon,
   BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
@@ -41,7 +41,7 @@ export default function TenantAdminDashboard() {
       value: '12,450 m³',
       change: '+3%',
       changeType: 'increase',
-      icon: DropletIcon,
+      icon: BeakerIcon,
       color: 'bg-cyan-500',
     },
   ];
@@ -105,7 +105,7 @@ export default function TenantAdminDashboard() {
             onClick={() => navigate('/admin/usage/create')}
             className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-cyan-500 hover:bg-cyan-50 transition-colors"
           >
-            <DropletIcon className="h-8 w-8 text-cyan-600 mb-2" />
+            <BeakerIcon className="h-8 w-8 text-cyan-600 mb-2" />
             <span className="text-sm font-medium text-gray-900">Catat Pemakaian</span>
           </button>
           <button

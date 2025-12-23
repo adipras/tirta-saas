@@ -37,10 +37,11 @@ export default function SubscriptionTypeForm() {
       setFormData({
         name: data.name,
         description: data.description || '',
-        registrationFee: data.registrationFee.toString(),
-        monthlyFee: data.monthlyFee.toString(),
-        maintenanceFee: data.maintenanceFee.toString(),
-        lateFeePercentage: data.lateFeePercentage.toString(),
+        registration_fee: data.registration_fee.toString(),
+        monthly_fee: data.monthly_fee.toString(),
+        maintenance_fee: data.maintenance_fee.toString(),
+        late_fee_per_day: data.late_fee_per_day.toString(),
+        max_late_fee: data.max_late_fee.toString(),
       });
     } catch (error) {
       dispatch(addNotification({
@@ -60,24 +61,48 @@ export default function SubscriptionTypeForm() {
       newErrors.name = 'Name is required';
     }
 
-    const registrationFee = parseFloat(formData.registrationFee);
-    if (isNaN(registrationFee) || registrationFee < 0) {
-      newErrors.registrationFee = 'Registration fee must be a non-negative number';
+    // Registration Fee is required
+    if (!formData.registration_fee || formData.registration_fee.trim() === '') {
+      newErrors.registration_fee = 'Registration fee is required';
+    } else {
+      const registrationFee = parseFloat(formData.registration_fee);
+      if (isNaN(registrationFee) || registrationFee < 0) {
+        newErrors.registration_fee = 'Registration fee must be a non-negative number';
+      }
     }
 
-    const monthlyFee = parseFloat(formData.monthlyFee);
-    if (isNaN(monthlyFee) || monthlyFee < 0) {
-      newErrors.monthlyFee = 'Monthly fee must be a non-negative number';
+    // Monthly Fee is required
+    if (!formData.monthly_fee || formData.monthly_fee.trim() === '') {
+      newErrors.monthly_fee = 'Monthly fee is required';
+    } else {
+      const monthlyFee = parseFloat(formData.monthly_fee);
+      if (isNaN(monthlyFee) || monthlyFee < 0) {
+        newErrors.monthly_fee = 'Monthly fee must be a non-negative number';
+      }
     }
 
-    const maintenanceFee = parseFloat(formData.maintenanceFee);
-    if (isNaN(maintenanceFee) || maintenanceFee < 0) {
-      newErrors.maintenanceFee = 'Maintenance fee must be a non-negative number';
+    // Maintenance Fee (optional, default to 0)
+    if (formData.maintenance_fee && formData.maintenance_fee.trim() !== '') {
+      const maintenanceFee = parseFloat(formData.maintenance_fee);
+      if (isNaN(maintenanceFee) || maintenanceFee < 0) {
+        newErrors.maintenance_fee = 'Maintenance fee must be a non-negative number';
+      }
     }
 
-    const lateFeePercentage = parseFloat(formData.lateFeePercentage);
-    if (isNaN(lateFeePercentage) || lateFeePercentage < 0 || lateFeePercentage > 100) {
-      newErrors.lateFeePercentage = 'Late fee percentage must be between 0 and 100';
+    // Late Fee Per Day (optional, default to 0)
+    if (formData.late_fee_per_day && formData.late_fee_per_day.trim() !== '') {
+      const lateFeePerDay = parseFloat(formData.late_fee_per_day);
+      if (isNaN(lateFeePerDay) || lateFeePerDay < 0) {
+        newErrors.late_fee_per_day = 'Late fee per day must be a non-negative number';
+      }
+    }
+
+    // Max Late Fee (optional, default to 0)
+    if (formData.max_late_fee && formData.max_late_fee.trim() !== '') {
+      const maxLateFee = parseFloat(formData.max_late_fee);
+      if (isNaN(maxLateFee) || maxLateFee < 0) {
+        newErrors.max_late_fee = 'Max late fee must be a non-negative number';
+      }
     }
 
     setErrors(newErrors);
@@ -106,10 +131,11 @@ export default function SubscriptionTypeForm() {
       const payload = {
         name: formData.name.trim(),
         description: formData.description.trim() || undefined,
-        registrationFee: parseFloat(formData.registrationFee),
-        monthlyFee: parseFloat(formData.monthlyFee),
-        maintenanceFee: parseFloat(formData.maintenanceFee),
-        lateFeePercentage: parseFloat(formData.lateFeePercentage),
+        registration_fee: parseFloat(formData.registration_fee) || 0,
+        monthly_fee: parseFloat(formData.monthly_fee) || 0,
+        maintenance_fee: parseFloat(formData.maintenance_fee) || 0,
+        late_fee_per_day: parseFloat(formData.late_fee_per_day) || 0,
+        max_late_fee: parseFloat(formData.max_late_fee) || 0,
       };
 
       if (isEditMode && id) {
@@ -208,80 +234,81 @@ export default function SubscriptionTypeForm() {
             <h3 className="text-lg font-medium text-gray-900 mb-4">Fee Structure</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="registrationFee" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="registration_fee" className="block text-sm font-medium text-gray-700">
                   Registration Fee (IDR) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
-                  id="registrationFee"
-                  name="registrationFee"
-                  value={formData.registrationFee}
+                  id="registration_fee"
+                  name="registration_fee"
+                  value={formData.registration_fee}
                   onChange={handleChange}
                   min="0"
                   step="1000"
                   className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.registrationFee
+                    errors.registration_fee
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                   placeholder="0"
                 />
-                {errors.registrationFee && (
-                  <p className="mt-1 text-sm text-red-600">{errors.registrationFee}</p>
+                {errors.registration_fee && (
+                  <p className="mt-1 text-sm text-red-600">{errors.registration_fee}</p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="monthlyFee" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="monthly_fee" className="block text-sm font-medium text-gray-700">
                   Monthly Fee (IDR) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
-                  id="monthlyFee"
-                  name="monthlyFee"
-                  value={formData.monthlyFee}
+                  id="monthly_fee"
+                  name="monthly_fee"
+                  value={formData.monthly_fee}
                   onChange={handleChange}
                   min="0"
                   step="1000"
                   className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.monthlyFee
+                    errors.monthly_fee
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                   placeholder="0"
                 />
-                {errors.monthlyFee && (
-                  <p className="mt-1 text-sm text-red-600">{errors.monthlyFee}</p>
+                {errors.monthly_fee && (
+                  <p className="mt-1 text-sm text-red-600">{errors.monthly_fee}</p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="maintenanceFee" className="block text-sm font-medium text-gray-700">
-                  Maintenance Fee (IDR) <span className="text-red-500">*</span>
+                <label htmlFor="maintenance_fee" className="block text-sm font-medium text-gray-700">
+                  Maintenance Fee (IDR)
                 </label>
                 <input
                   type="number"
-                  id="maintenanceFee"
-                  name="maintenanceFee"
-                  value={formData.maintenanceFee}
+                  id="maintenance_fee"
+                  name="maintenance_fee"
+                  value={formData.maintenance_fee}
                   onChange={handleChange}
                   min="0"
                   step="1000"
                   className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.maintenanceFee
+                    errors.maintenance_fee
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                   placeholder="0"
                 />
-                {errors.maintenanceFee && (
-                  <p className="mt-1 text-sm text-red-600">{errors.maintenanceFee}</p>
+                {errors.maintenance_fee && (
+                  <p className="mt-1 text-sm text-red-600">{errors.maintenance_fee}</p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="lateFeePercentage" className="block text-sm font-medium text-gray-700">
-                  Late Fee Percentage (%) <span className="text-red-500">*</span>
+                <label htmlFor="late_fee_per_day" className="block text-sm font-medium text-gray-700">
+                  Late Fee Per Day (IDR)
+                </label>
                 </label>
                 <input
                   type="number"
