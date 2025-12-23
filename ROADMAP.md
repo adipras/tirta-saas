@@ -103,12 +103,15 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 ### 🟡 Payment Processing (PARTIAL)
 - [x] List payments
 - [x] Record payment
-- [ ] **CRITICAL:** Payment gateway integration (Midtrans/Xendit)
-- [ ] **CRITICAL:** Customer self-service payment portal
-- [ ] **IMPROVE:** Multiple payment methods
+- [x] **MVP:** Manual payment with bank transfer/QR - DONE
+- [x] **MVP:** Payment settings (bank accounts, QR codes) - DONE
+- [x] **MVP:** Display payment info to customers - DONE
+- [ ] **CRITICAL:** Payment confirmation workflow (customer → admin approval)
 - [ ] **IMPROVE:** Payment receipt auto-generation
 - [ ] **IMPROVE:** Payment reminder system
-- [ ] **IMPROVE:** Installment payment
+- [ ] **LATER:** Payment gateway integration (Midtrans/Xendit)
+- [ ] **LATER:** Multiple payment methods
+- [ ] **LATER:** Installment payment
 - [ ] **FIX:** Payment reconciliation
 
 ### 🔴 Reports & Analytics (TODO)
@@ -181,12 +184,16 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 
 ### ✅ Frontend (COMPLETE - MVP Done - Dec 23, 2024)
 - [x] Sidebar menu role-based filtering - DONE
+- [x] **MVP:** Landing page with call-to-action - DONE
 - [x] **MVP:** Public tenant registration page (/register) - DONE
 - [x] **MVP:** Pending tenants list page - DONE
 - [x] **MVP:** Tenant approval/rejection UI - DONE
 - [x] **MVP:** Tenant list with status badges - DONE
 - [x] **MVP:** Tenant details modal - DONE
 - [x] **MVP:** Statistics dashboard cards - DONE
+- [x] **MVP:** Platform Owner dashboard - DONE
+- [x] **MVP:** Tenant Admin dashboard - DONE
+- [x] **MVP:** Payment settings management - DONE
 - [ ] **LATER:** Detailed analytics charts
 - [ ] **LATER:** Subscription plan management UI
 
@@ -220,24 +227,39 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
    - [x] Status tracking and approval workflow
    - [x] End-to-end flow tested and working
 
-3. **Payment Integration** (4-5 days) - NEXT PRIORITY
-   - [ ] Integrate payment gateway (Midtrans/Xendit)
-   - [ ] Customer payment portal
-   - [ ] Auto receipt generation
-   - [ ] Payment webhooks handling
+3. ✅ **Landing Page & Manual Payment** - COMPLETED (Dec 23, 2024)
+   - [x] Professional landing page
+   - [x] Payment settings for Platform Owner
+   - [x] Payment settings for Tenant Admin
+   - [x] Display payment info to customers
+   - [x] Role-based dashboards
 
-4. **Meter Reading** (5-7 days)
-   - [ ] Mobile app for meter readers
-   - [ ] Offline capability
-   - [ ] Photo upload & validation
+4. **Payment Confirmation Workflow** (1-2 days) - NEXT PRIORITY
+   - [ ] Customer submits payment proof (with photo)
+   - [ ] Admin reviews pending payments
+   - [ ] Approve/reject payment confirmation
+   - [ ] Auto-update invoice status
+   - [ ] Notification to customer
 
-5. **Reports** (2-3 days)
+5. **Customer Portal** (2-3 days)
+   - [ ] Customer login
+   - [ ] View invoices
+   - [ ] View payment history
+   - [ ] Submit payment proof
+   - [ ] View water usage
+
+6. **Reports** (2-3 days)
    - [ ] Monthly collection report
    - [ ] Outstanding payments
    - [ ] Export functionality (Excel/PDF)
 
-6. **Notifications** (2-3 days)
-   - [ ] WhatsApp integration
+7. **Meter Reading** (5-7 days) - LATER
+   - [ ] Mobile app for meter readers
+   - [ ] Offline capability
+   - [ ] Photo upload & validation
+
+8. **Notifications** (2-3 days) - SKIP FOR NOW
+   - [ ] WhatsApp integration (requires API)
    - [ ] Bill reminders
    - [ ] Payment confirmations
 
@@ -266,36 +288,46 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 - [x] ✅ Invoice Auto-Generation (COMPLETED - Dec 22)
 - [x] ✅ Tenant Registration Backend (COMPLETED - Dec 22)
 - [x] ✅ Tenant Registration Frontend (COMPLETED - Dec 23)
-- [ ] 🔄 Begin Payment Gateway Integration (Dec 23-27)
+- [x] ✅ Landing Page (COMPLETED - Dec 23)
+- [x] ✅ Role-Based Dashboards (COMPLETED - Dec 23)
+- [x] ✅ Payment Settings (Manual Payment) (COMPLETED - Dec 23)
+- [ ] 🔄 Payment Confirmation Workflow (Dec 24-25)
 
-### Next Sprint (Week of Dec 29, 2024 - Jan 4, 2025)
-**Focus: Payment Integration & Reports**
+### Next Sprint (Week of Dec 24-30, 2024)
+**Focus: Payment Confirmation & Customer Portal**
 
-#### Week 1 (Dec 23-29)
+#### Week 1 (Dec 24-30)
 - [x] ✅ Complete tenant registration frontend (Dec 23) - DONE
-- [ ] Payment gateway integration Phase 1 (setup & basic flow)
-- [ ] Monthly collection reports (basic version)
+- [x] ✅ Landing page (Dec 23) - DONE
+- [x] ✅ Payment settings (Dec 23) - DONE
+- [ ] Payment confirmation workflow (Dec 24-25)
+- [ ] Customer portal (Dec 26-27)
+- [ ] Monthly collection reports (Dec 28-29)
 
-#### Week 2 (Dec 30 - Jan 5)
-- [ ] Payment gateway integration Phase 2 (webhooks & receipts)
-- [ ] WhatsApp/SMS notifications setup
-- [ ] Mobile meter reading app - Planning
+#### Week 2 (Dec 31 - Jan 6)
+- [ ] Bulk customer import
+- [ ] Customer management improvements
+- [ ] Bug fixes & refinements
+- [ ] Performance optimization
 
 ### Q1 2025 (Jan-Mar): Core Features Completion
 **Focus: Make Tenant Admin Fully Functional**
 
 #### January 2025
 - [x] ✅ Invoice auto-generation - DONE (Dec 22)
-- [ ] Payment gateway integration
-- [ ] Mobile meter reading app
+- [x] ✅ Tenant registration - DONE (Dec 23)
+- [x] ✅ Landing page - DONE (Dec 23)
+- [x] ✅ Manual payment settings - DONE (Dec 23)
+- [ ] Payment confirmation workflow
+- [ ] Customer portal
 - [ ] Monthly collection report
-- [ ] Notification system
+- [ ] Bulk customer import
 
 #### February 2025
-- [ ] Customer payment portal
 - [ ] Outstanding payments report
-- [ ] Bulk customer import
 - [ ] Service request system
+- [ ] Mobile meter reading app (planning)
+- [ ] Progressive tariff calculation
 
 #### March 2025
 - [ ] Complaint management
@@ -493,17 +525,21 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 - Role-based menu filtering
 - **✅ Invoice Auto-Generation (100%)** ⭐
 - **✅ Tenant Self-Service Registration (100%)** ⭐
+- **✅ Landing Page (100%)** ⭐
+- **✅ Role-Based Dashboards (100%)** ⭐
+- **✅ Manual Payment Settings (100%)** ⭐
 
 ### 🔴 CRITICAL TODO (Next 3 Months)
 1. ✅ ~~Auto invoice generation~~ - DONE (Dec 22)
 2. ✅ ~~Tenant self-service registration~~ - DONE (Dec 23)
-3. Payment gateway integration - IN PROGRESS (Starting Dec 23)
-4. Customer payment portal
-5. Mobile meter reading app
-6. Notification system (WhatsApp/SMS)
-7. Monthly collection report
+3. ✅ ~~Landing page & manual payment~~ - DONE (Dec 23)
+4. **Payment confirmation workflow** - NEXT (Dec 24-25)
+5. **Customer portal** - NEXT (Dec 26-27)
+6. **Monthly collection report** - NEXT (Dec 28-29)
+7. Bulk customer import
 8. Outstanding payments report
-9. Bulk customer import
+9. Mobile meter reading app (later)
+10. Notification system (skip for now)
 
 ### ⏸️ BACKLOG (After Core Stable)
 - Service request management
@@ -528,7 +564,10 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 
 ### Recent Wins (Dec 22-23):
 - ✅ Invoice auto-generation saves 99.99% time (83h → 30s/month)
-- ✅ Tenant registration now fully self-service
+- ✅ Tenant registration now fully self-service (visitor → active tenant)
+- ✅ Professional landing page improves first impression
+- ✅ Role-based dashboards show contextual information
+- ✅ Manual payment option eliminates gateway dependency
 - ✅ Platform owner can manage tenants without developer help
 - ✅ 14-day trial system works automatically
 - ✅ Status tracking from TRIAL → ACTIVE complete
@@ -541,13 +580,16 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 
 ---
 
-**Document Version:** 1.1
-**Last Updated:** 2024-12-23
+**Document Version:** 1.2
+**Last Updated:** 2024-12-23 17:00 WIB
 **Next Review:** 2025-01-15
 
 **Status:** 🟢 Active Development
-**Current Sprint:** Phase 1 - Core Features (Invoice ✅ + Registration ✅)
-**Next Milestone:** Payment Gateway Integration (Dec 23-30, 2024)
+**Current Sprint:** Phase 1 - Core MVP Features
+**Next Milestone:** Payment Confirmation & Customer Portal (Dec 24-27, 2024)
 **Completed This Week:** 
 - ✅ Invoice Auto-Generation (Dec 22)
 - ✅ Tenant Self-Service Registration (Dec 23)
+- ✅ Landing Page (Dec 23)
+- ✅ Role-Based Dashboards (Dec 23)
+- ✅ Manual Payment Settings (Dec 23)

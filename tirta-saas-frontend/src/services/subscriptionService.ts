@@ -27,45 +27,46 @@ class SubscriptionService {
       ...(search && { search }),
     };
 
-    const response = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.LIST, {
+    const data = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.LIST, {
       params,
     });
-    return response.data;
+    
+    // Handle both array response and paginated response
+    if (Array.isArray(data)) {
+      return {
+        data: data,
+        total: data.length,
+        page: 1,
+        limit: data.length,
+        totalPages: 1,
+      };
+    }
+    
+    return data;
   }
 
   async getAllSubscriptionTypes(): Promise<SubscriptionType[]> {
-    const response = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.LIST, {
+    const data = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.LIST, {
       params: { limit: 1000 },
     });
-    return response.data.data || response.data;
+    return Array.isArray(data) ? data : data.data || [];
   }
 
   async getSubscriptionType(id: string): Promise<SubscriptionType> {
-    const response = await apiClient.get(
-      API_ENDPOINTS.SUBSCRIPTION_TYPES.DETAIL(id)
-    );
-    return response.data;
+    return await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.DETAIL(id));
   }
 
   async createSubscriptionType(
     data: CreateSubscriptionTypeDto
   ): Promise<SubscriptionType> {
-    const response = await apiClient.post(
-      API_ENDPOINTS.SUBSCRIPTION_TYPES.CREATE,
-      data
-    );
-    return response.data;
+    return await apiClient.post(API_ENDPOINTS.SUBSCRIPTION_TYPES.CREATE, data);
   }
 
   async updateSubscriptionType(
     id: string,
     data: UpdateSubscriptionTypeDto
   ): Promise<SubscriptionType> {
-    const response = await apiClient.put(
-      API_ENDPOINTS.SUBSCRIPTION_TYPES.UPDATE(id),
-      data
-    );
-    return response.data;
+    return await apiClient.put(API_ENDPOINTS.SUBSCRIPTION_TYPES.UPDATE(id), data);
   }
 
   async deleteSubscriptionType(id: string): Promise<void> {

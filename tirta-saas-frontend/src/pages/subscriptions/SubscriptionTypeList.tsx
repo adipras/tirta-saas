@@ -32,14 +32,35 @@ export default function SubscriptionTypeList() {
         10, 
         search || undefined
       );
-      setSubscriptionTypes(response.data);
-      setTotalPages(response.totalPages);
+      console.log('Subscription Types Response:', response);
+      
+      // Response is already formatted by service with {data, totalPages}
+      if (response && response.data) {
+        // Convert string numbers to actual numbers
+        const processedData = response.data.map((item: any) => ({
+          ...item,
+          registration_fee: Number(item.registration_fee),
+          monthly_fee: Number(item.monthly_fee),
+          maintenance_fee: Number(item.maintenance_fee),
+          late_fee_per_day: Number(item.late_fee_per_day),
+          max_late_fee: Number(item.max_late_fee),
+        }));
+        setSubscriptionTypes(processedData);
+        setTotalPages(response.totalPages || 1);
+      } else {
+        console.error('Invalid response format:', response);
+        setSubscriptionTypes([]);
+        setTotalPages(1);
+      }
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
         message: 'Failed to fetch subscription types',
       }));
       console.error('Error fetching subscription types:', error);
+      console.error('Error details:', error.response || error.message);
+      setSubscriptionTypes([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -89,48 +110,48 @@ export default function SubscriptionTypeList() {
     {
       key: 'description',
       label: 'Description',
-      render: (row: SubscriptionType) => row.description || '-',
+      render: (_value: any, row: SubscriptionType) => row.description || '-',
     },
     {
       key: 'registration_fee',
       label: 'Registration Fee',
-      render: (row: SubscriptionType) => formatCurrency(row.registration_fee),
+      render: (_value: any, row: SubscriptionType) => formatCurrency(row.registration_fee),
       align: 'right' as const,
     },
     {
       key: 'monthly_fee',
       label: 'Monthly Fee',
-      render: (row: SubscriptionType) => formatCurrency(row.monthly_fee),
+      render: (_value: any, row: SubscriptionType) => formatCurrency(row.monthly_fee),
       align: 'right' as const,
     },
     {
       key: 'maintenance_fee',
       label: 'Maintenance Fee',
-      render: (row: SubscriptionType) => formatCurrency(row.maintenance_fee),
+      render: (_value: any, row: SubscriptionType) => formatCurrency(row.maintenance_fee),
       align: 'right' as const,
     },
     {
       key: 'late_fee_per_day',
       label: 'Late Fee/Day',
-      render: (row: SubscriptionType) => formatCurrency(row.late_fee_per_day),
+      render: (_value: any, row: SubscriptionType) => formatCurrency(row.late_fee_per_day),
       align: 'right' as const,
     },
     {
       key: 'max_late_fee',
       label: 'Max Late Fee',
-      render: (row: SubscriptionType) => formatCurrency(row.max_late_fee),
+      render: (_value: any, row: SubscriptionType) => formatCurrency(row.max_late_fee),
       align: 'right' as const,
     },
     {
       key: 'created_at',
       label: 'Created At',
-      render: (row: SubscriptionType) => new Date(row.created_at).toLocaleDateString('id-ID'),
+      render: (_value: any, row: SubscriptionType) => new Date(row.created_at).toLocaleDateString('id-ID'),
       align: 'center' as const,
     },
     {
       key: 'actions',
       label: 'Actions',
-      render: (row: SubscriptionType) => (
+      render: (_value: any, row: SubscriptionType) => (
         <div className="flex space-x-2">
           <button
             onClick={() => navigate(`/admin/subscriptions/edit/${row.id}`)}
