@@ -7,6 +7,7 @@ import { ToastProvider, ErrorBoundary, PrivateRoute } from './components';
 import DashboardLayout from './layouts/DashboardLayout';
 import CustomerLayout from './layouts/CustomerLayout';
 import Dashboard from './pages/Dashboard';
+import RoleBasedDashboard from './pages/RoleBasedDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
 import AdminLogin from './pages/auth/AdminLogin';
 import CustomerLogin from './pages/auth/CustomerLogin';
