@@ -58,6 +58,7 @@ export default function TenantPaymentSettings() {
 
   useEffect(() => {
     loadSettings();
+  }, []);
 
   const loadSettings = async () => {
     try {

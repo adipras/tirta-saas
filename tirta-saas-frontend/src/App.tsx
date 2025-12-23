@@ -40,6 +40,7 @@ import { TenantManagement } from './pages/platform';
 import { TenantPaymentVerification } from './pages/tenant-payments';
 import { PlatformSubscriptionVerification } from './pages/platform-payments';
 import { TenantPaymentSettings, PlatformPaymentSettings } from './pages/settings';
+import { LandingPage } from './pages/public';
 import TenantRegistration from './pages/auth/TenantRegistration';
 import NotFound from './pages/NotFound';
 import TestPage from './pages/TestPage';
