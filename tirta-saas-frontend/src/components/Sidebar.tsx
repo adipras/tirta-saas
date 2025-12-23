@@ -11,6 +11,7 @@ import {
   CurrencyDollarIcon,
   BuildingOfficeIcon,
   ClipboardDocumentListIcon,
+  CheckBadgeIcon,
 } from '@heroicons/react/24/outline';
 import { authService } from '../services/authService';
 
@@ -27,6 +28,12 @@ const allNavigation = [
     name: 'Tenants', 
     href: '/admin/platform/tenants', 
     icon: BuildingOfficeIcon,
+    roles: ['PLATFORM_OWNER'],
+  },
+  { 
+    name: 'Subscription Payments', 
+    href: '/admin/platform/subscription-payments', 
+    icon: CheckBadgeIcon,
     roles: ['PLATFORM_OWNER'],
   },
   { 
@@ -77,6 +84,12 @@ const allNavigation = [
     name: 'Payments', 
     href: '/admin/payments', 
     icon: CreditCardIcon,
+    roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'],
+  },
+  { 
+    name: 'Payment Verification', 
+    href: '/admin/payment-verification', 
+    icon: CheckBadgeIcon,
     roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'],
   },
   { 

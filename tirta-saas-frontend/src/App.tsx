@@ -34,9 +34,11 @@ import {
 } from './pages/reports';
 import { CustomerProfile, CustomerProfileEdit, ChangePassword } from './pages/customer-profile';
 import { CustomerInvoiceList, CustomerInvoiceDetail } from './pages/customer-invoices';
-import { CustomerPaymentForm, PaymentSuccess } from './pages/customer-payments';
+import { CustomerPaymentForm, PaymentSuccess, CustomerPaymentInfo, CustomerPaymentConfirmation } from './pages/customer-payments';
 import { CustomerUsageMonitor } from './pages/customer-usage';
 import { TenantManagement } from './pages/platform';
+import { TenantPaymentVerification } from './pages/tenant-payments';
+import { PlatformSubscriptionVerification } from './pages/platform-payments';
 import TenantRegistration from './pages/auth/TenantRegistration';
 import NotFound from './pages/NotFound';
 import TestPage from './pages/TestPage';
@@ -127,6 +129,10 @@ function App() {
               
               {/* Platform Owner Routes */}
               <Route path="platform/tenants" element={<TenantManagement />} />
+              <Route path="platform/subscription-payments" element={<PlatformSubscriptionVerification />} />
+              
+              {/* Tenant Admin - Payment Verification */}
+              <Route path="payment-verification" element={<TenantPaymentVerification />} />
             </Route>
 
             {/* Customer Routes */}
@@ -143,6 +149,8 @@ function App() {
               <Route path="invoices" element={<CustomerInvoiceList />} />
               <Route path="invoices/:id" element={<CustomerInvoiceDetail />} />
               <Route path="payments/new" element={<CustomerPaymentForm />} />
+              <Route path="payments/info" element={<CustomerPaymentInfo />} />
+              <Route path="payments/confirm" element={<CustomerPaymentConfirmation />} />
               <Route path="payments/success" element={<PaymentSuccess />} />
               <Route path="usage" element={<CustomerUsageMonitor />} />
             </Route>
