@@ -309,28 +309,53 @@ export default function SubscriptionTypeForm() {
                 <label htmlFor="late_fee_per_day" className="block text-sm font-medium text-gray-700">
                   Late Fee Per Day (IDR)
                 </label>
-                </label>
                 <input
                   type="number"
-                  id="lateFeePercentage"
-                  name="lateFeePercentage"
-                  value={formData.lateFeePercentage}
+                  id="late_fee_per_day"
+                  name="late_fee_per_day"
+                  value={formData.late_fee_per_day}
                   onChange={handleChange}
                   min="0"
-                  max="100"
-                  step="0.1"
+                  step="1000"
                   className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.lateFeePercentage
+                    errors.late_fee_per_day
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
                   placeholder="0"
                 />
-                {errors.lateFeePercentage && (
-                  <p className="mt-1 text-sm text-red-600">{errors.lateFeePercentage}</p>
+                {errors.late_fee_per_day && (
+                  <p className="mt-1 text-sm text-red-600">{errors.late_fee_per_day}</p>
                 )}
                 <p className="mt-1 text-sm text-gray-500">
-                  Percentage applied to overdue invoices
+                  Daily late payment fee (IDR per day)
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="max_late_fee" className="block text-sm font-medium text-gray-700">
+                  Max Late Fee (IDR)
+                </label>
+                <input
+                  type="number"
+                  id="max_late_fee"
+                  name="max_late_fee"
+                  value={formData.max_late_fee}
+                  onChange={handleChange}
+                  min="0"
+                  step="1000"
+                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
+                    errors.max_late_fee
+                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                  }`}
+                  placeholder="0"
+                />
+                {errors.max_late_fee && (
+                  <p className="mt-1 text-sm text-red-600">{errors.max_late_fee}</p>
+                )}
+                <p className="mt-1 text-sm text-gray-500">
+                  Maximum cap for late fees
                 </p>
               </div>
             </div>
