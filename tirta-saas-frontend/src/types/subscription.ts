@@ -7,9 +7,9 @@ export interface SubscriptionType {
   maintenance_fee: number;
   late_fee_per_day: number;
   max_late_fee: number;
-  is_active: boolean;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
+  is_active?: boolean;
 }
 
 export interface CreateSubscriptionTypeDto {

@@ -116,29 +116,15 @@ export default function SubscriptionTypeList() {
       align: 'right' as const,
     },
     {
-      key: 'is_active',
-      label: 'Status',
-      render: (row: SubscriptionType) => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            row.isActive
-              ? 'bg-green-100 text-green-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {row.isActive ? (
-            <>
-              <CheckCircleIcon className="w-4 h-4 mr-1" />
-              Active
-            </>
-          ) : (
-            <>
-              <XCircleIcon className="w-4 h-4 mr-1" />
-              Inactive
-            </>
-          )}
-        </span>
-      ),
+      key: 'max_late_fee',
+      label: 'Max Late Fee',
+      render: (row: SubscriptionType) => formatCurrency(row.max_late_fee),
+      align: 'right' as const,
+    },
+    {
+      key: 'created_at',
+      label: 'Created At',
+      render: (row: SubscriptionType) => new Date(row.created_at).toLocaleDateString('id-ID'),
       align: 'center' as const,
     },
     {
