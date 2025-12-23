@@ -51,6 +51,7 @@ export default function CustomerPaymentInfo() {
       setLoading(false);
     }
     loadPaymentSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceId]);
 
   const loadPaymentSettings = async () => {
@@ -59,6 +60,9 @@ export default function CustomerPaymentInfo() {
       // const settings = await settingsService.getTenantPaymentSettings();
       // setBankAccounts(settings.bankAccounts.filter(b => b.isActive));
       // setQRCodes(settings.qrCodes.filter(q => q.isActive));
+      
+      // For now using mock data above
+      console.log('Using mock payment settings');
     } catch (error) {
       console.error('Failed to load payment settings:', error);
     }

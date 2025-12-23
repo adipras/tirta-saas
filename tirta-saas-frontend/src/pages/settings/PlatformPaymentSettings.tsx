@@ -28,8 +28,9 @@ interface PlatformQRCode {
   description?: string;
 }
 
+type QRCodeType = 'QRIS' | 'DANA' | 'GOPAY' | 'OVO' | 'SHOPEEPAY';
+
 export default function PlatformPaymentSettings() {
-  const [loading, setLoading] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<PlatformBankAccount[]>([]);
   const [qrCodes, setQRCodes] = useState<PlatformQRCode[]>([]);
   const [showBankModal, setShowBankModal] = useState(false);
@@ -48,10 +49,15 @@ export default function PlatformPaymentSettings() {
     isPrimary: false,
   });
 
-  const [qrForm, setQRForm] = useState({
-    type: 'QRIS' as const,
+  const [qrForm, setQRForm] = useState<{
+    type: QRCodeType;
+    description: string;
+    imageFile: File | null;
+    isActive: boolean;
+  }>({
+    type: 'QRIS',
     description: '',
-    imageFile: null as File | null,
+    imageFile: null,
     isActive: true,
   });
 
@@ -61,7 +67,6 @@ export default function PlatformPaymentSettings() {
 
   const loadSettings = async () => {
     try {
-      setLoading(true);
       // TODO: API call
       // const data = await platformService.getPaymentSettings();
       
@@ -93,8 +98,6 @@ export default function PlatformPaymentSettings() {
       setQRCodes(mockQR);
     } catch (error) {
       console.error('Failed to load settings:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -580,7 +583,7 @@ export default function PlatformPaymentSettings() {
                     </label>
                     <select
                       value={qrForm.type}
-                      onChange={(e) => setQRForm({ ...qrForm, type: e.target.value as any })}
+                      onChange={(e) => setQRForm({ ...qrForm, type: e.target.value as QRCodeType })}
                       className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                       required
                     >

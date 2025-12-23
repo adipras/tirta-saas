@@ -3,7 +3,6 @@ import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
-  CheckCircleIcon,
   XMarkIcon,
   BuildingLibraryIcon,
   QrCodeIcon,
@@ -27,8 +26,9 @@ interface QRCode {
   isActive: boolean;
 }
 
+type QRCodeType = 'QRIS' | 'DANA' | 'GOPAY' | 'OVO' | 'SHOPEEPAY';
+
 export default function TenantPaymentSettings() {
-  const [loading, setLoading] = useState(false);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [qrCodes, setQRCodes] = useState<QRCode[]>([]);
   const [showBankModal, setShowBankModal] = useState(false);
@@ -46,19 +46,21 @@ export default function TenantPaymentSettings() {
     isPrimary: false,
   });
 
-  const [qrForm, setQRForm] = useState({
-    type: 'QRIS' as const,
-    imageFile: null as File | null,
+  const [qrForm, setQRForm] = useState<{
+    type: QRCodeType;
+    imageFile: File | null;
+    isActive: boolean;
+  }>({
+    type: 'QRIS',
+    imageFile: null,
     isActive: true,
   });
 
   useEffect(() => {
     loadSettings();
-  }, []);
 
   const loadSettings = async () => {
     try {
-      setLoading(true);
       // TODO: API call
       // const data = await settingsService.getPaymentSettings();
       
@@ -88,8 +90,6 @@ export default function TenantPaymentSettings() {
       setQRCodes(mockQR);
     } catch (error) {
       console.error('Failed to load settings:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -553,7 +553,7 @@ export default function TenantPaymentSettings() {
                     </label>
                     <select
                       value={qrForm.type}
-                      onChange={(e) => setQRForm({ ...qrForm, type: e.target.value as any })}
+                      onChange={(e) => setQRForm({ ...qrForm, type: e.target.value as QRCodeType })}
                       className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
                       required
                     >
