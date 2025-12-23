@@ -55,7 +55,8 @@ function App() {
           <ToastProvider>
             <Router>
             <Routes>
-            <Route path="/" element={<Navigate to="/admin/login" replace />} />
+            {/* Public Routes - Landing Page First */}
+            <Route path="/" element={<LandingPage />} />
             
             {/* Debug route */}
             <Route path="/debug" element={

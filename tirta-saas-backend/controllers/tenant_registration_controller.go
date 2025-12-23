@@ -11,6 +11,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // PublicTenantRegistration handles public tenant registration (no authentication required)
@@ -125,6 +126,7 @@ func PublicTenantRegistration(c *gin.Context) {
 
 	// Create default tenant settings
 	tenantSettings := models.TenantSettings{
+		BaseModel:           models.BaseModel{ID: uuid.New()}, // Explicitly generate UUID
 		TenantID:            tenant.ID,
 		CompanyName:         req.OrganizationName,
 		Address:             req.Address,
