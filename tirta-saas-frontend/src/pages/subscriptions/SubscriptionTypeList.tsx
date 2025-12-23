@@ -92,31 +92,31 @@ export default function SubscriptionTypeList() {
       render: (row: SubscriptionType) => row.description || '-',
     },
     {
-      key: 'registrationFee',
+      key: 'registration_fee',
       label: 'Registration Fee',
-      render: (row: SubscriptionType) => formatCurrency(row.registrationFee),
+      render: (row: SubscriptionType) => formatCurrency(row.registration_fee),
       align: 'right' as const,
     },
     {
-      key: 'monthlyFee',
+      key: 'monthly_fee',
       label: 'Monthly Fee',
-      render: (row: SubscriptionType) => formatCurrency(row.monthlyFee),
+      render: (row: SubscriptionType) => formatCurrency(row.monthly_fee),
       align: 'right' as const,
     },
     {
-      key: 'maintenanceFee',
+      key: 'maintenance_fee',
       label: 'Maintenance Fee',
-      render: (row: SubscriptionType) => formatCurrency(row.maintenanceFee),
+      render: (row: SubscriptionType) => formatCurrency(row.maintenance_fee),
       align: 'right' as const,
     },
     {
-      key: 'lateFeePercentage',
-      label: 'Late Fee %',
-      render: (row: SubscriptionType) => `${row.lateFeePercentage}%`,
-      align: 'center' as const,
+      key: 'late_fee_per_day',
+      label: 'Late Fee/Day',
+      render: (row: SubscriptionType) => formatCurrency(row.late_fee_per_day),
+      align: 'right' as const,
     },
     {
-      key: 'isActive',
+      key: 'is_active',
       label: 'Status',
       render: (row: SubscriptionType) => (
         <span
