@@ -36,6 +36,8 @@ import { CustomerProfile, CustomerProfileEdit, ChangePassword } from './pages/cu
 import { CustomerInvoiceList, CustomerInvoiceDetail } from './pages/customer-invoices';
 import { CustomerPaymentForm, PaymentSuccess } from './pages/customer-payments';
 import { CustomerUsageMonitor } from './pages/customer-usage';
+import { TenantManagement } from './pages/platform';
+import TenantRegistration from './pages/auth/TenantRegistration';
 import NotFound from './pages/NotFound';
 import TestPage from './pages/TestPage';
 
@@ -64,6 +66,9 @@ function App() {
               </div>
             } />
 
+            {/* Public Routes */}
+            <Route path="/register" element={<TenantRegistration />} />
+            
             {/* Auth Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/customer/login" element={<CustomerLogin />} />
@@ -119,6 +124,9 @@ function App() {
               <Route path="usage/create" element={<MeterReadingForm />} />
               <Route path="usage/edit/:id" element={<MeterReadingForm />} />
               <Route path="usage/:customerId/history" element={<UsageHistory />} />
+              
+              {/* Platform Owner Routes */}
+              <Route path="platform/tenants" element={<TenantManagement />} />
             </Route>
 
             {/* Customer Routes */}

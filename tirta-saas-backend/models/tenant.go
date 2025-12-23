@@ -30,7 +30,7 @@ type Tenant struct {
 	AdminName     string `gorm:"type:varchar(100)" json:"admin_name"` // Name of person who registered
 	AdminEmail    string `gorm:"type:varchar(100)" json:"admin_email"` // Email of admin user
 	AdminPhone    string `gorm:"type:varchar(20)" json:"admin_phone"`
-	RegisteredAt  time.Time `gorm:"not null;default:CURRENT_TIMESTAMP" json:"registered_at"`
+	RegisteredAt  time.Time `gorm:"autoCreateTime" json:"registered_at"`
 	
 	// Trial Information
 	TrialEndsAt   *time.Time `json:"trial_ends_at,omitempty"`

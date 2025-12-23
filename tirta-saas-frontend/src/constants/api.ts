@@ -77,4 +77,16 @@ export const API_ENDPOINTS = {
     OUTSTANDING: '/reports/outstanding',
     EXPORT: '/reports/export',
   },
+  PLATFORM: {
+    TENANTS: '/platform/tenants',
+    PENDING_TENANTS: '/platform/tenants/pending',
+    TENANT_DETAIL: (id: string) => `/platform/tenants/${id}`,
+    APPROVE_TENANT: (id: string) => `/platform/tenants/${id}/approve`,
+    REJECT_TENANT: (id: string) => `/platform/tenants/${id}/reject`,
+    SUSPEND_TENANT: (id: string) => `/platform/tenants/${id}/suspend`,
+    ACTIVATE_TENANT: (id: string) => `/platform/tenants/${id}/activate`,
+  },
+  PUBLIC: {
+    REGISTER: '/public/register',
+  },
 };
