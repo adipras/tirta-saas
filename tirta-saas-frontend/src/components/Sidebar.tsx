@@ -48,6 +48,12 @@ const allNavigation = [
     icon: ChartBarIcon,
     roles: ['PLATFORM_OWNER'],
   },
+  { 
+    name: 'Platform Settings', 
+    href: '/admin/platform/settings', 
+    icon: CogIcon,
+    roles: ['PLATFORM_OWNER'],
+  },
   
   // Tenant Admin Menu (Water Operations)
   { 
@@ -108,7 +114,7 @@ const allNavigation = [
     name: 'Settings', 
     href: '/admin/settings', 
     icon: CogIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN', 'PLATFORM_OWNER'],
+    roles: ['ADMIN', 'TENANT_ADMIN'],
   },
 ];
 

@@ -39,6 +39,7 @@ import { CustomerUsageMonitor } from './pages/customer-usage';
 import { TenantManagement } from './pages/platform';
 import { TenantPaymentVerification } from './pages/tenant-payments';
 import { PlatformSubscriptionVerification } from './pages/platform-payments';
+import { TenantPaymentSettings, PlatformPaymentSettings } from './pages/settings';
 import TenantRegistration from './pages/auth/TenantRegistration';
 import NotFound from './pages/NotFound';
 import TestPage from './pages/TestPage';
@@ -121,7 +122,7 @@ function App() {
               <Route path="reports/payments" element={<PaymentReport />} />
               <Route path="reports/usage" element={<UsageReport />} />
               <Route path="reports/outstanding" element={<OutstandingReport />} />
-              <Route path="settings" element={<div>Settings Page</div>} />
+              <Route path="settings" element={<TenantPaymentSettings />} />
               <Route path="usage" element={<UsageList />} />
               <Route path="usage/create" element={<MeterReadingForm />} />
               <Route path="usage/edit/:id" element={<MeterReadingForm />} />
@@ -130,6 +131,7 @@ function App() {
               {/* Platform Owner Routes */}
               <Route path="platform/tenants" element={<TenantManagement />} />
               <Route path="platform/subscription-payments" element={<PlatformSubscriptionVerification />} />
+              <Route path="platform/settings" element={<PlatformPaymentSettings />} />
               
               {/* Tenant Admin - Payment Verification */}
               <Route path="payment-verification" element={<TenantPaymentVerification />} />

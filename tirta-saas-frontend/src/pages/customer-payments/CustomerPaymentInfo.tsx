@@ -20,8 +20,8 @@ export default function CustomerPaymentInfo() {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Bank accounts dari tenant settings (would be fetched from API)
-  const [bankAccounts] = useState([
+  // Bank accounts dari tenant settings (fetched from API)
+  const [bankAccounts, setBankAccounts] = useState([
     {
       id: '1',
       bankName: 'Bank BCA',
@@ -36,13 +36,33 @@ export default function CustomerPaymentInfo() {
     },
   ]);
 
+  const [qrCodes, setQRCodes] = useState([
+    {
+      id: '1',
+      type: 'QRIS',
+      imageUrl: '/uploads/qris.png',
+    },
+  ]);
+
   useEffect(() => {
     if (invoiceId) {
       loadInvoice();
     } else {
       setLoading(false);
     }
+    loadPaymentSettings();
   }, [invoiceId]);
+
+  const loadPaymentSettings = async () => {
+    try {
+      // TODO: API call to get tenant payment settings
+      // const settings = await settingsService.getTenantPaymentSettings();
+      // setBankAccounts(settings.bankAccounts.filter(b => b.isActive));
+      // setQRCodes(settings.qrCodes.filter(q => q.isActive));
+    } catch (error) {
+      console.error('Failed to load payment settings:', error);
+    }
+  };
 
   const loadInvoice = async () => {
     try {
@@ -196,15 +216,34 @@ export default function CustomerPaymentInfo() {
           <QrCodeIcon className="h-6 w-6 mr-2 text-blue-600" />
           QRIS Payment
         </h2>
-        <div className="flex flex-col items-center py-6">
-          <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-            <div className="text-center">
-              <QrCodeIcon className="h-20 w-20 mx-auto text-gray-400 mb-2" />
-              <p className="text-sm text-gray-500">Scan with any e-wallet</p>
+        {qrCodes.length > 0 ? (
+          <div className="flex flex-col items-center py-6">
+            <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200 overflow-hidden">
+              <img
+                src={qrCodes[0].imageUrl}
+                alt="QR Code"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.parentElement!.innerHTML = `
+                    <div class="text-center">
+                      <svg class="h-20 w-20 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                      </svg>
+                      <p class="text-sm text-gray-500 mt-2">QR Code</p>
+                    </div>
+                  `;
+                }}
+              />
             </div>
+            <p className="mt-3 text-sm text-gray-600">GoPay, OVO, Dana, ShopeePay</p>
           </div>
-          <p className="mt-3 text-sm text-gray-600">GoPay, OVO, Dana, ShopeePay</p>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center py-6">
+            <QrCodeIcon className="h-20 w-20 text-gray-400 mb-2" />
+            <p className="text-sm text-gray-500">QR Code not available</p>
+          </div>
+        )}
       </div>
 
       {/* Confirm Button */}
