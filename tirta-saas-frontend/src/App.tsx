@@ -94,7 +94,7 @@ function App() {
             }>
               <Route index element={
                 <ErrorBoundary>
-                  <Dashboard />
+                  <RoleBasedDashboard />
                 </ErrorBoundary>
               } />
               <Route path="test" element={<TestPage />} />
