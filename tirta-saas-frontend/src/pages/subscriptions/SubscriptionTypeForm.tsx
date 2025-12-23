@@ -16,10 +16,11 @@ export default function SubscriptionTypeForm() {
   const [formData, setFormData] = useState<SubscriptionTypeFormData>({
     name: '',
     description: '',
-    registrationFee: '',
-    monthlyFee: '',
-    maintenanceFee: '',
-    lateFeePercentage: '',
+    registration_fee: '0',
+    monthly_fee: '0',
+    maintenance_fee: '0',
+    late_fee_per_day: '0',
+    max_late_fee: '0',
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof SubscriptionTypeFormData, string>>>({});
