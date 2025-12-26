@@ -151,18 +151,34 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 - [x] Tenant statistics endpoint
 - [x] Role-based access control
 
-### 🟡 Tenant Self-Service Registration (PARTIAL - Dec 22, 2024)
-**Status:** Backend Complete (66%), Frontend Pending (2 hours)
+### 🟡 Tenant Self-Service Registration & Subscription (PARTIAL - Dec 26, 2024)
+**Status:** Backend Complete, Frontend Pending
 
+**Tenant Registration (Complete ✅):**
 - [x] **Backend:** Public registration endpoint (no auth) - DONE
 - [x] **Backend:** Enhanced tenant model with 7 status states - DONE
 - [x] **Backend:** Pending tenants list endpoint - DONE
 - [x] **Backend:** Approve/reject/suspend endpoints - DONE
 - [x] **Backend:** Trial period management (14 days) - DONE
 - [x] **Backend:** Default tenant settings creation - DONE
-- [ ] **Frontend:** Public registration page (/register) - TODO
-- [ ] **Frontend:** Platform owner tenant management page - TODO
-- [ ] **Frontend:** Approve/reject UI with confirmation - TODO
+- [x] **Frontend:** Public registration page (/register) - DONE
+- [x] **Frontend:** Platform owner tenant management page - DONE
+- [x] **Frontend:** Approve/reject UI with confirmation - DONE
+
+**Subscription Upgrade (50% - Backend Complete ✅):**
+- [x] **Backend:** Subscription payment model & database - DONE (Dec 26)
+- [x] **Backend:** Payment submission API - DONE (Dec 26)
+- [x] **Backend:** Payment verification API - DONE (Dec 26)
+- [x] **Backend:** Subscription status tracking - DONE (Dec 26)
+- [x] **Backend:** File upload for payment proof - DONE (Dec 26)
+- [x] **Backend:** Transaction-safe activation - DONE (Dec 26)
+- [ ] **Frontend:** Trial status banner component - TODO
+- [ ] **Frontend:** Subscription upgrade flow UI - TODO
+- [ ] **Frontend:** Plan selection page - TODO
+- [ ] **Frontend:** Payment submission form - TODO
+- [ ] **Frontend:** Platform owner verification UI - TODO
+- [ ] **System:** Trial expiry automation - TODO
+- [ ] **System:** Email notifications - TODO
 
 **Implemented Features:**
 - Self-service registration for new tenants
@@ -580,16 +596,17 @@ Fitur minimal untuk mengelola tenant dan subscription. Detail analytics bisa dik
 
 ---
 
-**Document Version:** 1.2
-**Last Updated:** 2024-12-23 17:00 WIB
-**Next Review:** 2025-01-15
+**Document Version:** 1.5  
+**Last Updated:** 2024-12-26 20:45 WIB  
+**Next Review:** 2024-12-29
 
-**Status:** 🟢 Active Development
-**Current Sprint:** Phase 1 - Core MVP Features
-**Next Milestone:** Payment Confirmation & Customer Portal (Dec 24-27, 2024)
+**Status:** 🟢 Active Development  
+**Current Sprint:** Phase 1 - Core MVP Features + Subscription System  
+**Next Milestone:** Subscription Upgrade Frontend (Dec 27, 2024)  
 **Completed This Week:** 
 - ✅ Invoice Auto-Generation (Dec 22)
 - ✅ Tenant Self-Service Registration (Dec 23)
 - ✅ Landing Page (Dec 23)
 - ✅ Role-Based Dashboards (Dec 23)
 - ✅ Manual Payment Settings (Dec 23)
+- ✅ Subscription Upgrade Backend (Dec 26) ⭐ NEW

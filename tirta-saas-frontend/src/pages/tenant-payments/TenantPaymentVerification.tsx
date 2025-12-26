@@ -53,28 +53,12 @@ export default function TenantPaymentVerification() {
   const loadPendingPayments = async () => {
     try {
       setLoading(true);
-      // TODO: API call
+      // TODO: Implement API call when endpoint is ready
       // const data = await paymentService.getPendingPayments();
-      
-      // Mock data
-      const mockData: PendingPayment[] = [
-        {
-          id: '1',
-          invoiceNumber: 'INV-202412-001',
-          customerName: 'Budi Santoso',
-          amount: 75000,
-          paymentDate: '2024-12-22',
-          paymentMethod: 'bank_transfer',
-          accountNumber: '1234567890',
-          accountName: 'Budi Santoso',
-          referenceNumber: 'TRX123456',
-          proofUrl: '/uploads/proof1.jpg',
-          submittedAt: '2024-12-22T10:30:00',
-          status: 'pending',
-        },
-      ];
-      setPayments(mockData);
-      setFilteredPayments(mockData);
+      // setPayments(data);
+      // setFilteredPayments(data);
+      setPayments([]);
+      setFilteredPayments([]);
     } catch (error) {
       console.error('Failed to load payments:', error);
     } finally {

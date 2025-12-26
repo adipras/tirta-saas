@@ -62,33 +62,12 @@ export default function TenantPaymentSettings() {
 
   const loadSettings = async () => {
     try {
-      // TODO: API call
+      // TODO: Implement API call when endpoint is ready
       // const data = await settingsService.getPaymentSettings();
-      
-      // Mock data
-      const mockBanks: BankAccount[] = [
-        {
-          id: '1',
-          bankName: 'Bank BCA',
-          accountNumber: '1234567890',
-          accountName: 'RT 01 RW 05 Kelurahan Sejahtera',
-          bankCode: 'BCA',
-          isActive: true,
-          isPrimary: true,
-        },
-      ];
-      
-      const mockQR: QRCode[] = [
-        {
-          id: '1',
-          type: 'QRIS',
-          imageUrl: '/uploads/qris.png',
-          isActive: true,
-        },
-      ];
-      
-      setBankAccounts(mockBanks);
-      setQRCodes(mockQR);
+      // setBankAccounts(data.bankAccounts || []);
+      // setQRCodes(data.qrCodes || []);
+      setBankAccounts([]);
+      setQRCodes([]);
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -127,7 +106,7 @@ export default function TenantPaymentSettings() {
   const handleBankSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // TODO: API call
+      // TODO: Implement API call when endpoint is ready
       if (editingBank) {
         // await settingsService.updateBankAccount(editingBank.id, bankForm);
         setBankAccounts((prev) =>
@@ -144,17 +123,19 @@ export default function TenantPaymentSettings() {
       closeBankModal();
     } catch (error) {
       console.error('Failed to save bank account:', error);
+      alert('Failed to save bank account. Please try again.');
     }
   };
 
   const handleDeleteBank = async (id: string) => {
     if (!confirm('Are you sure you want to delete this bank account?')) return;
     try {
-      // TODO: API call
+      // TODO: Implement API call when endpoint is ready
       // await settingsService.deleteBankAccount(id);
       setBankAccounts((prev) => prev.filter((b) => b.id !== id));
     } catch (error) {
       console.error('Failed to delete bank account:', error);
+      alert('Failed to delete bank account. Please try again.');
     }
   };
 
@@ -206,7 +187,7 @@ export default function TenantPaymentSettings() {
   const handleQRSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // TODO: API call with file upload
+      // TODO: Implement API call with file upload when endpoint is ready
       if (editingQR) {
         // await settingsService.updateQRCode(editingQR.id, qrForm);
         setQRCodes((prev) =>
@@ -229,17 +210,19 @@ export default function TenantPaymentSettings() {
       closeQRModal();
     } catch (error) {
       console.error('Failed to save QR code:', error);
+      alert('Failed to save QR code. Please try again.');
     }
   };
 
   const handleDeleteQR = async (id: string) => {
     if (!confirm('Are you sure you want to delete this QR code?')) return;
     try {
-      // TODO: API call
+      // TODO: Implement API call when endpoint is ready
       // await settingsService.deleteQRCode(id);
       setQRCodes((prev) => prev.filter((q) => q.id !== id));
     } catch (error) {
       console.error('Failed to delete QR code:', error);
+      alert('Failed to delete QR code. Please try again.');
     }
   };
 

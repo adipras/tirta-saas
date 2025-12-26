@@ -67,35 +67,12 @@ export default function PlatformPaymentSettings() {
 
   const loadSettings = async () => {
     try {
-      // TODO: API call
+      // TODO: Implement API call when endpoint is ready
       // const data = await platformService.getPaymentSettings();
-      
-      // Mock data
-      const mockBanks: PlatformBankAccount[] = [
-        {
-          id: '1',
-          bankName: 'Bank BCA',
-          accountNumber: '9876543210',
-          accountName: 'PT Tirta SaaS Indonesia',
-          bankCode: 'BCA',
-          description: 'For subscription payments',
-          isActive: true,
-          isPrimary: true,
-        },
-      ];
-      
-      const mockQR: PlatformQRCode[] = [
-        {
-          id: '1',
-          type: 'QRIS',
-          imageUrl: '/uploads/platform-qris.png',
-          description: 'QRIS for subscription payment',
-          isActive: true,
-        },
-      ];
-      
-      setBankAccounts(mockBanks);
-      setQRCodes(mockQR);
+      // setBankAccounts(data.bankAccounts || []);
+      // setQRCodes(data.qrCodes || []);
+      setBankAccounts([]);
+      setQRCodes([]);
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -136,12 +113,14 @@ export default function PlatformPaymentSettings() {
   const handleBankSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // TODO: API call
+      // TODO: Implement API call when endpoint is ready
       if (editingBank) {
+        // await platformService.updateBankAccount(editingBank.id, bankForm);
         setBankAccounts((prev) =>
           prev.map((b) => (b.id === editingBank.id ? { ...b, ...bankForm } : b))
         );
       } else {
+        // await platformService.createBankAccount(bankForm);
         const newBank: PlatformBankAccount = {
           id: Date.now().toString(),
           ...bankForm,
@@ -151,15 +130,19 @@ export default function PlatformPaymentSettings() {
       closeBankModal();
     } catch (error) {
       console.error('Failed to save bank account:', error);
+      alert('Failed to save bank account. Please try again.');
     }
   };
 
   const handleDeleteBank = async (id: string) => {
     if (!confirm('Are you sure you want to delete this bank account?')) return;
     try {
+      // TODO: Implement API call when endpoint is ready
+      // await platformService.deleteBankAccount(id);
       setBankAccounts((prev) => prev.filter((b) => b.id !== id));
     } catch (error) {
       console.error('Failed to delete bank account:', error);
+      alert('Failed to delete bank account. Please try again.');
     }
   };
 
@@ -213,7 +196,9 @@ export default function PlatformPaymentSettings() {
   const handleQRSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // TODO: Implement API call with file upload when endpoint is ready
       if (editingQR) {
+        // await platformService.updateQRCode(editingQR.id, qrForm);
         setQRCodes((prev) =>
           prev.map((q) =>
             q.id === editingQR.id
@@ -222,6 +207,7 @@ export default function PlatformPaymentSettings() {
           )
         );
       } else {
+        // await platformService.createQRCode(qrForm);
         const newQR: PlatformQRCode = {
           id: Date.now().toString(),
           type: qrForm.type,
@@ -234,15 +220,19 @@ export default function PlatformPaymentSettings() {
       closeQRModal();
     } catch (error) {
       console.error('Failed to save QR code:', error);
+      alert('Failed to save QR code. Please try again.');
     }
   };
 
   const handleDeleteQR = async (id: string) => {
     if (!confirm('Are you sure you want to delete this QR code?')) return;
     try {
+      // TODO: Implement API call when endpoint is ready
+      // await platformService.deleteQRCode(id);
       setQRCodes((prev) => prev.filter((q) => q.id !== id));
     } catch (error) {
       console.error('Failed to delete QR code:', error);
+      alert('Failed to delete QR code. Please try again.');
     }
   };
 

@@ -78,6 +78,8 @@ func Migrate() {
 		&models.MeterHistory{},               // References Tenant + Meter + Customer + User
 		&models.ReadingSession{},             // References Tenant + ReadingRoute + User
 		&models.ReadingAnomaly{},             // References Tenant + WaterUsage + User
+		&models.SubscriptionPayment{},        // References Tenant (subscription upgrade payments)
+		&models.InvoiceGenerationHistory{},   // References Tenant
 	)
 
 	if err != nil {

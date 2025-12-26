@@ -74,13 +74,7 @@ class SubscriptionService {
   }
 
   async getStats(): Promise<SubscriptionTypeStats> {
-    // This endpoint might not exist yet in backend, return mock data for now
-    return {
-      totalTypes: 0,
-      activeTypes: 0,
-      totalCustomers: 0,
-      totalMonthlyRevenue: 0,
-    };
+    return await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.STATS);
   }
 }
 

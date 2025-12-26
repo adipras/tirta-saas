@@ -106,6 +106,7 @@ func main() {
 	routes.PaymentRoutes(r)
 	routes.RegisterTenantUserRoutes(r)
 	routes.PlatformRoutes(r)
+	routes.SubscriptionPaymentRoutes(r)
 	routes.ReportRoutes(r)
 	
 	// Master Data & Settings Routes

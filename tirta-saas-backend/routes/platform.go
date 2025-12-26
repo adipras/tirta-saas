@@ -40,6 +40,12 @@ func PlatformRoutes(r *gin.Engine) {
 		platform.POST("/tenants/:id/subscription", controllers.AssignSubscriptionToTenant)
 		platform.GET("/tenants/:id/billing-history", controllers.GetTenantBillingHistory)
 		
+		// Subscription Payment Verification
+		platform.GET("/subscription-payments", controllers.GetSubscriptionPayments)
+		platform.GET("/subscription-payments/:id", controllers.GetSubscriptionPaymentDetail)
+		platform.PUT("/subscription-payments/:id/verify", controllers.VerifySubscriptionPayment)
+		platform.PUT("/subscription-payments/:id/reject", controllers.RejectSubscriptionPayment)
+		
 		// System Monitoring & Logs
 		platform.GET("/logs/audit", controllers.GetAuditLogs)
 		platform.GET("/logs/errors", controllers.GetErrorLogs)

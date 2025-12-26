@@ -58,32 +58,12 @@ export default function PlatformSubscriptionVerification() {
   const loadPendingPayments = async () => {
     try {
       setLoading(true);
-      // TODO: API call
+      // TODO: Implement API call when endpoint is ready
       // const data = await platformService.getPendingSubscriptionPayments();
-      
-      // Mock data
-      const mockData: TenantSubscriptionPayment[] = [
-        {
-          id: '1',
-          tenantId: 'tenant-1',
-          tenantName: 'RT 01 RW 05 Kelurahan Sejahtera',
-          villageCode: 'RT01RW05',
-          subscriptionPlan: 'BASIC',
-          amount: 500000,
-          paymentDate: '2024-12-22',
-          paymentMethod: 'bank_transfer',
-          accountNumber: '1234567890',
-          accountName: 'RT 01 RW 05',
-          referenceNumber: 'TRX789456',
-          proofUrl: '/uploads/proof1.jpg',
-          submittedAt: '2024-12-22T14:30:00',
-          status: 'pending',
-          periodStart: '2024-12-01',
-          periodEnd: '2025-01-01',
-        },
-      ];
-      setPayments(mockData);
-      setFilteredPayments(mockData);
+      // setPayments(data);
+      // setFilteredPayments(data);
+      setPayments([]);
+      setFilteredPayments([]);
     } catch (error) {
       console.error('Failed to load payments:', error);
     } finally {
@@ -109,16 +89,13 @@ export default function PlatformSubscriptionVerification() {
 
     setIsSubmitting(true);
     try {
-      // TODO: API call
+      // TODO: Implement API call when endpoint is ready
       // if (modalAction === 'verify') {
       //   await platformService.verifySubscriptionPayment(selectedPayment.id, notes);
       // } else if (modalAction === 'reject') {
       //   await platformService.rejectSubscriptionPayment(selectedPayment.id, notes);
       // }
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // Update local state
       setPayments((prev) =>
         prev.map((p) =>
           p.id === selectedPayment.id

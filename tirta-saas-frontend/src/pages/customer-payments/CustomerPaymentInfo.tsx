@@ -20,29 +20,8 @@ export default function CustomerPaymentInfo() {
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Bank accounts dari tenant settings (fetched from API)
-  const [bankAccounts, setBankAccounts] = useState([
-    {
-      id: '1',
-      bankName: 'Bank BCA',
-      accountNumber: '1234567890',
-      accountName: 'RT 01 RW 05 Kelurahan Sejahtera',
-    },
-    {
-      id: '2',
-      bankName: 'Bank Mandiri',
-      accountNumber: '9876543210',
-      accountName: 'RT 01 RW 05 Kelurahan Sejahtera',
-    },
-  ]);
-
-  const [qrCodes, setQRCodes] = useState([
-    {
-      id: '1',
-      type: 'QRIS',
-      imageUrl: '/uploads/qris.png',
-    },
-  ]);
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [qrCodes, setQRCodes] = useState<any[]>([]);
 
   useEffect(() => {
     if (invoiceId) {
@@ -56,13 +35,12 @@ export default function CustomerPaymentInfo() {
 
   const loadPaymentSettings = async () => {
     try {
-      // TODO: API call to get tenant payment settings
+      // TODO: Implement API call when endpoint is ready
       // const settings = await settingsService.getTenantPaymentSettings();
       // setBankAccounts(settings.bankAccounts.filter(b => b.isActive));
       // setQRCodes(settings.qrCodes.filter(q => q.isActive));
-      
-      // For now using mock data above
-      console.log('Using mock payment settings');
+      setBankAccounts([]);
+      setQRCodes([]);
     } catch (error) {
       console.error('Failed to load payment settings:', error);
     }
