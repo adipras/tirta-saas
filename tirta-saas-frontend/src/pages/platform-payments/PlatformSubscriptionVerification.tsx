@@ -6,48 +6,35 @@ import {
   ClockIcon,
   EyeIcon,
   BuildingOfficeIcon,
+  DocumentIcon,
 } from '@heroicons/react/24/outline';
-
-interface TenantSubscriptionPayment {
-  id: string;
-  tenantId: string;
-  tenantName: string;
-  villageCode: string;
-  subscriptionPlan: string;
-  amount: number;
-  paymentDate: string;
-  paymentMethod: string;
-  accountNumber: string;
-  accountName: string;
-  referenceNumber: string;
-  proofUrl: string;
-  submittedAt: string;
-  status: 'pending' | 'verified' | 'rejected';
-  periodStart: string;
-  periodEnd: string;
-}
+import { platformSubscriptionService } from '../../services/platformSubscriptionService';
+import type { SubscriptionPayment } from '../../services/platformSubscriptionService';
 
 export default function PlatformSubscriptionVerification() {
   const [loading, setLoading] = useState(true);
-  const [payments, setPayments] = useState<TenantSubscriptionPayment[]>([]);
-  const [filteredPayments, setFilteredPayments] = useState<TenantSubscriptionPayment[]>([]);
+  const [payments, setPayments] = useState<SubscriptionPayment[]>([]);
+  const [filteredPayments, setFilteredPayments] = useState<SubscriptionPayment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPayment, setSelectedPayment] = useState<TenantSubscriptionPayment | null>(null);
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [selectedPayment, setSelectedPayment] = useState<SubscriptionPayment | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [modalAction, setModalAction] = useState<'verify' | 'reject' | 'view'>('view');
   const [notes, setNotes] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    loadPendingPayments();
-  }, []);
+    loadPayments();
+  }, [filterStatus]);
 
   useEffect(() => {
     if (searchTerm) {
       const filtered = payments.filter(
         (p) =>
-          p.tenantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.villageCode.toLowerCase().includes(searchTerm.toLowerCase())
+          p.tenant?.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.tenant?.villageCode.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredPayments(filtered);
     } else {
@@ -55,26 +42,27 @@ export default function PlatformSubscriptionVerification() {
     }
   }, [searchTerm, payments]);
 
-  const loadPendingPayments = async () => {
+  const loadPayments = async () => {
     try {
       setLoading(true);
-      // TODO: Implement API call when endpoint is ready
-      // const data = await platformService.getPendingSubscriptionPayments();
-      // setPayments(data);
-      // setFilteredPayments(data);
-      setPayments([]);
-      setFilteredPayments([]);
-    } catch (error) {
-      console.error('Failed to load payments:', error);
+      setError('');
+      const statusFilter = filterStatus === 'all' ? undefined : filterStatus;
+      const data = await platformSubscriptionService.getSubscriptionPayments(statusFilter);
+      setPayments(data);
+      setFilteredPayments(data);
+    } catch (err: any) {
+      console.error('Failed to load payments:', err);
+      setError(err.response?.data?.error || 'Failed to load subscription payments');
     } finally {
       setLoading(false);
     }
   };
 
-  const openModal = (payment: TenantSubscriptionPayment, action: 'verify' | 'reject' | 'view') => {
+  const openModal = (payment: SubscriptionPayment, action: 'verify' | 'reject' | 'view') => {
     setSelectedPayment(payment);
     setModalAction(action);
     setNotes('');
+    setRejectionReason('');
     setShowModal(true);
   };
 
@@ -84,30 +72,39 @@ export default function PlatformSubscriptionVerification() {
     setNotes('');
   };
 
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedPayment(null);
+    setNotes('');
+    setRejectionReason('');
+  };
+
   const handleAction = async () => {
     if (!selectedPayment) return;
 
-    setIsSubmitting(true);
-    try {
-      // TODO: Implement API call when endpoint is ready
-      // if (modalAction === 'verify') {
-      //   await platformService.verifySubscriptionPayment(selectedPayment.id, notes);
-      // } else if (modalAction === 'reject') {
-      //   await platformService.rejectSubscriptionPayment(selectedPayment.id, notes);
-      // }
-      
-      setPayments((prev) =>
-        prev.map((p) =>
-          p.id === selectedPayment.id
-            ? { ...p, status: modalAction === 'verify' ? 'verified' : 'rejected' }
-            : p
-        )
-      );
+    if (modalAction === 'reject' && !rejectionReason.trim()) {
+      setError('Please provide a reason for rejection');
+      return;
+    }
 
+    setIsSubmitting(true);
+    setError('');
+    
+    try {
+      if (modalAction === 'verify') {
+        await platformSubscriptionService.verifyPayment(selectedPayment.id, { notes });
+        alert('Payment verified successfully! Tenant has been activated.');
+      } else if (modalAction === 'reject') {
+        await platformSubscriptionService.rejectPayment(selectedPayment.id, { reason: rejectionReason });
+        alert('Payment rejected. Tenant has been notified.');
+      }
+
+      // Reload payments to get updated data
+      await loadPayments();
       closeModal();
-    } catch (error) {
-      console.error('Action failed:', error);
-      alert('Action failed. Please try again.');
+    } catch (err: any) {
+      console.error('Action failed:', err);
+      setError(err.response?.data?.error || 'Action failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -188,19 +185,37 @@ export default function PlatformSubscriptionVerification() {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search & Filter */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by tenant name or village code..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+        <div className="flex gap-4">
+          <div className="flex-1 relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by tenant name or village code..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="verified">Verified</option>
+            <option value="rejected">Rejected</option>
+          </select>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
 
       {/* Payments List */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -211,7 +226,7 @@ export default function PlatformSubscriptionVerification() {
         ) : filteredPayments.length === 0 ? (
           <div className="p-8 text-center">
             <BuildingOfficeIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-600">No pending subscription payments</p>
+            <p className="text-gray-600">No subscription payments found</p>
           </div>
         ) : (
           <table className="min-w-full divide-y divide-gray-200">
@@ -231,14 +246,14 @@ export default function PlatformSubscriptionVerification() {
                 <tr key={payment.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{payment.tenantName}</p>
-                      <p className="text-xs text-gray-500">{payment.villageCode}</p>
+                      <p className="text-sm font-medium text-gray-900">{payment.tenant?.organizationName || 'N/A'}</p>
+                      <p className="text-xs text-gray-500">{payment.tenant?.villageCode || 'N/A'}</p>
                     </div>
                   </td>
                   <td className="px-6 py-4">{getPlanBadge(payment.subscriptionPlan)}</td>
                   <td className="px-6 py-4 text-sm font-semibold text-gray-900">{formatCurrency(payment.amount)}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    {formatDate(payment.periodStart)} - {formatDate(payment.periodEnd)}
+                    {payment.billingPeriod} {payment.billingPeriod === 1 ? 'month' : 'months'}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">{formatDate(payment.paymentDate)}</td>
                   <td className="px-6 py-4">{getStatusBadge(payment.status)}</td>
@@ -292,11 +307,11 @@ export default function PlatformSubscriptionVerification() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-sm text-gray-600">Tenant Name</p>
-                      <p className="font-medium">{selectedPayment.tenantName}</p>
+                      <p className="font-medium">{selectedPayment.tenant?.organizationName || 'N/A'}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Village Code</p>
-                      <p className="font-medium">{selectedPayment.villageCode}</p>
+                      <p className="font-medium">{selectedPayment.tenant?.villageCode || 'N/A'}</p>
                     </div>
                   </div>
                 </div>
@@ -312,12 +327,12 @@ export default function PlatformSubscriptionVerification() {
                     <p className="font-semibold text-lg text-blue-600">{formatCurrency(selectedPayment.amount)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Period Start</p>
-                    <p className="font-medium">{formatDate(selectedPayment.periodStart)}</p>
+                    <p className="text-sm text-gray-600">Billing Period</p>
+                    <p className="font-medium">{selectedPayment.billingPeriod} {selectedPayment.billingPeriod === 1 ? 'month' : 'months'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Period End</p>
-                    <p className="font-medium">{formatDate(selectedPayment.periodEnd)}</p>
+                    <p className="text-sm text-gray-600">Submitted Date</p>
+                    <p className="font-medium">{formatDate(selectedPayment.createdAt)}</p>
                   </div>
                 </div>
 
@@ -331,32 +346,57 @@ export default function PlatformSubscriptionVerification() {
                     <p className="text-sm text-gray-600">Payment Method</p>
                     <p className="font-medium capitalize">{selectedPayment.paymentMethod.replace('_', ' ')}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Account Number</p>
-                    <p className="font-medium">{selectedPayment.accountNumber}</p>
-                  </div>
+                  {selectedPayment.accountNumber && (
+                    <div>
+                      <p className="text-sm text-gray-600">Account Number</p>
+                      <p className="font-medium">{selectedPayment.accountNumber}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm text-gray-600">Account Name</p>
                     <p className="font-medium">{selectedPayment.accountName}</p>
                   </div>
-                  <div className="col-span-2">
-                    <p className="text-sm text-gray-600">Reference Number</p>
-                    <p className="font-medium">{selectedPayment.referenceNumber || '-'}</p>
-                  </div>
+                  {selectedPayment.referenceNumber && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-gray-600">Reference Number</p>
+                      <p className="font-medium">{selectedPayment.referenceNumber}</p>
+                    </div>
+                  )}
+                  {selectedPayment.notes && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-gray-600">Notes from Tenant</p>
+                      <p className="font-medium">{selectedPayment.notes}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Payment Proof */}
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Payment Proof</p>
-                  <div className="border rounded-lg p-4 bg-gray-50">
-                    <img
-                      src={selectedPayment.proofUrl}
-                      alt="Payment proof"
-                      className="max-h-96 mx-auto rounded"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://via.placeholder.com/400x300?text=Image+Not+Available';
-                      }}
-                    />
+                  <div className="border rounded-lg p-4 bg-gray-50 flex items-center justify-center">
+                    {selectedPayment.proofUrl.endsWith('.pdf') ? (
+                      <div className="text-center">
+                        <DocumentIcon className="h-16 w-16 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 mb-2">PDF Document</p>
+                        <a
+                          href={selectedPayment.proofUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          View PDF
+                        </a>
+                      </div>
+                    ) : (
+                      <img
+                        src={selectedPayment.proofUrl}
+                        alt="Payment proof"
+                        className="max-h-96 mx-auto rounded"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://via.placeholder.com/400x300?text=Image+Not+Available';
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -367,8 +407,8 @@ export default function PlatformSubscriptionVerification() {
                       {modalAction === 'verify' ? 'Verification Notes (Optional)' : 'Rejection Reason *'}
                     </label>
                     <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
+                      value={modalAction === 'verify' ? notes : rejectionReason}
+                      onChange={(e) => modalAction === 'verify' ? setNotes(e.target.value) : setRejectionReason(e.target.value)}
                       rows={3}
                       className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder={modalAction === 'verify' ? 'Add notes...' : 'Enter rejection reason...'}
