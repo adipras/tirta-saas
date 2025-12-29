@@ -17,20 +17,50 @@ import (
 
 // SubmitSubscriptionPayment handles tenant submission of subscription payment
 func SubmitSubscriptionPayment(c *gin.Context) {
-	var req requests.SubmitSubscriptionPaymentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
 	tenantID := c.GetString("tenant_id")
 	if tenantID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Tenant ID not found"})
 		return
 	}
 
+	// Parse form data
+	subscriptionPlan := c.PostForm("subscription_plan")
+	billingPeriod := c.PostForm("billing_period")
+	amount := c.PostForm("amount")
+	paymentDate := c.PostForm("payment_date")
+	paymentMethod := c.PostForm("payment_method")
+	accountName := c.PostForm("account_name")
+	accountNumber := c.PostForm("account_number")
+	referenceNumber := c.PostForm("reference_number")
+	notes := c.PostForm("notes")
+
+	// Validate required fields
+	if subscriptionPlan == "" || billingPeriod == "" || amount == "" || paymentDate == "" || paymentMethod == "" || accountName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields"})
+		return
+	}
+
+	// Parse values
+	billingPeriodInt, err := strconv.Atoi(billingPeriod)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid billing period"})
+		return
+	}
+
+	amountFloat, err := strconv.ParseFloat(amount, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid amount"})
+		return
+	}
+
+	parsedDate, err := time.Parse("2006-01-02", paymentDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment date format"})
+		return
+	}
+
 	// Check if payment date is not in future
-	if req.PaymentDate.After(time.Now()) {
+	if parsedDate.After(time.Now()) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Payment date cannot be in the future"})
 		return
 	}
@@ -48,8 +78,15 @@ func SubmitSubscriptionPayment(c *gin.Context) {
 		return
 	}
 
+	// Validate file type
+	ext := file.Filename[len(file.Filename)-4:]
+	if ext != ".jpg" && ext != ".png" && ext != ".pdf" && ext != "jpeg" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Only JPG, PNG, and PDF files are allowed"})
+		return
+	}
+
 	// Save file
-	filename := fmt.Sprintf("subscription_%s_%s", tenantID, uuid.New().String())
+	filename := fmt.Sprintf("subscription_%s_%s%s", tenantID, uuid.New().String()[:8], ext)
 	uploadPath := fmt.Sprintf("./uploads/subscription-proofs/%s", filename)
 	if err := c.SaveUploadedFile(file, uploadPath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
@@ -59,16 +96,16 @@ func SubmitSubscriptionPayment(c *gin.Context) {
 	// Create payment record
 	payment := models.SubscriptionPayment{
 		TenantID:         tenantID,
-		SubscriptionPlan: req.SubscriptionPlan,
-		BillingPeriod:    req.BillingPeriod,
-		Amount:           req.Amount,
-		PaymentDate:      req.PaymentDate,
-		PaymentMethod:    req.PaymentMethod,
-		AccountNumber:    req.AccountNumber,
-		AccountName:      req.AccountName,
-		ReferenceNumber:  req.ReferenceNumber,
+		SubscriptionPlan: subscriptionPlan,
+		BillingPeriod:    billingPeriodInt,
+		Amount:           amountFloat,
+		PaymentDate:      parsedDate,
+		PaymentMethod:    paymentMethod,
+		AccountNumber:    accountNumber,
+		AccountName:      accountName,
+		ReferenceNumber:  referenceNumber,
 		ProofURL:         uploadPath,
-		Notes:            req.Notes,
+		Notes:            notes,
 		Status:           models.PaymentStatusPending,
 	}
 

@@ -148,6 +148,10 @@ class AuthService {
     return this.hasRole(['ADMIN', 'TENANT_ADMIN']);
   }
 
+  getCurrentUser(): User | null {
+    return this.getUser();
+  }
+
   private setTokens(token: string, refreshToken: string): void {
     localStorage.setItem(this.TOKEN_KEY, token);
     localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);

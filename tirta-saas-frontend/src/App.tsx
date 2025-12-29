@@ -43,6 +43,9 @@ import { PlatformSubscriptionVerification } from './pages/platform-payments';
 import { TenantPaymentSettings, PlatformPaymentSettings } from './pages/settings';
 import { LandingPage } from './pages/public';
 import TenantRegistration from './pages/auth/TenantRegistration';
+import SubscriptionStatusPage from './pages/subscription/SubscriptionStatusPage';
+import PlanSelectionPage from './pages/subscription/PlanSelectionPage';
+import PaymentSubmissionPage from './pages/subscription/PaymentSubmissionPage';
 import NotFound from './pages/NotFound';
 import TestPage from './pages/TestPage';
 
@@ -138,6 +141,11 @@ function App() {
               
               {/* Tenant Admin - Payment Verification */}
               <Route path="payment-verification" element={<TenantPaymentVerification />} />
+              
+              {/* Subscription Upgrade Routes */}
+              <Route path="subscription/status" element={<SubscriptionStatusPage />} />
+              <Route path="subscription/upgrade" element={<PlanSelectionPage />} />
+              <Route path="subscription/payment" element={<PaymentSubmissionPage />} />
             </Route>
 
             {/* Customer Routes */}
