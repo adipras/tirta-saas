@@ -70,12 +70,6 @@ export default function PlatformSubscriptionVerification() {
     setShowModal(false);
     setSelectedPayment(null);
     setNotes('');
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedPayment(null);
-    setNotes('');
     setRejectionReason('');
   };
 
@@ -435,7 +429,7 @@ export default function PlatformSubscriptionVerification() {
                 {modalAction !== 'view' && (
                   <button
                     onClick={handleAction}
-                    disabled={isSubmitting || (modalAction === 'reject' && !notes.trim())}
+                    disabled={isSubmitting || (modalAction === 'reject' && !rejectionReason.trim())}
                     className={`px-4 py-2 text-white rounded-lg disabled:opacity-50 ${
                       modalAction === 'verify'
                         ? 'bg-green-600 hover:bg-green-700'

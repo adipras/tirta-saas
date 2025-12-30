@@ -44,8 +44,7 @@ import { TenantPaymentSettings, PlatformPaymentSettings } from './pages/settings
 import { LandingPage } from './pages/public';
 import TenantRegistration from './pages/auth/TenantRegistration';
 import SubscriptionStatusPage from './pages/subscription/SubscriptionStatusPage';
-import PlanSelectionPage from './pages/subscription/PlanSelectionPage';
-import PaymentSubmissionPage from './pages/subscription/PaymentSubmissionPage';
+import SubscriptionUpgradePage from './pages/subscription/SubscriptionUpgradePage';
 import NotFound from './pages/NotFound';
 import TestPage from './pages/TestPage';
 
@@ -144,8 +143,7 @@ function App() {
               
               {/* Subscription Upgrade Routes */}
               <Route path="subscription/status" element={<SubscriptionStatusPage />} />
-              <Route path="subscription/upgrade" element={<PlanSelectionPage />} />
-              <Route path="subscription/payment" element={<PaymentSubmissionPage />} />
+              <Route path="subscription/upgrade" element={<SubscriptionUpgradePage />} />
             </Route>
 
             {/* Customer Routes */}
