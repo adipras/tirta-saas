@@ -11,5 +11,8 @@ func PublicRoutes(r *gin.Engine) {
 	{
 		// Tenant registration (no authentication required)
 		public.POST("/register", controllers.PublicTenantRegistration)
+		
+		// Platform payment settings for subscription payments (public access)
+		public.GET("/platform-payment-settings", controllers.GetPlatformPaymentSettings)
 	}
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckIcon,
@@ -7,6 +7,8 @@ import {
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { subscriptionPaymentService } from '../../services/subscriptionPaymentService';
+import { platformPaymentSettingsService } from '../../services/platformPaymentSettingsService';
+import type { PlatformPaymentSettings } from '../../services/platformPaymentSettingsService';
 
 interface PlanOption {
   id: string;
@@ -63,6 +65,8 @@ export default function SubscriptionUpgradePage() {
   const [step, setStep] = useState<'select-plan' | 'payment-form'>('select-plan');
   const [selectedPlan, setSelectedPlan] = useState<PlanOption | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<number>(1);
+  const [paymentSettings, setPaymentSettings] = useState<PlatformPaymentSettings | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(false);
   const [formData, setFormData] = useState({
     paymentDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'bank_transfer',
@@ -74,6 +78,34 @@ export default function SubscriptionUpgradePage() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Fetch payment settings on mount
+  useEffect(() => {
+    loadPaymentSettings();
+  }, []);
+
+  const loadPaymentSettings = async () => {
+    try {
+      setLoadingSettings(true);
+      const settings = await platformPaymentSettingsService.getPlatformPaymentSettings();
+      setPaymentSettings(settings);
+    } catch (err) {
+      console.error('Failed to load payment settings:', err);
+      // Use default if fetch fails
+      setPaymentSettings({
+        bank_accounts: [
+          {
+            bank_name: 'BCA',
+            account_number: '1234567890',
+            account_name: 'PT Tirta SaaS Indonesia',
+          },
+        ],
+        payment_methods: ['bank_transfer', 'e_wallet', 'other'],
+      });
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
 
   const handlePlanSelect = (plan: PlanOption) => {
     setSelectedPlan(plan);
@@ -322,23 +354,38 @@ export default function SubscriptionUpgradePage() {
             </ol>
           </div>
 
-          {/* Bank Account Info - Placeholder */}
+          {/* Bank Account Info - Dynamic */}
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
             <h3 className="font-semibold text-gray-900 mb-3">🏦 Bank Account Details</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Bank Name:</span>
-                <span className="font-medium">BCA</span>
+            {loadingSettings ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-sm text-gray-500 mt-2">Loading payment info...</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Account Number:</span>
-                <span className="font-medium">1234567890</span>
+            ) : paymentSettings && paymentSettings.bank_accounts.length > 0 ? (
+              <div className="space-y-4">
+                {paymentSettings.bank_accounts.map((bank, index) => (
+                  <div key={index} className={`${index > 0 ? 'pt-4 border-t border-gray-300' : ''}`}>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Bank Name:</span>
+                        <span className="font-medium">{bank.bank_name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Account Number:</span>
+                        <span className="font-medium">{bank.account_number}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Account Name:</span>
+                        <span className="font-medium">{bank.account_name}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Account Name:</span>
-                <span className="font-medium">PT Tirta SaaS Indonesia</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-sm text-gray-600">Payment information not available</p>
+            )}
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
