@@ -12,6 +12,7 @@ import {
   BuildingOfficeIcon,
   ClipboardDocumentListIcon,
   CheckBadgeIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 import { authService } from '../services/authService';
 
@@ -109,6 +110,12 @@ const allNavigation = [
     href: '/admin/reports', 
     icon: ChartBarIcon,
     roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'],
+  },
+  { 
+    name: 'User Management', 
+    href: '/admin/users', 
+    icon: UsersIcon,
+    roles: ['ADMIN', 'TENANT_ADMIN'],
   },
   { 
     name: 'Settings', 

@@ -44,6 +44,7 @@ import { LandingPage } from './pages/public';
 import TenantRegistration from './pages/auth/TenantRegistration';
 import SubscriptionStatusPage from './pages/subscription/SubscriptionStatusPage';
 import SubscriptionUpgradePage from './pages/subscription/SubscriptionUpgradePage';
+import UserManagementList from './pages/user-management/UserManagementList';
 import NotFound from './pages/NotFound';
 import TestPage from './pages/TestPage';
 
@@ -131,6 +132,9 @@ function App() {
               <Route path="usage/create" element={<MeterReadingForm />} />
               <Route path="usage/edit/:id" element={<MeterReadingForm />} />
               <Route path="usage/:customerId/history" element={<UsageHistory />} />
+              
+              {/* User Management */}
+              <Route path="users" element={<UserManagementList />} />
               
               {/* Platform Owner Routes */}
               <Route path="platform/tenants" element={<TenantManagement />} />
