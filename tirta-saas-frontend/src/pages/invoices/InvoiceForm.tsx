@@ -5,7 +5,6 @@ import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import invoiceService from '../../services/invoiceService';
 import customerService from '../../services/customerService';
 import type { Customer } from '../../types/customer';
-import type { Invoice, InvoiceItem } from '../../types/invoice';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 
@@ -13,7 +12,14 @@ interface InvoiceFormData {
   customerId: string;
   status: 'paid' | 'unpaid' | 'overdue';
   dueDate: string;
-  items: Partial<InvoiceItem>[];
+  items: Partial<{
+    id?: string;
+    description: string;
+    quantity: number | string;
+    unitPrice: number;
+    amount: number;
+    total?: number;
+  }>[];
 }
 
 export default function InvoiceForm() {
@@ -67,11 +73,11 @@ export default function InvoiceForm() {
     try {
       setLoading(true);
       const invoice = await invoiceService.getInvoiceById(invoiceId);
-      const formattedDate = invoice.dueDate.split('T')[0]; // Format date for input
+      const formattedDate = invoice.dueDate.split('T')[0];
       reset({
         ...invoice,
         dueDate: formattedDate,
-      });
+      } as any);
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
@@ -88,14 +94,14 @@ export default function InvoiceForm() {
       setSaving(true);
       const itemsWithTotal = data.items.map(item => ({
         ...item,
-        total: (item.quantity || 0) * (item.unitPrice || 0),
+        total: (Number(item.quantity) || 0) * (item.unitPrice || 0),
       }));
       const totalAmount = itemsWithTotal.reduce((sum, item) => sum + item.total, 0);
 
-      const invoiceData: Partial<Invoice> = {
+      const invoiceData = {
         ...data,
         amount: totalAmount,
-      };
+      } as any;
 
       if (mode === 'create') {
         await invoiceService.createInvoice(invoiceData);

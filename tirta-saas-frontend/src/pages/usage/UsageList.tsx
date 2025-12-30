@@ -25,7 +25,7 @@ export default function UsageList() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [_totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -396,9 +396,6 @@ export default function UsageList() {
           columns={columns}
           data={waterUsages}
           loading={loading}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
         />
       </div>
     </div>

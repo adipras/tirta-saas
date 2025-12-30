@@ -5,7 +5,6 @@ import {
   CloudArrowUpIcon,
   CreditCardIcon,
   DocumentTextIcon,
-  SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { subscriptionPaymentService } from '../../services/subscriptionPaymentService';
 
@@ -207,9 +206,6 @@ export default function SubscriptionUpgradePage() {
         {/* Plan Cards */}
         <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {PLANS.map((plan) => {
-            const totalAmount = calculateAmount();
-            const isSelected = selectedPlan?.id === plan.id;
-            
             return (
               <div
                 key={plan.id}

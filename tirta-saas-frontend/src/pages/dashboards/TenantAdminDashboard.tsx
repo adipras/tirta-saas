@@ -1,6 +1,5 @@
 import {
   UserGroupIcon,
-  CurrencyDollarIcon,
   DocumentTextIcon,
   ExclamationCircleIcon,
   BeakerIcon,

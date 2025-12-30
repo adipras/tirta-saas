@@ -189,8 +189,8 @@ const RevenueReport: React.FC = () => {
                 outerRadius={100}
                 label={(entry) => `${entry.subscriptionType}: ${entry.percentage}%`}
               >
-                {reportData.revenueBySubscriptionType.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                {reportData.revenueBySubscriptionType.map((_entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[Number(index) % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip

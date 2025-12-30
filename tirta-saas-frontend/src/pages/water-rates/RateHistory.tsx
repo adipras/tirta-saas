@@ -17,7 +17,7 @@ export default function RateHistory() {
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [_totalPages, setTotalPages] = useState(1);
   const [selectedSubscription, setSelectedSubscription] = useState<string>('');
 
   const fetchHistory = useCallback(async () => {
@@ -239,9 +239,9 @@ export default function RateHistory() {
           columns={columns}
           data={history}
           loading={loading}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
+          
+          
+          
         />
       </div>
     </div>

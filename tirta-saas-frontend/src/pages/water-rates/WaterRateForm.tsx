@@ -36,7 +36,7 @@ export default function WaterRateForm() {
   const fetchSubscriptionTypes = async () => {
     try {
       const types = await subscriptionService.getAllSubscriptionTypes();
-      setSubscriptionTypes(types.filter(t => t.isActive));
+      setSubscriptionTypes(types.filter(t => t.is_active));
     } catch (error) {
       dispatch(addNotification({
         type: 'error',

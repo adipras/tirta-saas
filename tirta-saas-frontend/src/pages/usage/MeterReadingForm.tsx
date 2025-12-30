@@ -37,7 +37,7 @@ export default function MeterReadingForm() {
 
   useEffect(() => {
     if (formData.customerId && formData.usageMonth && !isEditMode) {
-      fetchPreviousReading(formData.customerId, formData.usageMonth);
+      fetchPreviousReading(formData.customerId);
     }
   }, [formData.customerId, formData.usageMonth, isEditMode]);
 
@@ -63,9 +63,9 @@ export default function MeterReadingForm() {
     }
   };
 
-  const fetchPreviousReading = async (customerId: string, usageMonth: string) => {
+  const fetchPreviousReading = async (customerId: string) => {
     try {
-      const history = await usageService.getCustomerUsageHistory(customerId);
+      const history = await usageService.getCustomerUsageHistoryById(customerId);
       if (history.length > 0) {
         const lastReading = history[history.length - 1];
         setPreviousReading(lastReading.meterEnd);

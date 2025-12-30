@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/subscription-types/${id}`,
     UPDATE: (id: string) => `/subscription-types/${id}`,
     DELETE: (id: string) => `/subscription-types/${id}`,
+    STATS: '/subscription-types/stats',
   },
   INVOICES: {
     LIST: '/invoices',
@@ -34,6 +35,7 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/invoices/${id}`,
     UPDATE: (id: string) => `/invoices/${id}`,
     DELETE: (id: string) => `/invoices/${id}`,
+    GENERATE: '/invoices/generate',
     GENERATE_BULK: '/invoices/generate-bulk',
     SEND: (id: string) => `/invoices/${id}/send`,
     VOID: (id: string) => `/invoices/${id}/void`,

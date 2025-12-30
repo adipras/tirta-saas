@@ -189,8 +189,8 @@ const CustomerAnalytics: React.FC = () => {
                 outerRadius={100}
                 label={(entry) => `${entry.status}: ${entry.percentage}%`}
               >
-                {reportData.statusDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                {reportData.statusDistribution.map((_entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[Number(index) % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />

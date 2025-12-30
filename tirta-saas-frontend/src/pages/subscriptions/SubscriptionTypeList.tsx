@@ -19,8 +19,8 @@ export default function SubscriptionTypeList() {
   
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [currentPage] = useState(1);
+  const [, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -58,7 +58,7 @@ export default function SubscriptionTypeList() {
         message: 'Failed to fetch subscription types',
       }));
       console.error('Error fetching subscription types:', error);
-      console.error('Error details:', error.response || error.message);
+      console.error('Error details:', (error as any)?.response || (error as any)?.message);
       setSubscriptionTypes([]);
       setTotalPages(1);
     } finally {
@@ -220,7 +220,7 @@ export default function SubscriptionTypeList() {
                     Active Types
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {subscriptionTypes.filter(t => t.isActive).length}
+                    {subscriptionTypes.filter(t => t.is_active).length}
                   </dd>
                 </dl>
               </div>
@@ -255,9 +255,6 @@ export default function SubscriptionTypeList() {
           columns={columns}
           data={subscriptionTypes}
           loading={loading}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
         />
       </div>
     </div>

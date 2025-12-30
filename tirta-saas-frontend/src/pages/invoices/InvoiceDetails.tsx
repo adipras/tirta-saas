@@ -42,12 +42,13 @@ export default function InvoiceDetails() {
   };
 
   const getStatusBadge = (status: InvoiceDetailsType['status']) => {
-    const statusConfig = {
+    const statusConfig: Record<string, { color: string }> = {
       paid: { color: 'bg-green-100 text-green-800' },
       unpaid: { color: 'bg-yellow-100 text-yellow-800' },
+      partial: { color: 'bg-blue-100 text-blue-800' },
       overdue: { color: 'bg-red-100 text-red-800' },
     };
-    const config = statusConfig[status];
+    const config = statusConfig[status] || statusConfig.unpaid;
     return (
       <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.color}`}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -153,7 +154,7 @@ export default function InvoiceDetails() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.description}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.unitPrice.toFixed(2)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">${item.total.toFixed(2)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">${(item.total || 0).toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>

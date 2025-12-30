@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './store';
@@ -6,7 +6,6 @@ import { ToastProvider, ErrorBoundary, PrivateRoute } from './components';
 
 import DashboardLayout from './layouts/DashboardLayout';
 import CustomerLayout from './layouts/CustomerLayout';
-import Dashboard from './pages/Dashboard';
 import RoleBasedDashboard from './pages/RoleBasedDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
 import AdminLogin from './pages/auth/AdminLogin';

@@ -21,7 +21,7 @@ export default function UsageHistoryPage() {
     if (!customerId) return;
     
     try {
-      const data = await customerService.getCustomer(customerId);
+      const data = await customerService.getCustomerById(customerId);
       setCustomer(data);
     } catch (error) {
       dispatch(addNotification({
@@ -37,8 +37,8 @@ export default function UsageHistoryPage() {
 
     try {
       setLoading(true);
-      const data = await usageService.getCustomerUsageHistory(customerId);
-      setHistory(data);
+      const data = await usageService.getCustomerUsageHistoryById(customerId);
+      setHistory(data as any);
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
