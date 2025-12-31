@@ -119,9 +119,9 @@ export default function WaterRateForm() {
 
       const payload = {
         amount: parseFloat(formData.amount),
-        effectiveDate: formData.effectiveDate,
-        subscriptionId: formData.subscriptionId,
-        categoryId: formData.categoryId || undefined,
+        effective_date: formData.effectiveDate,
+        subscription_id: formData.subscriptionId,
+        category_id: formData.categoryId || undefined,
         description: formData.description.trim() || undefined,
       };
 

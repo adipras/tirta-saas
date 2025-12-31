@@ -21,9 +21,9 @@ export interface WaterRate {
 
 export interface CreateWaterRateDto {
   amount: number;
-  effectiveDate: string;
-  subscriptionId: string;
-  categoryId?: string;
+  effective_date: string;
+  subscription_id: string;
+  category_id?: string;
   description?: string;
 }
 
