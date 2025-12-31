@@ -111,11 +111,11 @@ class CustomerService {
 
   async bulkUpdateStatus(
     customerIds: string[],
-    status: Customer['status']
+    isActive: boolean
   ): Promise<void> {
     await apiClient.post(API_ENDPOINTS.CUSTOMERS.BULK_UPDATE_STATUS, {
       customerIds,
-      status,
+      isActive,
     });
   }
 

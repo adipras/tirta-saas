@@ -8,14 +8,13 @@ import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 
 interface CustomerFormData {
+  meter_number: string;
   name: string;
   email: string;
-  phone: string;
-  address: string;
-  city: string;
-  postalCode: string;
-  meterNumber?: string;
-  subscriptionTypeId: string;
+  password: string;
+  subscription_id: string;
+  phone?: string;
+  address?: string;
 }
 
 interface CustomerFormProps {
@@ -63,14 +62,13 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
       const customer = await customerService.getCustomerById(customerId);
       
       reset({
+        meter_number: customer.meter_number,
         name: customer.name,
         email: customer.email,
-        phone: customer.phone,
-        address: customer.address,
-        city: customer.city,
-        postalCode: customer.postalCode,
-        meterNumber: customer.meterNumber || '',
-        subscriptionTypeId: customer.subscriptionType.id,
+        password: '', // Cannot edit password
+        subscription_id: customer.subscription_id,
+        phone: customer.phone || '',
+        address: customer.address || '',
       });
     } catch (error) {
       dispatch(addNotification({
@@ -152,119 +150,141 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
             <div className="shadow sm:rounded-md sm:overflow-hidden">
               <div className="px-4 py-5 bg-white space-y-6 sm:p-6">
                 <div className="grid grid-cols-6 gap-6">
+                  {/* Meter Number */}
+                  <div className="col-span-6 sm:col-span-3">
+                    <label htmlFor="meter_number" className="block text-sm font-medium text-gray-700">
+                      Meter Number *
+                    </label>
+                    <input
+                      {...register('meter_number', { required: 'Meter number is required' })}
+                      type="text"
+                      id="meter_number"
+                      disabled={mode === 'edit'}
+                      className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md disabled:bg-gray-100"
+                      placeholder="MTR-001"
+                    />
+                    {errors.meter_number && (
+                      <p className="mt-2 text-sm text-red-600">{errors.meter_number.message}</p>
+                    )}
+                  </div>
+
+                  {/* Name */}
                   <div className="col-span-6 sm:col-span-3">
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                       Full Name *
                     </label>
                     <input
-                      {...register('name', { required: true })}
+                      {...register('name', { required: 'Name is required' })}
                       type="text"
                       id="name"
                       className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                       placeholder="John Doe"
                     />
                     {errors.name && (
-                      <p className="mt-2 text-sm text-red-600">Name is required</p>
+                      <p className="mt-2 text-sm text-red-600">{errors.name.message}</p>
                     )}
                   </div>
 
+                  {/* Email */}
                   <div className="col-span-6 sm:col-span-3">
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                       Email Address *
                     </label>
                     <input
-                      {...register('email')}
+                      {...register('email', { 
+                        required: 'Email is required',
+                        pattern: {
+                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                          message: 'Invalid email address'
+                        }
+                      })}
                       type="email"
                       id="email"
-                      className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                      disabled={mode === 'edit'}
+                      className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md disabled:bg-gray-100"
                       placeholder="john@example.com"
                     />
+                    {errors.email && (
+                      <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
+                    )}
                   </div>
 
+                  {/* Password (Create mode only) */}
+                  {mode === 'create' && (
+                    <div className="col-span-6 sm:col-span-3">
+                      <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                        Password *
+                      </label>
+                      <input
+                        {...register('password', { 
+                          required: mode === 'create' ? 'Password is required' : false,
+                          minLength: {
+                            value: 6,
+                            message: 'Password must be at least 6 characters'
+                          }
+                        })}
+                        type="password"
+                        id="password"
+                        className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Min. 6 characters"
+                      />
+                      {errors.password && (
+                        <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>
+                      )}
+                      <p className="mt-2 text-sm text-gray-500">
+                        Customer will use this password to login
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Phone */}
                   <div className="col-span-6 sm:col-span-3">
                     <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                      Phone Number *
+                      Phone Number
                     </label>
                     <input
                       {...register('phone')}
                       type="tel"
                       id="phone"
                       className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      placeholder="+1 (555) 123-4567"
+                      placeholder="081234567890"
                     />
                   </div>
 
+                  {/* Subscription Type */}
                   <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor="subscriptionTypeId" className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="subscription_id" className="block text-sm font-medium text-gray-700">
                       Subscription Type *
                     </label>
                     <select
-                      {...register('subscriptionTypeId')}
-                      id="subscriptionTypeId"
+                      {...register('subscription_id', { required: 'Subscription type is required' })}
+                      id="subscription_id"
                       className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     >
                       <option value="">Select subscription type</option>
                       {subscriptionTypes.map((type) => (
                         <option key={type.id} value={type.id}>
-                          {type.name} - ${type.monthlyFee}/month
+                          {type.name} - Rp {type.monthly_fee.toLocaleString()}/bulan
                         </option>
                       ))}
                     </select>
+                    {errors.subscription_id && (
+                      <p className="mt-2 text-sm text-red-600">{errors.subscription_id.message}</p>
+                    )}
                   </div>
 
+                  {/* Address */}
                   <div className="col-span-6">
                     <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                      Street Address *
+                      Address
                     </label>
-                    <input
+                    <textarea
                       {...register('address')}
-                      type="text"
                       id="address"
+                      rows={3}
                       className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      placeholder="123 Main Street, Apt 4B"
+                      placeholder="Jl. Contoh No. 123, RT 01 RW 05"
                     />
-                  </div>
-
-                  <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-                      City *
-                    </label>
-                    <input
-                      {...register('city')}
-                      type="text"
-                      id="city"
-                      className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      placeholder="New York"
-                    />
-                  </div>
-
-                  <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
-                      Postal Code *
-                    </label>
-                    <input
-                      {...register('postalCode')}
-                      type="text"
-                      id="postalCode"
-                      className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      placeholder="10001"
-                    />
-                  </div>
-
-                  <div className="col-span-6 sm:col-span-3">
-                    <label htmlFor="meterNumber" className="block text-sm font-medium text-gray-700">
-                      Meter Number
-                    </label>
-                    <input
-                      {...register('meterNumber')}
-                      type="text"
-                      id="meterNumber"
-                      className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      placeholder="WM001234 (optional)"
-                    />
-                    <p className="mt-2 text-sm text-gray-500">
-                      Water meter number (can be assigned later)
-                    </p>
                   </div>
                 </div>
               </div>
