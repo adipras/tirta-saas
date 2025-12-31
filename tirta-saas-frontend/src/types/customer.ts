@@ -46,7 +46,7 @@ export interface UpdateCustomerDto {
 }
 
 export interface CustomerFilters {
-  status?: CustomerStatus;
+  isActive?: boolean;
   subscriptionTypeId?: string;
   search?: string;
   startDate?: string;

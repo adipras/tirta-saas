@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { DataTable } from '../../components/DataTable';
 import customerService from '../../services/customerService';
-import type { Customer, CustomerStatus, CustomerFilters, SubscriptionType } from '../../types/customer';
+import type { Customer, CustomerFilters, SubscriptionType } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 
@@ -27,7 +27,7 @@ export default function CustomerList() {
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
   
   const [filters, setFilters] = useState({
-    status: '' as CustomerStatus | '',
+    isActive: '' as boolean | '',
     subscriptionTypeId: '',
     hasOutstandingBalance: '',
     search: '',
@@ -37,7 +37,7 @@ export default function CustomerList() {
     try {
       setLoading(true);
       const filterParams: CustomerFilters = {
-        status: filters.status === '' ? undefined : filters.status,
+        isActive: filters.isActive === '' ? undefined : filters.isActive,
         subscriptionTypeId: filters.subscriptionTypeId || undefined,
         hasOutstandingBalance: filters.hasOutstandingBalance === 'true' ? true : 
                                filters.hasOutstandingBalance === 'false' ? false : undefined,
@@ -70,19 +70,17 @@ export default function CustomerList() {
     }
   };
 
-  const handleStatusChange = async (customerId: string, newStatus: CustomerStatus) => {
+  const handleStatusChange = async (customerId: string, isActive: boolean) => {
     try {
-      if (newStatus === 'active') {
+      if (isActive) {
         await customerService.activateCustomer(customerId);
-      } else if (newStatus === 'inactive') {
+      } else {
         await customerService.deactivateCustomer(customerId);
-      } else if (newStatus === 'suspended') {
-        await customerService.suspendCustomer(customerId);
       }
       
       dispatch(addNotification({
         type: 'success',
-        message: `Customer status updated to ${newStatus}`,
+        message: `Customer ${isActive ? 'activated' : 'deactivated'} successfully`,
       }));
       
       fetchCustomers();
@@ -97,7 +95,7 @@ export default function CustomerList() {
   const handleExport = async () => {
     try {
       const exportFilters: CustomerFilters = {
-        status: filters.status === '' ? undefined : filters.status,
+        isActive: filters.isActive === '' ? undefined : filters.isActive,
         subscriptionTypeId: filters.subscriptionTypeId || undefined,
         hasOutstandingBalance: filters.hasOutstandingBalance === 'true' ? true : 
                                filters.hasOutstandingBalance === 'false' ? false : undefined,
@@ -203,14 +201,13 @@ export default function CustomerList() {
         <PencilIcon className="h-5 w-5" />
       </button>
       <select
-        value={customer.status}
-        onChange={(e) => handleStatusChange(customer.id, e.target.value as CustomerStatus)}
+        value={customer.is_active ? 'active' : 'inactive'}
+        onChange={(e) => handleStatusChange(customer.id, e.target.value === 'active')}
         className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
         onClick={(e) => e.stopPropagation()}
       >
         <option value="active">Active</option>
         <option value="inactive">Inactive</option>
-        <option value="suspended">Suspended</option>
       </select>
     </div>
   );
@@ -250,14 +247,13 @@ export default function CustomerList() {
             <div>
               <label className="block text-sm font-medium text-gray-700">Status</label>
               <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value as CustomerStatus | '' })}
+                value={filters.isActive === '' ? '' : filters.isActive ? 'active' : 'inactive'}
+                onChange={(e) => setFilters({ ...filters, isActive: e.target.value === '' ? '' : e.target.value === 'active' })}
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
               >
                 <option value="">All Status</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
-                <option value="suspended">Suspended</option>
               </select>
             </div>
             
