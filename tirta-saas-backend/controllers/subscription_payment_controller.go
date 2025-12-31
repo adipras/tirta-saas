@@ -370,7 +370,18 @@ func RejectSubscriptionPayment(c *gin.Context) {
 
 // GetTenantSubscriptionStatus gets current tenant subscription status
 func GetTenantSubscriptionStatus(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	// Get tenant_id from context (set by JWT middleware as uuid.UUID)
+	tenantIDValue, exists := c.Get("tenant_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Tenant ID not found in token"})
+		return
+	}
+	
+	tenantID, ok := tenantIDValue.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid tenant ID format"})
+		return
+	}
 
 	var tenant models.Tenant
 	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {

@@ -16,6 +16,13 @@ const TrialBanner = () => {
 
   const loadSubscriptionStatus = async () => {
     try {
+      // Only load for platform owner role, skip for tenant_admin
+      const userRole = localStorage.getItem('user_role');
+      if (userRole !== 'platform_owner') {
+        setLoading(false);
+        return;
+      }
+      
       const data = await subscriptionPaymentService.getSubscriptionStatus();
       setStatus(data);
     } catch (error) {

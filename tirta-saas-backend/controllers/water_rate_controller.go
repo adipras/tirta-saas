@@ -83,6 +83,40 @@ func GetWaterRates(c *gin.Context) {
 	c.JSON(http.StatusOK, rates)
 }
 
+// GetWaterRate godoc
+// @Summary Get water rate by ID
+// @Description Get a specific water rate by ID
+// @Tags Water Rates
+// @Accept json
+// @Produce json
+// @Param id path string true "Water Rate ID"
+// @Security BearerAuth
+// @Success 200 {object} models.WaterRate
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/water-rates/{id} [get]
+func GetWaterRate(c *gin.Context) {
+	id := c.Param("id")
+	tenantID, hasSpecificTenant, err := helpers.GetTenantIDFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var rate models.WaterRate
+	query := config.DB.Preload("Subscription")
+	
+	if hasSpecificTenant {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+	
+	if err := query.First(&rate, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Water rate not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, rate)
+}
+
 // GetCurrentWaterRate godoc
 // @Summary Get current active water rate
 // @Description Get the currently active water rate for a tenant

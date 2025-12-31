@@ -13,6 +13,7 @@ export interface Column<T> {
   sortable?: boolean;
   render?: (value: any, item: T) => React.ReactNode;
   className?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
 interface DataTableProps<T> {
@@ -192,8 +193,10 @@ export function DataTable<T extends Record<string, any>>({
                     <td
                       key={column.key as string}
                       className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${
-                        column.className || ''
-                      }`}
+                        column.align === 'right' ? 'text-right' : 
+                        column.align === 'center' ? 'text-center' : 
+                        'text-left'
+                      } ${column.className || ''}`}
                     >
                       {column.render
                         ? column.render(

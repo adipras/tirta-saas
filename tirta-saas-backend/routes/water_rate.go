@@ -13,6 +13,7 @@ func WaterRateRoutes(r *gin.Engine) {
 	group.POST("", controllers.CreateWaterRate)
 	group.GET("", controllers.GetWaterRates)
 	group.GET("/current", controllers.GetCurrentWaterRate)
-	group.PUT(":id", controllers.UpdateWaterRate)
-	group.DELETE(":id", controllers.DeleteWaterRate)
+	group.GET("/:id", controllers.GetWaterRate)
+	group.PUT("/:id", controllers.UpdateWaterRate)
+	group.DELETE("/:id", controllers.DeleteWaterRate)
 }

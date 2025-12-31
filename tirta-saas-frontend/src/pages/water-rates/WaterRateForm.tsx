@@ -50,11 +50,12 @@ export default function WaterRateForm() {
     try {
       setLoading(true);
       const data = await waterRateService.getWaterRate(rateId);
+      console.log('Fetched water rate data:', data);
       setFormData({
         amount: data.amount.toString(),
-        effectiveDate: data.effectiveDate.split('T')[0],
-        subscriptionId: data.subscriptionId,
-        categoryId: data.categoryId || '',
+        effectiveDate: data.effective_date.split('T')[0],
+        subscriptionId: data.subscription_id,
+        categoryId: data.category_id || '',
         description: data.description || '',
       });
     } catch (error) {
