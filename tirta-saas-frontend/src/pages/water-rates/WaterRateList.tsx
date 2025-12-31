@@ -30,7 +30,7 @@ export default function WaterRateList() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<WaterRateFilters>({
-    subscriptionId: undefined,
+    subscription_id: undefined,
     active: undefined,
   });
 
@@ -126,7 +126,7 @@ export default function WaterRateList() {
 
   const clearFilters = () => {
     setFilters({
-      subscriptionId: undefined,
+      subscription_id: undefined,
       active: undefined,
     });
     setCurrentPage(1);
@@ -163,9 +163,9 @@ export default function WaterRateList() {
       sortable: true,
     },
     {
-      key: 'effectiveDate',
+      key: 'effective_date',
       label: 'Effective Date',
-      render: (row: WaterRate) => formatDate(row.effectiveDate),
+      render: (row: WaterRate) => formatDate(row.effective_date),
       sortable: true,
     },
     {
@@ -321,8 +321,8 @@ export default function WaterRateList() {
                   Subscription Type
                 </label>
                 <select
-                  value={filters.subscriptionId || ''}
-                  onChange={(e) => handleFilterChange('subscriptionId', e.target.value)}
+                  value={filters.subscription_id || ''}
+                  onChange={(e) => handleFilterChange('subscription_id', e.target.value)}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
                   <option value="">All Types</option>

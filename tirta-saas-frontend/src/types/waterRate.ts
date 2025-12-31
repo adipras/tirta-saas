@@ -1,22 +1,29 @@
 export interface WaterRate {
   id: string;
   amount: number;
-  effectiveDate: string;
+  effective_date: string;
   active: boolean;
-  subscriptionId: string;
+  subscription_id: string;
   subscription?: {
     id: string;
     name: string;
+    description?: string;
+    registration_fee: number;
+    monthly_fee: number;
+    maintenance_fee: number;
+    late_fee_per_day: number;
+    max_late_fee: number;
   };
-  categoryId?: string;
+  category_id?: string;
   category?: {
     id: string;
     name: string;
     code: string;
   };
   description?: string;
-  createdAt: string;
-  updatedAt: string;
+  tenant_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CreateWaterRateDto {
@@ -40,18 +47,18 @@ export interface WaterRateFormData {
 }
 
 export interface WaterRateFilters {
-  subscriptionId?: string;
-  categoryId?: string;
+  subscription_id?: string;
+  category_id?: string;
   active?: boolean;
-  startDate?: string;
-  endDate?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface RateHistory {
   id: string;
   subscriptionName: string;
   amount: number;
-  effectiveDate: string;
+  effective_date: string;
   active: boolean;
-  createdAt: string;
+  created_at: string;
 }

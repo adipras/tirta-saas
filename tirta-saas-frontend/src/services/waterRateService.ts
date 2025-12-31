@@ -38,14 +38,23 @@ class WaterRateService {
     const response = await apiClient.get(API_ENDPOINTS.WATER_RATES.LIST, {
       params,
     });
-    return response.data;
+    
+    // Backend returns array directly, not wrapped
+    const data = Array.isArray(response) ? response : response.data || [];
+    return {
+      data,
+      total: data.length,
+      page: 1,
+      limit: data.length,
+      totalPages: 1,
+    };
   }
 
   async getWaterRate(id: string): Promise<WaterRate> {
     const response = await apiClient.get(
       API_ENDPOINTS.WATER_RATES.DETAIL(id)
     );
-    return response.data;
+    return response;
   }
 
   async getCurrentRate(subscriptionId: string): Promise<WaterRate | null> {
@@ -53,7 +62,7 @@ class WaterRateService {
       const response = await apiClient.get(API_ENDPOINTS.WATER_RATES.CURRENT, {
         params: { subscription_id: subscriptionId },
       });
-      return response.data;
+      return response;
     } catch (error) {
       return null;
     }
@@ -64,7 +73,7 @@ class WaterRateService {
       API_ENDPOINTS.WATER_RATES.CREATE,
       data
     );
-    return response.data;
+    return response;
   }
 
   async updateWaterRate(
@@ -75,7 +84,7 @@ class WaterRateService {
       API_ENDPOINTS.WATER_RATES.UPDATE(id),
       data
     );
-    return response.data;
+    return response;
   }
 
   async deleteWaterRate(id: string): Promise<void> {
@@ -108,19 +117,25 @@ class WaterRateService {
       params: { ...params, sort: 'effective_date:desc' },
     });
 
+    // Backend returns array directly
+    const rates = Array.isArray(response) ? response : response.data || [];
+    
     // Transform to RateHistory format
-    const data: RateHistory[] = response.data.data.map((rate: WaterRate) => ({
+    const data: RateHistory[] = rates.map((rate: WaterRate) => ({
       id: rate.id,
       subscriptionName: rate.subscription?.name || 'Unknown',
       amount: rate.amount,
-      effectiveDate: rate.effectiveDate,
+      effective_date: rate.effective_date,
       active: rate.active,
-      createdAt: rate.createdAt,
+      created_at: rate.created_at,
     }));
 
     return {
-      ...response.data,
       data,
+      total: data.length,
+      page: 1,
+      limit: data.length,
+      totalPages: 1,
     };
   }
 }

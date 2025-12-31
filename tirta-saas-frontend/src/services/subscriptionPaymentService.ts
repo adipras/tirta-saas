@@ -34,7 +34,7 @@ export interface SubmitPaymentResponse {
 }
 
 class SubscriptionPaymentService {
-  private readonly BASE_URL = '/api/tenant/subscription';
+  private readonly BASE_URL = '/tenant/subscription';
 
   async getSubscriptionStatus(): Promise<SubscriptionStatus> {
     const response = await apiClient.get(`${this.BASE_URL}/status`);
