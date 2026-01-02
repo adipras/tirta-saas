@@ -32,16 +32,29 @@ class CustomerService {
       ...filters,
     };
 
-    const response = await apiClient.get<PaginatedResponse<Customer>>(
+    const response = await apiClient.get<any>(
       API_ENDPOINTS.CUSTOMERS.LIST,
       { params }
     );
-    return response;
+    
+    // Backend returns { customers: [...], total: number }
+    // Transform to expected format { data: [...], pagination: {...} }
+    return {
+      data: response.customers || [],
+      pagination: {
+        total: response.total || 0,
+        page: page,
+        limit: limit,
+        totalPages: Math.ceil((response.total || 0) / limit),
+        currentPage: page,
+      }
+    };
   }
 
   async getCustomerById(id: string): Promise<Customer> {
-    const response = await apiClient.get<Customer>(API_ENDPOINTS.CUSTOMERS.DETAIL(id));
-    return response;
+    const response = await apiClient.get<any>(API_ENDPOINTS.CUSTOMERS.DETAIL(id));
+    // Backend might return { customer: {...} } or direct object
+    return response.customer || response;
   }
 
   async createCustomer(data: CreateCustomerDto): Promise<Customer> {

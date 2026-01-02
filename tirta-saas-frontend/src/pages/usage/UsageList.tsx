@@ -57,7 +57,7 @@ export default function UsageList() {
 
   const fetchCustomers = useCallback(async () => {
     try {
-      const response = await customerService.getCustomers(1, 1000, { status: 'active' });
+      const response = await customerService.getCustomers(1, 1000, { isActive: true });
       setCustomers(response.data);
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -341,7 +341,7 @@ export default function UsageList() {
                   <option value="">All Customers</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
-                      {customer.name} ({customer.customerId})
+                      {customer.name} ({customer.meter_number})
                     </option>
                   ))}
                 </select>

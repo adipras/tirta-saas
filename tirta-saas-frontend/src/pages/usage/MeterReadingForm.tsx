@@ -52,7 +52,7 @@ export default function MeterReadingForm() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await customerService.getCustomers(1, 1000, { status: 'active' });
+      const response = await customerService.getCustomers(1, 1000, { isActive: true });
       setCustomers(response.data);
     } catch (error) {
       dispatch(addNotification({
@@ -225,7 +225,7 @@ export default function MeterReadingForm() {
                   <option value="">Select customer</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
-                      {customer.name} ({customer.customerId})
+                      {customer.name} ({customer.meter_number})
                     </option>
                   ))}
                 </select>
@@ -261,11 +261,11 @@ export default function MeterReadingForm() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-gray-500">Meter Number:</span>
-                      <span className="ml-2 font-medium">{selectedCustomer.meterNumber || '-'}</span>
+                      <span className="ml-2 font-medium">{selectedCustomer.meter_number || '-'}</span>
                     </div>
                     <div>
                       <span className="text-gray-500">Subscription:</span>
-                      <span className="ml-2 font-medium">{selectedCustomer.subscriptionType.name}</span>
+                      <span className="ml-2 font-medium">{selectedCustomer.subscription.name}</span>
                     </div>
                   </div>
                 </div>

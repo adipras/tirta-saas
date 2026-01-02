@@ -5,13 +5,12 @@ import {
   PencilIcon,
   CheckCircleIcon,
   XCircleIcon,
-  PauseCircleIcon,
   CreditCardIcon,
   DocumentTextIcon,
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
 import customerService from '../../services/customerService';
-import type { Customer, CustomerStatus } from '../../types/customer';
+import type { Customer } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 
@@ -24,17 +23,25 @@ export default function CustomerDetails() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('CustomerDetails mounted, id:', id);
     if (id) {
+      console.log('Fetching customer with id:', id);
       fetchCustomer(id);
+    } else {
+      console.log('No id found in params');
+      setLoading(false);
     }
   }, [id]);
 
   const fetchCustomer = async (customerId: string) => {
     try {
+      console.log('fetchCustomer called with id:', customerId);
       setLoading(true);
       const data = await customerService.getCustomerById(customerId);
+      console.log('Customer data received:', data);
       setCustomer(data);
     } catch (error) {
+      console.error('Error fetching customer:', error);
       dispatch(addNotification({
         type: 'error',
         message: 'Failed to fetch customer details',
@@ -45,24 +52,22 @@ export default function CustomerDetails() {
     }
   };
 
-  const handleStatusChange = async (newStatus: CustomerStatus) => {
+  const handleStatusChange = async (newIsActive: boolean) => {
     if (!customer) return;
 
     try {
       let updatedCustomer;
-      if (newStatus === 'active') {
+      if (newIsActive) {
         updatedCustomer = await customerService.activateCustomer(customer.id);
-      } else if (newStatus === 'inactive') {
+      } else {
         updatedCustomer = await customerService.deactivateCustomer(customer.id);
-      } else if (newStatus === 'suspended') {
-        updatedCustomer = await customerService.suspendCustomer(customer.id);
       }
       
       if (updatedCustomer) {
         setCustomer(updatedCustomer);
         dispatch(addNotification({
           type: 'success',
-          message: `Customer status updated to ${newStatus}`,
+          message: `Customer ${newIsActive ? 'activated' : 'deactivated'} successfully`,
         }));
       }
     } catch (error) {
@@ -73,20 +78,22 @@ export default function CustomerDetails() {
     }
   };
 
-  const getStatusBadge = (status: CustomerStatus) => {
-    const statusConfig = {
-      active: { color: 'bg-green-100 text-green-800', icon: CheckCircleIcon },
-      inactive: { color: 'bg-gray-100 text-gray-800', icon: XCircleIcon },
-      suspended: { color: 'bg-red-100 text-red-800', icon: PauseCircleIcon },
-    };
-
-    const config = statusConfig[status];
-    const Icon = config.icon;
-
+  const getStatusBadge = (isActive: boolean) => {
     return (
-      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.color}`}>
-        <Icon className="mr-2 h-4 w-4" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+        isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+      }`}>
+        {isActive ? (
+          <>
+            <CheckCircleIcon className="mr-2 h-4 w-4" />
+            Active
+          </>
+        ) : (
+          <>
+            <XCircleIcon className="mr-2 h-4 w-4" />
+            Inactive
+          </>
+        )}
       </span>
     );
   };
@@ -120,15 +127,25 @@ export default function CustomerDetails() {
           </button>
         </div>
         <div className="flex items-center space-x-3">
-          <select
-            value={customer.status}
-            onChange={(e) => handleStatusChange(e.target.value as CustomerStatus)}
-            className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          >
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="suspended">Suspended</option>
-          </select>
+          {/* Toggle Switch */}
+          <div className="flex items-center space-x-2">
+            <span className={`text-sm font-medium ${customer.is_active ? 'text-green-600' : 'text-gray-500'}`}>
+              {customer.is_active ? 'Active' : 'Inactive'}
+            </span>
+            <button
+              onClick={() => handleStatusChange(!customer.is_active)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                customer.is_active ? 'bg-green-600' : 'bg-gray-300'
+              }`}
+              title={customer.is_active ? 'Click to deactivate' : 'Click to activate'}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  customer.is_active ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
           <button
             onClick={() => navigate(`/admin/customers/${customer.id}/edit`)}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
@@ -147,10 +164,10 @@ export default function CustomerDetails() {
                 {customer.name}
               </h3>
               <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                Customer ID: {customer.customerId}
+                Meter Number: {customer.meter_number}
               </p>
             </div>
-            {getStatusBadge(customer.status)}
+            {getStatusBadge(customer.is_active)}
           </div>
         </div>
 
@@ -177,56 +194,39 @@ export default function CustomerDetails() {
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt className="text-sm font-medium text-gray-500">Address</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {customer.address}<br />
-                {customer.city}, {customer.postalCode}
+                {customer.address}
               </dd>
             </div>
 
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt className="text-sm font-medium text-gray-500">Subscription Type</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                <div>
-                  <p className="font-medium">{customer.subscriptionType.name}</p>
-                  <p className="text-gray-500">
-                    Monthly Fee: ${customer.subscriptionType.monthlyFee.toFixed(2)}
-                  </p>
-                </div>
+                {customer.subscription ? (
+                  <div>
+                    <p className="font-medium">{customer.subscription.name}</p>
+                    <p className="text-gray-500">
+                      Monthly Fee: Rp {customer.subscription.monthly_fee?.toLocaleString('id-ID') || '-'}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No subscription assigned</p>
+                )}
               </dd>
             </div>
 
-            {customer.meterNumber && (
-              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Meter Number</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {customer.meterNumber}
-                </dd>
-              </div>
-            )}
-
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Outstanding Balance</dt>
-              <dd className="mt-1 text-sm sm:mt-0 sm:col-span-2">
-                <span className={`font-medium ${customer.outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  ${customer.outstandingBalance.toFixed(2)}
-                </span>
+              <dt className="text-sm font-medium text-gray-500">Meter Number</dt>
+              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                {customer.meter_number}
               </dd>
             </div>
 
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
               <dt className="text-sm font-medium text-gray-500">Registration Date</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {new Date(customer.registrationDate).toLocaleDateString()}
+                {new Date(customer.created_at).toLocaleDateString()}
               </dd>
             </div>
-
-            {customer.lastPaymentDate && (
-              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Last Payment</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {new Date(customer.lastPaymentDate).toLocaleDateString()}
-                </dd>
-              </div>
-            )}
           </dl>
         </div>
       </div>

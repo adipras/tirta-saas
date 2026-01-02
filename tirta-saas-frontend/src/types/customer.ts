@@ -26,8 +26,6 @@ export interface SubscriptionType {
   updated_at?: string;
 }
 
-export type CustomerStatus = 'active' | 'inactive' | 'suspended';
-
 export interface CreateCustomerDto {
   meter_number: string;
   name: string;

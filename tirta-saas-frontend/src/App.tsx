@@ -11,6 +11,8 @@ import CustomerDashboard from './pages/CustomerDashboard';
 import AdminLogin from './pages/auth/AdminLogin';
 import CustomerLogin from './pages/auth/CustomerLogin';
 import CustomerList from './pages/customers/CustomerList';
+import CustomerDetails from './pages/customers/CustomerDetails';
+import CustomerForm from './pages/customers/CustomerForm';
 import UsageList from './pages/usage/UsageList';
 import MeterReadingForm from './pages/usage/MeterReadingForm';
 import UsageHistory from './pages/usage/UsageHistory';
@@ -102,9 +104,9 @@ function App() {
               } />
               <Route path="test" element={<TestPage />} />
               <Route path="customers" element={<CustomerList />} />
-              <Route path="customers/new" element={<div>New Customer Form</div>} />
-              <Route path="customers/:id" element={<div>Customer Details</div>} />
-              <Route path="customers/:id/edit" element={<div>Edit Customer Form</div>} />
+              <Route path="customers/new" element={<CustomerForm mode="create" />} />
+              <Route path="customers/:id" element={<CustomerDetails />} />
+              <Route path="customers/:id/edit" element={<CustomerForm mode="edit" />} />
               <Route path="subscriptions" element={<SubscriptionTypeList />} />
               <Route path="subscriptions/create" element={<SubscriptionTypeForm />} />
               <Route path="subscriptions/edit/:id" element={<SubscriptionTypeForm />} />

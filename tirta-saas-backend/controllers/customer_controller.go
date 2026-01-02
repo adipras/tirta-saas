@@ -11,6 +11,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // CreateCustomer godoc
@@ -146,7 +147,7 @@ func GetCustomers(c *gin.Context) {
 	// Convert to response format
 	customerResponses := make([]responses.CustomerResponse, len(customers))
 	for i, customer := range customers {
-		customerResponses[i] = responses.CustomerResponse{
+		resp := responses.CustomerResponse{
 			ID:             customer.ID,
 			MeterNumber:    customer.MeterNumber,
 			Name:           customer.Name,
@@ -155,7 +156,24 @@ func GetCustomers(c *gin.Context) {
 			Phone:          customer.Phone,
 			SubscriptionID: customer.SubscriptionID,
 			IsActive:       customer.IsActive,
+			CreatedAt:      customer.CreatedAt,
 		}
+		
+		// Include subscription if loaded
+		if customer.Subscription.ID != uuid.Nil {
+			resp.Subscription = &responses.SubscriptionTypeResponse{
+				ID:              customer.Subscription.ID,
+				Name:            customer.Subscription.Name,
+				Description:     customer.Subscription.Description,
+				RegistrationFee: customer.Subscription.RegistrationFee,
+				MonthlyFee:      customer.Subscription.MonthlyFee,
+				MaintenanceFee:  customer.Subscription.MaintenanceFee,
+				LateFeePerDay:   customer.Subscription.LateFeePerDay,
+				MaxLateFee:      customer.Subscription.MaxLateFee,
+			}
+		}
+		
+		customerResponses[i] = resp
 	}
 
 	response := responses.CustomerListResponse{
@@ -207,7 +225,157 @@ func GetCustomer(c *gin.Context) {
 		Phone:          customer.Phone,
 		SubscriptionID: customer.SubscriptionID,
 		IsActive:       customer.IsActive,
+		CreatedAt:      customer.CreatedAt,
 	}
+	
+	// Include subscription if loaded
+	if customer.Subscription.ID != uuid.Nil {
+		response.Subscription = &responses.SubscriptionTypeResponse{
+			ID:              customer.Subscription.ID,
+			Name:            customer.Subscription.Name,
+			Description:     customer.Subscription.Description,
+			RegistrationFee: customer.Subscription.RegistrationFee,
+			MonthlyFee:      customer.Subscription.MonthlyFee,
+			MaintenanceFee:  customer.Subscription.MaintenanceFee,
+			LateFeePerDay:   customer.Subscription.LateFeePerDay,
+			MaxLateFee:      customer.Subscription.MaxLateFee,
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// ActivateCustomer godoc
+// @Summary Activate customer
+// @Description Activate a customer account
+// @Tags Customers
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID"
+// @Security BearerAuth
+// @Success 200 {object} responses.CustomerResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/customers/{id}/activate [post]
+func ActivateCustomer(c *gin.Context) {
+	tenantID, hasSpecificTenant, err := helpers.GetTenantIDFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	id := c.Param("id")
+
+	var customer models.Customer
+	query := config.DB.Preload("Subscription").Where("id = ?", id)
+	
+	if hasSpecificTenant {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+
+	if err := query.First(&customer).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
+		return
+	}
+
+	// Update is_active to true
+	customer.IsActive = true
+	if err := config.DB.Save(&customer).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to activate customer"})
+		return
+	}
+
+	response := responses.CustomerResponse{
+		ID:             customer.ID,
+		MeterNumber:    customer.MeterNumber,
+		Name:           customer.Name,
+		Email:          customer.Email,
+		Address:        customer.Address,
+		Phone:          customer.Phone,
+		SubscriptionID: customer.SubscriptionID,
+		IsActive:       customer.IsActive,
+		CreatedAt:      customer.CreatedAt,
+	}
+
+	if customer.Subscription.ID != uuid.Nil {
+		response.Subscription = &responses.SubscriptionTypeResponse{
+			ID:              customer.Subscription.ID,
+			Name:            customer.Subscription.Name,
+			Description:     customer.Subscription.Description,
+			RegistrationFee: customer.Subscription.RegistrationFee,
+			MonthlyFee:      customer.Subscription.MonthlyFee,
+			MaintenanceFee:  customer.Subscription.MaintenanceFee,
+			LateFeePerDay:   customer.Subscription.LateFeePerDay,
+			MaxLateFee:      customer.Subscription.MaxLateFee,
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// DeactivateCustomer godoc
+// @Summary Deactivate customer
+// @Description Deactivate a customer account
+// @Tags Customers
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID"
+// @Security BearerAuth
+// @Success 200 {object} responses.CustomerResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/customers/{id}/deactivate [post]
+func DeactivateCustomer(c *gin.Context) {
+	tenantID, hasSpecificTenant, err := helpers.GetTenantIDFromContext(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	id := c.Param("id")
+
+	var customer models.Customer
+	query := config.DB.Preload("Subscription").Where("id = ?", id)
+	
+	if hasSpecificTenant {
+		query = query.Where("tenant_id = ?", tenantID)
+	}
+
+	if err := query.First(&customer).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
+		return
+	}
+
+	// Update is_active to false
+	customer.IsActive = false
+	if err := config.DB.Save(&customer).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to deactivate customer"})
+		return
+	}
+
+	response := responses.CustomerResponse{
+		ID:             customer.ID,
+		MeterNumber:    customer.MeterNumber,
+		Name:           customer.Name,
+		Email:          customer.Email,
+		Address:        customer.Address,
+		Phone:          customer.Phone,
+		SubscriptionID: customer.SubscriptionID,
+		IsActive:       customer.IsActive,
+		CreatedAt:      customer.CreatedAt,
+	}
+
+	if customer.Subscription.ID != uuid.Nil {
+		response.Subscription = &responses.SubscriptionTypeResponse{
+			ID:              customer.Subscription.ID,
+			Name:            customer.Subscription.Name,
+			Description:     customer.Subscription.Description,
+			RegistrationFee: customer.Subscription.RegistrationFee,
+			MonthlyFee:      customer.Subscription.MonthlyFee,
+			MaintenanceFee:  customer.Subscription.MaintenanceFee,
+			LateFeePerDay:   customer.Subscription.LateFeePerDay,
+			MaxLateFee:      customer.Subscription.MaxLateFee,
+		}
+	}
+
 	c.JSON(http.StatusOK, response)
 }
 
@@ -308,3 +476,16 @@ func DeleteCustomer(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Pelanggan berhasil dihapus"})
 }
+
+// ActivateCustomer godoc
+// @Summary Activate customer
+// @Description Activate a customer account
+// @Tags Customers
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID"
+// @Security BearerAuth
+// @Success 200 {object} responses.CustomerResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/customers/{id}/activate [post]

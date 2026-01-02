@@ -56,7 +56,7 @@ export interface WaterRateFilters {
 
 export interface RateHistory {
   id: string;
-  subscriptionName: string;
+  subscription_name: string;
   amount: number;
   effective_date: string;
   active: boolean;

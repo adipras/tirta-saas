@@ -28,11 +28,11 @@ class WaterRateService {
     };
 
     if (filters) {
-      if (filters.subscriptionId) params.subscription_id = filters.subscriptionId;
-      if (filters.categoryId) params.category_id = filters.categoryId;
+      if (filters.subscription_id) params.subscription_id = filters.subscription_id;
+      if (filters.category_id) params.category_id = filters.category_id;
       if (filters.active !== undefined) params.active = filters.active;
-      if (filters.startDate) params.start_date = filters.startDate;
-      if (filters.endDate) params.end_date = filters.endDate;
+      if (filters.start_date) params.start_date = filters.start_date;
+      if (filters.end_date) params.end_date = filters.end_date;
     }
 
     const response = await apiClient.get(API_ENDPOINTS.WATER_RATES.LIST, {

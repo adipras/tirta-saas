@@ -8,7 +8,6 @@ import {
   FunnelIcon,
   CheckCircleIcon,
   XCircleIcon,
-  PauseCircleIcon
 } from '@heroicons/react/24/outline';
 import { DataTable } from '../../components/DataTable';
 import customerService from '../../services/customerService';
@@ -123,28 +122,30 @@ export default function CustomerList() {
     }
   };
 
-  const getStatusBadge = (status: CustomerStatus) => {
-    const statusConfig = {
-      active: { color: 'bg-green-100 text-green-800', icon: CheckCircleIcon },
-      inactive: { color: 'bg-gray-100 text-gray-800', icon: XCircleIcon },
-      suspended: { color: 'bg-red-100 text-red-800', icon: PauseCircleIcon },
-    };
-
-    const config = statusConfig[status];
-    const Icon = config.icon;
-
+  const getStatusBadge = (isActive: boolean) => {
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
-        <Icon className="mr-1 h-3 w-3" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+        isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+      }`}>
+        {isActive ? (
+          <>
+            <CheckCircleIcon className="mr-1 h-3 w-3" />
+            Active
+          </>
+        ) : (
+          <>
+            <XCircleIcon className="mr-1 h-3 w-3" />
+            Inactive
+          </>
+        )}
       </span>
     );
   };
 
   const columns = [
     {
-      key: 'customerId',
-      label: 'Customer ID',
+      key: 'meter_number',
+      label: 'Meter Number',
       sortable: true,
     },
     {
@@ -162,53 +163,63 @@ export default function CustomerList() {
       label: 'Phone',
     },
     {
-      key: 'subscriptionType.name',
+      key: 'subscription',
       label: 'Subscription',
       sortable: true,
+      render: (_value: any, item: Customer) => item.subscription?.name || '-',
     },
     {
-      key: 'status',
+      key: 'is_active',
       label: 'Status',
       sortable: true,
-      render: (status: CustomerStatus) => getStatusBadge(status),
-    },
-    {
-      key: 'outstandingBalance',
-      label: 'Outstanding',
-      sortable: true,
-      render: (balance: number) => (
-        <span className={balance > 0 ? 'text-red-600 font-medium' : 'text-green-600'}>
-          ${balance.toFixed(2)}
-        </span>
-      ),
+      render: (isActive: boolean) => getStatusBadge(isActive),
     },
   ];
 
   const actions = (customer: Customer) => (
     <div className="flex items-center space-x-2">
       <button
-        onClick={() => navigate(`/admin/customers/${customer.id}`)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('View customer:', customer.id);
+          navigate(`/admin/customers/${customer.id}`);
+        }}
         className="text-blue-600 hover:text-blue-900"
         title="View Details"
       >
         <EyeIcon className="h-5 w-5" />
       </button>
       <button
-        onClick={() => navigate(`/admin/customers/${customer.id}/edit`)}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Edit customer:', customer.id);
+          navigate(`/admin/customers/${customer.id}/edit`);
+        }}
         className="text-gray-600 hover:text-gray-900"
         title="Edit"
       >
         <PencilIcon className="h-5 w-5" />
       </button>
-      <select
-        value={customer.is_active ? 'active' : 'inactive'}
-        onChange={(e) => handleStatusChange(customer.id, e.target.value === 'active')}
-        className="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-        onClick={(e) => e.stopPropagation()}
+      {/* Toggle Switch */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleStatusChange(customer.id, !customer.is_active);
+        }}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+          customer.is_active ? 'bg-green-600' : 'bg-gray-300'
+        }`}
+        title={customer.is_active ? 'Active - Click to deactivate' : 'Inactive - Click to activate'}
       >
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </select>
+        <span
+          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+            customer.is_active ? 'translate-x-6' : 'translate-x-1'
+          }`}
+        />
+      </button>
     </div>
   );
 
@@ -301,7 +312,7 @@ export default function CustomerList() {
           <div className="flex justify-end space-x-2">
             <button
               onClick={() => setFilters({
-                status: '',
+                isActive: '' as boolean | '',
                 subscriptionTypeId: '',
                 hasOutstandingBalance: '',
                 search: '',

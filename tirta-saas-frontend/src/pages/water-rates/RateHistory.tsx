@@ -100,13 +100,13 @@ export default function RateHistory() {
     {
       key: 'effectiveDate',
       label: 'Effective Date',
-      render: (row: RateHistory) => formatDate(row.effectiveDate),
+      render: (row: RateHistory) => formatDate(row.effective_date),
       sortable: true,
     },
     {
       key: 'createdAt',
       label: 'Created At',
-      render: (row: RateHistory) => formatDateTime(row.createdAt),
+      render: (row: RateHistory) => formatDateTime(row.created_at),
       sortable: true,
     },
     {
@@ -203,10 +203,10 @@ export default function RateHistory() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-900">
-                        {rate.subscriptionName}
+                        {rate.subscription_name}
                       </p>
                       <p className="text-sm text-gray-500">
-                        {formatDate(rate.effectiveDate)}
+                        {formatDate(rate.effective_date)}
                       </p>
                     </div>
                     <div className="text-right">

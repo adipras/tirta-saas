@@ -59,7 +59,7 @@ const PaymentForm: React.FC = () => {
   const fetchCustomers = async () => {
     try {
       const response = await customerService.getCustomers(1, 1000);
-      setCustomers(response.data.filter((c) => c.status === 'active'));
+      setCustomers(response.data.filter((c) => c.is_active));
     } catch (error) {
       console.error('Failed to fetch customers:', error);
     }
@@ -181,7 +181,7 @@ const PaymentForm: React.FC = () => {
               <option value="">Select a customer</option>
               {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
-                  {customer.name} - {customer.meterNumber}
+                  {customer.name} - {customer.meter_number}
                 </option>
               ))}
             </select>

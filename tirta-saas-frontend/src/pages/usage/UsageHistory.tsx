@@ -89,7 +89,7 @@ export default function UsageHistoryPage() {
         <h1 className="text-2xl font-semibold text-gray-900">Usage History</h1>
         {customer && (
           <p className="mt-2 text-sm text-gray-700">
-            {customer.name} ({customer.customerId})
+            {customer.name} ({customer.meter_number})
           </p>
         )}
       </div>

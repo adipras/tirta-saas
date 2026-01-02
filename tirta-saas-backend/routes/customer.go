@@ -15,4 +15,6 @@ func CustomerRoutes(r *gin.Engine) {
 	group.GET(":id", controllers.GetCustomer)
 	group.PUT(":id", controllers.UpdateCustomer)
 	group.DELETE(":id", controllers.DeleteCustomer)
+	group.POST(":id/activate", controllers.ActivateCustomer)
+	group.POST(":id/deactivate", controllers.DeactivateCustomer)
 }
