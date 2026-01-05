@@ -52,6 +52,7 @@ func Migrate() {
 		&models.WaterUsage{},                 // References Tenant + Customer
 		&models.Invoice{},                    // References Tenant + Customer
 		&models.Payment{},                    // References Tenant + Invoice (must be after Invoice)
+		&models.PaymentProof{},               // References Tenant + Invoice + Customer
 		&models.AuditLog{},                   // References Tenant (no other FK constraints)
 		&models.TenantSettings{},             // References Tenant
 		&models.SubscriptionPlanDetails{},    // No dependencies

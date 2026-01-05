@@ -112,6 +112,7 @@ func main() {
 	routes.WaterUsageRoutes(r)
 	routes.InvoiceRoutes(r)
 	routes.PaymentRoutes(r)
+	routes.PaymentProofRoutes(r)
 	routes.RegisterTenantUserRoutes(r)
 	routes.PlatformRoutes(r)
 	routes.SubscriptionPaymentRoutes(r)
