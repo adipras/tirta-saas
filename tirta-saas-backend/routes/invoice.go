@@ -8,7 +8,7 @@ import (
 
 func InvoiceRoutes(r *gin.Engine) {
 	group := r.Group("/api/invoices")
-	group.Use(middleware.JWTAuthMiddleware(), middleware.AdminOnly())
+	group.Use(middleware.JWTAuthMiddleware(), middleware.CheckTenantStatus(), middleware.AdminOnly())
 
 	// Legacy single generation
 	group.POST("generate-monthly", controllers.GenerateMonthlyInvoice)

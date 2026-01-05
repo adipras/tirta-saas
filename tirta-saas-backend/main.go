@@ -63,6 +63,14 @@ func main() {
 		}
 	}
 
+	// Start trial expiry scheduler for automatic trial monitoring
+	if os.Getenv("ENABLE_TRIAL_SCHEDULER") != "false" {
+		trialScheduler := services.NewTrialExpiryScheduler()
+		if err := trialScheduler.Start(); err != nil {
+			log.Printf("⚠️  Warning: Failed to start trial expiry scheduler: %v", err)
+		}
+	}
+
 	// Get port configuration
 	port := os.Getenv("PORT")
 	if port == "" {

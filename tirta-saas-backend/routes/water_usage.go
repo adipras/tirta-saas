@@ -9,7 +9,7 @@ import (
 
 func WaterUsageRoutes(r *gin.Engine) {
 	group := r.Group("/api/water-usage")
-	group.Use(middleware.JWTAuthMiddleware(), middleware.AdminOnly())
+	group.Use(middleware.JWTAuthMiddleware(), middleware.CheckTenantStatus(), middleware.AdminOnly())
 
 	group.POST("", controllers.CreateWaterUsage)
 	group.GET("", controllers.GetWaterUsages)

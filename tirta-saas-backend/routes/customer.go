@@ -8,7 +8,7 @@ import (
 
 func CustomerRoutes(r *gin.Engine) {
 	group := r.Group("/api/customers")
-	group.Use(middleware.JWTAuthMiddleware(), middleware.AdminOnly())
+	group.Use(middleware.JWTAuthMiddleware(), middleware.CheckTenantStatus(), middleware.AdminOnly())
 
 	group.POST("", controllers.CreateCustomer)
 	group.GET("", controllers.GetCustomers)
