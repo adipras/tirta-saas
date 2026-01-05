@@ -26,6 +26,8 @@ import WaterRateList from './pages/water-rates/WaterRateList';
 import WaterRateForm from './pages/water-rates/WaterRateForm';
 import RateHistory from './pages/water-rates/RateHistory';
 import { PaymentList, PaymentForm, PaymentReceipt } from './pages/payments';
+import PaymentProofManagement from './pages/payment-proofs/PaymentProofManagement';
+import PaymentProofSubmitForm from './pages/payment-proofs/PaymentProofSubmitForm';
 import { 
   ReportsDashboard, 
   RevenueReport, 
@@ -123,6 +125,10 @@ function App() {
               <Route path="payments/new" element={<PaymentForm />} />
               <Route path="payments/:id/edit" element={<PaymentForm />} />
               <Route path="payments/:id/receipt" element={<PaymentReceipt />} />
+              
+              {/* Payment Proof Routes */}
+              <Route path="payment-proofs" element={<PaymentProofManagement />} />
+              <Route path="payment-proofs/submit" element={<PaymentProofSubmitForm />} />
               <Route path="reports" element={<ReportsDashboard />} />
               <Route path="reports/revenue" element={<RevenueReport />} />
               <Route path="reports/customers" element={<CustomerAnalytics />} />
