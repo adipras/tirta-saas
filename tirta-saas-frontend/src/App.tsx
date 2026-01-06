@@ -9,7 +9,15 @@ import CustomerLayout from './layouts/CustomerLayout';
 import RoleBasedDashboard from './pages/RoleBasedDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
 import AdminLogin from './pages/auth/AdminLogin';
-import CustomerLogin from './pages/auth/CustomerLogin';
+// Customer Portal - NEW
+import CustomerLoginNew from './pages/customer/CustomerLogin';
+import CustomerDashboardNew from './pages/customer/CustomerDashboard';
+import CustomerInvoicesNew from './pages/customer/CustomerInvoices';
+import CustomerPaymentsNew from './pages/customer/CustomerPayments';
+import CustomerUsageNew from './pages/customer/CustomerUsage';
+import CustomerProfileNew from './pages/customer/CustomerProfile';
+import CustomerPayInvoiceNew from './pages/customer/CustomerPayInvoice';
+// End Customer Portal
 import CustomerList from './pages/customers/CustomerList';
 import CustomerDetails from './pages/customers/CustomerDetails';
 import CustomerForm from './pages/customers/CustomerForm';
@@ -83,7 +91,15 @@ function App() {
             
             {/* Auth Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/customer/login" element={<CustomerLogin />} />
+            
+            {/* Customer Portal Routes */}
+            <Route path="/customer/login" element={<CustomerLoginNew />} />
+            <Route path="/customer/dashboard" element={<CustomerDashboardNew />} />
+            <Route path="/customer/invoices" element={<CustomerInvoicesNew />} />
+            <Route path="/customer/pay/:invoiceId" element={<CustomerPayInvoiceNew />} />
+            <Route path="/customer/payments" element={<CustomerPaymentsNew />} />
+            <Route path="/customer/usage" element={<CustomerUsageNew />} />
+            <Route path="/customer/profile" element={<CustomerProfileNew />} />
             
             {/* Test route - outside auth to verify routing works */}
             <Route path="/test-simple" element={
