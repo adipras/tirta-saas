@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import invoiceService from '../../services/invoiceService';
 import paymentProofService from '../../services/paymentProofService';
-import { Invoice } from '../../types/invoice';
+import type { Invoice } from '../../types/invoice';
 
 const PaymentProofSubmitForm: React.FC = () => {
   const navigate = useNavigate();
