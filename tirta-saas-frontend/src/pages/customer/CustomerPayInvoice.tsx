@@ -26,6 +26,7 @@ const CustomerPayInvoice: React.FC = () => {
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!customerAuthService.isAuthenticated()) {
       navigate('/customer/login');

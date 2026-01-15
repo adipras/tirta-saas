@@ -46,6 +46,7 @@ export default function CustomerUsageMonitor() {
   const [stats, setStats] = useState<UsageStats | null>(null);
   const [period, setPeriod] = useState<'6months' | '12months' | 'all'>('6months');
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadUsageData();
   }, [period]);

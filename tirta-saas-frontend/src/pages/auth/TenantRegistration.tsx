@@ -77,7 +77,7 @@ const TenantRegistration = () => {
 
     try {
       // Remove confirm_password before sending
-      const { confirm_password, ...registrationData } = data;
+      const { confirm_password: _confirm, ...registrationData } = data;
 
       const response = await fetch(`${API_BASE_URL}/public/register`, {
         method: 'POST',

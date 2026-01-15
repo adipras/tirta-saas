@@ -19,6 +19,7 @@ export default function InvoiceDetails() {
   const [invoice, setInvoice] = useState<InvoiceDetailsType | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (id) {
       fetchInvoice(id);
@@ -30,7 +31,7 @@ export default function InvoiceDetails() {
       setLoading(true);
       const data = await invoiceService.getInvoiceById(invoiceId);
       setInvoice(data);
-    } catch (error) {
+    } catch {
       dispatch(addNotification({
         type: 'error',
         message: 'Failed to fetch invoice details',

@@ -43,10 +43,12 @@ export default function CustomerPaymentForm() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadUnpaidInvoices();
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (preSelectedInvoiceId && invoices.length > 0) {
       handleInvoiceSelect(preSelectedInvoiceId);

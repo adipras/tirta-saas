@@ -37,6 +37,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
     reset,
   } = useForm<CustomerFormData>();
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchSubscriptionTypes();
     if (mode === 'edit' && id) {
@@ -48,7 +49,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
     try {
       const types = await customerService.getSubscriptionTypes();
       setSubscriptionTypes(types);
-    } catch (error) {
+    } catch {
       dispatch(addNotification({
         type: 'error',
         message: 'Failed to fetch subscription types',
@@ -70,7 +71,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
         phone: customer.phone || '',
         address: customer.address || '',
       });
-    } catch (error) {
+    } catch {
       dispatch(addNotification({
         type: 'error',
         message: 'Failed to fetch customer details',
@@ -100,7 +101,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
       }
       
       navigate('/admin/customers');
-    } catch (error) {
+    } catch {
       dispatch(addNotification({
         type: 'error',
         message: `Failed to ${mode} customer`,

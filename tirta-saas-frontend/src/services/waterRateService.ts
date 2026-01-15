@@ -63,7 +63,7 @@ class WaterRateService {
         params: { subscription_id: subscriptionId },
       });
       return response;
-    } catch (error) {
+    } catch {
       return null;
     }
   }

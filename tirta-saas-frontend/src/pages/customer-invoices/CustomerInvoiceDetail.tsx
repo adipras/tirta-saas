@@ -17,6 +17,7 @@ export default function CustomerInvoiceDetail() {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (id) {
       loadInvoice();

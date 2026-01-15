@@ -48,6 +48,7 @@ export default function CustomerPaymentConfirmation() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (invoiceId) {
       loadInvoice();
@@ -63,7 +64,7 @@ export default function CustomerPaymentConfirmation() {
         ...prev,
         amount: data.amountDue || data.totalAmount,
       }));
-    } catch (err: any) {
+    } catch {
       setError('Failed to load invoice');
     } finally {
       setLoading(false);
@@ -155,7 +156,7 @@ export default function CustomerPaymentConfirmation() {
       setTimeout(() => {
         navigate('/customer/payments/success?confirmed=true');
       }, 2000);
-    } catch (err: any) {
+    } catch {
       setError('Failed to submit payment confirmation');
     } finally {
       setSubmitting(false);

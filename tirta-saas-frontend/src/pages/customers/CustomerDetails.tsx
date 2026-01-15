@@ -22,17 +22,6 @@ export default function CustomerDetails() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    console.log('CustomerDetails mounted, id:', id);
-    if (id) {
-      console.log('Fetching customer with id:', id);
-      fetchCustomer(id);
-    } else {
-      console.log('No id found in params');
-      setLoading(false);
-    }
-  }, [id]);
-
   const fetchCustomer = async (customerId: string) => {
     try {
       console.log('fetchCustomer called with id:', customerId);
@@ -52,6 +41,18 @@ export default function CustomerDetails() {
     }
   };
 
+  useEffect(() => {
+    console.log('CustomerDetails mounted, id:', id);
+    if (id) {
+      console.log('Fetching customer with id:', id);
+      fetchCustomer(id);
+    } else {
+      console.log('No id found in params');
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   const handleStatusChange = async (newIsActive: boolean) => {
     if (!customer) return;
 
@@ -70,7 +71,7 @@ export default function CustomerDetails() {
           message: `Customer ${newIsActive ? 'activated' : 'deactivated'} successfully`,
         }));
       }
-    } catch (error) {
+    } catch {
       dispatch(addNotification({
         type: 'error',
         message: 'Failed to update customer status',

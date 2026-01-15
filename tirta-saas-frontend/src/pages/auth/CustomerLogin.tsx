@@ -40,7 +40,7 @@ const CustomerLogin = () => {
     try {
       await dispatch(loginAsync(data)).unwrap();
       navigate('/customer');
-    } catch (error) {
+    } catch {
       // Error is handled by Redux slice
     }
   };

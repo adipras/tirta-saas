@@ -50,6 +50,7 @@ export default function InvoiceForm() {
     name: 'items',
   });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchCustomers();
     if (mode === 'edit' && id) {
@@ -61,7 +62,7 @@ export default function InvoiceForm() {
     try {
       const response = await customerService.getCustomers(1, 100); // Fetch up to 100 customers
       setCustomers(response.data);
-    } catch (error) {
+    } catch {
       dispatch(addNotification({
         type: 'error',
         message: 'Failed to fetch customers',
@@ -78,7 +79,7 @@ export default function InvoiceForm() {
         ...invoice,
         dueDate: formattedDate,
       } as any);
-    } catch (error) {
+    } catch {
       dispatch(addNotification({
         type: 'error',
         message: 'Failed to fetch invoice details',
@@ -118,7 +119,7 @@ export default function InvoiceForm() {
       }
 
       navigate('/admin/invoices');
-    } catch (error) {
+    } catch {
       dispatch(addNotification({
         type: 'error',
         message: `Failed to ${mode} invoice`,

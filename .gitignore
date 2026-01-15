@@ -8,6 +8,7 @@ build/
 *.exe
 tirta-backend
 tirta-saas-backend/tirta-backend
+tirta-saas-backend/tirta-saas-backend
 
 # Environment files
 .env
