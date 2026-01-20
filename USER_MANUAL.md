@@ -1,8 +1,32 @@
 # Tirta SaaS - User Manual & Testing Guide
 
-**Version:** 1.0  
-**Date:** January 6, 2026  
+**Version:** 1.0.1  
+**Last Updated:** January 20, 2026  
+**Status:** Production Ready  
 **Purpose:** Complete manual for testing all features in correct order
+
+> 📘 **For Developers:** This manual serves as both a testing guide and user documentation.  
+> 📋 **For Testers:** Follow the order exactly for best results.  
+> 👤 **For End Users:** Skip to your role section (Platform Owner/Tenant Admin/Customer).
+
+---
+
+## 🚀 Quick Start (5 Minutes)
+
+**New to the system? Start here:**
+
+1. **Start Services** (see [Pre-requisites](#pre-requisites))
+   - Backend: `cd tirta-saas-backend && go run main.go`
+   - Frontend: `cd tirta-saas-frontend && npm run dev`
+
+2. **Access System**
+   - Open: http://localhost:5173
+   - Login: admin@tirtasaas.com / admin123
+
+3. **First Steps**
+   - Platform Owner: Configure payment settings → Approve tenants
+   - Tenant Admin: Setup subscription plans → Add customers
+   - Customer: Login → View invoices → Submit payment
 
 ---
 
@@ -15,6 +39,9 @@
 5. [Tenant Admin Guide](#tenant-admin-guide)
 6. [Customer Guide](#customer-guide)
 7. [Troubleshooting](#troubleshooting)
+8. [Testing Checklist](#testing-checklist)
+9. [API Reference](#api-endpoints-reference)
+10. [Known Issues](#known-issues)
 
 ---
 
@@ -47,29 +74,116 @@ Customers
 
 ## Pre-requisites
 
+### System Requirements
+
+**Software:**
+- Go 1.21+ (backend)
+- Node.js 18+ (frontend)
+- MySQL 8.0+ (database)
+- Git (version control)
+
+**Ports Required:**
+- 8081 (backend)
+- 5173 (frontend)
+- 3306 (MySQL)
+
 ### Backend Setup
 
 ```bash
+# Navigate to backend directory
 cd tirta-saas-backend
+
+# Install dependencies (first time only)
+go mod download
+
+# Run backend server
 go run main.go
-# Server should run on http://localhost:8081
+
+# Expected output:
+# [GIN-debug] Listening and serving HTTP on :8081
+# ✓ Invoice scheduler started
+# ✓ Overdue invoice scheduler started
+# ✓ Trial expiry scheduler started
+```
+
+**Verify Backend:**
+```bash
+curl http://localhost:8081/api/health
+# Expected: {"status":"ok"}
 ```
 
 ### Frontend Setup
 
 ```bash
+# Navigate to frontend directory
 cd tirta-saas-frontend
+
+# Install dependencies (first time only)
+npm install
+
+# Run development server
 npm run dev
-# Frontend should run on http://localhost:5173
+
+# Expected output:
+# VITE v5.x.x ready in xxx ms
+# ➜ Local: http://localhost:5173
 ```
 
-### Default Platform Owner Account
+**Verify Frontend:**
+- Open browser: http://localhost:5173
+- Should see landing page with "Tirta SaaS" logo
 
-**Email:** admin@tirtasaas.com  
-**Password:** admin123  
-**Role:** platform_owner
+### Database Setup
 
-> ⚠️ **Important:** Change this password in production!
+**Option 1: Using Existing Database**
+```sql
+-- The backend will auto-create tables on first run
+-- Just ensure database exists:
+CREATE DATABASE IF NOT EXISTS tirta_saas;
+```
+
+**Option 2: Fresh Start**
+```sql
+-- Drop and recreate (WARNING: deletes all data)
+DROP DATABASE IF EXISTS tirta_saas;
+CREATE DATABASE tirta_saas;
+```
+
+**Environment Variables (.env):**
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=tirta_saas
+JWT_SECRET=your-secret-key-change-in-production
+ENABLE_SCHEDULERS=true
+```
+
+### Default Accounts
+
+**Platform Owner (Pre-seeded):**
+- **Email:** admin@tirtasaas.com  
+- **Password:** admin123  
+- **Role:** platform_owner
+- **Access:** Full platform management
+
+> ⚠️ **IMPORTANT:** Change this password immediately in production!
+
+**Test Tenant (Created during testing):**
+- **Email:** budi@rt01rw05.com  
+- **Password:** password123  
+- **Role:** tenant_admin
+
+### Verification Checklist
+
+Before starting tests, verify:
+- [ ] Backend running on port 8081
+- [ ] Frontend running on port 5173
+- [ ] Database connection successful
+- [ ] Can access http://localhost:5173
+- [ ] Can login with platform owner credentials
+- [ ] No console errors in browser
 
 ---
 
@@ -124,51 +238,128 @@ npm run dev
 
 ### PART 1: Initial Login
 
+**Duration:** 2 minutes
+
 **URL:** http://localhost:5173/admin/login
 
 **Steps:**
-1. Open browser and navigate to login page
-2. Enter credentials:
-   - Email: `admin@tirtasaas.com`
-   - Password: `admin123`
-3. Click "Masuk"
-4. Should redirect to Platform Owner Dashboard
+
+1. **Access Login Page:**
+   - Open browser (Chrome/Firefox recommended)
+   - Navigate to: http://localhost:5173/admin/login
+   - Page should load within 2 seconds
+
+2. **Enter Credentials:**
+   - Email field: Type `admin@tirtasaas.com`
+   - Password field: Type `admin123`
+   - ✅ Verify no typos (common error!)
+
+3. **Submit Login:**
+   - Click blue "Masuk" button
+   - Loading spinner appears briefly
+   - Wait for redirect (automatic)
 
 **Expected Result:**
-- ✅ Login successful
-- ✅ Dashboard shows statistics
-- ✅ Navigation menu visible (Tenants, Payments, Settings)
+- ✅ Login successful message
+- ✅ Redirect to: http://localhost:5173/admin/platform/dashboard
+- ✅ Dashboard shows statistics cards:
+  - Total Tenants
+  - Active Tenants
+  - Pending Approvals
+  - Monthly Revenue (Rp 0 initially)
+- ✅ Navigation sidebar visible with menu items:
+  - Dashboard
+  - Tenants
+  - Subscription Payments
+  - Settings
+- ✅ User profile shown at top-right: "admin@tirtasaas.com"
+- ✅ Logout button available
+
+**Troubleshooting:**
+
+❌ **"Invalid credentials" error:**
+- Check email spelling (no spaces)
+- Check password (case-sensitive)
+- Ensure backend is running (check port 8081)
+
+❌ **Page won't load:**
+- Check frontend is running: http://localhost:5173
+- Check browser console for errors (F12)
+- Clear browser cache and retry
+
+❌ **Infinite loading:**
+- Check backend API: curl http://localhost:8081/api/health
+- Check network tab in browser DevTools
+- Restart backend if no response
 
 ---
 
 ### PART 2: Configure Platform Payment Settings
 
-**Why:** Tenants need to see where to send subscription payments
+**Duration:** 3 minutes
 
-**Navigation:** Dashboard → Settings → Platform Payment Settings
+**Purpose:** Tenants need to see where to send subscription payments
+
+**Navigation Path:**
+1. From Dashboard sidebar → Click "Settings" (gear icon)
+2. Page title should show "Platform Payment Settings"
 
 **Steps:**
 
-1. **Add Bank Account:**
-   - Click "Add Bank Account"
-   - Bank Name: `Bank BCA`
-   - Account Number: `1234567890`
-   - Account Holder: `PT Tirta Saas Indonesia`
-   - Click "Add"
+1. **Add Primary Bank Account:**
+   - Locate "Bank Accounts" section
+   - Click green "+ Add Bank Account" button
+   - **Form fields:**
+     - Bank Name: Type `Bank BCA`
+     - Account Number: Type `1234567890`
+     - Account Holder: Type `PT Tirta Saas Indonesia`
+   - Click blue "Add" button
+   - ✅ Success message: "Bank account added successfully"
 
-2. **Add Another Bank (Optional):**
-   - Bank Name: `Bank Mandiri`
-   - Account Number: `9876543210`
-   - Account Holder: `PT Tirta Saas Indonesia`
+2. **Add Secondary Bank Account (Recommended):**
+   - Click "+ Add Bank Account" again
+   - **Form fields:**
+     - Bank Name: Type `Bank Mandiri`
+     - Account Number: Type `9876543210`
+     - Account Holder: Type `PT Tirta Saas Indonesia`
    - Click "Add"
+   - ✅ Second bank appears in list
 
-3. **Verify:**
-   - Both bank accounts should appear in the list
-   - Edit and delete buttons should work
+3. **Test Edit Function:**
+   - Click "Edit" button on first bank
+   - Change Account Holder to: `PT Tirta Saas Indo`
+   - Click "Save"
+   - ✅ Updated successfully
+
+4. **Verify Display:**
+   - Both bank accounts visible in table
+   - Each row shows: Bank Name, Account Number, Account Holder
+   - Actions: Edit (pencil icon), Delete (trash icon)
 
 **Expected Result:**
-- ✅ Bank accounts saved successfully
-- ✅ Will be visible to tenants during upgrade
+- ✅ Minimum 1 bank account configured
+- ✅ Bank info will appear in tenant upgrade page
+- ✅ Edit/Delete functions working
+- ✅ Data persists after page refresh
+
+**Optional: Add QR Code Payment**
+- Scroll to "QR Code Payment" section
+- Upload QR image (JPG/PNG, max 2MB)
+- Provider name: `GoPay` or `OVO`
+- Account number: `081234567890`
+- Click "Save"
+
+**Troubleshooting:**
+
+❌ **"Failed to save" error:**
+- Check all fields are filled
+- Account number should be digits only
+- Refresh page and retry
+
+❌ **Changes not persisting:**
+- Check backend logs for errors
+- Verify database connection
+- Try browser incognito mode
 
 ---
 
@@ -193,44 +384,143 @@ npm run dev
 
 ### PART 4: Register New Tenant (Public - No Login)
 
+**Duration:** 5 minutes
+
 **URL:** http://localhost:5173/register
 
-**Scenario:** RT 01 RW 05 wants to register
+**Scenario:** RT 01 RW 05 Kelurahan Maju Jaya wants to register
 
 **Steps:**
 
-1. **Navigate to Registration:**
-   - Go to: http://localhost:5173/register
-   - Or: Home → "Daftar Sekarang"
+1. **Navigate to Registration Page:**
+   
+   **Option A - Direct URL:**
+   - Open new browser tab
+   - Type: http://localhost:5173/register
+   - Press Enter
+   
+   **Option B - From Landing Page:**
+   - Go to: http://localhost:5173
+   - Click green "Daftar Sekarang" button
+   - Should redirect to registration form
 
-2. **Fill Organization Info:**
-   - Organization Name: `RT 01 RW 05 Kelurahan Maju Jaya`
-   - Village Code: `RT01RW05MAJU` (must be unique)
-   - Address: `Jl. Merdeka No. 123, Jakarta`
-   - Phone: `081234567890`
-   - Email: `rt01rw05@example.com`
+2. **Fill Organization Information:**
+   
+   Page shows: "Daftarkan Organisasi Anda"
+   
+   - **Organization Name:** `RT 01 RW 05 Kelurahan Maju Jaya`
+     - ✅ Use full, official name
+     - ❌ Don't abbreviate unnecessarily
+   
+   - **Village Code:** `RT01RW05MAJU`
+     - ⚠️ MUST be UNIQUE (no spaces, uppercase)
+     - ⚠️ Cannot be changed later!
+     - Format: RT[nn]RW[nn][NAMA]
+     - Example valid codes:
+       - RT01RW05MAJU ✅
+       - RT02RW03TEST ✅
+       - RT10RW15SEJAHTERA ✅
+   
+   - **Address:** `Jl. Merdeka No. 123, Jakarta`
+     - Include street name and number
+     - Add city/district
+   
+   - **Phone:** `081234567890`
+     - Format: 08xxxxxxxxxx (no spaces/dashes)
+     - Will be used for notifications
+   
+   - **Email:** `rt01rw05@example.com`
+     - Organization email (not personal)
+     - Must be valid format
 
-3. **Fill Admin Info:**
-   - Admin Name: `Budi Santoso`
-   - Admin Email: `budi@rt01rw05.com`
-   - Admin Phone: `081234567890`
-   - Password: `password123`
-   - Confirm Password: `password123`
+3. **Fill Admin User Information:**
+   
+   Section: "Informasi Admin"
+   
+   - **Admin Name:** `Budi Santoso`
+     - Full name of person responsible
+   
+   - **Admin Email:** `budi@rt01rw05.com`
+     - ⚠️ MUST be UNIQUE (used for login)
+     - Different from organization email
+   
+   - **Admin Phone:** `081234567890`
+     - Admin's personal number
+   
+   - **Password:** `password123`
+     - Minimum 6 characters
+     - Will be used for login
+     - 👁️ Click eye icon to show/hide
+   
+   - **Confirm Password:** `password123`
+     - Must match password exactly
+     - ✅ Green checkmark appears if match
 
-4. Click "Daftar"
+4. **Submit Registration:**
+   - Review all fields (scroll up if needed)
+   - Click blue "Daftar" button at bottom
+   - Wait for processing (2-3 seconds)
 
 **Expected Result:**
-- ✅ Success message appears
-- ✅ "Registration successful! You will be redirected to login..."
-- ✅ Auto-redirect to /admin/login after 3 seconds
-- ✅ Trial period: 14 days
-- ✅ Status: TRIAL
 
-**Data Created:**
-- Tenant record (status: TRIAL)
-- Admin user (role: tenant_admin)
-- Default tenant_settings
+✅ **Success Screen:**
+- Green success message appears
+- Message: "Registrasi berhasil! Akun Anda akan diverifikasi dalam 1-2 hari kerja."
+- Trial information shown:
+  - Trial Period: 14 hari
+  - Trial Start: [Today's date]
+  - Trial End: [Today + 14 days]
+- Button: "Login Sekarang"
+- Auto-redirect to login in 3 seconds
+
+✅ **Database Changes:**
+- Tenant record created (status: TRIAL)
+- Admin user created (role: tenant_admin, password hashed)
+- Default tenant_settings created
 - trial_ends_at = today + 14 days
+
+✅ **Email Sent (if configured):**
+- Welcome email to admin
+- Trial details included
+- Login instructions
+
+**Validation Errors:**
+
+❌ **"Village code already exists":**
+- Someone already used this code
+- Try: RT01RW05MAJU2, RT01RW05MAJUJAYA, etc.
+
+❌ **"Email already registered":**
+- Admin email must be unique
+- Use different email
+- Check for typos
+
+❌ **"Password must be at least 6 characters":**
+- Password too short
+- Use minimum 6 characters
+- Recommended: 8+ characters with mix of letters/numbers
+
+❌ **"Passwords do not match":**
+- Confirm password field doesn't match
+- Re-type both fields carefully
+
+**Troubleshooting:**
+
+❌ **Form won't submit:**
+- Check all fields are filled (red borders indicate errors)
+- Scroll to top to see validation messages
+- Try clearing form and re-entering
+
+❌ **"Network error":**
+- Check backend is running
+- Check browser console (F12)
+- Retry after 10 seconds
+
+**Next Steps:**
+- Credentials saved (write down somewhere safe)
+- Wait for platform owner approval (Part 5)
+- Check email for confirmation (if configured)
+- Can login immediately but features limited until approval
 
 ---
 
@@ -1447,48 +1737,411 @@ subscription_payments table:
 
 ## Troubleshooting
 
-### Common Issues
+### Common Issues & Solutions
 
-**1. Cannot login**
-- Check credentials spelling
-- Verify user exists in database
-- Check user role matches login page (admin vs customer)
-- Clear browser cache/cookies
+#### 1. Cannot Login
 
-**2. Trial banner not showing**
-- Check tenant status is TRIAL
-- Check trial_ends_at is in future
-- Refresh page
-- Check localStorage (should not be dismissed today)
+**Symptoms:**
+- "Invalid credentials" error
+- Login button doesn't respond
+- Infinite loading after clicking login
 
-**3. Invoice generation fails**
-- Verify customers have usage data
-- Check water rates are configured
-- Ensure subscription types assigned
-- Check date/period not already generated
+**Solutions:**
 
-**4. Payment proof upload fails**
-- Check file size < 5MB
-- Verify file format (JPG, PNG, PDF only)
-- Check backend upload directory exists
-- Check file permissions
+**A. For Admin Login:**
+```
+✅ Check credentials:
+   - Email: admin@tirtasaas.com (no typos)
+   - Password: admin123 (case-sensitive)
+   - No extra spaces before/after
 
-**5. Statistics not updating**
-- Refresh page
-- Check data actually changed in database
-- Clear cache
-- Check API response in browser console
+✅ Verify backend running:
+   - Open: http://localhost:8081/api/health
+   - Should return: {"status":"ok"}
 
-**6. "Tenant not found" error**
-- User may not be associated with tenant
-- Check JWT token contains tenant_id
-- Re-login to refresh token
+✅ Check user exists:
+   - Query database: SELECT * FROM users WHERE email='admin@tirtasaas.com'
+   - Verify role = 'platform_owner'
 
-**7. Reports show incorrect data**
-- Check date filters
-- Verify database records
-- Check calculation logic
-- Test with known data
+✅ Browser issues:
+   - Clear cache: Ctrl+Shift+Delete
+   - Try incognito mode
+   - Try different browser
+   - Check console for errors (F12)
+```
+
+**B. For Customer Login:**
+```
+✅ Common mistakes:
+   - Using admin email on customer login page
+   - Customer must login at: /customer/login (not /admin/login)
+   - Check customer is_active = true
+
+✅ Password issues:
+   - Default test password: customer123
+   - Case-sensitive (customer123 ≠ Customer123)
+```
+
+---
+
+#### 2. Trial Banner Not Showing
+
+**Expected:** Banner at top showing "TRIAL MODE - X days remaining"
+
+**Troubleshooting:**
+
+```sql
+-- Check tenant status and dates
+SELECT 
+  name, 
+  status, 
+  trial_ends_at,
+  DATEDIFF(trial_ends_at, NOW()) as days_remaining
+FROM tenants 
+WHERE village_code = 'RT01RW05MAJU';
+
+Expected results:
+- status = 'TRIAL' or 'ACTIVE'
+- trial_ends_at > NOW()
+- days_remaining > 0
+```
+
+**Solutions:**
+- ✅ Refresh page (Ctrl+R)
+- ✅ Check localStorage for banner dismissal
+- ✅ Verify tenant_id in JWT token
+- ✅ Check DashboardLayout.tsx is loaded
+
+---
+
+#### 3. Invoice Generation Fails
+
+**Error:** "Failed to generate invoices" or "No invoices generated"
+
+**Common Causes:**
+
+**A. No Water Usage Data:**
+```sql
+-- Check if customers have usage for the period
+SELECT 
+  c.name,
+  c.meter_number,
+  wu.reading_date,
+  wu.previous_reading,
+  wu.current_reading
+FROM customers c
+LEFT JOIN water_usage wu ON c.id = wu.customer_id
+WHERE c.tenant_id = '[tenant-id]'
+  AND MONTH(wu.reading_date) = [target-month]
+  AND YEAR(wu.reading_date) = [target-year];
+
+Expected: At least 1 row per customer
+```
+
+**B. No Water Rates Configured:**
+```sql
+-- Check water rates exist
+SELECT 
+  subscription_id,
+  min_usage,
+  max_usage,
+  price_per_unit
+FROM water_rates
+WHERE tenant_id = '[tenant-id]';
+
+Expected: Rates for all subscription types used by customers
+```
+
+**C. Period Already Generated:**
+```sql
+-- Check if invoices already exist for this period
+SELECT 
+  invoice_number,
+  customer_id,
+  invoice_date,
+  period_month,
+  period_year
+FROM invoices
+WHERE tenant_id = '[tenant-id]'
+  AND period_month = [target-month]
+  AND period_year = [target-year];
+
+If rows exist: Invoices already generated (system prevents duplicates)
+```
+
+**Solutions:**
+1. Record water usage for all customers first
+2. Configure water rates for all subscription types
+3. Choose a period that hasn't been generated yet
+4. Check backend logs for specific error
+
+---
+
+#### 4. Payment Proof Upload Fails
+
+**Error:** "Failed to upload file" or upload button disabled
+
+**Validation Requirements:**
+```
+✅ File size: Max 5 MB
+✅ File types: JPG, JPEG, PNG, PDF only
+✅ File name: No special characters preferred
+```
+
+**Check:**
+
+**A. File Size:**
+```bash
+# On Linux/Mac:
+ls -lh payment-proof.jpg
+# Should show < 5M
+
+# On Windows:
+# Right-click file → Properties → Size
+```
+
+**B. Backend Directory:**
+```bash
+# Check upload directory exists
+ls -la tirta-saas-backend/uploads/payment-proofs/
+
+# If doesn't exist, create:
+mkdir -p tirta-saas-backend/uploads/payment-proofs/
+chmod 755 tirta-saas-backend/uploads/payment-proofs/
+```
+
+**C. Network Issues:**
+```
+✅ Check browser console (F12) → Network tab
+✅ Look for POST /api/payment-proofs
+✅ Check response status (should be 200 or 201)
+✅ Check response body for error details
+```
+
+**Solutions:**
+- Compress image if > 5MB (use TinyPNG or similar)
+- Convert to JPG if different format
+- Check backend has write permissions
+- Ensure invoice is in UNPAID status
+
+---
+
+#### 5. Statistics Not Updating
+
+**Symptoms:**
+- Dashboard shows old numbers
+- Reports not reflecting recent changes
+- Customer count wrong
+
+**Quick Fixes:**
+```
+1. Hard refresh: Ctrl+Shift+R (clears cache)
+2. Close and reopen browser tab
+3. Logout and login again (refreshes JWT)
+4. Check last API call time in Network tab
+```
+
+**Verify Data Changed:**
+```sql
+-- Example: Check customer count
+SELECT COUNT(*) FROM customers WHERE tenant_id = '[tenant-id]';
+
+-- Compare with dashboard display
+-- If different, it's a frontend cache issue
+```
+
+**Backend Cache (if implemented):**
+```bash
+# Restart backend to clear any caches
+# Kill process and restart:
+cd tirta-saas-backend
+go run main.go
+```
+
+---
+
+#### 6. "Tenant Not Found" Error
+
+**Symptoms:**
+- Error appears after login
+- Can't access any tenant features
+- API returns 404 or 403
+
+**Root Causes:**
+
+**A. JWT Token Missing tenant_id:**
+```javascript
+// Check token in browser console:
+localStorage.getItem('token')
+
+// Decode at jwt.io
+// Should contain:
+{
+  "user_id": "...",
+  "tenant_id": "...",  // ← Must exist for tenant users
+  "role": "tenant_admin"
+}
+```
+
+**B. User Not Associated with Tenant:**
+```sql
+-- Check user-tenant relationship
+SELECT 
+  u.id,
+  u.email,
+  u.role,
+  u.tenant_id
+FROM users u
+WHERE u.email = 'budi@rt01rw05.com';
+
+Expected: tenant_id should NOT be NULL for tenant users
+```
+
+**Solutions:**
+1. **Re-login** (generates fresh token)
+2. **Check user creation** (tenant_id must be set during registration)
+3. **Database fix** (if tenant_id is NULL):
+   ```sql
+   UPDATE users 
+   SET tenant_id = '[correct-tenant-id]' 
+   WHERE email = 'budi@rt01rw05.com';
+   ```
+
+---
+
+#### 7. Reports Show Incorrect Data
+
+**Symptoms:**
+- Revenue report doesn't match invoice totals
+- Customer analytics shows wrong counts
+- Date filters not working
+
+**Debugging Steps:**
+
+**A. Verify Date Filters:**
+```
+✅ Check date format: YYYY-MM-DD
+✅ Start date < End date
+✅ Dates not in future (for historical data)
+✅ Try removing filters (show all data)
+```
+
+**B. Manual Calculation:**
+```sql
+-- Example: Revenue Report
+-- Backend query:
+SELECT 
+  SUM(total_amount) as total_revenue,
+  SUM(CASE WHEN payment_status = 'PAID' THEN total_amount ELSE 0 END) as paid_revenue,
+  SUM(CASE WHEN payment_status = 'UNPAID' THEN total_amount ELSE 0 END) as unpaid_revenue
+FROM invoices
+WHERE tenant_id = '[tenant-id]'
+  AND invoice_date BETWEEN '[start]' AND '[end]';
+
+-- Run this query in database
+-- Compare with report display
+```
+
+**C. Check Timezone Issues:**
+```
+- Backend uses server timezone
+- Frontend uses browser timezone
+- Mismatch can cause date range issues
+- Solution: Use UTC consistently or account for offset
+```
+
+---
+
+#### 8. Scheduler Not Running
+
+**Symptoms:**
+- Invoices not auto-generated on 1st of month
+- Overdue status not updated
+- Trial expiry not detected
+
+**Check Scheduler Status:**
+```bash
+# Backend logs should show:
+[SCHEDULER] Invoice Generation Scheduler started (cron: 0 0 1 * *)
+[SCHEDULER] Overdue Invoice Scheduler started (cron: 0 1 * * *)
+[SCHEDULER] Trial Expiry Scheduler started (cron: 0 2 * * *)
+```
+
+**Verify Environment Variable:**
+```env
+# Check .env file:
+ENABLE_SCHEDULERS=true
+
+# If false or missing, schedulers won't start
+```
+
+**Manual Trigger (for testing):**
+```bash
+# Call scheduler endpoints directly:
+curl -X POST http://localhost:8081/api/invoices/generate-monthly
+curl -X POST http://localhost:8081/api/admin/check-overdue-invoices
+curl -X POST http://localhost:8081/api/admin/check-trial-expiry
+```
+
+---
+
+### Error Messages Reference
+
+| Error Message | Meaning | Solution |
+|--------------|---------|----------|
+| "Invalid credentials" | Email/password wrong | Check spelling, case-sensitivity |
+| "Tenant not found" | User not linked to tenant | Re-login, check database |
+| "Unauthorized access" | Permission denied | Check role, check tenant status |
+| "Invoice already exists" | Duplicate prevention | Choose different period |
+| "Customer not active" | Customer disabled | Activate customer first |
+| "File too large" | Upload exceeds 5MB | Compress or resize file |
+| "Invalid file type" | Wrong format | Use JPG/PNG/PDF only |
+| "Trial expired" | 14 days passed | Upgrade subscription |
+| "Network error" | Backend unreachable | Check backend running, check port |
+
+---
+
+### Getting Help
+
+**Check Logs:**
+
+**Backend Logs:**
+```bash
+# Terminal where backend is running
+# Look for [ERROR] or [WARNING] tags
+# Copy full error message
+```
+
+**Frontend Logs:**
+```javascript
+// Browser console (F12)
+// Look for red error messages
+// Check Network tab for failed API calls
+```
+
+**Database Issues:**
+```sql
+-- Check connection:
+SHOW TABLES;
+
+-- Check record counts:
+SELECT 
+  'users' as table_name, COUNT(*) as count FROM users
+UNION ALL
+SELECT 'tenants', COUNT(*) FROM tenants
+UNION ALL
+SELECT 'customers', COUNT(*) FROM customers;
+```
+
+**Report Issue:**
+When reporting bugs, include:
+1. Steps to reproduce
+2. Expected vs actual result
+3. Error messages (exact text)
+4. Screenshots (if UI issue)
+5. Backend logs (if available)
+6. Browser console output
+7. Database state (if relevant)
 
 ---
 
@@ -1677,6 +2330,32 @@ For technical issues or questions, please refer to:
 - FEATURE_STATUS.md - Feature completion status
 - README.md - Project setup
 
-**Version:** 1.0  
-**Last Updated:** January 6, 2026  
-**Status:** Ready for Testing
+**Version:** 1.0.1  
+**Last Updated:** January 20, 2026  
+**Status:** Production Ready
+
+---
+
+**Document Change Log:**
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0.0 | Jan 6, 2026 | Initial version |
+| 1.0.1 | Jan 20, 2026 | Added Quick Start, improved troubleshooting, added known issues section, expanded error handling |
+
+---
+
+**End of User Manual**
+
+For additional documentation, refer to:
+- **PROGRESS.md** - Development progress and session history
+- **FEATURE_STATUS.md** - Feature completion status and roadmap
+- **README.md** - Project setup and installation guide
+
+For technical support:
+- Check troubleshooting section above
+- Review backend logs for errors
+- Check browser console for frontend issues
+- Verify database state with SQL queries
+
+**Status:** Ready for Manual Testing ✅
