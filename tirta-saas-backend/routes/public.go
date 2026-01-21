@@ -14,5 +14,8 @@ func PublicRoutes(r *gin.Engine) {
 		
 		// Platform payment settings for subscription payments (public access)
 		public.GET("/platform-payment-settings", controllers.GetPlatformPaymentSettings)
+		
+		// Subscription plans for landing page (public access)
+		public.GET("/subscription-plans", controllers.ListSubscriptionPlans)
 	}
 }

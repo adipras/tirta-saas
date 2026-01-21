@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   CheckCircleIcon,
@@ -9,9 +10,65 @@ import {
   ClockIcon,
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
+import { apiClient } from '../../services/apiClient';
+
+interface SubscriptionPlan {
+  id: string;
+  plan: string;
+  name: string;
+  description: string;
+  monthly_price: number;
+  yearly_price: number;
+  max_users: number;
+  max_customers: number;
+  max_storage_gb: number;
+  max_api_calls_per_day: number;
+  features: string[];
+  trial_days: number;
+  display_order: number;
+  is_active: boolean;
+}
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [pricingPlans, setPricingPlans] = useState<SubscriptionPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+
+  useEffect(() => {
+    fetchSubscriptionPlans();
+  }, []);
+
+  const fetchSubscriptionPlans = async () => {
+    try {
+      setLoadingPlans(true);
+      const response = await apiClient.get('/public/subscription-plans');
+      const plans = response.data || [];
+      // Filter only active plans and sort by display_order
+      const activePlans = plans
+        .filter((plan: SubscriptionPlan) => plan.is_active)
+        .sort((a: SubscriptionPlan, b: SubscriptionPlan) => a.display_order - b.display_order);
+      setPricingPlans(activePlans);
+    } catch (error) {
+      console.error('Failed to fetch subscription plans:', error);
+      // Keep empty array on error
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  const isPopularPlan = (plan: SubscriptionPlan) => {
+    // Mark middle plan as popular, or plan with name containing "pro" or "premium"
+    return plan.name.toLowerCase().includes('pro') || plan.name.toLowerCase().includes('premium');
+  };
 
   const features = [
     {
@@ -43,47 +100,6 @@ export default function LandingPage() {
       icon: ClockIcon,
       title: 'Trial 14 Hari',
       description: 'Coba gratis 14 hari, tidak perlu kartu kredit',
-    },
-  ];
-
-  const pricingPlans = [
-    {
-      name: 'BASIC',
-      price: 'Rp 500.000',
-      period: '/bulan',
-      features: [
-        'Hingga 100 pelanggan',
-        'Invoice otomatis',
-        'Laporan dasar',
-        'Support email',
-      ],
-      popular: false,
-    },
-    {
-      name: 'PRO',
-      price: 'Rp 1.000.000',
-      period: '/bulan',
-      features: [
-        'Hingga 500 pelanggan',
-        'Semua fitur Basic',
-        'WhatsApp notifications',
-        'Laporan lengkap',
-        'Support prioritas',
-      ],
-      popular: true,
-    },
-    {
-      name: 'ENTERPRISE',
-      price: 'Custom',
-      period: '',
-      features: [
-        'Unlimited pelanggan',
-        'Semua fitur Pro',
-        'Custom features',
-        'Dedicated support',
-        'On-premise deployment',
-      ],
-      popular: false,
     },
   ];
 
@@ -192,27 +208,27 @@ export default function LandingPage() {
               <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
                 1
               </div>
-              <h3 className="text-xl font-semibold mb-2">Daftar Gratis</h3>
+              <h3 className="text-xl font-semibold mb-2">Daftar & Trial Gratis</h3>
               <p className="text-gray-600">
-                Daftar dengan email dan informasi RT/RW Anda. Trial 14 hari langsung aktif.
+                Daftar dengan email dan informasi RT/RW Anda. Dapatkan akses trial 14 hari gratis untuk mencoba semua fitur platform.
               </p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
                 2
               </div>
-              <h3 className="text-xl font-semibold mb-2">Input Data Pelanggan</h3>
+              <h3 className="text-xl font-semibold mb-2">Coba Semua Fitur</h3>
               <p className="text-gray-600">
-                Masukkan data pelanggan air, tarif, dan rekening bank untuk pembayaran.
+                Selama trial, gunakan semua fitur: kelola pelanggan, buat invoice, terima pembayaran, lihat laporan.
               </p>
             </div>
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
                 3
               </div>
-              <h3 className="text-xl font-semibold mb-2">Kelola & Monitor</h3>
+              <h3 className="text-xl font-semibold mb-2">Pilih Paket & Lanjutkan</h3>
               <p className="text-gray-600">
-                Catat pemakaian, generate invoice, terima pembayaran. Semua otomatis!
+                Setelah trial, pilih paket yang sesuai kebutuhan Anda (Basic/Premium/Enterprise) dan lanjutkan berlangganan.
               </p>
             </div>
           </div>
@@ -230,59 +246,131 @@ export default function LandingPage() {
               Pilih paket sesuai kebutuhan Anda
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {pricingPlans.map((plan, index) => (
-              <div
-                key={index}
-                className={`rounded-lg ${
-                  plan.popular
-                    ? 'bg-blue-600 text-white shadow-xl scale-105'
-                    : 'bg-white border-2 border-gray-200'
-                } p-8 relative`}
-              >
-                {plan.popular && (
-                  <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 px-3 py-1 rounded-bl-lg rounded-tr-lg text-sm font-semibold">
-                    POPULER
-                  </div>
-                )}
-                <h3
-                  className={`text-2xl font-bold mb-4 ${
-                    plan.popular ? 'text-white' : 'text-gray-900'
-                  }`}
-                >
-                  {plan.name}
-                </h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-extrabold">{plan.price}</span>
-                  <span className="text-xl">{plan.period}</span>
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {plan.features.map((feature, fIndex) => (
-                    <li key={fIndex} className="flex items-start">
-                      <CheckCircleIcon
-                        className={`h-6 w-6 ${
-                          plan.popular ? 'text-blue-200' : 'text-green-500'
-                        } mr-2 flex-shrink-0`}
-                      />
-                      <span className={plan.popular ? 'text-blue-50' : 'text-gray-600'}>
-                        {feature}
+          
+          {loadingPlans ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          ) : pricingPlans.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {pricingPlans.map((plan) => {
+                const popular = isPopularPlan(plan);
+                return (
+                  <div
+                    key={plan.id}
+                    className={`rounded-lg ${
+                      popular
+                        ? 'bg-blue-600 text-white shadow-xl scale-105'
+                        : 'bg-white border-2 border-gray-200'
+                    } p-8 relative`}
+                  >
+                    {popular && (
+                      <div className="absolute top-0 right-0 bg-yellow-400 text-gray-900 px-3 py-1 rounded-bl-lg rounded-tr-lg text-sm font-semibold">
+                        POPULER
+                      </div>
+                    )}
+                    <h3
+                      className={`text-2xl font-bold mb-4 ${
+                        popular ? 'text-white' : 'text-gray-900'
+                      }`}
+                    >
+                      {plan.name}
+                    </h3>
+                    {plan.description && (
+                      <p className={`text-sm mb-4 ${popular ? 'text-blue-100' : 'text-gray-600'}`}>
+                        {plan.description}
+                      </p>
+                    )}
+                    <div className="mb-6">
+                      <span className="text-4xl font-extrabold">
+                        {formatCurrency(plan.monthly_price)}
                       </span>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => navigate('/register')}
-                  className={`w-full py-3 px-6 rounded-md font-medium ${
-                    plan.popular
-                      ? 'bg-white text-blue-600 hover:bg-gray-100'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  Mulai Sekarang
-                </button>
-              </div>
-            ))}
-          </div>
+                      <span className="text-xl">/bulan</span>
+                      {plan.yearly_price > 0 && (
+                        <div className="text-sm mt-2">
+                          <span className={popular ? 'text-blue-200' : 'text-gray-600'}>
+                            atau {formatCurrency(plan.yearly_price)}/tahun
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <ul className="space-y-3 mb-8">
+                      <li className="flex items-start">
+                        <CheckCircleIcon
+                          className={`h-6 w-6 ${
+                            popular ? 'text-blue-200' : 'text-green-500'
+                          } mr-2 flex-shrink-0`}
+                        />
+                        <span className={popular ? 'text-blue-50' : 'text-gray-600'}>
+                          Hingga {plan.max_customers} pelanggan
+                        </span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircleIcon
+                          className={`h-6 w-6 ${
+                            popular ? 'text-blue-200' : 'text-green-500'
+                          } mr-2 flex-shrink-0`}
+                        />
+                        <span className={popular ? 'text-blue-50' : 'text-gray-600'}>
+                          {plan.max_users} users
+                        </span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircleIcon
+                          className={`h-6 w-6 ${
+                            popular ? 'text-blue-200' : 'text-green-500'
+                          } mr-2 flex-shrink-0`}
+                        />
+                        <span className={popular ? 'text-blue-50' : 'text-gray-600'}>
+                          {plan.max_storage_gb} GB storage
+                        </span>
+                      </li>
+                      {plan.trial_days > 0 && (
+                        <li className="flex items-start">
+                          <CheckCircleIcon
+                            className={`h-6 w-6 ${
+                              popular ? 'text-blue-200' : 'text-green-500'
+                            } mr-2 flex-shrink-0`}
+                          />
+                          <span className={popular ? 'text-blue-50' : 'text-gray-600'}>
+                            Trial {plan.trial_days} hari gratis
+                          </span>
+                        </li>
+                      )}
+                      {plan.features.map((feature, fIndex) => (
+                        <li key={fIndex} className="flex items-start">
+                          <CheckCircleIcon
+                            className={`h-6 w-6 ${
+                              popular ? 'text-blue-200' : 'text-green-500'
+                            } mr-2 flex-shrink-0`}
+                          />
+                          <span className={popular ? 'text-blue-50' : 'text-gray-600'}>
+                            {feature}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      onClick={() => navigate('/register')}
+                      className={`w-full py-3 px-6 rounded-md font-medium ${
+                        popular
+                          ? 'bg-white text-blue-600 hover:bg-gray-100'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                      }`}
+                    >
+                      Mulai Sekarang
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-600">
+                Paket subscription akan segera tersedia. Hubungi kami untuk informasi lebih lanjut.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

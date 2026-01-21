@@ -48,7 +48,7 @@ import { CustomerProfile, CustomerProfileEdit, ChangePassword } from './pages/cu
 import { CustomerInvoiceList, CustomerInvoiceDetail } from './pages/customer-invoices';
 import { CustomerPaymentForm, PaymentSuccess, CustomerPaymentInfo, CustomerPaymentConfirmation } from './pages/customer-payments';
 import { CustomerUsageMonitor } from './pages/customer-usage';
-import { TenantManagement } from './pages/platform';
+import { TenantManagement, PlatformAnalytics, SubscriptionPlans } from './pages/platform';
 import { TenantPaymentVerification } from './pages/tenant-payments';
 import { PlatformSubscriptionVerification } from './pages/platform-payments';
 import { TenantPaymentSettings, PlatformPaymentSettings } from './pages/settings';
@@ -162,6 +162,8 @@ function App() {
               
               {/* Platform Owner Routes */}
               <Route path="platform/tenants" element={<TenantManagement />} />
+              <Route path="platform/analytics" element={<PlatformAnalytics />} />
+              <Route path="platform/subscription-plans" element={<SubscriptionPlans />} />
               <Route path="platform/subscription-payments" element={<PlatformSubscriptionVerification />} />
               <Route path="platform/settings" element={<PlatformPaymentSettings />} />
               
