@@ -35,10 +35,6 @@ interface PendingTenant {
   subscription_plan?: string;
 }
 
-interface TenantGrowthAnalytics {
-  tenants_by_plan: Record<string, number>;
-}
-
 export default function PlatformOwnerDashboard() {
   const navigate = useNavigate();
   const [overview, setOverview] = useState<PlatformAnalyticsOverview | null>(null);
