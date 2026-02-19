@@ -35,7 +35,7 @@ export interface RejectPaymentRequest {
 }
 
 class PlatformSubscriptionService {
-  private readonly BASE_URL = '/api/platform/subscription-payments';
+  private readonly BASE_URL = '/platform/subscription-payments';
 
   async getSubscriptionPayments(status?: string): Promise<SubscriptionPayment[]> {
     const params = status ? { status } : {};

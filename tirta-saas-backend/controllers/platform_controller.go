@@ -34,7 +34,7 @@ import (
 // @Router /api/platform/tenants [get]
 func ListTenants(c *gin.Context) {
 	var req requests.TenantSearchRequest
-	
+
 	// Set defaults
 	if c.Query("page") == "" {
 		req.Page = 1
@@ -48,7 +48,7 @@ func ListTenants(c *gin.Context) {
 	if c.Query("sort_by") == "" {
 		req.SortBy = "created_at"
 	}
-	
+
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
 			Status:  "error",
@@ -57,40 +57,40 @@ func ListTenants(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var tenants []models.Tenant
 	query := config.DB.Model(&models.Tenant{})
-	
+
 	// Apply filters
 	if req.Search != "" {
 		searchPattern := "%" + req.Search + "%"
-		query = query.Where("name LIKE ? OR village_code LIKE ? OR email LIKE ?", 
+		query = query.Where("name LIKE ? OR village_code LIKE ? OR email LIKE ?",
 			searchPattern, searchPattern, searchPattern)
 	}
-	
+
 	if req.Status != "" {
 		query = query.Where("status = ?", req.Status)
 	}
-	
+
 	if req.SubscriptionPlan != "" {
 		query = query.Where("subscription_plan = ?", req.SubscriptionPlan)
 	}
-	
+
 	// Count total records
 	var total int64
 	query.Count(&total)
-	
+
 	// Apply sorting
 	sortField := req.SortBy
 	if sortField == "" {
 		sortField = "created_at"
 	}
 	query = query.Order(fmt.Sprintf("%s %s", sortField, req.SortOrder))
-	
+
 	// Apply pagination
 	offset := (req.Page - 1) * req.PageSize
 	query = query.Offset(offset).Limit(req.PageSize)
-	
+
 	if err := query.Find(&tenants).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -99,7 +99,7 @@ func ListTenants(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Transform to response
 	var tenantList []responses.TenantListResponse
 	for _, tenant := range tenants {
@@ -109,6 +109,9 @@ func ListTenants(c *gin.Context) {
 			VillageCode:        tenant.VillageCode,
 			Email:              tenant.Email,
 			Phone:              tenant.Phone,
+			AdminName:          tenant.AdminName,
+			AdminEmail:         tenant.Email,
+			AdminPhone:         tenant.AdminPhone,
 			Status:             string(tenant.Status),
 			SubscriptionPlan:   tenant.SubscriptionPlan,
 			SubscriptionStatus: tenant.SubscriptionStatus,
@@ -119,7 +122,7 @@ func ListTenants(c *gin.Context) {
 			CreatedAt:          tenant.CreatedAt,
 		})
 	}
-	
+
 	c.JSON(http.StatusOK, responses.PaginatedResponse{
 		Status:  "success",
 		Message: "Tenants retrieved successfully",
@@ -155,7 +158,7 @@ func GetTenantDetail(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var tenant models.Tenant
 	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -164,7 +167,7 @@ func GetTenantDetail(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	response := responses.TenantDetailResponse{
 		ID:                 tenant.ID,
 		Name:               tenant.Name,
@@ -185,7 +188,7 @@ func GetTenantDetail(c *gin.Context) {
 		CreatedAt:          tenant.CreatedAt,
 		UpdatedAt:          tenant.UpdatedAt,
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Tenant details retrieved successfully",
@@ -215,7 +218,7 @@ func UpdateTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var req requests.UpdateTenantRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
@@ -225,7 +228,7 @@ func UpdateTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var tenant models.Tenant
 	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -234,7 +237,7 @@ func UpdateTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Update fields
 	if req.Name != "" {
 		tenant.Name = req.Name
@@ -254,7 +257,7 @@ func UpdateTenant(c *gin.Context) {
 	if req.SubscriptionPlan != "" {
 		tenant.SubscriptionPlan = req.SubscriptionPlan
 	}
-	
+
 	if err := config.DB.Save(&tenant).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -263,7 +266,7 @@ func UpdateTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Tenant updated successfully",
@@ -292,7 +295,7 @@ func SuspendTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var req requests.SuspendTenantRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
@@ -302,7 +305,7 @@ func SuspendTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var tenant models.Tenant
 	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -311,7 +314,7 @@ func SuspendTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if tenant.Status == models.TenantStatusSuspended {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
 			Status:  "error",
@@ -319,12 +322,12 @@ func SuspendTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	now := time.Now()
 	tenant.Status = models.TenantStatusSuspended
 	tenant.SuspendedAt = &now
 	tenant.SuspensionReason = req.Reason
-	
+
 	if err := config.DB.Save(&tenant).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -333,7 +336,7 @@ func SuspendTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Tenant suspended successfully",
@@ -351,7 +354,7 @@ func ActivateTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var tenant models.Tenant
 	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -360,7 +363,7 @@ func ActivateTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if tenant.Status == models.TenantStatusActive {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
 			Status:  "error",
@@ -368,11 +371,11 @@ func ActivateTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	tenant.Status = models.TenantStatusActive
 	tenant.SuspendedAt = nil
 	tenant.SuspensionReason = ""
-	
+
 	if err := config.DB.Save(&tenant).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -381,7 +384,7 @@ func ActivateTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Tenant activated successfully",
@@ -399,7 +402,7 @@ func DeleteTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var tenant models.Tenant
 	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -408,7 +411,7 @@ func DeleteTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Soft delete
 	if err := config.DB.Delete(&tenant).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
@@ -418,7 +421,7 @@ func DeleteTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Tenant deleted successfully",
@@ -436,7 +439,7 @@ func GetTenantStatistics(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var tenant models.Tenant
 	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -445,42 +448,42 @@ func GetTenantStatistics(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	stats := responses.TenantStatisticsResponse{
 		TenantID:   tenant.ID,
 		TenantName: tenant.Name,
 	}
-	
+
 	// Count users (app users, not water customers)
 	var totalUsers, activeUsers int64
 	config.DB.Model(&models.User{}).Where("tenant_id = ?", tenantID).Count(&totalUsers)
 	config.DB.Model(&models.User{}).Where("tenant_id = ? AND is_active = ?", tenantID, true).Count(&activeUsers)
 	stats.TotalUsers = int(totalUsers)
 	stats.ActiveUsers = int(activeUsers)
-	
+
 	// Count customers managed by tenant (for subscription pricing calculation)
 	var totalCustomers int64
 	config.DB.Model(&models.Customer{}).Where("tenant_id = ?", tenantID).Count(&totalCustomers)
 	stats.TotalCustomers = int(totalCustomers)
-	
+
 	// Get subscription details and limits
 	var subscription models.TenantSubscription
 	if err := config.DB.Where("tenant_id = ? AND status IN (?)", tenantID, []string{"ACTIVE", "TRIAL"}).First(&subscription).Error; err == nil {
 		stats.StorageLimitGB = subscription.MaxStorageGB
 		stats.APICallsLimit = subscription.MaxAPICallsPerDay
 	}
-	
+
 	stats.StorageUsedGB = tenant.StorageUsedGB
 	stats.APICallsToday = 0 // TODO: Implement from metrics
-	
+
 	// Last activity
 	var lastLog models.AuditLog
 	if err := config.DB.Where("tenant_id = ?", tenantID).Order("created_at DESC").First(&lastLog).Error; err == nil {
 		stats.LastActivityAt = &lastLog.CreatedAt
 	}
-	
+
 	stats.StatisticsAsOf = time.Now()
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Tenant statistics retrieved successfully",
@@ -492,7 +495,7 @@ func GetTenantStatistics(c *gin.Context) {
 // Returns only tenant/subscription metrics, NOT operational water management data
 func GetPlatformAnalyticsOverview(c *gin.Context) {
 	var stats responses.PlatformAnalyticsOverviewResponse
-	
+
 	// Tenant statistics
 	var totalTenants, activeTenants, suspendedTenants, trialTenants int64
 	config.DB.Model(&models.Tenant{}).Count(&totalTenants)
@@ -501,12 +504,12 @@ func GetPlatformAnalyticsOverview(c *gin.Context) {
 	stats.TotalTenants = int(totalTenants)
 	stats.ActiveTenants = int(activeTenants)
 	stats.SuspendedTenants = int(suspendedTenants)
-	
+
 	// Trial tenants (subscriptions with trial)
 	config.DB.Model(&models.TenantSubscription{}).
 		Where("status = ? AND trial_ends_at > ?", "TRIAL", time.Now()).Count(&trialTenants)
 	stats.TrialTenants = int(trialTenants)
-	
+
 	// Subscription revenue (from platform subscriptions, not tenant's water billing)
 	// Calculate MRR (Monthly Recurring Revenue)
 	var mrr float64
@@ -516,7 +519,7 @@ func GetPlatformAnalyticsOverview(c *gin.Context) {
 		Scan(&mrr)
 	stats.MonthlyRevenue = mrr
 	stats.TotalRevenue = mrr * 12 // Annualized
-	
+
 	// Outstanding subscription payments (not tenant's customer payments)
 	var outstandingRevenue float64
 	config.DB.Raw(`
@@ -528,44 +531,44 @@ func GetPlatformAnalyticsOverview(c *gin.Context) {
 		  AND ts.next_billing_at < ?
 	`, time.Now()).Scan(&outstandingRevenue)
 	stats.OutstandingRevenue = outstandingRevenue
-	
+
 	// Growth statistics
 	firstDayOfMonth := time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, time.Local)
 	var newTenantsThisMonth, churnedTenantsThisMonth int64
 	config.DB.Model(&models.Tenant{}).Where("created_at >= ?", firstDayOfMonth).Count(&newTenantsThisMonth)
 	config.DB.Model(&models.Tenant{}).Unscoped().
 		Where("deleted_at >= ?", firstDayOfMonth).Count(&churnedTenantsThisMonth)
-	
+
 	stats.NewTenantsThisMonth = int(newTenantsThisMonth)
 	stats.ChurnedTenantsThisMonth = int(churnedTenantsThisMonth)
-	
+
 	// Calculate growth rate
 	var lastMonthTenants int64
 	firstDayOfLastMonth := firstDayOfMonth.AddDate(0, -1, 0)
 	config.DB.Model(&models.Tenant{}).Where("created_at >= ? AND created_at < ?", firstDayOfLastMonth, firstDayOfMonth).Count(&lastMonthTenants)
-	
+
 	if lastMonthTenants > 0 {
 		stats.GrowthRate = (float64(newTenantsThisMonth) / float64(lastMonthTenants)) * 100
 	}
-	
+
 	// Platform usage - app users and customers count (for subscription tier pricing)
 	var totalUsers, totalCustomers int64
 	config.DB.Model(&models.User{}).Count(&totalUsers)
 	config.DB.Model(&models.Customer{}).Count(&totalCustomers)
 	stats.TotalUsers = int(totalUsers)
 	stats.TotalCustomers = int(totalCustomers)
-	
+
 	// Storage used across all tenants
 	var totalStorage float64
 	config.DB.Model(&models.Tenant{}).Select("COALESCE(SUM(storage_used_gb), 0)").Scan(&totalStorage)
 	stats.TotalStorageUsedGB = totalStorage
-	
+
 	// System statistics - defaults for now
 	stats.AverageResponseTimeMs = 150.0 // TODO: Implement from metrics
-	stats.ErrorRate = 0.5                // TODO: Implement from metrics
-	stats.Uptime = 99.9                  // TODO: Implement from metrics
+	stats.ErrorRate = 0.5               // TODO: Implement from metrics
+	stats.Uptime = 99.9                 // TODO: Implement from metrics
 	stats.LastUpdated = time.Now()
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Platform analytics retrieved successfully",
@@ -576,7 +579,7 @@ func GetPlatformAnalyticsOverview(c *gin.Context) {
 // GetTenantSettings gets tenant settings
 func GetTenantSettings(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
-	
+
 	var settings models.TenantSettings
 	if err := config.DB.Where("tenant_id = ?", tenantID).First(&settings).Error; err != nil {
 		// If not found, return default settings
@@ -588,7 +591,7 @@ func GetTenantSettings(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to fetch settings",
@@ -596,13 +599,13 @@ func GetTenantSettings(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Parse payment methods JSON
 	var paymentMethods []string
 	if settings.PaymentMethods != "" {
 		json.Unmarshal([]byte(settings.PaymentMethods), &paymentMethods)
 	}
-	
+
 	response := responses.TenantSettingsResponse{
 		ID:                  settings.ID,
 		TenantID:            settings.TenantID,
@@ -634,7 +637,7 @@ func GetTenantSettings(c *gin.Context) {
 		CreatedAt:           settings.CreatedAt,
 		UpdatedAt:           settings.UpdatedAt,
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Tenant settings retrieved successfully",
@@ -645,7 +648,7 @@ func GetTenantSettings(c *gin.Context) {
 // UpdateTenantSettings updates tenant settings
 func UpdateTenantSettings(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
-	
+
 	var req requests.UpdateTenantSettingsRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
@@ -655,17 +658,17 @@ func UpdateTenantSettings(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var settings models.TenantSettings
 	err := config.DB.Where("tenant_id = ?", tenantID).First(&settings).Error
-	
+
 	// If not found, create new settings
 	if err != nil {
 		settings = models.TenantSettings{
 			TenantID: tenantID,
 		}
 	}
-	
+
 	// Update fields
 	if req.CompanyName != "" {
 		settings.CompanyName = req.CompanyName
@@ -730,7 +733,7 @@ func UpdateTenantSettings(c *gin.Context) {
 	if req.Language != "" {
 		settings.Language = req.Language
 	}
-	
+
 	if err := config.DB.Save(&settings).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -739,7 +742,7 @@ func UpdateTenantSettings(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Tenant settings updated successfully",
@@ -956,12 +959,12 @@ func GetSubscriptionRevenueAnalytics(c *gin.Context) {
 		var monthMRR float64
 		var activeSubscriptions int64
 		config.DB.Model(&models.TenantSubscription{}).
-			Where("status IN (?, ?) AND start_date <= ? AND (end_date >= ? OR end_date IS NULL)", 
+			Where("status IN (?, ?) AND start_date <= ? AND (end_date >= ? OR end_date IS NULL)",
 				"ACTIVE", "TRIAL", lastDay, firstDay).
 			Select("COALESCE(SUM(CASE WHEN billing_cycle = 'MONTHLY' THEN monthly_price ELSE yearly_price/12 END), 0)").
 			Scan(&monthMRR)
 		config.DB.Model(&models.TenantSubscription{}).
-			Where("status IN (?, ?) AND start_date <= ? AND (end_date >= ? OR end_date IS NULL)", 
+			Where("status IN (?, ?) AND start_date <= ? AND (end_date >= ? OR end_date IS NULL)",
 				"ACTIVE", "TRIAL", lastDay, firstDay).
 			Count(&activeSubscriptions)
 
@@ -1064,9 +1067,9 @@ func GetPlatformUsageAnalytics(c *gin.Context) {
 		analytics.MonthlyUsageBreakdown = append(analytics.MonthlyUsageBreakdown, responses.MonthlyUsageStats{
 			Month:            month.Format("January"),
 			Year:             month.Year(),
-			WaterUsageM3:     0, // Not tracked at platform level
-			InvoicesIssued:   int(newUsers),      // Repurposed: new app users
-			PaymentsReceived: int(newCustomers),  // Repurposed: new customers managed
+			WaterUsageM3:     0,                 // Not tracked at platform level
+			InvoicesIssued:   int(newUsers),     // Repurposed: new app users
+			PaymentsReceived: int(newCustomers), // Repurposed: new customers managed
 			APICallsCount:    0,
 		})
 	}
@@ -1102,16 +1105,16 @@ func GetPlatformUsageAnalytics(c *gin.Context) {
 // ListSubscriptionPlans lists all available subscription plans
 func ListSubscriptionPlans(c *gin.Context) {
 	var plans []models.SubscriptionPlanDetails
-	
+
 	query := config.DB.Model(&models.SubscriptionPlanDetails{})
-	
+
 	// Only show active plans by default
 	if c.Query("include_inactive") != "true" {
 		query = query.Where("is_active = ?", true)
 	}
-	
+
 	query = query.Order("display_order ASC, monthly_price ASC")
-	
+
 	if err := query.Find(&plans).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -1120,7 +1123,7 @@ func ListSubscriptionPlans(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Transform to response
 	var planList []responses.SubscriptionPlanResponse
 	for _, plan := range plans {
@@ -1128,7 +1131,7 @@ func ListSubscriptionPlans(c *gin.Context) {
 		if plan.Features != "" {
 			json.Unmarshal([]byte(plan.Features), &features)
 		}
-		
+
 		planList = append(planList, responses.SubscriptionPlanResponse{
 			ID:                plan.ID,
 			Plan:              string(plan.Plan),
@@ -1148,7 +1151,7 @@ func ListSubscriptionPlans(c *gin.Context) {
 			UpdatedAt:         plan.UpdatedAt,
 		})
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Subscription plans retrieved successfully",
@@ -1159,7 +1162,7 @@ func ListSubscriptionPlans(c *gin.Context) {
 // CreateSubscriptionPlan creates a new subscription plan
 func CreateSubscriptionPlan(c *gin.Context) {
 	var req requests.CreateSubscriptionPlanRequest
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
 			Status:  "error",
@@ -1168,7 +1171,7 @@ func CreateSubscriptionPlan(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Check if plan already exists
 	var existingPlan models.SubscriptionPlanDetails
 	if err := config.DB.Where("plan = ?", req.Plan).First(&existingPlan).Error; err == nil {
@@ -1179,10 +1182,10 @@ func CreateSubscriptionPlan(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Convert features to JSON
 	featuresJSON, _ := json.Marshal(req.Features)
-	
+
 	plan := models.SubscriptionPlanDetails{
 		Plan:              models.SubscriptionPlan(req.Plan),
 		Name:              req.Name,
@@ -1198,7 +1201,7 @@ func CreateSubscriptionPlan(c *gin.Context) {
 		DisplayOrder:      req.DisplayOrder,
 		IsActive:          true,
 	}
-	
+
 	if err := config.DB.Create(&plan).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -1207,10 +1210,10 @@ func CreateSubscriptionPlan(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var features []string
 	json.Unmarshal([]byte(plan.Features), &features)
-	
+
 	c.JSON(http.StatusCreated, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Subscription plan created successfully",
@@ -1238,7 +1241,7 @@ func CreateSubscriptionPlan(c *gin.Context) {
 // UpdateSubscriptionPlan updates an existing subscription plan
 func UpdateSubscriptionPlan(c *gin.Context) {
 	planID := c.Param("id")
-	
+
 	var plan models.SubscriptionPlanDetails
 	if err := config.DB.Where("id = ?", planID).First(&plan).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -1248,7 +1251,7 @@ func UpdateSubscriptionPlan(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var req requests.UpdateSubscriptionPlanRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
@@ -1258,7 +1261,7 @@ func UpdateSubscriptionPlan(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Update fields
 	if req.Name != "" {
 		plan.Name = req.Name
@@ -1297,7 +1300,7 @@ func UpdateSubscriptionPlan(c *gin.Context) {
 	if req.IsActive != nil {
 		plan.IsActive = *req.IsActive
 	}
-	
+
 	if err := config.DB.Save(&plan).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -1306,10 +1309,10 @@ func UpdateSubscriptionPlan(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var features []string
 	json.Unmarshal([]byte(plan.Features), &features)
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Subscription plan updated successfully",
@@ -1337,7 +1340,7 @@ func UpdateSubscriptionPlan(c *gin.Context) {
 // AssignSubscriptionToTenant assigns a subscription plan to a tenant
 func AssignSubscriptionToTenant(c *gin.Context) {
 	tenantID := c.Param("id")
-	
+
 	var tenant models.Tenant
 	if err := config.DB.Where("id = ?", tenantID).First(&tenant).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -1347,7 +1350,7 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var req requests.AssignSubscriptionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
@@ -1357,7 +1360,7 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Get plan details
 	var planDetails models.SubscriptionPlanDetails
 	if err := config.DB.Where("plan = ? AND is_active = ?", req.Plan, true).First(&planDetails).Error; err != nil {
@@ -1368,7 +1371,7 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Parse start date or use current time
 	startDate := time.Now()
 	if req.StartDate != "" {
@@ -1377,7 +1380,7 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 			startDate = parsedDate
 		}
 	}
-	
+
 	// Calculate end date based on billing cycle
 	var endDate time.Time
 	if req.BillingCycle == "MONTHLY" {
@@ -1385,7 +1388,7 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 	} else {
 		endDate = startDate.AddDate(1, 0, 0)
 	}
-	
+
 	// Calculate trial end date
 	var trialEndsAt *time.Time
 	trialDays := req.TrialDays
@@ -1396,11 +1399,11 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 		trialEnd := startDate.AddDate(0, 0, trialDays)
 		trialEndsAt = &trialEnd
 	}
-	
+
 	// Get or create subscription
 	var subscription models.TenantSubscription
 	err := config.DB.Where("tenant_id = ?", tenantID).First(&subscription).Error
-	
+
 	if err != nil {
 		// Create new subscription
 		subscription = models.TenantSubscription{
@@ -1419,11 +1422,11 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 			TrialEndsAt:       trialEndsAt,
 			PaymentStatus:     "PENDING",
 		}
-		
+
 		if trialDays == 0 {
 			subscription.Status = models.StatusActive
 		}
-		
+
 		if err := config.DB.Create(&subscription).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 				Status:  "error",
@@ -1445,13 +1448,13 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 		subscription.StartDate = startDate
 		subscription.EndDate = endDate
 		subscription.TrialEndsAt = trialEndsAt
-		
+
 		if trialDays > 0 {
 			subscription.Status = models.StatusTrial
 		} else if subscription.Status != models.StatusActive {
 			subscription.Status = models.StatusActive
 		}
-		
+
 		if err := config.DB.Save(&subscription).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 				Status:  "error",
@@ -1461,13 +1464,13 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 			return
 		}
 	}
-	
+
 	// Update tenant
 	tenant.SubscriptionPlan = req.Plan
 	tenant.SubscriptionStatus = string(subscription.Status)
 	tenant.SubscriptionEndsAt = &endDate
 	config.DB.Save(&tenant)
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Subscription assigned successfully",
@@ -1501,7 +1504,7 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 // GetTenantBillingHistory gets the billing history for a tenant
 func GetTenantBillingHistory(c *gin.Context) {
 	tenantID := c.Param("id")
-	
+
 	// Verify tenant exists
 	var tenant models.Tenant
 	if err := config.DB.Where("id = ?", tenantID).First(&tenant).Error; err != nil {
@@ -1512,7 +1515,7 @@ func GetTenantBillingHistory(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Get all payments for this tenant's invoices
 	var payments []models.Payment
 	config.DB.Joins("JOIN invoices ON invoices.id = payments.invoice_id").
@@ -1520,18 +1523,18 @@ func GetTenantBillingHistory(c *gin.Context) {
 		Order("payments.created_at DESC").
 		Limit(100).
 		Find(&payments)
-	
+
 	// Get subscription history
 	var subscriptions []models.TenantSubscription
 	config.DB.Where("tenant_id = ?", tenantID).
 		Order("created_at DESC").
 		Find(&subscriptions)
-	
+
 	var totalPaid float64
 	for _, payment := range payments {
 		totalPaid += payment.Amount
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Billing history retrieved successfully",

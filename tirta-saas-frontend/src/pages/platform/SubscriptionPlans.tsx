@@ -55,7 +55,7 @@ export default function SubscriptionPlans() {
   const fetchPlans = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/platform/subscription-plans');
+      const response = await apiClient.get('/platform/subscription-plans?include_inactive=true');
       setPlans(response.data || []);
     } catch (error) {
       console.error('Failed to fetch plans:', error);

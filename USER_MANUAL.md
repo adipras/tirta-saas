@@ -178,12 +178,12 @@ ENABLE_SCHEDULERS=true
 ### Verification Checklist
 
 Before starting tests, verify:
-- [ ] Backend running on port 8081
-- [ ] Frontend running on port 5173
-- [ ] Database connection successful
-- [ ] Can access http://localhost:5173
-- [ ] Can login with platform owner credentials
-- [ ] No console errors in browser
+- [x] Backend running on port 8081
+- [x] Frontend running on port 5173
+- [x] Database connection successful
+- [x] Can access http://localhost:5173
+- [x] Can login with platform owner credentials
+- [x] No console errors in browser
 
 ---
 
@@ -571,7 +571,7 @@ Before starting tests, verify:
 **URL:** http://localhost:5173/admin/login
 
 **Credentials:**
-- Email: `budi@rt01rw05.com`
+- Email: `admin@tirtautama.com`
 - Password: `password123`
 
 **Steps:**
