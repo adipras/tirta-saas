@@ -12,7 +12,9 @@ import {
   PAYMENT_METHOD_LABELS,
 } from '../../types/payment';
 import type { Customer } from '../../types/customer';
-import { PageHeader } from '../../components';: React.FC = () => {
+import { PageHeader } from '../../components';
+
+const PaymentForm: React.FC = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);

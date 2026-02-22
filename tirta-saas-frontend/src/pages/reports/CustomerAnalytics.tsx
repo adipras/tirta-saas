@@ -17,6 +17,8 @@ import {
 } from 'recharts';
 import { PageHeader } from '../../components';
 
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+
 const CustomerAnalytics: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

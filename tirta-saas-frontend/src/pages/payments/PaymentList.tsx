@@ -71,7 +71,7 @@ const PaymentList: React.FC = () => {
     }
 
     try {
-      await paymentService.voidPayment(payment.id);
+      await paymentService.voidPayment(payment.id as unknown as number);
       fetchPayments(currentPage, searchTerm, filters);
     } catch (error) {
       console.error('Failed to void payment:', error);

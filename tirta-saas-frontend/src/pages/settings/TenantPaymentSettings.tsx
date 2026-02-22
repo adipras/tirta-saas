@@ -12,6 +12,8 @@ import { apiClient } from '../../services/apiClient';
 import { qrCodeService } from '../../services/qrCodeService';
 import type { QRCode } from '../../services/qrCodeService';
 import { PageHeader } from '../../components';
+
+interface BankAccount {
   id: string;
   bankName: string;
   accountNumber: string;
