@@ -11,6 +11,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/responses"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // CreateWaterUsage godoc
@@ -85,10 +86,10 @@ func CreateWaterUsage(c *gin.Context) {
 	// Ambil tarif aktif untuk subscription pelanggan
 	var rate models.WaterRate
 	if err := config.DB.
-		Where("subscription_id = ? AND active = ?", customer.SubscriptionID, true).
+		Where("subscription_id = ? AND active = ? AND tenant_id = ?", customer.SubscriptionID, true, tenantID).
 		Order("effective_date DESC").
 		First(&rate).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan untuk subscription pelanggan ini. Silakan tambahkan tarif air terlebih dahulu di menu Water Rates."})
 		return
 	}
 
@@ -175,7 +176,7 @@ func GetWaterUsages(c *gin.Context) {
 	// Convert to response format
 	usageResponses := make([]responses.WaterUsageResponse, len(records))
 	for i, record := range records {
-		usageResponses[i] = responses.WaterUsageResponse{
+		r := responses.WaterUsageResponse{
 			ID:               record.ID,
 			CustomerID:       record.CustomerID,
 			UsageMonth:       record.UsageMonth,
@@ -185,6 +186,15 @@ func GetWaterUsages(c *gin.Context) {
 			AmountCalculated: record.AmountCalculated,
 			CreatedAt:        record.CreatedAt,
 		}
+		if record.Customer.ID != uuid.Nil {
+			r.Customer = &responses.WaterUsageCustomer{
+				ID:          record.Customer.ID,
+				Name:        record.Customer.Name,
+				MeterNumber: record.Customer.MeterNumber,
+				Address:     record.Customer.Address,
+			}
+		}
+		usageResponses[i] = r
 	}
 
 	response := responses.WaterUsageListResponse{
@@ -280,10 +290,10 @@ func UpdateWaterUsage(c *gin.Context) {
 	// Ambil tarif aktif untuk subscription pelanggan
 	var rate models.WaterRate
 	if err := config.DB.
-		Where("subscription_id = ? AND active = ?", customer.SubscriptionID, true).
+		Where("subscription_id = ? AND active = ? AND tenant_id = ?", customer.SubscriptionID, true, tenantID).
 		Order("effective_date DESC").
 		First(&rate).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan untuk subscription pelanggan ini. Silakan tambahkan tarif air terlebih dahulu di menu Water Rates."})
 		return
 	}
 

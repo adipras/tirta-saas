@@ -120,7 +120,8 @@ export default function UsageList() {
     }).format(amount);
   };
 
-  const formatMonth = (month: string): string => {
+  const formatMonth = (month: string | undefined): string => {
+    if (!month) return '-';
     const [year, monthNum] = month.split('-');
     const date = new Date(parseInt(year), parseInt(monthNum) - 1);
     return date.toLocaleDateString('id-ID', {
@@ -133,10 +134,10 @@ export default function UsageList() {
     {
       key: 'customer',
       label: 'Customer',
-      render: (row: WaterUsage) => (
+      render: (_: any, row: WaterUsage) => (
         <div>
           <div className="font-medium text-gray-900">{row.customer?.name || '-'}</div>
-          <div className="text-sm text-gray-500">{row.customer?.customerId || '-'}</div>
+          <div className="text-sm text-gray-500">{row.customer?.address || '-'}</div>
         </div>
       ),
       sortable: true,
@@ -144,32 +145,32 @@ export default function UsageList() {
     {
       key: 'usageMonth',
       label: 'Period',
-      render: (row: WaterUsage) => formatMonth(row.usageMonth),
+      render: (_: any, row: WaterUsage) => formatMonth(row.usageMonth),
       sortable: true,
     },
     {
       key: 'meterNumber',
       label: 'Meter No.',
-      render: (row: WaterUsage) => row.customer?.meterNumber || '-',
+      render: (_: any, row: WaterUsage) => row.customer?.meterNumber || '-',
     },
     {
       key: 'meterStart',
       label: 'Previous',
-      render: (row: WaterUsage) => row.meterStart.toFixed(2),
+      render: (_: any, row: WaterUsage) => (row.meterStart ?? 0).toFixed(2),
       align: 'right' as const,
     },
     {
       key: 'meterEnd',
       label: 'Current',
-      render: (row: WaterUsage) => row.meterEnd.toFixed(2),
+      render: (_: any, row: WaterUsage) => (row.meterEnd ?? 0).toFixed(2),
       align: 'right' as const,
     },
     {
       key: 'usageM3',
       label: 'Usage (m³)',
-      render: (row: WaterUsage) => (
+      render: (_: any, row: WaterUsage) => (
         <div className="flex items-center justify-end">
-          <span className="font-medium">{row.usageM3.toFixed(2)}</span>
+          <span className="font-medium">{(row.usageM3 ?? 0).toFixed(2)}</span>
           {row.isAnomaly && (
             <ExclamationTriangleIcon className="w-4 h-4 text-yellow-500 ml-2" title="Anomaly detected" />
           )}
@@ -181,14 +182,14 @@ export default function UsageList() {
     {
       key: 'amountCalculated',
       label: 'Amount',
-      render: (row: WaterUsage) => formatCurrency(row.amountCalculated),
+      render: (_: any, row: WaterUsage) => formatCurrency(row.amountCalculated),
       align: 'right' as const,
       sortable: true,
     },
     {
       key: 'actions',
       label: 'Actions',
-      render: (row: WaterUsage) => (
+      render: (_: any, row: WaterUsage) => (
         <div className="flex space-x-2">
           <button
             onClick={() => navigate(`/admin/usage/${row.customerId}/history`)}

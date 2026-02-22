@@ -40,8 +40,44 @@ class UsageService {
     const response = await apiClient.get(API_ENDPOINTS.WATER_USAGE.LIST, {
       params,
     });
-    const data = response.data || response;
-    return data;
+    const raw = response.data || response;
+
+    // Backend returns { usage_records: [...], total: N }
+    const records: any[] = raw.usage_records || (Array.isArray(raw) ? raw : []);
+    const total: number = raw.total || records.length;
+
+    const mapped: WaterUsage[] = records.map((u: any) => ({
+      id: u.id,
+      customerId: u.customer_id ?? u.customerId,
+      customer: u.customer ? {
+        id: u.customer.id,
+        name: u.customer.name ?? '',
+        customerId: u.customer.id,
+        meterNumber: u.customer.meter_number ?? u.customer.meterNumber ?? '',
+        address: u.customer.address ?? '',
+      } : undefined,
+      customerName: u.customer?.name ?? u.customerName ?? '',
+      meterNumber: u.customer?.meter_number ?? u.meterNumber ?? '',
+      usageMonth: u.usage_month ?? u.usageMonth,
+      meterStart: u.meter_start ?? u.meterStart ?? 0,
+      meterEnd: u.meter_end ?? u.meterEnd ?? 0,
+      usageM3: u.usage_m3 ?? u.usageM3 ?? 0,
+      rateId: u.rate_id ?? u.rateId ?? '',
+      ratePerM3: u.rate_per_m3 ?? u.ratePerM3 ?? 0,
+      amountCalculated: u.amount_calculated ?? u.amountCalculated ?? 0,
+      isAnomaly: u.is_anomaly ?? u.isAnomaly ?? false,
+      notes: u.notes ?? '',
+      createdAt: u.created_at ?? u.createdAt ?? '',
+      updatedAt: u.updated_at ?? u.updatedAt ?? '',
+    }));
+
+    return {
+      data: mapped,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+      page,
+      limit,
+    };
   }
 
   async getWaterUsage(id: string): Promise<WaterUsage> {
@@ -90,7 +126,12 @@ class UsageService {
   async createWaterUsage(data: CreateWaterUsageDto): Promise<WaterUsage> {
     const response = await apiClient.post(
       API_ENDPOINTS.WATER_USAGE.CREATE,
-      data
+      {
+        customer_id: data.customerId,
+        usage_month: data.usageMonth,
+        meter_end: data.meterEnd,
+        notes: data.notes,
+      }
     );
     return response.data || response;
   }
@@ -101,7 +142,10 @@ class UsageService {
   ): Promise<WaterUsage> {
     const response = await apiClient.put(
       API_ENDPOINTS.WATER_USAGE.UPDATE(id),
-      data
+      {
+        meter_end: data.meterEnd,
+        notes: data.notes,
+      }
     );
     return response.data || response;
   }

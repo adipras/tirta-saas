@@ -7,6 +7,7 @@ export interface WaterUsage {
     name: string;
     customerId: string;
     meterNumber?: string;
+    address?: string;
   };
   usageMonth: string;
   meterStart: number;
