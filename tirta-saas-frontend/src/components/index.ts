@@ -44,3 +44,4 @@ export type {
 } from './FormInput';
 
 export { default as CustomerSearchSelect } from './CustomerSearchSelect';
+export { default as PageHeader } from './PageHeader';

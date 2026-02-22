@@ -7,6 +7,7 @@ import {
   ArrowTrendingDownIcon,
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../services/apiClient';
+import { PageHeader } from '../../components';
 
 interface PlatformAnalyticsOverview {
   total_tenants: number;
@@ -128,13 +129,7 @@ export default function PlatformAnalytics() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Platform Analytics</h1>
-        <p className="text-gray-600 mt-1">
-          Overview of platform performance and tenant statistics
-        </p>
-      </div>
+      <PageHeader title="Platform Analytics" subtitle="Overview of platform performance and tenant statistics" />
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

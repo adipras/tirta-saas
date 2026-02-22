@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { reportService } from '../../services/reportService';
+import { PageHeader } from '../../components';
 
 interface DashboardData {
   totalCustomers: number;
@@ -53,11 +54,7 @@ export default function TenantAdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard Pengelola</h1>
-        <p className="text-gray-600 mt-1">Ringkasan pengelolaan air RT/RW Anda</p>
-      </div>
+      <PageHeader title="Dashboard Pengelola" subtitle="Ringkasan pengelolaan air RT/RW Anda" />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

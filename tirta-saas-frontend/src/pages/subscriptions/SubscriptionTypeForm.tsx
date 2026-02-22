@@ -5,6 +5,7 @@ import { subscriptionService } from '../../services/subscriptionService';
 import type { SubscriptionTypeFormData } from '../../types/subscription';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+import { PageHeader } from '../../components';
 
 export default function SubscriptionTypeForm() {
   const navigate = useNavigate();
@@ -167,23 +168,17 @@ export default function SubscriptionTypeForm() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <button
+      <button
           onClick={() => navigate('/admin/subscriptions')}
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
           Back to Subscription Types
         </button>
-        <h1 className="text-2xl font-semibold text-gray-900">
-          {isEditMode ? 'Edit Subscription Type' : 'Create Subscription Type'}
-        </h1>
-        <p className="mt-2 text-sm text-gray-700">
-          {isEditMode 
-            ? 'Update the subscription type details and fee structure'
-            : 'Create a new subscription type with fee structure'}
-        </p>
-      </div>
+      <PageHeader
+        title={isEditMode ? 'Edit Subscription Type' : 'Create Subscription Type'}
+        subtitle={isEditMode ? 'Update the subscription type details and fee structure' : 'Create a new subscription type with fee structure'}
+      />
 
       <div className="bg-white shadow rounded-lg">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">

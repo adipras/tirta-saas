@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../services/apiClient';
+import { PageHeader } from '../../components';
 
 interface PlatformAnalyticsOverview {
   total_tenants: number;
@@ -149,11 +150,7 @@ export default function PlatformOwnerDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Platform Owner Dashboard</h1>
-        <p className="text-gray-600 mt-1">Overview pengelolaan tenant dan subscription platform</p>
-      </div>
+      <PageHeader title="Platform Owner Dashboard" subtitle="Overview pengelolaan tenant dan subscription platform" />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

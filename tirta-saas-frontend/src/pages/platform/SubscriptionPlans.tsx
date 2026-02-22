@@ -6,6 +6,7 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../services/apiClient';
+import { PageHeader } from '../../components';
 
 interface SubscriptionPlan {
   id: string;
@@ -160,22 +161,19 @@ export default function SubscriptionPlans() {
 
   return (
     <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Subscription Plans</h1>
-          <p className="text-gray-600 mt-1">
-            Manage platform subscription plans and pricing
-          </p>
-        </div>
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-        >
-          <PlusIcon className="h-5 w-5" />
-          Create Plan
-        </button>
-      </div>
+      <PageHeader
+        title="Subscription Plans"
+        subtitle="Manage platform subscription plans and pricing"
+        actions={
+          <button
+            onClick={openCreateModal}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            <PlusIcon className="h-5 w-5" />
+            Create Plan
+          </button>
+        }
+      />
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -344,7 +342,7 @@ export default function SubscriptionPlans() {
                 </div>
 
                 {/* Pricing */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Monthly Price (IDR) *
@@ -376,7 +374,7 @@ export default function SubscriptionPlans() {
                 </div>
 
                 {/* Limits */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Max Users *
@@ -407,7 +405,7 @@ export default function SubscriptionPlans() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Max Storage (GB) *
@@ -441,7 +439,7 @@ export default function SubscriptionPlans() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Trial Days *

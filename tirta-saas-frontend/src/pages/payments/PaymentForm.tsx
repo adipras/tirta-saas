@@ -12,8 +12,7 @@ import {
   PAYMENT_METHOD_LABELS,
 } from '../../types/payment';
 import type { Customer } from '../../types/customer';
-
-const PaymentForm: React.FC = () => {
+import { PageHeader } from '../../components';: React.FC = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
@@ -162,21 +161,14 @@ const PaymentForm: React.FC = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <button
+      <button
           onClick={() => navigate('/admin/payments')}
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="mr-2 h-4 w-4" />
           Back to Payments
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Record Payment
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Select customer and invoices to record payment
-        </p>
-      </div>
+      <PageHeader title="Record Payment" subtitle="Select customer and invoices to record payment" />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Selection */}

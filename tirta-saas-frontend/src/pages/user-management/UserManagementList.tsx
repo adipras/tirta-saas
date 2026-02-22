@@ -10,6 +10,7 @@ import { tenantUserService } from '../../services/tenantUserService';
 import type { TenantUser } from '../../services/tenantUserService';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
+import { PageHeader } from '../../components';
 
 export default function UserManagementList() {
   const [users, setUsers] = useState<TenantUser[]>([]);
@@ -107,20 +108,19 @@ export default function UserManagementList() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600 mt-1">Manage operational users (meter reader, finance, service)</p>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Add User
-        </button>
-      </div>
+      <PageHeader
+        title="User Management"
+        subtitle="Manage operational users (meter reader, finance, service)"
+        actions={
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Add User
+          </button>
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">

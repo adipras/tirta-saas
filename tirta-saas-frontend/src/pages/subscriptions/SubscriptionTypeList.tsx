@@ -12,6 +12,7 @@ import { subscriptionService } from '../../services/subscriptionService';
 import type { SubscriptionType } from '../../types/subscription';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+import { PageHeader } from '../../components';
 
 export default function SubscriptionTypeList() {
   const navigate = useNavigate();
@@ -179,12 +180,7 @@ export default function SubscriptionTypeList() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Subscription Types</h1>
-        <p className="mt-2 text-sm text-gray-700">
-          Manage subscription types and their fee structures
-        </p>
-      </div>
+      <PageHeader title="Subscription Types" subtitle="Manage subscription types and their fee structures" />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">

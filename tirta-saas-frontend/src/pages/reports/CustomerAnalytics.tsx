@@ -15,8 +15,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-
-const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6B7280'];
+import { PageHeader } from '../../components';
 
 const CustomerAnalytics: React.FC = () => {
   const navigate = useNavigate();
@@ -68,20 +67,18 @@ const CustomerAnalytics: React.FC = () => {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Customer Analytics</h1>
-          <p className="text-gray-600 mt-1">
-            Comprehensive customer insights and trends
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/admin/reports')}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-        >
-          Back
-        </button>
-      </div>
+      <PageHeader
+        title="Customer Analytics"
+        subtitle="Comprehensive customer insights and trends"
+        actions={
+          <button
+            onClick={() => navigate('/admin/reports')}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+          >
+            Back
+          </button>
+        }
+      />
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">

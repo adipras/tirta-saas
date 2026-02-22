@@ -16,6 +16,7 @@ import type { WaterUsage, WaterUsageFilters } from '../../types/usage';
 import type { Customer } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+import { PageHeader } from '../../components';
 
 export default function UsageList() {
   const navigate = useNavigate();
@@ -226,12 +227,7 @@ export default function UsageList() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Water Usage</h1>
-        <p className="mt-2 text-sm text-gray-700">
-          Track and manage water meter readings and usage calculations
-        </p>
-      </div>
+      <PageHeader title="Water Usage" subtitle="Track and manage water meter readings and usage calculations" />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">

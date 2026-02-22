@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DataTable, type Column } from '../../components/DataTable';
 import { paymentService, type PaymentFilters } from '../../services/paymentService';
+import { PageHeader } from '../../components';
 import type {
   Payment,
   PaymentStatus,
@@ -193,10 +194,7 @@ const PaymentList: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
-        <p className="text-gray-600 mt-1">Manage payment records and receipts</p>
-      </div>
+      <PageHeader title="Payments" subtitle="Manage payment records and receipts" />
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">

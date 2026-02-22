@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 import {
   HomeIcon,
   UserGroupIcon,
@@ -16,170 +18,126 @@ import {
 } from '@heroicons/react/24/outline';
 import { authService } from '../services/authService';
 
-// Navigation items dengan role-based access
 const allNavigation = [
   // Platform Owner Menu
-  { 
-    name: 'Platform Dashboard', 
-    href: '/admin', 
-    icon: HomeIcon,
-    roles: ['PLATFORM_OWNER'],
-  },
-  { 
-    name: 'Tenants', 
-    href: '/admin/platform/tenants', 
-    icon: BuildingOfficeIcon,
-    roles: ['PLATFORM_OWNER'],
-  },
-  { 
-    name: 'Subscription Payments', 
-    href: '/admin/platform/subscription-payments', 
-    icon: CheckBadgeIcon,
-    roles: ['PLATFORM_OWNER'],
-  },
-  { 
-    name: 'Subscription Plans', 
-    href: '/admin/platform/subscription-plans', 
-    icon: ClipboardDocumentListIcon,
-    roles: ['PLATFORM_OWNER'],
-  },
-  { 
-    name: 'Platform Analytics', 
-    href: '/admin/platform/analytics', 
-    icon: ChartBarIcon,
-    roles: ['PLATFORM_OWNER'],
-  },
-  { 
-    name: 'Platform Settings', 
-    href: '/admin/platform/settings', 
-    icon: CogIcon,
-    roles: ['PLATFORM_OWNER'],
-  },
-  
-  // Tenant Admin Menu (Water Operations)
-  { 
-    name: 'Dashboard', 
-    href: '/admin', 
-    icon: HomeIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE', 'METER_READER'],
-  },
-  { 
-    name: 'Customers', 
-    href: '/admin/customers', 
-    icon: UserGroupIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE'],
-  },
-  { 
-    name: 'Subscription Types', 
-    href: '/admin/subscriptions', 
-    icon: RectangleStackIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN'],
-  },
-  { 
-    name: 'Water Rates', 
-    href: '/admin/water-rates', 
-    icon: CurrencyDollarIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN'],
-  },
-  { 
-    name: 'Invoices', 
-    href: '/admin/invoices', 
-    icon: DocumentDuplicateIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'],
-  },
-  { 
-    name: 'Payments', 
-    href: '/admin/payments', 
-    icon: CreditCardIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'],
-  },
-  { 
-    name: 'Payment Verification', 
-    href: '/admin/payment-verification', 
-    icon: CheckBadgeIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'],
-  },
-  { 
-    name: 'Water Usage', 
-    href: '/admin/usage', 
-    icon: BeakerIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN', 'METER_READER'],
-  },
-  { 
-    name: 'Reports', 
-    href: '/admin/reports', 
-    icon: ChartBarIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'],
-  },
-  { 
-    name: 'User Management', 
-    href: '/admin/users', 
-    icon: UsersIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN'],
-  },
-  { 
-    name: 'Settings', 
-    href: '/admin/settings', 
-    icon: CogIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN'],
-  },
+  { name: 'Platform Dashboard', href: '/admin', icon: HomeIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Tenants', href: '/admin/platform/tenants', icon: BuildingOfficeIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Subscription Payments', href: '/admin/platform/subscription-payments', icon: CheckBadgeIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Subscription Plans', href: '/admin/platform/subscription-plans', icon: ClipboardDocumentListIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Platform Analytics', href: '/admin/platform/analytics', icon: ChartBarIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Platform Settings', href: '/admin/platform/settings', icon: CogIcon, roles: ['PLATFORM_OWNER'] },
+  // Tenant Admin Menu
+  { name: 'Dashboard', href: '/admin', icon: HomeIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE', 'METER_READER'] },
+  { name: 'Customers', href: '/admin/customers', icon: UserGroupIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE'] },
+  { name: 'Subscription Types', href: '/admin/subscriptions', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Water Rates', href: '/admin/water-rates', icon: CurrencyDollarIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Invoices', href: '/admin/invoices', icon: DocumentDuplicateIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
+  { name: 'Payments', href: '/admin/payments', icon: CreditCardIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
+  { name: 'Payment Verification', href: '/admin/payment-verification', icon: CheckBadgeIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
+  { name: 'Water Usage', href: '/admin/usage', icon: BeakerIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'METER_READER'] },
+  { name: 'Reports', href: '/admin/reports', icon: ChartBarIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
+  { name: 'User Management', href: '/admin/users', icon: UsersIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Settings', href: '/admin/settings', icon: CogIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
 ];
 
-const Sidebar = () => {
-  console.log('=== Sidebar Rendering ===');
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+const SidebarContent = ({ onClose }: { onClose: () => void }) => {
   const user = authService.getUser();
   const userRole = user?.role?.toUpperCase() || 'ADMIN';
-  
-  console.log('Current user role:', userRole);
-  
-  // Filter navigation berdasarkan role
-  const navigation = allNavigation.filter(item => 
-    item.roles.includes(userRole)
-  );
-  
+  const navigation = allNavigation.filter(item => item.roles.includes(userRole));
+
   return (
-    <div className="flex w-64 flex-col" style={{ backgroundColor: 'lightgray' }}>
-      <div className="flex flex-col flex-grow pt-5 bg-white border-r border-gray-200 overflow-y-auto">
-        <div className="flex items-center flex-shrink-0 px-4">
+    <div className="flex flex-col h-full bg-white border-r border-gray-200">
+      {/* Logo */}
+      <div className="flex items-center justify-between flex-shrink-0 px-4 py-5">
+        <div className="flex items-center">
           <h1 className="text-xl font-semibold text-gray-900">Tirta SaaS</h1>
           {userRole === 'PLATFORM_OWNER' && (
-            <span className="ml-2 px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded">
+            <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 text-purple-800 rounded">
               Platform
             </span>
           )}
         </div>
-        <div className="mt-5 flex-grow flex flex-col">
-          <nav className="flex-1 px-2 space-y-1">
-            {navigation.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.href}
-                className={({ isActive }) =>
-                  `${
-                    isActive
-                      ? 'bg-blue-50 border-blue-500 text-blue-700'
-                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  } group flex items-center px-2 py-2 text-sm font-medium border-l-4`
-                }
-              >
-                <item.icon className="mr-3 h-5 w-5" aria-hidden="true" />
-                {item.name}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-        
-        {/* User info footer */}
-        <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-          <div className="flex items-center">
-            <div>
-              <div className="text-sm font-medium text-gray-700">{user?.name}</div>
-              <div className="text-xs text-gray-500">{userRole}</div>
-            </div>
+        {/* Close button — only visible on mobile */}
+        <button
+          onClick={onClose}
+          className="md:hidden p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+        >
+          <XMarkIcon className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-2 pb-4 space-y-0.5 overflow-y-auto">
+        {navigation.map((item) => (
+          <NavLink
+            key={item.name}
+            to={item.href}
+            end={item.href === '/admin'}
+            onClick={onClose}
+            className={({ isActive }) =>
+              `group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                isActive
+                  ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700 pl-2'
+                  : 'border-l-4 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`
+            }
+          >
+            <item.icon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
+            {item.name}
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* User info footer */}
+      <div className="flex-shrink-0 border-t border-gray-200 p-4">
+        <div className="flex items-center">
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-gray-700 truncate">{user?.name}</div>
+            <div className="text-xs text-gray-500 capitalize">{user?.role}</div>
           </div>
         </div>
       </div>
     </div>
+  );
+};
+
+const Sidebar = ({ open, onClose }: SidebarProps) => {
+  // Close sidebar on Escape key
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  return (
+    <>
+      {/* Desktop sidebar — always visible on md+ */}
+      <div className="hidden md:flex md:w-64 md:flex-col md:flex-shrink-0">
+        <SidebarContent onClose={onClose} />
+      </div>
+
+      {/* Mobile sidebar — overlay drawer */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity"
+            onClick={onClose}
+          />
+          {/* Drawer */}
+          <div className="relative flex w-64 flex-col flex-shrink-0 shadow-xl">
+            <SidebarContent onClose={onClose} />
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

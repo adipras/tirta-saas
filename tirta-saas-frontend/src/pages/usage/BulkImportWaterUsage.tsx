@@ -4,6 +4,7 @@ import { ArrowLeftIcon, ArrowUpTrayIcon, CheckCircleIcon, XCircleIcon } from '@h
 import { usageService } from '../../services/usageService';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+import { PageHeader } from '../../components';
 
 interface RowEntry {
   meter_number: string;
@@ -98,16 +99,15 @@ export default function BulkImportWaterUsage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center space-x-4">
-        <button onClick={() => navigate('/admin/usage')} className="text-gray-400 hover:text-gray-600">
-          <ArrowLeftIcon className="h-6 w-6" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bulk Import Meter Reading</h1>
-          <p className="text-sm text-gray-500 mt-1">Import data pembacaan meter banyak pelanggan sekaligus</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Bulk Import Meter Reading"
+        subtitle="Import data pembacaan meter banyak pelanggan sekaligus"
+        actions={
+          <button onClick={() => navigate('/admin/usage')} className="text-gray-400 hover:text-gray-600">
+            <ArrowLeftIcon className="h-6 w-6" />
+          </button>
+        }
+      />
 
       {/* Result summary */}
       {result && (

@@ -6,6 +6,7 @@ import {
   BuildingOfficeIcon,
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../services/apiClient';
+import { PageHeader } from '../../components';
 
 interface Tenant {
   id: string;
@@ -153,11 +154,7 @@ const TenantManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Tenant Management</h1>
-        <p className="text-gray-600 mt-1">Manage tenant registrations and approvals</p>
-      </div>
+      <PageHeader title="Tenant Management" subtitle="Manage tenant registrations and approvals" />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -344,7 +341,7 @@ const TenantManagement = () => {
 
               {/* Tenant Information */}
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-gray-500">Organization Name</p>
                     <p className="text-sm text-gray-900">{selectedTenant.name}</p>
@@ -371,7 +368,7 @@ const TenantManagement = () => {
                   <h4 className="text-sm font-semibold text-gray-700 mb-2">
                     Administrator
                   </h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-gray-500">Name</p>
                       <p className="text-sm text-gray-900">{selectedTenant.admin_name}</p>

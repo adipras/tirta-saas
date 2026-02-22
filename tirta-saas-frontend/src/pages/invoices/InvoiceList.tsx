@@ -12,6 +12,7 @@ import invoiceService from '../../services/invoiceService';
 import type { Invoice } from '../../types/invoice';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+import { PageHeader } from '../../components';
 
 export default function InvoiceList() {
   const navigate = useNavigate();
@@ -124,10 +125,11 @@ export default function InvoiceList() {
 
   return (
     <div className="space-y-6">
-      <div className="sm:flex sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Invoices</h1>
-        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-3">
-          <button
+      <PageHeader
+        title="Invoices"
+        actions={
+          <div className="flex items-center space-x-3">
+            <button
             onClick={() => navigate('/admin/invoices/bulk-generate')}
             className="inline-flex items-center px-4 py-2 border border-blue-600 rounded-md shadow-sm text-sm font-medium text-blue-600 bg-white hover:bg-blue-50"
           >
@@ -153,8 +155,9 @@ export default function InvoiceList() {
             <PlusIcon className="mr-2 h-4 w-4" />
             Create Invoice
           </button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       <div className="bg-white shadow rounded-lg">
         <DataTable

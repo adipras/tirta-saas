@@ -11,8 +11,7 @@ import {
 import { apiClient } from '../../services/apiClient';
 import { qrCodeService } from '../../services/qrCodeService';
 import type { QRCode } from '../../services/qrCodeService';
-
-interface PlatformBankAccount {
+import { PageHeader } from '../../components';
   id: string;
   bankName: string;
   accountNumber: string;
@@ -255,11 +254,7 @@ export default function PlatformPaymentSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Platform Payment Settings</h1>
-        <p className="text-gray-600 mt-1">Manage bank accounts and QR codes for tenant subscription payments</p>
-      </div>
+      <PageHeader title="Platform Payment Settings" subtitle="Manage bank accounts and QR codes for tenant subscription payments" />
 
       {/* Info Banner */}
       <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">

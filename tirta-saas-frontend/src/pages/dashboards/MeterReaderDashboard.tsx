@@ -4,6 +4,7 @@ import {
   PlusIcon,
   ClockIcon,
 } from '@heroicons/react/24/outline';
+import { PageHeader } from '../../components';
 
 export default function MeterReaderDashboard() {
   const navigate = useNavigate();
@@ -34,13 +35,7 @@ export default function MeterReaderDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Meter Reader Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Record and manage water meter readings
-        </p>
-      </div>
+      <PageHeader title="Meter Reader Dashboard" subtitle="Record and manage water meter readings" />
 
       {/* Quick Actions Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

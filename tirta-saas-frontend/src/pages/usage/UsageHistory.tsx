@@ -7,6 +7,7 @@ import type { UsageHistory } from '../../types/usage';
 import type { Customer } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+import { PageHeader } from '../../components';
 
 export default function UsageHistoryPage() {
   const navigate = useNavigate();
@@ -78,21 +79,17 @@ export default function UsageHistoryPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <button
+      <button
           onClick={() => navigate('/admin/usage')}
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
           Back to Water Usage
         </button>
-        <h1 className="text-2xl font-semibold text-gray-900">Usage History</h1>
-        {customer && (
-          <p className="mt-2 text-sm text-gray-700">
-            {customer.name} ({customer.meter_number})
-          </p>
-        )}
-      </div>
+      <PageHeader
+        title="Usage History"
+        subtitle={customer ? `${customer.name} (${customer.meter_number})` : undefined}
+      />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-6">

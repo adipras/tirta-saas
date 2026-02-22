@@ -4,6 +4,7 @@ import { paymentService } from '../../services/paymentService';
 import type { PaymentReceipt as PaymentReceiptType } from '../../types/payment';
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '../../types/payment';
 import { useReactToPrint } from 'react-to-print';
+import { PageHeader } from '../../components';
 
 const PaymentReceipt: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -72,26 +73,26 @@ const PaymentReceipt: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Payment Receipt</h1>
-          <p className="text-gray-600 mt-1">Receipt #{receipt.receiptNumber}</p>
-        </div>
-        <div className="flex space-x-2">
-          <button
-            onClick={() => navigate('/admin/payments')}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-          >
-            Back to Payments
-          </button>
-          <button
-            onClick={handlePrint}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Print Receipt
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Payment Receipt"
+        subtitle={`Receipt #${receipt.receiptNumber}`}
+        actions={
+          <>
+            <button
+              onClick={() => navigate('/admin/payments')}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+            >
+              Back to Payments
+            </button>
+            <button
+              onClick={handlePrint}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Print Receipt
+            </button>
+          </>
+        }
+      />
 
       {/* Receipt Content */}
       <div ref={receiptRef} className="bg-white rounded-lg shadow p-8 max-w-4xl mx-auto">
@@ -112,7 +113,7 @@ const PaymentReceipt: React.FC = () => {
         </div>
 
         {/* Customer & Payment Info */}
-        <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
             <h4 className="font-semibold text-gray-900 mb-2">Customer Information</h4>
             <div className="text-sm space-y-1">

@@ -7,6 +7,7 @@ import type { WaterRateFormData } from '../../types/waterRate';
 import type { SubscriptionType } from '../../types/subscription';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+import { PageHeader } from '../../components';
 
 export default function WaterRateForm() {
   const navigate = useNavigate();
@@ -154,23 +155,17 @@ export default function WaterRateForm() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <button
+      <button
           onClick={() => navigate('/admin/water-rates')}
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
           Back to Water Rates
         </button>
-        <h1 className="text-2xl font-semibold text-gray-900">
-          {isEditMode ? 'Edit Water Rate' : 'Create Water Rate'}
-        </h1>
-        <p className="mt-2 text-sm text-gray-700">
-          {isEditMode 
-            ? 'Update the water rate per cubic meter'
-            : 'Set a new water rate per cubic meter for a subscription type'}
-        </p>
-      </div>
+      <PageHeader
+        title={isEditMode ? 'Edit Water Rate' : 'Create Water Rate'}
+        subtitle={isEditMode ? 'Update the water rate per cubic meter' : 'Set a new water rate per cubic meter for a subscription type'}
+      />
 
       <div className="bg-white shadow rounded-lg">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">

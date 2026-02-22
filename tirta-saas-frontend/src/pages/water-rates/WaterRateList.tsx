@@ -14,6 +14,7 @@ import type { WaterRate } from '../../types/waterRate';
 import type { SubscriptionType } from '../../types/subscription';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+import { PageHeader } from '../../components';
 
 export default function WaterRateList() {
   const navigate = useNavigate();
@@ -212,22 +213,19 @@ export default function WaterRateList() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="sm:flex sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Water Rates</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            Manage water rates per cubic meter for different subscription types
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/admin/water-rates/create')}
-          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Add Water Rate
-        </button>
-      </div>
+      <PageHeader
+        title="Water Rates"
+        subtitle="Manage water rates per cubic meter for different subscription types"
+        actions={
+          <button
+            onClick={() => navigate('/admin/water-rates/create')}
+            className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Add Water Rate
+          </button>
+        }
+      />
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow">

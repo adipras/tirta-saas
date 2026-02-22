@@ -4,6 +4,7 @@ import {
   DocumentDuplicateIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
+import { PageHeader } from '../components';
 
 const stats = [
   {
@@ -42,7 +43,7 @@ const Dashboard = () => {
   
   return (
     <div style={{ border: '3px solid green', padding: '20px', backgroundColor: 'white' }}>
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">Dashboard Overview</h1>
+      <PageHeader title="Dashboard Overview" />
       
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         {stats.map((item) => (

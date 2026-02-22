@@ -7,6 +7,7 @@ import {
   EyeIcon,
 } from '@heroicons/react/24/outline';
 import paymentProofService, { type PaymentProof } from '../../services/paymentProofService';
+import { PageHeader } from '../../components';
 
 type PendingPayment = {
   id: string;
@@ -150,11 +151,7 @@ export default function TenantPaymentVerification() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Payment Verification</h1>
-        <p className="text-gray-600 mt-1">Verify customer payment confirmations</p>
-      </div>
+      <PageHeader title="Payment Verification" subtitle="Verify customer payment confirmations" />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
@@ -276,7 +273,7 @@ export default function TenantPaymentVerification() {
 
               <div className="space-y-4">
                 {/* Payment Info */}
-                <div className="grid grid-cols-2 gap-4 pb-4 border-b">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4 border-b">
                   <div>
                     <p className="text-sm text-gray-600">Invoice Number</p>
                     <p className="font-medium">{selectedPayment.invoiceNumber}</p>

@@ -11,8 +11,7 @@ import {
 import { apiClient } from '../../services/apiClient';
 import { qrCodeService } from '../../services/qrCodeService';
 import type { QRCode } from '../../services/qrCodeService';
-
-interface BankAccount {
+import { PageHeader } from '../../components';
   id: string;
   bankName: string;
   accountNumber: string;
@@ -249,11 +248,7 @@ export default function TenantPaymentSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Payment Settings</h1>
-        <p className="text-gray-600 mt-1">Manage bank accounts and QR codes for customer payments</p>
-      </div>
+      <PageHeader title="Payment Settings" subtitle="Manage bank accounts and QR codes for customer payments" />
 
       {/* Bank Accounts Section */}
       <div className="bg-white rounded-lg shadow">

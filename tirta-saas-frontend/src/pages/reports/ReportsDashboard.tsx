@@ -7,7 +7,7 @@ import {
   BeakerIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
-
+import { PageHeader } from '../../components';
 const ReportsDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState({
@@ -66,12 +66,7 @@ const ReportsDashboard: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
-        <p className="text-gray-600 mt-1">
-          Comprehensive reports and analytics for your water supply management
-        </p>
-      </div>
+      <PageHeader title="Reports & Analytics" subtitle="Comprehensive reports and analytics for your water supply management" />
 
       {/* Date Range Filter */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
