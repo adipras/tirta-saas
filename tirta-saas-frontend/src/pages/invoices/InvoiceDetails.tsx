@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeftIcon,
-  PencilIcon,
   PrinterIcon,
   EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import invoiceService from '../../services/invoiceService';
-import type { InvoiceDetails as InvoiceDetailsType, InvoiceItem } from '../../types/invoice';
+import type { InvoiceDetails as InvoiceDetailsType } from '../../types/invoice';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 
@@ -42,17 +41,18 @@ export default function InvoiceDetails() {
     }
   };
 
-  const getStatusBadge = (status: InvoiceDetailsType['status']) => {
+  const getStatusBadge = (status?: string) => {
     const statusConfig: Record<string, { color: string }> = {
       paid: { color: 'bg-green-100 text-green-800' },
       unpaid: { color: 'bg-yellow-100 text-yellow-800' },
       partial: { color: 'bg-blue-100 text-blue-800' },
       overdue: { color: 'bg-red-100 text-red-800' },
     };
-    const config = statusConfig[status] || statusConfig.unpaid;
+    const statusStr = status || 'unpaid';
+    const config = statusConfig[statusStr] || statusConfig.unpaid;
     return (
       <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.color}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {statusStr.charAt(0).toUpperCase() + statusStr.slice(1)}
       </span>
     );
   };
@@ -73,6 +73,10 @@ export default function InvoiceDetails() {
     );
   }
 
+  const isRegistration = !invoice.billingPeriod || invoice.billingPeriod === '';
+  const invoiceType = isRegistration ? 'Registration Fee' : 'Monthly Water Bill';
+  const typeColor = isRegistration ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800';
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -92,86 +96,218 @@ export default function InvoiceDetails() {
             <EnvelopeIcon className="mr-2 h-4 w-4" />
             Send
           </button>
-          <button
-            onClick={() => navigate(`/admin/invoices/${invoice.id}/edit`)}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-          >
-            <PencilIcon className="mr-2 h-4 w-4" />
-            Edit
-          </button>
         </div>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6">
+      {/* Invoice Header Card */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg overflow-hidden">
+        <div className="px-6 py-8 sm:p-10">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Invoice #{invoice.invoiceNumber}
-              </h3>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                For {invoice.customerName}
+              <h1 className="text-3xl font-bold text-white">
+                {invoiceType}
+              </h1>
+              <p className="mt-2 text-blue-100">
+                Invoice #{invoice.invoiceNumber || 'N/A'}
               </p>
             </div>
-            {getStatusBadge(invoice.status)}
-          </div>
-        </div>
-
-        <div className="border-t border-gray-200 px-4 py-5 sm:p-0">
-          <dl className="sm:divide-y sm:divide-gray-200">
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Issue Date</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {new Date(invoice.createdAt).toLocaleDateString()}
-              </dd>
-            </div>
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Due Date</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {new Date(invoice.dueDate).toLocaleDateString()}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        <div className="mt-6">
-          <h4 className="px-4 sm:px-6 text-md font-medium text-gray-800">Invoice Items</h4>
-          <div className="mt-2 flow-root">
-            <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-              <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
-                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {invoice.items.map((item: InvoiceItem) => (
-                        <tr key={item.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.description}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.quantity}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.unitPrice.toFixed(2)}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">${(item.total || 0).toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+            <div className="text-right">
+              <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${typeColor}`}>
+                {isRegistration ? 'Registration' : 'Monthly'}
+              </div>
+              <div className="mt-3">
+                {getStatusBadge(invoice.status)}
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="px-4 py-5 sm:px-6 mt-4">
-          <div className="flex justify-end">
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Subtotal: ${invoice.amount.toFixed(2)}</p>
-              <p className="text-sm text-gray-500">Tax (0%): $0.00</p>
-              <p className="text-lg font-medium text-gray-900">Total: ${invoice.amount.toFixed(2)}</p>
+      {/* Customer & Invoice Info */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-5 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">Invoice Information</h2>
+        </div>
+        <div className="px-6 py-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-4">Customer Details</h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-500">Name</p>
+                  <p className="text-base font-medium text-gray-900">{invoice.customerName}</p>
+                </div>
+                {invoice.customer?.meterNumber && (
+                  <div>
+                    <p className="text-sm text-gray-500">Meter Number</p>
+                    <p className="text-base font-medium text-gray-900">{invoice.customer.meterNumber}</p>
+                  </div>
+                )}
+                {invoice.customer?.email && (
+                  <div>
+                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="text-base text-gray-900">{invoice.customer.email}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-4">Invoice Details</h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-gray-500">Issue Date</p>
+                  <p className="text-base font-medium text-gray-900">
+                    {invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    }) : 'N/A'}
+                  </p>
+                </div>
+                {invoice.dueDate && (
+                  <div>
+                    <p className="text-sm text-gray-500">Due Date</p>
+                    <p className="text-base font-medium text-gray-900">
+                      {new Date(invoice.dueDate).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                )}
+                {!isRegistration && invoice.billingPeriod && (
+                  <div>
+                    <p className="text-sm text-gray-500">Billing Period</p>
+                    <p className="text-base font-medium text-gray-900">{invoice.billingPeriod}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charges Breakdown */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-5 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">
+            {isRegistration ? 'Registration Fee' : 'Usage Details & Charges'}
+          </h2>
+        </div>
+        <div className="px-6 py-5">
+          {isRegistration ? (
+            // Registration Invoice
+            <div className="space-y-4">
+              <div className="flex justify-between py-3 border-b border-gray-200">
+                <div>
+                  <p className="text-base font-medium text-gray-900">New Customer Registration Fee</p>
+                  <p className="text-sm text-gray-500 mt-1">One-time registration charge</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-semibold text-gray-900">
+                    {new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      minimumFractionDigits: 0,
+                    }).format(invoice.totalAmount)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Monthly Invoice
+            <div className="space-y-4">
+              {invoice.usage > 0 && (
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">Water Usage</p>
+                      <p className="text-3xl font-bold text-blue-600 mt-1">{invoice.usage} m³</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-blue-700">Rate per m³</p>
+                      <p className="text-lg font-semibold text-blue-900">
+                        {new Intl.NumberFormat('id-ID', {
+                          style: 'currency',
+                          currency: 'IDR',
+                          minimumFractionDigits: 0,
+                        }).format(invoice.amount / invoice.usage || 0)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="divide-y divide-gray-200">
+                {invoice.usage > 0 && (
+                  <div className="flex justify-between py-3">
+                    <span className="text-gray-600">Water Charge ({invoice.usage} m³)</span>
+                    <span className="font-medium text-gray-900">
+                      {new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0,
+                      }).format(invoice.amount)}
+                    </span>
+                  </div>
+                )}
+                {invoice.totalAmount > invoice.amount && (
+                  <div className="flex justify-between py-3">
+                    <span className="text-gray-600">Monthly Subscription Fee</span>
+                    <span className="font-medium text-gray-900">
+                      {new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0,
+                      }).format(invoice.totalAmount - invoice.amount)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Payment Summary */}
+      <div className="bg-white shadow rounded-lg">
+        <div className="px-6 py-5 border-b border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900">Payment Summary</h2>
+        </div>
+        <div className="px-6 py-5">
+          <div className="space-y-3">
+            <div className="flex justify-between text-base">
+              <span className="text-gray-600">Total Amount</span>
+              <span className="font-medium text-gray-900">
+                {new Intl.NumberFormat('id-ID', {
+                  style: 'currency',
+                  currency: 'IDR',
+                  minimumFractionDigits: 0,
+                }).format(invoice.totalAmount)}
+              </span>
+            </div>
+            <div className="flex justify-between text-base">
+              <span className="text-gray-600">Amount Paid</span>
+              <span className="font-medium text-green-600">
+                {new Intl.NumberFormat('id-ID', {
+                  style: 'currency',
+                  currency: 'IDR',
+                  minimumFractionDigits: 0,
+                }).format(invoice.amountPaid)}
+              </span>
+            </div>
+            <div className="border-t-2 border-gray-300 pt-3">
+              <div className="flex justify-between">
+                <span className="text-lg font-semibold text-gray-900">Amount Due</span>
+                <span className="text-2xl font-bold text-red-600">
+                  {new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0,
+                  }).format(invoice.amountDue)}
+                </span>
+              </div>
             </div>
           </div>
         </div>

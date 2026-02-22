@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/adipras/tirta-saas-backend/utils"
 
 	"github.com/gin-gonic/gin"
@@ -74,18 +76,28 @@ func CreateCustomer(c *gin.Context) {
 		return
 	}
 
+	// Generate invoice number
+	invoiceNumberGen := services.GetInvoiceNumberGenerator()
+	invoiceNumber, err := invoiceNumberGen.GenerateInvoiceNumber(tenantID, time.Now())
+	if err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate invoice number"})
+		return
+	}
+
 	// Buat Invoice untuk biaya pendaftaran
 	invoice := models.Invoice{
-		CustomerID:  customer.ID,
-		UsageMonth:  "", // Kosong karena ini bukan invoice pemakaian
-		UsageM3:     0,
-		Abonemen:    0,
-		PricePerM3:  0,
-		TotalAmount: subType.RegistrationFee,
-		IsPaid:      false,
-		TotalPaid:   0,
-		Type:        "registration",
-		TenantID:    tenantID,
+		InvoiceNumber: invoiceNumber,
+		CustomerID:    customer.ID,
+		UsageMonth:    "", // Kosong karena ini bukan invoice pemakaian
+		UsageM3:       0,
+		Abonemen:      0,
+		PricePerM3:    0,
+		TotalAmount:   subType.RegistrationFee,
+		IsPaid:        false,
+		TotalPaid:     0,
+		Type:          "registration",
+		TenantID:      tenantID,
 	}
 	if err := tx.Create(&invoice).Error; err != nil {
 		tx.Rollback()
@@ -110,7 +122,7 @@ func CreateCustomer(c *gin.Context) {
 		SubscriptionID: customer.SubscriptionID,
 		IsActive:       customer.IsActive,
 	}
-	c.JSON(http.StatusCreated, response)
+	helpers.RespondCreated(c, "Customer created successfully", response)
 }
 
 // GetCustomers godoc
@@ -126,7 +138,7 @@ func CreateCustomer(c *gin.Context) {
 func GetCustomers(c *gin.Context) {
 	tenantID, hasSpecificTenant, err := helpers.GetTenantIDFromContext(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		helpers.RespondError(c, http.StatusBadRequest, "Invalid tenant context", err)
 		return
 	}
 
@@ -140,7 +152,7 @@ func GetCustomers(c *gin.Context) {
 	// If no specific tenant (platform owner without filter), return all
 
 	if err := query.Find(&customers).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
+		helpers.RespondError(c, http.StatusInternalServerError, "Failed to fetch customers", err)
 		return
 	}
 
@@ -180,7 +192,7 @@ func GetCustomers(c *gin.Context) {
 		Customers: customerResponses,
 		Total:     len(customerResponses),
 	}
-	c.JSON(http.StatusOK, response)
+	helpers.RespondSuccess(c, "Customers retrieved successfully", response)
 }
 
 // GetCustomer godoc
@@ -278,11 +290,11 @@ func ActivateCustomer(c *gin.Context) {
 	}
 
 	// Update is_active to true
-	customer.IsActive = true
-	if err := config.DB.Save(&customer).Error; err != nil {
+	if err := config.DB.Model(&customer).Update("is_active", true).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to activate customer"})
 		return
 	}
+	customer.IsActive = true
 
 	response := responses.CustomerResponse{
 		ID:             customer.ID,
@@ -424,7 +436,7 @@ func UpdateCustomer(c *gin.Context) {
 	customer.Phone = input.Phone
 	customer.SubscriptionID = input.SubscriptionID
 
-	if err := config.DB.Save(&customer).Error; err != nil {
+	if err := config.DB.Model(&customer).Select("Name", "Address", "Phone", "SubscriptionID").Updates(&customer).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui pelanggan"})
 		return
 	}

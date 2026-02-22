@@ -64,7 +64,7 @@ func CreateWaterRate(c *gin.Context) {
 func GetWaterRates(c *gin.Context) {
 	tenantID, hasSpecificTenant, err := helpers.GetTenantIDFromContext(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		helpers.RespondError(c, http.StatusBadRequest, "Invalid tenant context", err)
 		return
 	}
 
@@ -75,12 +75,17 @@ func GetWaterRates(c *gin.Context) {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
 	
+	// Filter by active status if provided
+	if activeParam := c.Query("active"); activeParam != "" {
+		query = query.Where("is_active = ?", activeParam == "true")
+	}
+	
 	if err := query.Order("effective_date DESC").Find(&rates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
+		helpers.RespondError(c, http.StatusInternalServerError, "Failed to fetch water rates", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, rates)
+	helpers.RespondSuccess(c, "Water rates retrieved successfully", rates)
 }
 
 // GetWaterRate godoc

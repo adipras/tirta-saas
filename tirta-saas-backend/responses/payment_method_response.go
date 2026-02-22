@@ -52,3 +52,23 @@ func ToBankAccountResponse(ba *models.BankAccount) BankAccountResponse {
 		Notes:         ba.Notes,
 	}
 }
+
+type QRCodeResponse struct {
+ID        uuid.UUID `json:"id"`
+Type      string    `json:"type"`
+ImageURL  string    `json:"image_url"`
+IsPrimary bool      `json:"is_primary"`
+IsActive  bool      `json:"is_active"`
+Notes     string    `json:"notes,omitempty"`
+}
+
+func ToQRCodeResponse(qr *models.QRCode) QRCodeResponse {
+return QRCodeResponse{
+ID:        qr.ID,
+Type:      qr.Type,
+ImageURL:  qr.ImageURL,
+IsPrimary: qr.IsPrimary,
+IsActive:  qr.IsActive,
+Notes:     qr.Notes,
+}
+}

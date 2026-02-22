@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
+import { CustomerSearchSelect } from '../../components';
 import type { WaterUsageFormData } from '../../types/usage';
 import type { Customer } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
@@ -67,7 +68,8 @@ export default function MeterReadingForm() {
     try {
       const history = await usageService.getCustomerUsageHistoryById(customerId);
       if (history.length > 0) {
-        const lastReading = history[history.length - 1];
+        // Backend returns DESC order, so index 0 is the most recent reading
+        const lastReading = history[0];
         setPreviousReading(lastReading.meterEnd);
       } else {
         setPreviousReading(0);
@@ -178,8 +180,6 @@ export default function MeterReadingForm() {
     }
   };
 
-  const selectedCustomer = customers.find(c => c.id === formData.customerId);
-
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -207,31 +207,18 @@ export default function MeterReadingForm() {
             <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="customerId" className="block text-sm font-medium text-gray-700">
-                  Customer <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="customerId"
-                  name="customerId"
+                <CustomerSearchSelect
+                  customers={customers}
                   value={formData.customerId}
-                  onChange={handleChange}
+                  onChange={(customerId) => {
+                    setFormData({ ...formData, customerId });
+                    setErrors({ ...errors, customerId: '' });
+                  }}
                   disabled={isEditMode}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.customerId
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  } ${isEditMode ? 'bg-gray-100' : ''}`}
-                >
-                  <option value="">Select customer</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name} ({customer.meter_number})
-                    </option>
-                  ))}
-                </select>
-                {errors.customerId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.customerId}</p>
-                )}
+                  error={errors.customerId}
+                  label="Customer"
+                  required
+                />
               </div>
 
               <div>
@@ -255,21 +242,6 @@ export default function MeterReadingForm() {
                   <p className="mt-1 text-sm text-red-600">{errors.usageMonth}</p>
                 )}
               </div>
-
-              {selectedCustomer && (
-                <div className="md:col-span-2 p-4 bg-gray-50 rounded-md">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-500">Meter Number:</span>
-                      <span className="ml-2 font-medium">{selectedCustomer.meter_number || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Subscription:</span>
-                      <span className="ml-2 font-medium">{selectedCustomer.subscription.name}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 

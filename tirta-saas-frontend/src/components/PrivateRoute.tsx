@@ -3,7 +3,7 @@ import { useAppSelector } from '../hooks/redux';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
-  requiredRole?: 'admin' | 'customer' | 'platform_owner';
+  requiredRole?: 'admin' | 'customer' | 'platform_owner' | 'meter_reader';
 }
 
 const PrivateRoute = ({ children, requiredRole }: PrivateRouteProps) => {
@@ -28,12 +28,14 @@ const PrivateRoute = ({ children, requiredRole }: PrivateRouteProps) => {
   if (requiredRole && user?.role !== requiredRole) {
     // Allow platform_owner to access admin routes
     // Allow tenant_admin to access admin routes (they are the same)
+    // Allow meter_reader to access admin routes
     const isAdminRoute = requiredRole === 'admin';
     const isPlatformOwner = user?.role === 'platform_owner';
     const isTenantAdmin = user?.role === 'tenant_admin';
+    const isMeterReader = user?.role === 'meter_reader';
     
-    if (isAdminRoute && (isPlatformOwner || isTenantAdmin)) {
-      console.log('✅ Platform owner or Tenant admin accessing admin route - ALLOWED');
+    if (isAdminRoute && (isPlatformOwner || isTenantAdmin || isMeterReader)) {
+      console.log('✅ Platform owner, Tenant admin, or Meter reader accessing admin route - ALLOWED');
       return <>{children}</>;
     }
     

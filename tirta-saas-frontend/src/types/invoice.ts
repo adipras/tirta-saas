@@ -21,6 +21,7 @@ export interface Invoice {
     email: string;
     phone: string;
     address: string;
+    meterNumber?: string;
   };
   items?: InvoiceItem[];
   payments?: PaymentHistory[];

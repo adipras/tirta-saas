@@ -1037,9 +1037,10 @@ func GetPlatformUsageAnalytics(c *gin.Context) {
 	analytics.Period = fmt.Sprintf("Last %d months", months)
 
 	// Overall app usage stats (not water usage)
+	// Exclude platform_owner from user counts as they are system admins, not tenant users
 	var totalUsers, activeUsers, totalCustomers int64
-	config.DB.Model(&models.User{}).Count(&totalUsers)
-	config.DB.Model(&models.User{}).Where("is_active = ?", true).Count(&activeUsers)
+	config.DB.Model(&models.User{}).Where("role != ?", "platform_owner").Count(&totalUsers)
+	config.DB.Model(&models.User{}).Where("is_active = ? AND role != ?", true, "platform_owner").Count(&activeUsers)
 	config.DB.Model(&models.Customer{}).Count(&totalCustomers)
 	analytics.TotalUsers = int(totalUsers)
 	analytics.ActiveUsers = int(activeUsers)

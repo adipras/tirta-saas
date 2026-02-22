@@ -71,6 +71,7 @@ func Migrate() {
 		&models.ServiceArea{},                // References Tenant
 		&models.PaymentMethod{},              // References Tenant
 		&models.BankAccount{},                // References Tenant
+		&models.QRCode{},                     // References Tenant
 		&models.TariffCategory{},             // References Tenant
 		&models.ProgressiveRate{},            // References Tenant + TariffCategory
 		&models.ReadingRoute{},               // References Tenant + User

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeftIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { paymentService } from '../../services/paymentService';
 import customerService from '../../services/customerService';
+import CustomerSearchSelect from '../../components/CustomerSearchSelect';
 import type {
   PaymentFormData,
   OutstandingInvoice,
@@ -13,17 +15,15 @@ import type { Customer } from '../../types/customer';
 
 const PaymentForm: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const isEditMode = Boolean(id);
 
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [outstandingInvoices, setOutstandingInvoices] = useState<OutstandingInvoice[]>([]);
-  const [selectedInvoice, setSelectedInvoice] = useState<OutstandingInvoice | null>(null);
+  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
   
   const [formData, setFormData] = useState<PaymentFormData>({
-    invoiceId: 0,
+    invoiceId: '',
     amount: 0,
     paymentMethod: 'cash',
     paymentDate: new Date().toISOString().split('T')[0],
@@ -42,48 +42,50 @@ const PaymentForm: React.FC = () => {
       fetchOutstandingInvoices(selectedCustomerId);
     } else {
       setOutstandingInvoices([]);
-      setSelectedInvoice(null);
+      setSelectedInvoices(new Set());
     }
   }, [selectedCustomerId]);
-
-  useEffect(() => {
-    if (selectedInvoice) {
-      setFormData((prev) => ({
-        ...prev,
-        invoiceId: selectedInvoice.id,
-        amount: selectedInvoice.remainingAmount,
-      }));
-    }
-  }, [selectedInvoice]);
 
   const fetchCustomers = async () => {
     try {
       const response = await customerService.getCustomers(1, 1000);
-      setCustomers(response.data.filter((c) => c.is_active));
+      // Allow payment for all customers (including inactive)
+      // Because registration fee payment is required to activate customer
+      setCustomers(response.data);
     } catch (error) {
       console.error('Failed to fetch customers:', error);
     }
   };
 
-  const fetchOutstandingInvoices = async (customerId: number) => {
+  const fetchOutstandingInvoices = async (customerId: string) => {
     try {
       const invoices = await paymentService.getOutstandingInvoices(customerId);
       setOutstandingInvoices(invoices);
     } catch (error) {
       console.error('Failed to fetch outstanding invoices:', error);
+      setOutstandingInvoices([]);
     }
   };
 
   const handleCustomerChange = (customerId: string) => {
-    const id = customerId ? Number(customerId) : null;
-    setSelectedCustomerId(id);
-    setSelectedInvoice(null);
-    setFormData((prev) => ({ ...prev, invoiceId: 0, amount: 0 }));
+    setSelectedCustomerId(customerId);
+    setSelectedInvoices(new Set());
   };
 
-  const handleInvoiceChange = (invoiceId: string) => {
-    const invoice = outstandingInvoices.find((inv) => inv.id === Number(invoiceId));
-    setSelectedInvoice(invoice || null);
+  const toggleInvoiceSelection = (invoiceId: string) => {
+    const newSelected = new Set(selectedInvoices);
+    if (newSelected.has(invoiceId)) {
+      newSelected.delete(invoiceId);
+    } else {
+      newSelected.add(invoiceId);
+    }
+    setSelectedInvoices(newSelected);
+  };
+
+  const calculateTotalAmount = () => {
+    return outstandingInvoices
+      .filter(inv => selectedInvoices.has(inv.id))
+      .reduce((sum, inv) => sum + inv.remainingAmount, 0);
   };
 
   const handleInputChange = (
@@ -92,7 +94,7 @@ const PaymentForm: React.FC = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === 'amount' || name === 'invoiceId' ? Number(value) : value,
+      [name]: name === 'amount' ? Number(value) : value,
     }));
     
     if (errors[name]) {
@@ -103,16 +105,12 @@ const PaymentForm: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.invoiceId) {
-      newErrors.invoiceId = 'Please select an invoice';
+    if (!selectedCustomerId) {
+      newErrors.customerId = 'Please select a customer';
     }
 
-    if (!formData.amount || formData.amount <= 0) {
-      newErrors.amount = 'Amount must be greater than 0';
-    }
-
-    if (selectedInvoice && formData.amount > selectedInvoice.remainingAmount) {
-      newErrors.amount = `Amount cannot exceed remaining balance (Rp ${selectedInvoice.remainingAmount.toLocaleString('id-ID')})`;
+    if (selectedInvoices.size === 0) {
+      newErrors.invoices = 'Please select at least one invoice';
     }
 
     if (!formData.paymentDate) {
@@ -137,10 +135,20 @@ const PaymentForm: React.FC = () => {
     try {
       setLoading(true);
       
-      if (isEditMode && id) {
-        await paymentService.updatePayment(Number(id), formData);
-      } else {
-        await paymentService.createPayment(formData);
+      // Process each selected invoice
+      for (const invoiceId of Array.from(selectedInvoices)) {
+        const invoice = outstandingInvoices.find(inv => inv.id === invoiceId);
+        if (invoice) {
+          const paymentData: PaymentFormData = {
+            invoiceId: invoice.id,
+            amount: invoice.remainingAmount,
+            paymentMethod: formData.paymentMethod,
+            paymentDate: formData.paymentDate,
+            referenceNumber: formData.referenceNumber,
+            notes: formData.notes,
+          };
+          await paymentService.createPayment(paymentData);
+        }
       }
 
       navigate('/admin/payments');
@@ -153,239 +161,267 @@ const PaymentForm: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-6">
+        <button
+          onClick={() => navigate('/admin/payments')}
+          className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
+        >
+          <ArrowLeftIcon className="mr-2 h-4 w-4" />
+          Back to Payments
+        </button>
         <h1 className="text-2xl font-bold text-gray-900">
-          {isEditMode ? 'Edit Payment' : 'Record Payment'}
+          Record Payment
         </h1>
         <p className="text-gray-600 mt-1">
-          {isEditMode ? 'Update payment information' : 'Record a new payment for an invoice'}
+          Select customer and invoices to record payment
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <form onSubmit={handleSubmit}>
-          {/* Customer Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Customer <span className="text-red-500">*</span>
-            </label>
-            <select
-              className={`w-full border rounded-md px-3 py-2 ${
-                errors.customerId ? 'border-red-500' : 'border-gray-300'
-              }`}
-              value={selectedCustomerId || ''}
-              onChange={(e) => handleCustomerChange(e.target.value)}
-              disabled={isEditMode}
-            >
-              <option value="">Select a customer</option>
-              {customers.map((customer) => (
-                <option key={customer.id} value={customer.id}>
-                  {customer.name} - {customer.meter_number}
-                </option>
-              ))}
-            </select>
-            {errors.customerId && (
-              <p className="text-red-500 text-sm mt-1">{errors.customerId}</p>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Customer Selection */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Customer <span className="text-red-500">*</span>
+          </label>
+          <CustomerSearchSelect
+            customers={customers}
+            value={selectedCustomerId}
+            onChange={handleCustomerChange}
+            disabled={loading}
+          />
+          {errors.customerId && (
+            <p className="text-red-500 text-sm mt-1">{errors.customerId}</p>
+          )}
+        </div>
+
+        {/* Outstanding Invoices Cards */}
+        {selectedCustomerId && outstandingInvoices.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">
+                Outstanding Invoices
+              </h2>
+              <span className="text-sm text-gray-500">
+                Select invoices to pay
+              </span>
+            </div>
+            
+            {errors.invoices && (
+              <p className="text-red-500 text-sm mb-4">{errors.invoices}</p>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {outstandingInvoices.map((invoice) => {
+                const isSelected = selectedInvoices.has(invoice.id);
+                return (
+                  <div
+                    key={invoice.id}
+                    onClick={() => toggleInvoiceSelection(invoice.id)}
+                    className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {isSelected && (
+                      <div className="absolute top-2 right-2">
+                        <CheckCircleIcon className="h-6 w-6 text-blue-600" />
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between pr-8">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {invoice.invoiceNumber || `INV-${invoice.id}`}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {invoice.usageMonth || 'Registration Fee'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t border-gray-200 pt-2 space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Total Amount:</span>
+                          <span className="font-medium text-gray-900">
+                            {new Intl.NumberFormat('id-ID', {
+                              style: 'currency',
+                              currency: 'IDR',
+                              minimumFractionDigits: 0,
+                            }).format(invoice.totalAmount)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Paid:</span>
+                          <span className="font-medium text-green-600">
+                            {new Intl.NumberFormat('id-ID', {
+                              style: 'currency',
+                              currency: 'IDR',
+                              minimumFractionDigits: 0,
+                            }).format(invoice.paidAmount)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm border-t pt-1">
+                          <span className="font-medium text-gray-700">Remaining:</span>
+                          <span className="font-bold text-red-600">
+                            {new Intl.NumberFormat('id-ID', {
+                              style: 'currency',
+                              currency: 'IDR',
+                              minimumFractionDigits: 0,
+                            }).format(invoice.remainingAmount)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+                        <span>Due: {new Date(invoice.dueDate).toLocaleDateString('id-ID')}</span>
+                        <span className={`px-2 py-0.5 rounded-full ${
+                          invoice.status === 'overdue' 
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {invoice.status === 'overdue' ? 'Overdue' : 'Pending'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Payment Summary */}
+            {selectedInvoices.size > 0 && (
+              <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Payment for {selectedInvoices.size} invoice(s)</p>
+                    <p className="text-2xl font-bold text-blue-900 mt-1">
+                      {new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        minimumFractionDigits: 0,
+                      }).format(calculateTotalAmount())}
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
+        )}
 
-          {/* Outstanding Invoices */}
-          {selectedCustomerId && outstandingInvoices.length > 0 && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Invoice <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="invoiceId"
-                className={`w-full border rounded-md px-3 py-2 ${
-                  errors.invoiceId ? 'border-red-500' : 'border-gray-300'
-                }`}
-                value={formData.invoiceId || ''}
-                onChange={(e) => handleInvoiceChange(e.target.value)}
-                disabled={isEditMode}
-              >
-                <option value="">Select an invoice</option>
-                {outstandingInvoices.map((invoice) => (
-                  <option key={invoice.id} value={invoice.id}>
-                    {invoice.invoiceNumber} - Due: {new Date(invoice.dueDate).toLocaleDateString()} - 
-                    Remaining: Rp {invoice.remainingAmount.toLocaleString('id-ID')}
-                  </option>
-                ))}
-              </select>
-              {errors.invoiceId && (
-                <p className="text-red-500 text-sm mt-1">{errors.invoiceId}</p>
-              )}
-            </div>
-          )}
-
-          {selectedCustomerId && outstandingInvoices.length === 0 && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-yellow-800">
+        {selectedCustomerId && outstandingInvoices.length === 0 && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-center py-8">
+              <p className="text-gray-500">
                 No outstanding invoices found for this customer.
               </p>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Invoice Details */}
-          {selectedInvoice && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
-              <h3 className="font-medium text-blue-900 mb-2">Invoice Details</h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <span className="text-blue-700">Invoice Number:</span>
-                  <span className="ml-2 font-medium">{selectedInvoice.invoiceNumber}</span>
-                </div>
-                <div>
-                  <span className="text-blue-700">Invoice Date:</span>
-                  <span className="ml-2 font-medium">
-                    {new Date(selectedInvoice.invoiceDate).toLocaleDateString()}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-blue-700">Due Date:</span>
-                  <span className="ml-2 font-medium">
-                    {new Date(selectedInvoice.dueDate).toLocaleDateString()}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-blue-700">Total Amount:</span>
-                  <span className="ml-2 font-medium">
-                    Rp {selectedInvoice.totalAmount.toLocaleString('id-ID')}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-blue-700">Paid Amount:</span>
-                  <span className="ml-2 font-medium">
-                    Rp {selectedInvoice.paidAmount.toLocaleString('id-ID')}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-blue-700">Remaining:</span>
-                  <span className="ml-2 font-medium text-red-600">
-                    Rp {selectedInvoice.remainingAmount.toLocaleString('id-ID')}
-                  </span>
-                </div>
+        {/* Payment Details */}
+        {selectedInvoices.size > 0 && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              Payment Details
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  name="paymentDate"
+                  value={formData.paymentDate}
+                  onChange={handleInputChange}
+                  className={`w-full border rounded-md px-3 py-2 ${
+                    errors.paymentDate ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                />
+                {errors.paymentDate && (
+                  <p className="text-red-500 text-sm mt-1">{errors.paymentDate}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Method <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="paymentMethod"
+                  value={formData.paymentMethod}
+                  onChange={handleInputChange}
+                  className={`w-full border rounded-md px-3 py-2 ${
+                    errors.paymentMethod ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                {errors.paymentMethod && (
+                  <p className="text-red-500 text-sm mt-1">{errors.paymentMethod}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reference Number
+                </label>
+                <input
+                  type="text"
+                  name="referenceNumber"
+                  value={formData.referenceNumber}
+                  onChange={handleInputChange}
+                  placeholder="e.g., Transfer receipt number"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notes
+                </label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                  rows={3}
+                  placeholder="Additional notes..."
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
               </div>
             </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Payment Amount */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Amount (IDR) <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="amount"
-                min="0"
-                step="0.01"
-                className={`w-full border rounded-md px-3 py-2 ${
-                  errors.amount ? 'border-red-500' : 'border-gray-300'
-                }`}
-                value={formData.amount || ''}
-                onChange={handleInputChange}
-              />
-              {errors.amount && (
-                <p className="text-red-500 text-sm mt-1">{errors.amount}</p>
-              )}
-            </div>
-
-            {/* Payment Method */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Method <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="paymentMethod"
-                className={`w-full border rounded-md px-3 py-2 ${
-                  errors.paymentMethod ? 'border-red-500' : 'border-gray-300'
-                }`}
-                value={formData.paymentMethod}
-                onChange={handleInputChange}
-              >
-                {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-              {errors.paymentMethod && (
-                <p className="text-red-500 text-sm mt-1">{errors.paymentMethod}</p>
-              )}
-            </div>
-
-            {/* Payment Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="paymentDate"
-                className={`w-full border rounded-md px-3 py-2 ${
-                  errors.paymentDate ? 'border-red-500' : 'border-gray-300'
-                }`}
-                value={formData.paymentDate}
-                onChange={handleInputChange}
-              />
-              {errors.paymentDate && (
-                <p className="text-red-500 text-sm mt-1">{errors.paymentDate}</p>
-              )}
-            </div>
-
-            {/* Reference Number */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Reference Number
-              </label>
-              <input
-                type="text"
-                name="referenceNumber"
-                placeholder="e.g., TRX123456, Check #123"
-                className="w-full border border-gray-300 rounded-md px-3 py-2"
-                value={formData.referenceNumber}
-                onChange={handleInputChange}
-              />
-            </div>
           </div>
+        )}
 
-          {/* Notes */}
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes
-            </label>
-            <textarea
-              name="notes"
-              rows={3}
-              placeholder="Additional notes or comments"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={formData.notes}
-              onChange={handleInputChange}
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="mt-6 flex justify-end space-x-4">
+        {/* Action Buttons */}
+        {selectedInvoices.size > 0 && (
+          <div className="flex items-center justify-end space-x-3">
             <button
               type="button"
               onClick={() => navigate('/admin/payments')}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300"
-              disabled={loading || !selectedInvoice}
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+              disabled={loading}
             >
-              {loading ? 'Saving...' : isEditMode ? 'Update Payment' : 'Record Payment'}
+              {loading ? 'Processing...' : `Record Payment (${selectedInvoices.size} invoice${selectedInvoices.size > 1 ? 's' : ''})`}
             </button>
           </div>
-        </form>
-      </div>
+        )}
+      </form>
     </div>
   );
 };

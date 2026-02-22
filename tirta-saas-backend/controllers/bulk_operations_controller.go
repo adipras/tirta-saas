@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adipras/tirta-saas-backend/helpers"
+
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/responses"
@@ -375,4 +377,118 @@ func ExportCustomers(c *gin.Context) {
 			return
 		}
 	}
+}
+
+// BulkImportWaterUsage imports multiple water usage records at once via JSON body
+func BulkImportWaterUsage(c *gin.Context) {
+tenantID, err := helpers.RequireTenantID(c)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+return
+}
+
+var req struct {
+UsageMonth string `json:"usage_month" binding:"required"`
+Records    []struct {
+MeterNumber string  `json:"meter_number"`
+CustomerID  string  `json:"customer_id"`
+MeterEnd    float64 `json:"meter_end"`
+Notes       string  `json:"notes"`
+} `json:"records" binding:"required"`
+}
+
+if err := c.ShouldBindJSON(&req); err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+return
+}
+
+prevMonth, err := time.Parse("2006-01", req.UsageMonth)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "Format bulan tidak valid. Gunakan YYYY-MM"})
+return
+}
+prevMonthStr := prevMonth.AddDate(0, -1, 0).Format("2006-01")
+
+type recordResult struct {
+Row         int    `json:"row"`
+MeterNumber string `json:"meter_number"`
+Error       string `json:"error,omitempty"`
+}
+
+var successCount, failedCount int
+var errs []recordResult
+
+for i, rec := range req.Records {
+rowNum := i + 1
+
+var customer models.Customer
+if rec.MeterNumber != "" {
+if err := config.DB.Where("meter_number = ? AND tenant_id = ?", rec.MeterNumber, tenantID).First(&customer).Error; err != nil {
+errs = append(errs, recordResult{Row: rowNum, MeterNumber: rec.MeterNumber, Error: "Pelanggan tidak ditemukan"})
+failedCount++
+continue
+}
+} else if rec.CustomerID != "" {
+custID, parseErr := uuid.Parse(rec.CustomerID)
+if parseErr != nil {
+errs = append(errs, recordResult{Row: rowNum, Error: "customer_id tidak valid"})
+failedCount++
+continue
+}
+if err := config.DB.Where("id = ? AND tenant_id = ?", custID, tenantID).First(&customer).Error; err != nil {
+errs = append(errs, recordResult{Row: rowNum, Error: "Pelanggan tidak ditemukan"})
+failedCount++
+continue
+}
+} else {
+errs = append(errs, recordResult{Row: rowNum, Error: "meter_number atau customer_id harus diisi"})
+failedCount++
+continue
+}
+
+var lastUsage models.WaterUsage
+meterStart := 0.0
+if err := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ?", customer.ID, prevMonthStr, tenantID).First(&lastUsage).Error; err == nil {
+meterStart = lastUsage.MeterEnd
+}
+
+if rec.MeterEnd < meterStart {
+errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Meter akhir lebih kecil dari meter sebelumnya"})
+failedCount++
+continue
+}
+
+var rate models.WaterRate
+if err := config.DB.Where("subscription_id = ? AND active = ?", customer.SubscriptionID, true).Order("effective_date DESC").First(&rate).Error; err != nil {
+errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Tarif air aktif tidak ditemukan"})
+failedCount++
+continue
+}
+
+usageM3 := rec.MeterEnd - meterStart
+usage := models.WaterUsage{
+CustomerID:       customer.ID,
+UsageMonth:       req.UsageMonth,
+MeterStart:       meterStart,
+MeterEnd:         rec.MeterEnd,
+UsageM3:          usageM3,
+AmountCalculated: usageM3 * rate.Amount,
+TenantID:         tenantID,
+Notes:            rec.Notes,
+}
+
+if err := config.DB.Create(&usage).Error; err != nil {
+errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Gagal menyimpan: " + err.Error()})
+failedCount++
+continue
+}
+successCount++
+}
+
+c.JSON(http.StatusOK, gin.H{
+"success": successCount,
+"failed":  failedCount,
+"total":   len(req.Records),
+"errors":  errs,
+})
 }

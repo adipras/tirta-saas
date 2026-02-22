@@ -39,13 +39,13 @@ class PlatformSubscriptionService {
 
   async getSubscriptionPayments(status?: string): Promise<SubscriptionPayment[]> {
     const params = status ? { status } : {};
-    const response = await apiClient.get(this.BASE_URL, { params });
-    return response;
+    const response = await apiClient.get<{ data: SubscriptionPayment[] }>(this.BASE_URL, { params });
+    return response.data || [];
   }
 
   async getSubscriptionPaymentDetail(id: string): Promise<SubscriptionPayment> {
-    const response = await apiClient.get(`${this.BASE_URL}/${id}`);
-    return response;
+    const response = await apiClient.get<{ data: SubscriptionPayment }>(` ${this.BASE_URL}/${id}`);
+    return response.data;
   }
 
   async verifyPayment(id: string, data: VerifyPaymentRequest): Promise<void> {

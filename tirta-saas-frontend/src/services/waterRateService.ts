@@ -39,8 +39,9 @@ class WaterRateService {
       params,
     });
     
-    // Backend returns array directly, not wrapped
-    const data = Array.isArray(response) ? response : response.data || [];
+    // Backend returns { status, message, data: [...] }
+    const rates = response.data || response;
+    const data = Array.isArray(rates) ? rates : [];
     return {
       data,
       total: data.length,
@@ -54,7 +55,7 @@ class WaterRateService {
     const response = await apiClient.get(
       API_ENDPOINTS.WATER_RATES.DETAIL(id)
     );
-    return response;
+    return response.data || response;
   }
 
   async getCurrentRate(subscriptionId: string): Promise<WaterRate | null> {
@@ -62,7 +63,7 @@ class WaterRateService {
       const response = await apiClient.get(API_ENDPOINTS.WATER_RATES.CURRENT, {
         params: { subscription_id: subscriptionId },
       });
-      return response;
+      return response.data || response;
     } catch {
       return null;
     }
@@ -73,7 +74,7 @@ class WaterRateService {
       API_ENDPOINTS.WATER_RATES.CREATE,
       data
     );
-    return response;
+    return response.data || response;
   }
 
   async updateWaterRate(
@@ -84,7 +85,7 @@ class WaterRateService {
       API_ENDPOINTS.WATER_RATES.UPDATE(id),
       data
     );
-    return response;
+    return response.data || response;
   }
 
   async deleteWaterRate(id: string): Promise<void> {
@@ -117,13 +118,14 @@ class WaterRateService {
       params: { ...params, sort: 'effective_date:desc' },
     });
 
-    // Backend returns array directly
-    const rates = Array.isArray(response) ? response : response.data || [];
+    // Backend returns { status, message, data: [...] }
+    const rates = response.data || response;
+    const rateArray = Array.isArray(rates) ? rates : [];
     
     // Transform to RateHistory format
-    const data: RateHistory[] = rates.map((rate: WaterRate) => ({
+    const data: RateHistory[] = rateArray.map((rate: WaterRate) => ({
       id: rate.id,
-      subscriptionName: rate.subscription?.name || 'Unknown',
+      subscription_name: rate.subscription?.name || 'Unknown',
       amount: rate.amount,
       effective_date: rate.effective_date,
       active: rate.active,

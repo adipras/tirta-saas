@@ -217,10 +217,12 @@ export default function SubscriptionTypeList() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">
-                    Active Types
+                    Avg Monthly Fee
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {subscriptionTypes.filter(t => t.is_active).length}
+                    {subscriptionTypes.length > 0
+                      ? `Rp ${Math.round(subscriptionTypes.reduce((sum, t) => sum + t.monthly_fee, 0) / subscriptionTypes.length).toLocaleString('id-ID')}`
+                      : '-'}
                   </dd>
                 </dl>
               </div>

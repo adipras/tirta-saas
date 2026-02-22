@@ -11,35 +11,35 @@ import type {
 
 class ReportService {
   async getRevenueReport(filters?: ReportFilters): Promise<RevenueReport> {
-    const response = await apiClient.get<RevenueReport>(
+    const response = await apiClient.get<any>(
       API_ENDPOINTS.REPORTS.REVENUE,
       { params: filters }
     );
-    return response;
+    return response.data || response;
   }
 
   async getPaymentReport(filters?: ReportFilters): Promise<PaymentReport> {
-    const response = await apiClient.get<PaymentReport>(
+    const response = await apiClient.get<any>(
       API_ENDPOINTS.REPORTS.PAYMENTS,
       { params: filters }
     );
-    return response;
+    return response.data || response;
   }
 
   async getCustomerAnalytics(filters?: ReportFilters): Promise<CustomerAnalytics> {
-    const response = await apiClient.get<CustomerAnalytics>(
+    const response = await apiClient.get<any>(
       API_ENDPOINTS.REPORTS.CUSTOMERS,
       { params: filters }
     );
-    return response;
+    return response.data || response;
   }
 
   async getUsageReport(filters?: ReportFilters): Promise<UsageReport> {
-    const response = await apiClient.get<UsageReport>(
+    const response = await apiClient.get<any>(
       API_ENDPOINTS.REPORTS.USAGE,
       { params: filters }
     );
-    return response;
+    return response.data || response;
   }
 
   async getOutstandingReport(filters?: ReportFilters): Promise<any> {
@@ -47,7 +47,7 @@ class ReportService {
       API_ENDPOINTS.REPORTS.OUTSTANDING,
       { params: filters }
     );
-    return response;
+    return response.data || response;
   }
 
   async exportReport(reportType: string, options: ExportOptions): Promise<Blob> {

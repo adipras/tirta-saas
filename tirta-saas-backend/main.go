@@ -99,6 +99,9 @@ func main() {
 
 	// Swagger UI endpoint for API documentation
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Serve uploaded files (logos, QR codes, etc)
+	r.Static("/uploads", "./uploads")
 	
 	// Register all application routes
 	routes.PublicRoutes(r) // Public routes (no auth required)

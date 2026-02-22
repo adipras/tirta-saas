@@ -41,6 +41,18 @@ type BankAccount struct {
 	Tenant Tenant `gorm:"foreignKey:TenantID;constraint:OnDelete:CASCADE" json:"-"`
 }
 
+type QRCode struct {
+	BaseModel
+	TenantID  uuid.UUID `gorm:"type:char(36);not null;index:idx_tenant_qrcode" json:"tenant_id"`
+	Type      string    `gorm:"type:varchar(20);not null" json:"type"` // QRIS, DANA, GOPAY, OVO, SHOPEEPAY
+	ImageURL  string    `gorm:"type:varchar(500)" json:"image_url"`
+	IsPrimary bool      `gorm:"default:false;not null" json:"is_primary"`
+	IsActive  bool      `gorm:"default:true;not null" json:"is_active"`
+	Notes     string    `gorm:"type:text" json:"notes"`
+
+	Tenant Tenant `gorm:"foreignKey:TenantID;constraint:OnDelete:CASCADE" json:"-"`
+}
+
 // Payment method types
 const (
 	PaymentMethodTypeCash         = "cash"

@@ -40,28 +40,33 @@ class UsageService {
     const response = await apiClient.get(API_ENDPOINTS.WATER_USAGE.LIST, {
       params,
     });
-    return response.data;
+    const data = response.data || response;
+    return data;
   }
 
   async getWaterUsage(id: string): Promise<WaterUsage> {
     const response = await apiClient.get(
       API_ENDPOINTS.WATER_USAGE.DETAIL(id)
     );
-    return response.data;
+    return response.data || response;
   }
 
   async getCustomerUsageHistoryById(customerId: string): Promise<UsageHistory[]> {
-    const response = await apiClient.get(
-      API_ENDPOINTS.WATER_USAGE.BY_CUSTOMER(customerId)
-    );
+    const response = await apiClient.get(API_ENDPOINTS.WATER_USAGE.LIST, {
+      params: { customer_id: customerId, limit: 12 },
+    });
     
-    // Transform to UsageHistory format
-    return response.data.map((usage: WaterUsage) => ({
-      month: usage.usageMonth,
-      meterStart: usage.meterStart,
-      meterEnd: usage.meterEnd,
-      usageM3: usage.usageM3,
-      amount: usage.amountCalculated,
+    const data = response.data || response;
+    // Backend returns { usage_records: [...], total: N }
+    const usageArray: any[] = data.usage_records || (Array.isArray(data) ? data : []);
+    
+    // Transform to UsageHistory format, already sorted DESC by usage_month from backend
+    return usageArray.map((usage: any) => ({
+      month: usage.usage_month || usage.usageMonth,
+      meterStart: usage.meter_start ?? usage.meterStart ?? 0,
+      meterEnd: usage.meter_end ?? usage.meterEnd ?? 0,
+      usageM3: usage.usage_m3 ?? usage.usageM3 ?? 0,
+      amount: usage.amount_calculated ?? usage.amountCalculated ?? 0,
     }));
   }
 
@@ -87,7 +92,7 @@ class UsageService {
       API_ENDPOINTS.WATER_USAGE.CREATE,
       data
     );
-    return response.data;
+    return response.data || response;
   }
 
   async updateWaterUsage(
@@ -98,7 +103,7 @@ class UsageService {
       API_ENDPOINTS.WATER_USAGE.UPDATE(id),
       data
     );
-    return response.data;
+    return response.data || response;
   }
 
   async deleteWaterUsage(id: string): Promise<void> {
@@ -114,7 +119,20 @@ class UsageService {
       API_ENDPOINTS.WATER_USAGE.BULK_IMPORT,
       { data: rows }
     );
-    return response.data;
+    return response.data || response;
+  }
+
+  async bulkImportWaterUsage(usageMonth: string, records: Array<{ meter_number?: string; customer_id?: string; meter_end: number; notes?: string }>): Promise<{
+    success: number;
+    failed: number;
+    total: number;
+    errors: Array<{ row: number; meter_number: string; error: string }>;
+  }> {
+    const response = await apiClient.post(
+      API_ENDPOINTS.WATER_USAGE.BULK_IMPORT,
+      { usage_month: usageMonth, records }
+    );
+    return response.data || response;
   }
 
   // Legacy support
@@ -126,12 +144,13 @@ class UsageService {
   async getCustomerUsageHistory(period: '6months' | '12months' | 'all' = '6months'): Promise<WaterUsage[]> {
     const params: Record<string, string> = { period };
     const response = await apiClient.get('/customer/usage/history', { params });
-    return response.data;
+    const data = response.data || response;
+    return Array.isArray(data) ? data : [];
   }
 
   async getCurrentUsage(): Promise<WaterUsage> {
     const response = await apiClient.get('/customer/usage/current');
-    return response.data;
+    return response.data || response;
   }
 
   async getUsageStats(): Promise<{
@@ -142,7 +161,7 @@ class UsageService {
     trend: string;
   }> {
     const response = await apiClient.get('/customer/usage/stats');
-    return response.data;
+    return response.data || response;
   }
 }
 

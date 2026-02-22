@@ -42,3 +42,5 @@ export type {
   FormSelectProps,
   FormCheckboxProps,
 } from './FormInput';
+
+export { default as CustomerSearchSelect } from './CustomerSearchSelect';

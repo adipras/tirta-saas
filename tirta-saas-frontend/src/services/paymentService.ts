@@ -30,50 +30,104 @@ class PaymentService {
       ...filters,
     };
 
-    const response = await apiClient.get<PaginatedResponse<Payment>>(
+    const response = await apiClient.get<any>(
       API_ENDPOINTS.PAYMENTS.LIST,
       { params }
     );
-    return response;
+    
+    const raw = response.data || response;
+    
+    // Backend returns a raw array
+    const rawList: any[] = Array.isArray(raw)
+      ? raw
+      : raw?.payments || raw?.data || [];
+
+    const mapped: Payment[] = rawList.map((p: any) => ({
+      id: p.id,
+      invoiceId: p.invoice_id,
+      customerId: p.invoice?.customer_id || '',
+      customerName: p.invoice?.customer?.name || '-',
+      invoiceNumber: p.invoice?.invoice_number || '',
+      amount: p.amount || 0,
+      paymentMethod: p.payment_method?.name || p.payment_method_type || 'cash',
+      paymentDate: p.paid_at || p.created_at || '',
+      referenceNumber: p.reference_number || '',
+      notes: p.notes || '',
+      status: (p.status as any) || 'completed',
+      createdAt: p.created_at || '',
+      updatedAt: p.updated_at || '',
+    }));
+
+    return {
+      data: mapped,
+      pagination: {
+        total: raw?.total || mapped.length,
+        page: page,
+        limit: limit,
+        totalPages: Math.ceil((raw?.total || mapped.length) / limit) || 1,
+        currentPage: page,
+      }
+    };
   }
 
   async getPaymentById(id: number): Promise<Payment> {
-    const response = await apiClient.get<Payment>(
+    const response = await apiClient.get<any>(
       API_ENDPOINTS.PAYMENTS.GET.replace(':id', String(id))
     );
-    return response;
+    return response.data || response;
   }
 
   async getPaymentsByInvoice(invoiceId: number): Promise<Payment[]> {
-    const response = await apiClient.get<Payment[]>(
+    const response = await apiClient.get<any>(
       API_ENDPOINTS.PAYMENTS.BY_INVOICE.replace(':invoiceId', String(invoiceId))
     );
-    return response;
+    const data = response.data || response;
+    return Array.isArray(data) ? data : [];
   }
 
-  async getOutstandingInvoices(customerId?: number): Promise<OutstandingInvoice[]> {
-    const params = customerId ? { customerId } : {};
-    const response = await apiClient.get<OutstandingInvoice[]>(
+  async getOutstandingInvoices(customerId?: string): Promise<OutstandingInvoice[]> {
+    const params = customerId ? { customer_id: customerId } : {};
+    const response = await apiClient.get<any>(
       API_ENDPOINTS.PAYMENTS.OUTSTANDING_INVOICES,
       { params }
     );
-    return response;
+    const data = response.data || response;
+    if (!Array.isArray(data)) return [];
+    // Map backend snake_case fields to frontend camelCase
+    return data.map((inv: any) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoice_number || '',
+      invoiceDate: inv.created_at || '',
+      dueDate: inv.due_date || '',
+      totalAmount: inv.total_amount || 0,
+      paidAmount: inv.total_paid || 0,
+      remainingAmount: (inv.total_amount || 0) - (inv.total_paid || 0),
+      status: inv.is_paid ? 'paid' : 'unpaid',
+      usageMonth: inv.usage_month,
+    }));
   }
 
   async createPayment(data: PaymentFormData): Promise<Payment> {
-    const response = await apiClient.post<Payment>(
+    const response = await apiClient.post<any>(
       API_ENDPOINTS.PAYMENTS.CREATE,
-      data
+      {
+        invoice_id: data.invoiceId,
+        amount: data.amount,
+        payment_method: data.paymentMethod,
+        payment_date: data.paymentDate,
+        reference_number: data.referenceNumber,
+        notes: data.notes,
+      }
     );
-    return response;
+    return response.data || response;
   }
 
   async updatePayment(id: number, data: Partial<PaymentFormData>): Promise<Payment> {
-    const response = await apiClient.put<Payment>(
+    const response = await apiClient.put<any>(
       API_ENDPOINTS.PAYMENTS.UPDATE.replace(':id', String(id)),
       data
     );
-    return response;
+    return response.data || response;
   }
 
   async deletePayment(id: number): Promise<void> {
@@ -83,25 +137,25 @@ class PaymentService {
   }
 
   async voidPayment(id: number, reason?: string): Promise<Payment> {
-    const response = await apiClient.post<Payment>(
+    const response = await apiClient.post<any>(
       API_ENDPOINTS.PAYMENTS.VOID.replace(':id', String(id)),
       { reason }
     );
-    return response;
+    return response.data || response;
   }
 
   async generateReceipt(paymentId: number): Promise<PaymentReceipt> {
-    const response = await apiClient.post<PaymentReceipt>(
+    const response = await apiClient.post<any>(
       API_ENDPOINTS.PAYMENTS.GENERATE_RECEIPT.replace(':id', String(paymentId))
     );
-    return response;
+    return response.data || response;
   }
 
   async getReceipt(paymentId: number): Promise<PaymentReceipt> {
-    const response = await apiClient.get<PaymentReceipt>(
+    const response = await apiClient.get<any>(
       API_ENDPOINTS.PAYMENTS.GET_RECEIPT.replace(':id', String(paymentId))
     );
-    return response;
+    return response.data || response;
   }
 
   async exportPayments(filters?: PaymentFilters): Promise<Blob> {
@@ -120,18 +174,19 @@ class PaymentService {
     referenceNumber?: string;
     notes?: string;
   }): Promise<Payment> {
-    const response = await apiClient.post<Payment>('/customer/payments', data);
-    return response;
+    const response = await apiClient.post<any>('/customer/payments', data);
+    return response.data || response;
   }
 
   async getCustomerPayments(): Promise<Payment[]> {
-    const response = await apiClient.get<Payment[]>('/customer/payments');
-    return response;
+    const response = await apiClient.get<any>('/customer/payments');
+    const data = response.data || response;
+    return Array.isArray(data) ? data : [];
   }
 
   async getCustomerPaymentReceipt(paymentId: number): Promise<PaymentReceipt> {
-    const response = await apiClient.get<PaymentReceipt>(`/customer/payments/${paymentId}/receipt`);
-    return response;
+    const response = await apiClient.get<any>(`/customer/payments/${paymentId}/receipt`);
+    return response.data || response;
   }
 }
 

@@ -182,7 +182,7 @@ func GetAllPayments(c *gin.Context) {
 	}
 
 	var payments []models.Payment
-	query := config.DB.Preload("Invoice")
+	query := config.DB.Preload("Invoice.Customer")
 	
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)

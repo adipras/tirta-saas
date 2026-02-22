@@ -37,15 +37,15 @@ class CustomerService {
       { params }
     );
     
-    // Backend returns { customers: [...], total: number }
-    // Transform to expected format { data: [...], pagination: {...} }
+    // Backend returns { status: "success", message: "...", data: { customers: [...], total: number } }
+    const data = response.data || response;
     return {
-      data: response.customers || [],
+      data: data.customers || [],
       pagination: {
-        total: response.total || 0,
+        total: data.total || 0,
         page: page,
         limit: limit,
-        totalPages: Math.ceil((response.total || 0) / limit),
+        totalPages: Math.ceil((data.total || 0) / limit),
         currentPage: page,
       }
     };
@@ -53,13 +53,13 @@ class CustomerService {
 
   async getCustomerById(id: string): Promise<Customer> {
     const response = await apiClient.get<any>(API_ENDPOINTS.CUSTOMERS.DETAIL(id));
-    // Backend might return { customer: {...} } or direct object
-    return response.customer || response;
+    // Backend returns { status: "success", message: "...", data: {...} }
+    return response.data || response;
   }
 
   async createCustomer(data: CreateCustomerDto): Promise<Customer> {
-    const response = await apiClient.post<Customer>(API_ENDPOINTS.CUSTOMERS.CREATE, data);
-    return response;
+    const response = await apiClient.post<any>(API_ENDPOINTS.CUSTOMERS.CREATE, data);
+    return response.data || response;
   }
 
   async updateCustomer(id: string, data: UpdateCustomerDto): Promise<Customer> {

@@ -1,5 +1,88 @@
 # Development Progress - Tirta SaaS
 
+## Latest Session: February 22, 2026 (Session 2)
+
+**Date:** February 22, 2026  
+**Focus:** QR Code (QRIS) Feature + Bug Fixes (#8, #13, #4, #2, #14)  
+**Status:** ✅ All issues resolved, QR Code feature implemented end-to-end
+
+---
+
+## ✅ Completed (February 22, 2026 — Session 2)
+
+### 1. Backend: QR Code (QRIS) CRUD with File Upload
+- **Model:** `QRCode` struct di `models/payment_method.go` (TenantID, Type, ImageURL, IsPrimary, IsActive, Notes)
+- **AutoMigrate:** Ditambah ke `config/database.go`
+- **Request:** `CreateQRCodeRequest`, `UpdateQRCodeRequest` (multipart form binding)
+- **Response:** `QRCodeResponse`, `ToQRCodeResponse()`
+- **Controller:** 5 methods — `GetQRCodes`, `CreateQRCode`, `UpdateQRCode`, `SetPrimaryQRCode`, `DeleteQRCode`
+- **Routes:** `GET/POST /api/payment-methods/qr-codes`, `PUT/DELETE/PATCH /api/payment-methods/qr-codes/:id`
+- **File storage:** `uploads/tenants/{tenant_id}/qr/`, max 2MB
+- **Static serving:** `r.Static("/uploads", "./uploads")` di `main.go`
+
+### 2. Backend: DeleteBankAccount + Path Fix
+- **Fix:** Tambah `DELETE /api/payment-methods/bank-accounts/:id`
+- **Path fix:** Frontend sebelumnya pakai `/bank-accounts`, seharusnya `/payment-methods/bank-accounts`
+
+### 3. Frontend: qrCodeService.ts (NEW)
+- Full CRUD + FormData upload
+- Exports `QRCode` interface (snake_case + `imageDisplayUrl`)
+- Image URL prefixing dari `VITE_API_BASE_URL`
+
+### 4. Frontend: TenantPaymentSettings + PlatformPaymentSettings
+- Keduanya di-wire ke bank accounts API dan QR code API (create, update, delete, list)
+- Form modal menggunakan field `notes` + `isPrimary` checkbox
+- QR list render menggunakan `qr.is_active`, `qr.is_primary`, `qr.imageDisplayUrl`
+
+### 5. Bug Fix #8: SubscriptionTypeList "Active Types" selalu 0
+- Tidak ada kolom `is_active` di `subscription_types`
+- Fix: Ganti metric menjadi "Avg Monthly Fee" dihitung dari data live
+
+### 6. Bug Fix #13: Bulk Import Water Usage
+- Backend: `BulkImportWaterUsage` di `bulk_operations_controller.go` + route `POST /api/water-usage/bulk-import`
+- Frontend: Halaman baru `BulkImportWaterUsage.tsx`, route di `App.tsx`
+
+### 7. Bug Fix #4: Tenant Admin Dashboard Dummy Data
+- Rewrote `TenantAdminDashboard.tsx` → `reportService` (customers, outstanding, usage, revenue)
+
+### 8. Dokumentasi
+- Update: `FEATURE_STATUS.md` (sections 14-16 moved to COMPLETED), `ISSUE_MANUAL_TEST.md` (#2, #14 updated)
+
+---
+
+## Latest Session: February 22, 2026
+
+**Date:** February 22, 2026  
+**Focus:** Bug Fixes — Outstanding Invoices, Payment List, Payment Verification  
+**Status:** ✅ All targeted issues resolved
+
+---
+
+## ✅ Completed (February 22, 2026)
+
+### 1. Backend: Outstanding Invoices Endpoint (Backend #6)
+- **Root cause:** `GET /api/invoices/outstanding` cocok dengan route `/:id` → "outstanding" di-parse sebagai UUID → error
+- **Fix:** Tambah `GetOutstandingInvoices` controller, daftarkan route sebelum `/:id`
+- **Endpoint:** `GET /api/invoices/outstanding?customer_id=<uuid>` → return invoice `is_paid=false`
+
+### 2. Frontend: Payment Form — Invoice List Muncul (Frontend #27)
+- **Root cause:** `Number(uuid)` = `NaN`, query param salah (`customerId` → `customer_id`)
+- **Fix:** Ubah type `OutstandingInvoice.id` & `PaymentFormData.invoiceId` dari `number` ke `string`, fix field mapping di `paymentService`, fix `createPayment` kirim snake_case ke backend
+
+### 3. Frontend: Payment List Data Muncul (Frontend #28)
+- **Root cause:** Backend return raw array, frontend cari `data.data || data.payments` → `undefined`
+- **Fix:** Backend `GetAllPayments` — preload `Invoice.Customer` (nested). Frontend `getPayments` — handle raw array + map semua field backend ke camelCase
+
+### 4. Frontend: Payment Verification Terhubung ke API (Frontend #29)
+- **Root cause:** `TenantPaymentVerification.tsx` masih pakai hardcoded empty array & API call di-comment `// TODO`
+- **Fix:** Connect ke `paymentProofService` yang sudah ada: `getPaymentProofs()`, `verifyPaymentProof()`, `rejectPaymentProof()`
+
+### 5. Dokumentasi
+- Hapus: `MANUAL_IMPROVEMENTS.md`, `BUG_FIX_REPORT.md` (one-time changelog, tidak relevan)
+- Update: `README.md` (rewrite), `FEATURE_STATUS.md` (update ke Feb 2026), `ISSUE_MANUAL_TEST.md` (+2 issue baru), `PROGRESS.md`
+
+---
+
 ## Latest Session: January 21, 2026
 
 **Date:** January 21, 2026  

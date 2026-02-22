@@ -18,9 +18,9 @@ export const PaymentStatus = {
 };
 
 export interface Payment {
-  id: number;
-  invoiceId: number;
-  customerId: number;
+  id: string;
+  invoiceId: string;
+  customerId: string;
   customerName?: string;
   invoiceNumber?: string;
   amount: number;
@@ -34,7 +34,7 @@ export interface Payment {
 }
 
 export interface PaymentFormData {
-  invoiceId: number;
+  invoiceId: string;
   amount: number;
   paymentMethod: PaymentMethod;
   paymentDate: string;
@@ -63,7 +63,7 @@ export interface PaymentReceipt {
 }
 
 export interface OutstandingInvoice {
-  id: number;
+  id: string;
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string;
@@ -71,6 +71,7 @@ export interface OutstandingInvoice {
   paidAmount: number;
   remainingAmount: number;
   status: string;
+  usageMonth?: string;
 }
 
 export const PAYMENT_METHOD_LABELS = {

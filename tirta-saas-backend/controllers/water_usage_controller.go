@@ -158,8 +158,16 @@ func GetWaterUsages(c *gin.Context) {
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
+
+	if customerIDStr := c.Query("customer_id"); customerIDStr != "" {
+		query = query.Where("customer_id = ?", customerIDStr)
+	}
+
+	if usageMonth := c.Query("usage_month"); usageMonth != "" {
+		query = query.Where("usage_month = ?", usageMonth)
+	}
 	
-	if err := query.Order("created_at DESC").Find(&records).Error; err != nil {
+	if err := query.Order("usage_month DESC").Find(&records).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
 		return
 	}

@@ -25,6 +25,14 @@ func PaymentMethodRoutes(r *gin.Engine) {
 		api.GET("/bank-accounts", paymentMethodController.GetBankAccounts)
 		api.POST("/bank-accounts", paymentMethodController.CreateBankAccount)
 		api.PUT("/bank-accounts/:id", paymentMethodController.UpdateBankAccount)
+		api.DELETE("/bank-accounts/:id", paymentMethodController.DeleteBankAccount)
 		api.POST("/bank-accounts/:id/set-primary", paymentMethodController.SetPrimaryBankAccount)
+
+		// QR codes for QRIS/e-wallet payments
+		api.GET("/qr-codes", paymentMethodController.GetQRCodes)
+		api.POST("/qr-codes", paymentMethodController.CreateQRCode)
+		api.PUT("/qr-codes/:id", paymentMethodController.UpdateQRCode)
+		api.DELETE("/qr-codes/:id", paymentMethodController.DeleteQRCode)
+		api.POST("/qr-codes/:id/set-primary", paymentMethodController.SetPrimaryQRCode)
 	}
 }

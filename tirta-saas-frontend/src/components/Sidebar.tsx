@@ -61,7 +61,7 @@ const allNavigation = [
     name: 'Dashboard', 
     href: '/admin', 
     icon: HomeIcon,
-    roles: ['ADMIN', 'TENANT_ADMIN'],
+    roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE', 'METER_READER'],
   },
   { 
     name: 'Customers', 

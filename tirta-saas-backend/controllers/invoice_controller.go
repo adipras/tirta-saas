@@ -141,6 +141,70 @@ func GenerateMonthlyInvoice(c *gin.Context) {
 	})
 }
 
+// GetOutstandingInvoices godoc
+// @Summary Get outstanding (unpaid) invoices
+// @Description Get unpaid invoices for a customer
+// @Tags Invoices
+// @Accept json
+// @Produce json
+// @Param customer_id query string true "Customer ID (UUID)"
+// @Security BearerAuth
+// @Success 200 {array} responses.InvoiceResponse
+// @Failure 400 {object} map[string]interface{}
+// @Router /api/invoices/outstanding [get]
+func GetOutstandingInvoices(c *gin.Context) {
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	customerIDStr := c.Query("customer_id")
+	if customerIDStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "customer_id is required"})
+		return
+	}
+
+	customerID, err := uuid.Parse(customerIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid customer ID"})
+		return
+	}
+
+	var invoices []models.Invoice
+	if err := config.DB.Preload("Customer").
+		Where("customer_id = ? AND tenant_id = ? AND is_paid = ?", customerID, tenantID, false).
+		Order("created_at ASC").
+		Find(&invoices).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data invoice"})
+		return
+	}
+
+	invoiceResponses := make([]responses.InvoiceResponse, len(invoices))
+	for i, invoice := range invoices {
+		invoiceResponses[i] = responses.InvoiceResponse{
+			ID:            invoice.ID,
+			InvoiceNumber: invoice.InvoiceNumber,
+			CustomerID:    invoice.CustomerID,
+			UsageMonth:    invoice.UsageMonth,
+			UsageM3:       invoice.UsageM3,
+			Abonemen:      invoice.Abonemen,
+			PricePerM3:    invoice.PricePerM3,
+			TotalAmount:   invoice.TotalAmount,
+			TotalPaid:     invoice.TotalPaid,
+			IsPaid:        invoice.IsPaid,
+			Type:          invoice.Type,
+			DueDate:       invoice.DueDate,
+			CreatedAt:     invoice.CreatedAt,
+		}
+		if invoice.Customer.ID != uuid.Nil {
+			invoiceResponses[i].CustomerName = invoice.Customer.Name
+		}
+	}
+
+	c.JSON(http.StatusOK, invoiceResponses)
+}
+
 // GetInvoices godoc
 // @Summary List invoices
 // @Description Get all invoices for the tenant
@@ -175,19 +239,34 @@ func GetInvoices(c *gin.Context) {
 	// Convert to response format
 	invoiceResponses := make([]responses.InvoiceResponse, len(invoices))
 	for i, invoice := range invoices {
-		invoiceResponses[i] = responses.InvoiceResponse{
-			ID:          invoice.ID,
-			CustomerID:  invoice.CustomerID,
-			UsageMonth:  invoice.UsageMonth,
-			UsageM3:     invoice.UsageM3,
-			Abonemen:    invoice.Abonemen,
-			PricePerM3:  invoice.PricePerM3,
-			TotalAmount: invoice.TotalAmount,
-			TotalPaid:   invoice.TotalPaid,
-			IsPaid:      invoice.IsPaid,
-			Type:        invoice.Type,
-			CreatedAt:   invoice.CreatedAt,
+		response := responses.InvoiceResponse{
+			ID:            invoice.ID,
+			InvoiceNumber: invoice.InvoiceNumber,
+			CustomerID:    invoice.CustomerID,
+			UsageMonth:    invoice.UsageMonth,
+			UsageM3:       invoice.UsageM3,
+			Abonemen:      invoice.Abonemen,
+			PricePerM3:    invoice.PricePerM3,
+			TotalAmount:   invoice.TotalAmount,
+			TotalPaid:     invoice.TotalPaid,
+			IsPaid:        invoice.IsPaid,
+			Type:          invoice.Type,
+			DueDate:       invoice.DueDate,
+			CreatedAt:     invoice.CreatedAt,
 		}
+		
+		// Include customer data if loaded
+		if invoice.Customer.ID != uuid.Nil {
+			response.CustomerName = invoice.Customer.Name
+			response.Customer = &responses.CustomerSummary{
+				ID:          invoice.Customer.ID,
+				Name:        invoice.Customer.Name,
+				MeterNumber: invoice.Customer.MeterNumber,
+				Email:       invoice.Customer.Email,
+			}
+		}
+		
+		invoiceResponses[i] = response
 	}
 
 	response := responses.InvoiceListResponse{
@@ -236,19 +315,33 @@ func GetInvoice(c *gin.Context) {
 	}
 
 	response := responses.InvoiceResponse{
-		ID:          invoice.ID,
-		CustomerID:  invoice.CustomerID,
-		UsageMonth:  invoice.UsageMonth,
-		UsageM3:     invoice.UsageM3,
-		Abonemen:    invoice.Abonemen,
-		PricePerM3:  invoice.PricePerM3,
-		TotalAmount: invoice.TotalAmount,
-		TotalPaid:   invoice.TotalPaid,
-		IsPaid:      invoice.IsPaid,
-		Type:        invoice.Type,
-		CreatedAt:   invoice.CreatedAt,
+		ID:            invoice.ID,
+		InvoiceNumber: invoice.InvoiceNumber,
+		CustomerID:    invoice.CustomerID,
+		UsageMonth:    invoice.UsageMonth,
+		UsageM3:       invoice.UsageM3,
+		Abonemen:      invoice.Abonemen,
+		PricePerM3:    invoice.PricePerM3,
+		TotalAmount:   invoice.TotalAmount,
+		TotalPaid:     invoice.TotalPaid,
+		IsPaid:        invoice.IsPaid,
+		Type:          invoice.Type,
+		DueDate:       invoice.DueDate,
+		CreatedAt:     invoice.CreatedAt,
 	}
-	c.JSON(http.StatusOK, response)
+	
+	// Include customer data if loaded
+	if invoice.Customer.ID != uuid.Nil {
+		response.CustomerName = invoice.Customer.Name
+		response.Customer = &responses.CustomerSummary{
+			ID:          invoice.Customer.ID,
+			Name:        invoice.Customer.Name,
+			MeterNumber: invoice.Customer.MeterNumber,
+			Email:       invoice.Customer.Email,
+		}
+	}
+	
+	helpers.RespondSuccess(c, "Invoice retrieved successfully", response)
 }
 
 func UpdateInvoice(c *gin.Context) {

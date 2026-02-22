@@ -35,3 +35,17 @@ type UpdateBankAccountRequest struct {
 	Notes         string `json:"notes"`
 	IsActive      *bool  `json:"is_active"`
 }
+
+type CreateQRCodeRequest struct {
+	Type      string `form:"type" binding:"required,oneof=QRIS DANA GOPAY OVO SHOPEEPAY"`
+	IsPrimary bool   `form:"is_primary"`
+	IsActive  bool   `form:"is_active"`
+	Notes     string `form:"notes"`
+}
+
+type UpdateQRCodeRequest struct {
+	Type      string `form:"type" binding:"required,oneof=QRIS DANA GOPAY OVO SHOPEEPAY"`
+	IsPrimary bool   `form:"is_primary"`
+	IsActive  *bool  `form:"is_active"`
+	Notes     string `form:"notes"`
+}

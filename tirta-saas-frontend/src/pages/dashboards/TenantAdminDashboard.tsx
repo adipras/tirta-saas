@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   UserGroupIcon,
   DocumentTextIcon,
@@ -6,58 +7,49 @@ import {
   BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { reportService } from '../../services/reportService';
+
+interface DashboardData {
+  totalCustomers: number;
+  activeCustomers: number;
+  unpaidCount: number;
+  totalOutstanding: number;
+  totalUsageM3: number;
+  totalRevenue: number;
+  oldestInvoices: Array<{ invoice_id: string; customer_id: string; total_amount: number; outstanding: number; created_at: string }>;
+}
 
 export default function TenantAdminDashboard() {
   const navigate = useNavigate();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
-    {
-      name: 'Total Pelanggan',
-      value: '342',
-      change: '+12',
-      changeType: 'increase',
-      icon: UserGroupIcon,
-      color: 'bg-blue-500',
-    },
-    {
-      name: 'Tagihan Bulan Ini',
-      value: 'Rp 45.2 Jt',
-      change: '+8%',
-      changeType: 'increase',
-      icon: DocumentTextIcon,
-      color: 'bg-green-500',
-    },
-    {
-      name: 'Pembayaran Pending',
-      value: '23',
-      change: '-5',
-      changeType: 'decrease',
-      icon: ExclamationCircleIcon,
-      color: 'bg-yellow-500',
-    },
-    {
-      name: 'Pemakaian Air Bulan Ini',
-      value: '12,450 m³',
-      change: '+3%',
-      changeType: 'increase',
-      icon: BeakerIcon,
-      color: 'bg-cyan-500',
-    },
-  ];
+  useEffect(() => {
+    const thisMonth = new Date().toISOString().slice(0, 7);
+    Promise.allSettled([
+      reportService.getCustomerAnalytics(),
+      reportService.getOutstandingReport(),
+      reportService.getUsageReport({ month: thisMonth } as any),
+      reportService.getRevenueReport(),
+    ]).then(([custRes, outRes, usageRes, revRes]) => {
+      const cust = custRes.status === 'fulfilled' ? custRes.value as any : {};
+      const out = outRes.status === 'fulfilled' ? outRes.value as any : {};
+      const usage = usageRes.status === 'fulfilled' ? usageRes.value as any : {};
+      const rev = revRes.status === 'fulfilled' ? revRes.value as any : {};
 
-  const recentActivities = [
-    { type: 'payment', message: 'Pembayaran diterima dari Budi Santoso - Rp 150,000', time: '5 menit lalu' },
-    { type: 'invoice', message: 'Invoice #INV-2024-089 dibuat untuk Siti Aminah', time: '15 menit lalu' },
-    { type: 'customer', message: 'Pelanggan baru terdaftar: Ahmad Wijaya', time: '1 jam lalu' },
-    { type: 'usage', message: 'Pencatatan meter selesai untuk Blok A (45 pelanggan)', time: '2 jam lalu' },
-    { type: 'payment', message: 'Pembayaran pending dari Dewi Lestari', time: '3 jam lalu' },
-  ];
+      setData({
+        totalCustomers: cust.total_customers || 0,
+        activeCustomers: cust.active_customers || 0,
+        unpaidCount: out.unpaid_count || 0,
+        totalOutstanding: out.total_outstanding || 0,
+        totalUsageM3: usage.total_usage_m3 || 0,
+        totalRevenue: rev.total_revenue || 0,
+        oldestInvoices: out.oldest_invoices || [],
+      });
+    }).finally(() => setLoading(false));
+  }, []);
 
-  const pendingPayments = [
-    { customer: 'Budi Santoso', invoice: 'INV-2024-085', amount: 'Rp 150,000', dueDate: '2024-12-25', overdue: false },
-    { customer: 'Siti Aminah', invoice: 'INV-2024-078', amount: 'Rp 175,000', dueDate: '2024-12-20', overdue: true },
-    { customer: 'Ahmad Wijaya', invoice: 'INV-2024-082', amount: 'Rp 125,000', dueDate: '2024-12-26', overdue: false },
-  ];
+  const fmt = (n: number) => `Rp ${n.toLocaleString('id-ID')}`;
 
   return (
     <div className="space-y-6">
@@ -69,24 +61,55 @@ export default function TenantAdminDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <div key={stat.name} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">{stat.name}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                <p className={`text-sm mt-2 ${
-                  stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.changeType === 'increase' ? '↑' : '↓'} {stat.change}
-                </p>
-              </div>
-              <div className={`${stat.color} p-3 rounded-lg`}>
-                <stat.icon className="h-6 w-6 text-white" />
-              </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Pelanggan</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {loading ? '...' : data?.totalCustomers ?? 0}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Aktif: {loading ? '-' : data?.activeCustomers ?? 0}</p>
             </div>
+            <div className="bg-blue-500 p-3 rounded-lg"><UserGroupIcon className="h-6 w-6 text-white" /></div>
           </div>
-        ))}
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Total Tagihan Belum Bayar</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {loading ? '...' : data ? fmt(data.totalOutstanding) : '-'}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">{loading ? '-' : data?.unpaidCount ?? 0} invoice</p>
+            </div>
+            <div className="bg-yellow-500 p-3 rounded-lg"><ExclamationCircleIcon className="h-6 w-6 text-white" /></div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Pemakaian Air Bulan Ini</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {loading ? '...' : `${(data?.totalUsageM3 ?? 0).toLocaleString('id-ID')} m³`}
+              </p>
+            </div>
+            <div className="bg-cyan-500 p-3 rounded-lg"><BeakerIcon className="h-6 w-6 text-white" /></div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Pendapatan Bulan Ini</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {loading ? '...' : data ? fmt(data.totalRevenue) : '-'}
+              </p>
+            </div>
+            <div className="bg-green-500 p-3 rounded-lg"><BanknotesIcon className="h-6 w-6 text-white" /></div>
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}
@@ -124,56 +147,37 @@ export default function TenantAdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activities */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Aktivitas Terakhir</h2>
-          <div className="space-y-4">
-            {recentActivities.map((activity, index) => (
-              <div key={index} className="flex items-start space-x-3 pb-3 border-b last:border-b-0">
-                <div className={`w-2 h-2 mt-2 rounded-full ${
-                  activity.type === 'payment' ? 'bg-green-500' :
-                  activity.type === 'invoice' ? 'bg-blue-500' :
-                  activity.type === 'customer' ? 'bg-purple-500' :
-                  'bg-cyan-500'
-                }`}></div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900">{activity.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Outstanding Invoices */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Tagihan Belum Dibayar (Terlama)</h2>
+          <button
+            onClick={() => navigate('/admin/invoices')}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Lihat Semua →
+          </button>
         </div>
-
-        {/* Pending Payments */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Pembayaran Pending</h2>
-            <button
-              onClick={() => navigate('/admin/payment-verification')}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Lihat Semua →
-            </button>
-          </div>
+        {loading ? (
+          <p className="text-sm text-gray-400">Memuat data...</p>
+        ) : data?.oldestInvoices.length === 0 ? (
+          <p className="text-sm text-gray-500">Tidak ada tagihan outstanding.</p>
+        ) : (
           <div className="space-y-3">
-            {pendingPayments.map((payment, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            {data?.oldestInvoices.map((inv) => (
+              <div key={inv.invoice_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{payment.customer}</p>
-                  <p className="text-xs text-gray-500">{payment.invoice}</p>
+                  <p className="text-xs text-gray-400 font-mono">{inv.invoice_id.slice(0, 8)}...</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Sejak {new Date(inv.created_at).toLocaleDateString('id-ID')}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">{payment.amount}</p>
-                  <p className={`text-xs ${payment.overdue ? 'text-red-600' : 'text-gray-500'}`}>
-                    {payment.overdue ? '⚠️ Jatuh tempo' : payment.dueDate}
-                  </p>
+                  <p className="text-sm font-semibold text-red-600">{fmt(inv.outstanding)}</p>
+                  <p className="text-xs text-gray-500">dari {fmt(inv.total_amount)}</p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

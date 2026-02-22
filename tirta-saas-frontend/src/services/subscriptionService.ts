@@ -27,9 +27,12 @@ class SubscriptionService {
       ...(search && { search }),
     };
 
-    const data = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.LIST, {
+    const response = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.LIST, {
       params,
     });
+    
+    // Backend returns { status, message, data: {...} }
+    const data = response.data || response;
     
     // Handle both array response and paginated response
     if (Array.isArray(data)) {
@@ -46,27 +49,31 @@ class SubscriptionService {
   }
 
   async getAllSubscriptionTypes(): Promise<SubscriptionType[]> {
-    const data = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.LIST, {
+    const response = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.LIST, {
       params: { limit: 1000 },
     });
+    const data = response.data || response;
     return Array.isArray(data) ? data : data.data || [];
   }
 
   async getSubscriptionType(id: string): Promise<SubscriptionType> {
-    return await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.DETAIL(id));
+    const response = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.DETAIL(id));
+    return response.data || response;
   }
 
   async createSubscriptionType(
     data: CreateSubscriptionTypeDto
   ): Promise<SubscriptionType> {
-    return await apiClient.post(API_ENDPOINTS.SUBSCRIPTION_TYPES.CREATE, data);
+    const response = await apiClient.post(API_ENDPOINTS.SUBSCRIPTION_TYPES.CREATE, data);
+    return response.data || response;
   }
 
   async updateSubscriptionType(
     id: string,
     data: UpdateSubscriptionTypeDto
   ): Promise<SubscriptionType> {
-    return await apiClient.put(API_ENDPOINTS.SUBSCRIPTION_TYPES.UPDATE(id), data);
+    const response = await apiClient.put(API_ENDPOINTS.SUBSCRIPTION_TYPES.UPDATE(id), data);
+    return response.data || response;
   }
 
   async deleteSubscriptionType(id: string): Promise<void> {
@@ -74,7 +81,8 @@ class SubscriptionService {
   }
 
   async getStats(): Promise<SubscriptionTypeStats> {
-    return await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.STATS);
+    const response = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.STATS);
+    return response.data || response;
   }
 }
 

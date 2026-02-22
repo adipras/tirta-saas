@@ -6,8 +6,9 @@ import {
   ClockIcon,
   EyeIcon,
 } from '@heroicons/react/24/outline';
+import paymentProofService, { type PaymentProof } from '../../services/paymentProofService';
 
-interface PendingPayment {
+type PendingPayment = {
   id: string;
   invoiceNumber: string;
   customerName: string;
@@ -20,6 +21,23 @@ interface PendingPayment {
   proofUrl: string;
   submittedAt: string;
   status: 'pending' | 'verified' | 'rejected';
+};
+
+function mapProofToPayment(p: PaymentProof): PendingPayment {
+  return {
+    id: p.id,
+    invoiceNumber: p.invoice_number,
+    customerName: p.customer_name,
+    amount: p.amount,
+    paymentDate: p.payment_date,
+    paymentMethod: p.payment_method,
+    accountNumber: p.account_number || '',
+    accountName: p.account_name,
+    referenceNumber: p.reference_number || '',
+    proofUrl: p.proof_image_url,
+    submittedAt: p.submitted_at,
+    status: p.status === 'VERIFIED' ? 'verified' : p.status === 'REJECTED' ? 'rejected' : 'pending',
+  };
 }
 
 export default function TenantPaymentVerification() {
@@ -53,12 +71,10 @@ export default function TenantPaymentVerification() {
   const loadPendingPayments = async () => {
     try {
       setLoading(true);
-      // TODO: Implement API call when endpoint is ready
-      // const data = await paymentService.getPendingPayments();
-      // setPayments(data);
-      // setFilteredPayments(data);
-      setPayments([]);
-      setFilteredPayments([]);
+      const result = await paymentProofService.getPaymentProofs();
+      const mapped = result.payment_proofs.map(mapProofToPayment);
+      setPayments(mapped);
+      setFilteredPayments(mapped);
     } catch (error) {
       console.error('Failed to load payments:', error);
     } finally {
@@ -84,21 +100,16 @@ export default function TenantPaymentVerification() {
 
     setIsSubmitting(true);
     try {
-      // TODO: API call
-      // if (modalAction === 'verify') {
-      //   await paymentService.verifyPayment(selectedPayment.id, notes);
-      // } else if (modalAction === 'reject') {
-      //   await paymentService.rejectPayment(selectedPayment.id, notes);
-      // }
+      if (modalAction === 'verify') {
+        await paymentProofService.verifyPaymentProof(selectedPayment.id, { notes });
+      } else if (modalAction === 'reject') {
+        await paymentProofService.rejectPaymentProof(selectedPayment.id, { rejection_reason: notes });
+      }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Update local state
+      const newStatus = modalAction === 'verify' ? 'verified' : 'rejected';
       setPayments((prev) =>
         prev.map((p) =>
-          p.id === selectedPayment.id
-            ? { ...p, status: modalAction === 'verify' ? 'verified' : 'rejected' }
-            : p
+          p.id === selectedPayment.id ? { ...p, status: newStatus } : p
         )
       );
 

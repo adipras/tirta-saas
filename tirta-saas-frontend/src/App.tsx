@@ -24,6 +24,7 @@ import CustomerForm from './pages/customers/CustomerForm';
 import UsageList from './pages/usage/UsageList';
 import MeterReadingForm from './pages/usage/MeterReadingForm';
 import UsageHistory from './pages/usage/UsageHistory';
+import BulkImportWaterUsage from './pages/usage/BulkImportWaterUsage';
 import InvoiceList from './pages/invoices/InvoiceList';
 import InvoiceForm from './pages/invoices/InvoiceForm';
 import InvoiceDetails from './pages/invoices/InvoiceDetails';
@@ -154,6 +155,7 @@ function App() {
               <Route path="settings" element={<TenantPaymentSettings />} />
               <Route path="usage" element={<UsageList />} />
               <Route path="usage/create" element={<MeterReadingForm />} />
+              <Route path="usage/bulk-import" element={<BulkImportWaterUsage />} />
               <Route path="usage/edit/:id" element={<MeterReadingForm />} />
               <Route path="usage/:customerId/history" element={<UsageHistory />} />
               

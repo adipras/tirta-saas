@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
@@ -193,18 +194,7 @@ func GetSubscriptionPayments(c *gin.Context) {
 		data = append(data, resp)
 	}
 
-	totalPages := int(total) / limit
-	if int(total)%limit > 0 {
-		totalPages++
-	}
-
-	c.JSON(http.StatusOK, responses.SubscriptionPaymentListResponse{
-		Data:       data,
-		Total:      total,
-		Page:       page,
-		Limit:      limit,
-		TotalPages: totalPages,
-	})
+	helpers.RespondPaginated(c, "Subscription payments retrieved successfully", data, page, limit, int(total))
 }
 
 // GetSubscriptionPaymentDetail gets a single payment detail
@@ -213,7 +203,7 @@ func GetSubscriptionPaymentDetail(c *gin.Context) {
 
 	var payment models.SubscriptionPayment
 	if err := config.DB.Preload("Tenant").First(&payment, "id = ?", id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Payment not found"})
+		helpers.RespondError(c, http.StatusNotFound, "Payment not found", err)
 		return
 	}
 
@@ -242,7 +232,7 @@ func GetSubscriptionPaymentDetail(c *gin.Context) {
 		resp.TenantEmail = payment.Tenant.Email
 	}
 
-	c.JSON(http.StatusOK, resp)
+	helpers.RespondSuccess(c, "Payment details retrieved successfully", resp)
 }
 
 // VerifySubscriptionPayment verifies and activates tenant subscription

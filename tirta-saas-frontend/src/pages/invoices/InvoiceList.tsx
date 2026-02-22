@@ -69,15 +69,38 @@ export default function InvoiceList() {
       sortable: true,
     },
     {
+      key: 'billingPeriod',
+      label: 'Type',
+      sortable: true,
+      render: (billingPeriod: string) => {
+        const type = billingPeriod ? 'Monthly' : 'Registration';
+        const color = billingPeriod ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800';
+        return (
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>
+            {type}
+          </span>
+        );
+      },
+    },
+    {
       key: 'amount',
       label: 'Amount',
       sortable: true,
-      render: (amount: number) => `$${amount.toFixed(2)}`,
+      render: (amount: number) => {
+        return new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: 'IDR',
+          minimumFractionDigits: 0,
+        }).format(amount || 0);
+      },
     },
     {
       key: 'dueDate',
       label: 'Due Date',
       sortable: true,
+      render: (dueDate: string) => {
+        return dueDate ? new Date(dueDate).toLocaleDateString('id-ID') : 'N/A';
+      },
     },
     {
       key: 'status',

@@ -19,6 +19,7 @@ func InvoiceRoutes(r *gin.Engine) {
 	
 	// CRUD operations
 	group.GET("", controllers.GetInvoices)
+	group.GET("outstanding", controllers.GetOutstandingInvoices)
 	group.GET(":id", controllers.GetInvoice)
 	group.PUT(":id", controllers.UpdateInvoice)
 	group.DELETE(":id", controllers.DeleteInvoice)

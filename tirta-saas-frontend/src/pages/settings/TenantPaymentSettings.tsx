@@ -8,6 +8,9 @@ import {
   QrCodeIcon,
   CloudArrowUpIcon,
 } from '@heroicons/react/24/outline';
+import { apiClient } from '../../services/apiClient';
+import { qrCodeService } from '../../services/qrCodeService';
+import type { QRCode } from '../../services/qrCodeService';
 
 interface BankAccount {
   id: string;
@@ -19,14 +22,19 @@ interface BankAccount {
   isPrimary: boolean;
 }
 
-interface QRCode {
-  id: string;
-  type: 'QRIS' | 'DANA' | 'GOPAY' | 'OVO' | 'SHOPEEPAY';
-  imageUrl: string;
-  isActive: boolean;
-}
-
 type QRCodeType = 'QRIS' | 'DANA' | 'GOPAY' | 'OVO' | 'SHOPEEPAY';
+
+function mapBank(b: any): BankAccount {
+  return {
+    id: b.id,
+    bankName: b.bank_name,
+    accountNumber: b.account_number,
+    accountName: b.account_name,
+    bankCode: b.swift_code || b.bank_branch || '',
+    isActive: b.is_active,
+    isPrimary: b.is_primary,
+  };
+}
 
 export default function TenantPaymentSettings() {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
@@ -50,10 +58,14 @@ export default function TenantPaymentSettings() {
     type: QRCodeType;
     imageFile: File | null;
     isActive: boolean;
+    isPrimary: boolean;
+    notes: string;
   }>({
     type: 'QRIS',
     imageFile: null,
     isActive: true,
+    isPrimary: false,
+    notes: '',
   });
 
   useEffect(() => {
@@ -62,12 +74,17 @@ export default function TenantPaymentSettings() {
 
   const loadSettings = async () => {
     try {
-      // TODO: Implement API call when endpoint is ready
-      // const data = await settingsService.getPaymentSettings();
-      // setBankAccounts(data.bankAccounts || []);
-      // setQRCodes(data.qrCodes || []);
-      setBankAccounts([]);
-      setQRCodes([]);
+      const [bankRes, qrRes] = await Promise.allSettled([
+        apiClient.get('/payment-methods/bank-accounts'),
+        qrCodeService.getQRCodes(),
+      ]);
+      if (bankRes.status === 'fulfilled') {
+        const list = (bankRes.value as any)?.data || [];
+        setBankAccounts(list.map(mapBank));
+      }
+      if (qrRes.status === 'fulfilled') {
+        setQRCodes(qrRes.value);
+      }
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
@@ -106,19 +123,22 @@ export default function TenantPaymentSettings() {
   const handleBankSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // TODO: Implement API call when endpoint is ready
+      const payload = {
+        bank_name: bankForm.bankName,
+        account_number: bankForm.accountNumber,
+        account_name: bankForm.accountName,
+        bank_branch: bankForm.bankCode,
+        is_primary: bankForm.isPrimary,
+        is_active: bankForm.isActive,
+      };
       if (editingBank) {
-        // await settingsService.updateBankAccount(editingBank.id, bankForm);
-        setBankAccounts((prev) =>
-          prev.map((b) => (b.id === editingBank.id ? { ...b, ...bankForm } : b))
-        );
+        const res = await apiClient.put(`/payment-methods/bank-accounts/${editingBank.id}`, payload);
+        const updated = mapBank((res as any).data);
+        setBankAccounts((prev) => prev.map((b) => (b.id === editingBank.id ? updated : b)));
       } else {
-        // await settingsService.createBankAccount(bankForm);
-        const newBank: BankAccount = {
-          id: Date.now().toString(),
-          ...bankForm,
-        };
-        setBankAccounts((prev) => [...prev, newBank]);
+        const res = await apiClient.post('/payment-methods/bank-accounts', payload);
+        const created = mapBank((res as any).data);
+        setBankAccounts((prev) => [...prev, created]);
       }
       closeBankModal();
     } catch (error) {
@@ -130,8 +150,7 @@ export default function TenantPaymentSettings() {
   const handleDeleteBank = async (id: string) => {
     if (!confirm('Are you sure you want to delete this bank account?')) return;
     try {
-      // TODO: Implement API call when endpoint is ready
-      // await settingsService.deleteBankAccount(id);
+      await apiClient.delete(`/payment-methods/bank-accounts/${id}`);
       setBankAccounts((prev) => prev.filter((b) => b.id !== id));
     } catch (error) {
       console.error('Failed to delete bank account:', error);
@@ -145,15 +164,19 @@ export default function TenantPaymentSettings() {
       setQRForm({
         type: qr.type,
         imageFile: null,
-        isActive: qr.isActive,
+        isActive: qr.is_active,
+        isPrimary: qr.is_primary,
+        notes: qr.notes || '',
       });
-      setPreviewUrl(qr.imageUrl);
+      setPreviewUrl(qr.imageDisplayUrl || '');
     } else {
       setEditingQR(null);
       setQRForm({
         type: 'QRIS',
         imageFile: null,
         isActive: true,
+        isPrimary: false,
+        notes: '',
       });
       setPreviewUrl(null);
     }
@@ -187,25 +210,24 @@ export default function TenantPaymentSettings() {
   const handleQRSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // TODO: Implement API call with file upload when endpoint is ready
       if (editingQR) {
-        // await settingsService.updateQRCode(editingQR.id, qrForm);
-        setQRCodes((prev) =>
-          prev.map((q) =>
-            q.id === editingQR.id
-              ? { ...q, type: qrForm.type, isActive: qrForm.isActive, imageUrl: previewUrl || q.imageUrl }
-              : q
-          )
-        );
-      } else {
-        // await settingsService.createQRCode(qrForm);
-        const newQR: QRCode = {
-          id: Date.now().toString(),
+        const updated = await qrCodeService.updateQRCode(editingQR.id, {
           type: qrForm.type,
-          imageUrl: previewUrl || '',
-          isActive: qrForm.isActive,
-        };
-        setQRCodes((prev) => [...prev, newQR]);
+          is_primary: qrForm.isPrimary,
+          is_active: qrForm.isActive,
+          notes: qrForm.notes,
+          image: qrForm.imageFile || undefined,
+        });
+        setQRCodes((prev) => prev.map((q) => (q.id === editingQR.id ? updated : q)));
+      } else {
+        const created = await qrCodeService.createQRCode({
+          type: qrForm.type,
+          is_primary: qrForm.isPrimary,
+          is_active: qrForm.isActive,
+          notes: qrForm.notes,
+          image: qrForm.imageFile || undefined,
+        });
+        setQRCodes((prev) => [...prev, created]);
       }
       closeQRModal();
     } catch (error) {
@@ -217,8 +239,7 @@ export default function TenantPaymentSettings() {
   const handleDeleteQR = async (id: string) => {
     if (!confirm('Are you sure you want to delete this QR code?')) return;
     try {
-      // TODO: Implement API call when endpoint is ready
-      // await settingsService.deleteQRCode(id);
+      await qrCodeService.deleteQRCode(id);
       setQRCodes((prev) => prev.filter((q) => q.id !== id));
     } catch (error) {
       console.error('Failed to delete QR code:', error);
@@ -358,7 +379,7 @@ export default function TenantPaymentSettings() {
                 <div
                   key={qr.id}
                   className={`border rounded-lg p-4 ${
-                    qr.isActive ? 'border-gray-200' : 'border-gray-100 bg-gray-50'
+                    qr.is_active ? 'border-gray-200' : 'border-gray-100 bg-gray-50'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-3">
@@ -366,7 +387,12 @@ export default function TenantPaymentSettings() {
                       <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-medium">
                         {qr.type}
                       </span>
-                      {!qr.isActive && (
+                      {qr.is_primary && (
+                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded font-medium">
+                          Primary
+                        </span>
+                      )}
+                      {!qr.is_active && (
                         <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded font-medium">
                           Inactive
                         </span>
@@ -390,13 +416,13 @@ export default function TenantPaymentSettings() {
                     </div>
                   </div>
                   <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                    {qr.imageUrl ? (
+                    {qr.imageDisplayUrl ? (
                       <img
-                        src={qr.imageUrl}
+                        src={qr.imageDisplayUrl}
                         alt={`${qr.type} QR Code`}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/200?text=QR+Code';
+                          (e.currentTarget as HTMLImageElement).style.display = 'none';
                         }}
                       />
                     ) : (
@@ -604,6 +630,29 @@ export default function TenantPaymentSettings() {
                       />
                       <span className="ml-2 text-sm text-gray-700">Active</span>
                     </label>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={qrForm.isPrimary}
+                        onChange={(e) => setQRForm({ ...qrForm, isPrimary: e.target.checked })}
+                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">Set as Primary</span>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <input
+                      type="text"
+                      value={qrForm.notes}
+                      onChange={(e) => setQRForm({ ...qrForm, notes: e.target.value })}
+                      placeholder="Optional notes"
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+                    />
                   </div>
                 </div>
               </div>
