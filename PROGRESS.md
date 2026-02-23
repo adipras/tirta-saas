@@ -1,5 +1,48 @@
 # Development Progress - Tirta SaaS
 
+## Latest Session: February 23, 2026
+
+**Date:** February 23, 2026  
+**Focus:** Bug Fix #33 — GORM `Save()` Association Anomaly (codebase-wide audit)  
+**Status:** ✅ All done
+
+---
+
+## ✅ Completed (February 23, 2026)
+
+### Fix: GORM `Save()` Menyebabkan Duplikasi Data Association
+
+**Root cause:** GORM v2 `Save()` pada struct yang memiliki embedded non-pointer association (mis. `Customer Customer`, `Invoice Invoice`, `Subscription SubscriptionType`) akan melakukan INSERT/upsert pada association tersebut:
+- Jika association **tidak di-Preload** → field bernilai zero-value → GORM **INSERT record baru** (anomali)
+- Jika association **di-Preload** → GORM melakukan upsert pada record existing (risiko duplikasi)
+
+**Audit dilakukan pada seluruh codebase** — ditemukan 12 lokasi buggy `Save()` di 7 controller:
+
+| Controller | Lokasi | Masalah | Fix |
+|---|---|---|---|
+| `customer_controller.go` | `DeactivateCustomer` | `Save(&customer)` + Preload Subscription | `Update("is_active", false)` |
+| `customer_self_service_controller.go` | `UpdateCustomerProfile` | `Save(&customer)` tanpa Preload | `Select().Updates()` |
+| `customer_self_service_controller.go` | `ChangeCustomerPassword` | `Save(&customer)` tanpa Preload | `Update("password", ...)` |
+| `customer_self_service_controller.go` | `CustomerMakePayment` | `Save(&invoice)` Invoice.Customer zero-value | `Updates(map{...})` |
+| `water_rate_controller.go` | `UpdateWaterRate` | `Save(&rate)` WaterRate.Subscription zero-value | `Select().Updates()` |
+| `invoice_controller.go` | `UpdateInvoice` | `Save(&invoice)` Invoice.Customer zero-value | `Select().Updates()` |
+| `payment_controller.go` | `CreatePayment` | `Save(&invoice)` Invoice.Customer zero-value | `Updates(map{...})` |
+| `payment_controller.go` | `UpdatePayment` | `Save(&payment)` Payment.Invoice zero-value | `Update("amount", ...)` |
+| `payment_controller.go` | `UpdatePayment` | `Save(&invoice)` Invoice.Customer zero-value | `Updates(map{...})` |
+| `payment_controller.go` | `DeletePayment` | `Save(&invoice)` Invoice.Customer zero-value | `Updates(map{...})` |
+| `water_usage_controller.go` | `UpdateWaterUsage` | `Save(&usage)` WaterUsage.Customer zero-value | `Select().Updates()` |
+| `payment_proof_controller.go` | `RejectPaymentProof` | `Save(&paymentProof)` dengan Invoice+Customer di-Preload | `Select().Updates()` |
+| `notification_controller.go` | `UpdateNotificationTemplate` | `Save(&template)` NotificationTemplate.Tenant zero-value | `Select().Updates()` |
+| `notification_controller.go` | `SendNotification` | `Save(&notificationLog)` NotificationLog.Tenant zero-value | `Updates(map{...})` |
+| `platform_controller.go` | `AssignSubscription` | `Save(&subscription)` TenantSubscription.Tenant zero-value | `Select().Updates()` |
+
+**Models dengan `Save()` yang tetap aman (tidak diubah):** `Tenant`, `TenantSettings`, `SubscriptionPlanDetails`, `SubscriptionType` — tidak punya embedded struct association.
+
+### Dokumentasi
+- Update `ISSUE_MANUAL_TEST.md` issue #33 → ✅ FIXED
+
+---
+
 ## Latest Session: February 22, 2026 (Session 3)
 
 **Date:** February 22, 2026  

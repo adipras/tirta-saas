@@ -215,7 +215,7 @@ func UpdateWaterRate(c *gin.Context) {
 	rate.EffectiveDate = date
 	rate.Active = input.Active
 
-	if err := config.DB.Save(&rate).Error; err != nil {
+	if err := config.DB.Model(&rate).Select("Amount", "EffectiveDate", "Active").Updates(&rate).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui tarif"})
 		return
 	}

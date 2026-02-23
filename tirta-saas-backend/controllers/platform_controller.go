@@ -1456,7 +1456,7 @@ func AssignSubscriptionToTenant(c *gin.Context) {
 			subscription.Status = models.StatusActive
 		}
 
-		if err := config.DB.Save(&subscription).Error; err != nil {
+		if err := config.DB.Model(&subscription).Select("Plan", "BillingCycle", "MonthlyPrice", "YearlyPrice", "MaxUsers", "MaxCustomers", "MaxStorageGB", "MaxAPICallsPerDay", "StartDate", "EndDate", "TrialEndsAt", "Status").Updates(&subscription).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 				Status:  "error",
 				Message: "Failed to update subscription",

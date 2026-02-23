@@ -309,7 +309,7 @@ func UpdateWaterUsage(c *gin.Context) {
 	usage.UsageM3 = UsageM3
 	usage.AmountCalculated = UsageM3 * rate.Amount
 
-	if err := config.DB.Save(&usage).Error; err != nil {
+	if err := config.DB.Model(&usage).Select("MeterEnd", "UsageM3", "AmountCalculated").Updates(&usage).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui data"})
 		return
 	}

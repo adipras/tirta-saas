@@ -98,7 +98,7 @@ func CreatePayment(c *gin.Context) {
 	// Update invoice
 	invoice.TotalPaid = totalPaid
 	invoice.IsPaid = totalPaid >= invoice.TotalAmount
-	if err := config.DB.Save(&invoice).Error; err != nil {
+	if err := config.DB.Model(&invoice).Updates(map[string]interface{}{"total_paid": invoice.TotalPaid, "is_paid": invoice.IsPaid}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui status invoice"})
 		return
 	}
@@ -294,7 +294,7 @@ func UpdatePayment(c *gin.Context) {
 
 	// Update payment
 	payment.Amount = input.Amount
-	if err := config.DB.Save(&payment).Error; err != nil {
+	if err := config.DB.Model(&payment).Update("amount", input.Amount).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui pembayaran"})
 		return
 	}
@@ -307,7 +307,7 @@ func UpdatePayment(c *gin.Context) {
 
 	invoice.TotalPaid = newTotalPaid
 	invoice.IsPaid = newTotalPaid >= invoice.TotalAmount
-	config.DB.Save(&invoice)
+	config.DB.Model(&invoice).Updates(map[string]interface{}{"total_paid": invoice.TotalPaid, "is_paid": invoice.IsPaid})
 
 	c.JSON(http.StatusOK, payment)
 }
@@ -356,7 +356,7 @@ func DeletePayment(c *gin.Context) {
 
 		invoice.TotalPaid = newTotalPaid
 		invoice.IsPaid = newTotalPaid >= invoice.TotalAmount
-		config.DB.Save(&invoice)
+		config.DB.Model(&invoice).Updates(map[string]interface{}{"total_paid": invoice.TotalPaid, "is_paid": invoice.IsPaid})
 
 		// If this was a registration invoice and is no longer paid, deactivate customer
 		if invoice.Type == "registration" && !invoice.IsPaid {

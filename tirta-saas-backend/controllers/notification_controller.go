@@ -209,7 +209,7 @@ func UpdateNotificationTemplate(c *gin.Context) {
 		template.Language = req.Language
 	}
 	
-	if err := config.DB.Save(&template).Error; err != nil {
+	if err := config.DB.Model(&template).Select("Name", "Description", "Subject", "Body", "HTMLBody", "Variables", "IsActive", "Language").Updates(&template).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to update notification template",
@@ -396,7 +396,7 @@ func SendNotification(c *gin.Context) {
 	now := time.Now()
 	notificationLog.Status = "SENT"
 	notificationLog.SentAt = &now
-	config.DB.Save(&notificationLog)
+	config.DB.Model(&notificationLog).Updates(map[string]interface{}{"status": "SENT", "sent_at": &now})
 	
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",

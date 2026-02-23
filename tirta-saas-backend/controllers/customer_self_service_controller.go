@@ -73,7 +73,7 @@ func UpdateCustomerProfile(c *gin.Context) {
 		customer.Phone = input.Phone
 	}
 
-	if err := config.DB.Save(&customer).Error; err != nil {
+	if err := config.DB.Model(&customer).Select("Name", "Address", "Phone").Updates(&customer).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui profil"})
 		return
 	}
@@ -183,7 +183,7 @@ func CustomerMakePayment(c *gin.Context) {
 
 	invoice.TotalPaid = totalPaid
 	invoice.IsPaid = totalPaid >= invoice.TotalAmount
-	config.DB.Save(&invoice)
+	config.DB.Model(&invoice).Updates(map[string]interface{}{"total_paid": invoice.TotalPaid, "is_paid": invoice.IsPaid})
 
 	// If registration invoice is now paid, activate customer
 	if invoice.Type == "registration" && invoice.IsPaid {
@@ -236,8 +236,7 @@ func ChangeCustomerPassword(c *gin.Context) {
 	}
 
 	// Update password
-	customer.Password = hashedPassword
-	if err := config.DB.Save(&customer).Error; err != nil {
+	if err := config.DB.Model(&customer).Update("password", hashedPassword).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui password"})
 		return
 	}

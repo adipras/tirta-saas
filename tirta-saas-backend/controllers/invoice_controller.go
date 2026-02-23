@@ -391,7 +391,7 @@ func UpdateInvoice(c *gin.Context) {
 	invoice.IsPaid = input.IsPaid
 	invoice.TotalPaid = input.TotalPaid
 
-	if err := config.DB.Save(&invoice).Error; err != nil {
+	if err := config.DB.Model(&invoice).Select("UsageM3", "Abonemen", "PricePerM3", "TotalAmount", "IsPaid", "TotalPaid").Updates(&invoice).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui invoice"})
 		return
 	}

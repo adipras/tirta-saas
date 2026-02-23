@@ -536,7 +536,7 @@ func RejectPaymentProof(c *gin.Context) {
 	paymentProof.VerifiedAt = &now
 	paymentProof.RejectionReason = req.RejectionReason
 
-	if err := config.DB.Save(&paymentProof).Error; err != nil {
+	if err := config.DB.Model(&paymentProof).Select("Status", "VerifiedBy", "VerifiedAt", "RejectionReason").Updates(&paymentProof).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reject payment proof"})
 		return
 	}

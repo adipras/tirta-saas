@@ -357,11 +357,11 @@ func DeactivateCustomer(c *gin.Context) {
 	}
 
 	// Update is_active to false
-	customer.IsActive = false
-	if err := config.DB.Save(&customer).Error; err != nil {
+	if err := config.DB.Model(&customer).Update("is_active", false).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to deactivate customer"})
 		return
 	}
+	customer.IsActive = false
 
 	response := responses.CustomerResponse{
 		ID:             customer.ID,
