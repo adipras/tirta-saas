@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DataTable, type Column } from '../../components/DataTable';
 import { paymentService, type PaymentFilters } from '../../services/paymentService';
-import { PageHeader } from '../../components';
+import { PageHeader, ConfirmModal, useToast } from '../../components';
 import type {
   Payment,
   PaymentStatus,
@@ -14,12 +14,14 @@ import {
 
 const PaymentList: React.FC = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<PaymentFilters>({});
+  const [voidTarget, setVoidTarget] = useState<Payment | null>(null);
 
   const fetchPayments = useCallback(async (page: number, search: string, currentFilters: PaymentFilters) => {
     try {
@@ -65,17 +67,18 @@ const PaymentList: React.FC = () => {
     navigate(`/admin/invoices/${payment.invoiceId}`);
   };
 
-  const handleVoidPayment = async (payment: Payment) => {
-    if (!window.confirm('Are you sure you want to void this payment?')) {
-      return;
-    }
+  const handleVoidPayment = (payment: Payment) => {
+    setVoidTarget(payment);
+  };
 
+  const confirmVoidPayment = async () => {
+    if (!voidTarget) return;
     try {
-      await paymentService.voidPayment(payment.id as unknown as number);
+      await paymentService.voidPayment(voidTarget.id as unknown as number);
+      setVoidTarget(null);
       fetchPayments(currentPage, searchTerm, filters);
     } catch (error) {
       console.error('Failed to void payment:', error);
-      alert('Failed to void payment');
     }
   };
 
@@ -92,7 +95,7 @@ const PaymentList: React.FC = () => {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Failed to export payments:', error);
-      alert('Failed to export payments');
+      toast.error('Gagal mengekspor data pembayaran');
     }
   };
 
@@ -326,6 +329,17 @@ const PaymentList: React.FC = () => {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={voidTarget !== null}
+        onClose={() => setVoidTarget(null)}
+        onConfirm={confirmVoidPayment}
+        title="Void Pembayaran"
+        message={`Apakah kamu yakin ingin mem-void pembayaran ini? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Void"
+        cancelText="Batal"
+        type="danger"
+      />
     </div>
   );
 };

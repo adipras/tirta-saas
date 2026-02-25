@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { XMarkIcon, KeyIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, KeyIcon, EyeIcon, EyeSlashIcon, CheckCircleIcon, ClipboardDocumentIcon } from '@heroicons/react/24/outline';
 import { tenantUserService } from '../../services/tenantUserService';
 import type { RoleOption } from '../../services/tenantUserService';
 
@@ -19,6 +19,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null);
 
   useEffect(() => {
     loadRoles();
@@ -56,7 +57,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
 
     try {
       await tenantUserService.createTenantUser(formData);
-      alert(`User created successfully!\n\nEmail: ${formData.email}\nPassword: ${formData.password}\n\nPlease save this password and share it securely with the user.`);
+      setCreatedCredentials({ email: formData.email, password: formData.password });
       onSuccess();
     } catch (err: any) {
       console.error('Failed to create user:', err);
@@ -80,12 +81,46 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
+          {createdCredentials && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                <p className="text-sm font-semibold text-green-800">User created successfully!</p>
+              </div>
+              <p className="text-xs text-green-700 mb-2">Save these credentials and share securely:</p>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between bg-white rounded px-3 py-2 border border-green-200">
+                  <span className="text-xs text-gray-600">Email: <strong>{createdCredentials.email}</strong></span>
+                </div>
+                <div className="flex items-center justify-between bg-white rounded px-3 py-2 border border-green-200">
+                  <span className="text-xs text-gray-600">Password: <strong className="font-mono">{createdCredentials.password}</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(createdCredentials.password)}
+                    className="text-green-600 hover:text-green-800 ml-2"
+                    title="Copy password"
+                  >
+                    <ClipboardDocumentIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-3 w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg"
+              >
+                Done
+              </button>
+            </div>
+          )}
+
+          {!createdCredentials && error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
               {error}
             </div>
           )}
 
+          {!createdCredentials && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Full Name *
@@ -198,6 +233,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
               {loading ? 'Creating...' : 'Create User'}
             </button>
           </div>
+          )}
         </form>
       </div>
     </div>

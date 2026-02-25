@@ -14,7 +14,7 @@ import type { WaterRate } from '../../types/waterRate';
 import type { SubscriptionType } from '../../types/subscription';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
-import { PageHeader } from '../../components';
+import { PageHeader, ConfirmModal } from '../../components';
 
 export default function WaterRateList() {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function WaterRateList() {
   const [, setTotalPages] = useState(1);
   const [filterSubscription, setFilterSubscription] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'true' | 'false'>('all');
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const fetchWaterRates = useCallback(async () => {
     try {
@@ -69,20 +69,19 @@ export default function WaterRateList() {
     fetchSubscriptionTypes();
   }, [fetchWaterRates, fetchSubscriptionTypes]);
 
-  const handleDelete = async (id: string) => {
-    if (deleteConfirm !== id) {
-      setDeleteConfirm(id);
-      setTimeout(() => setDeleteConfirm(null), 3000);
-      return;
-    }
+  const handleDelete = (id: string) => {
+    setDeleteTarget(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await waterRateService.deleteWaterRate(id);
+      await waterRateService.deleteWaterRate(deleteTarget);
       dispatch(addNotification({
         type: 'success',
         message: 'Water rate deleted successfully',
       }));
-      setDeleteConfirm(null);
+      setDeleteTarget(null);
       fetchWaterRates();
     } catch (error) {
       dispatch(addNotification({
@@ -196,12 +195,8 @@ export default function WaterRateList() {
           </button>
           <button
             onClick={() => handleDelete(row.id)}
-            className={`${
-              deleteConfirm === row.id
-                ? 'text-red-900 font-bold'
-                : 'text-red-600 hover:text-red-900'
-            }`}
-            title={deleteConfirm === row.id ? 'Click again to confirm' : 'Delete'}
+            className="text-red-600 hover:text-red-900"
+            title="Delete"
           >
             <TrashIcon className="w-5 h-5" />
           </button>
@@ -281,6 +276,17 @@ export default function WaterRateList() {
           Showing {waterRates.length} water rate{waterRates.length !== 1 ? 's' : ''}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Hapus Tarif Air"
+        message="Apakah kamu yakin ingin menghapus tarif air ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        type="danger"
+      />
     </div>
   );
 }

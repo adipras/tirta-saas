@@ -15,11 +15,12 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { ArrowDownTrayIcon, BeakerIcon } from '@heroicons/react/24/outline';
-import { PageHeader } from '../../components';
+import { PageHeader, useToast } from '../../components';
 
 const UsageReport: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<UsageReportType | null>(null);
   const [filters, setFilters] = useState({
@@ -53,7 +54,7 @@ const UsageReport: React.FC = () => {
       reportService.downloadFile(blob, filename);
     } catch (error) {
       console.error('Failed to export report:', error);
-      alert('Failed to export report');
+      toast.error('Gagal mengekspor laporan');
     }
   };
 

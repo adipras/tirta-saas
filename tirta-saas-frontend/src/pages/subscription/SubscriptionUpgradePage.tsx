@@ -9,6 +9,7 @@ import {
 import { subscriptionPaymentService } from '../../services/subscriptionPaymentService';
 import { platformPaymentSettingsService } from '../../services/platformPaymentSettingsService';
 import type { PlatformPaymentSettings } from '../../services/platformPaymentSettingsService';
+import { useToast } from '../../components';
 
 interface PlanOption {
   id: string;
@@ -62,6 +63,7 @@ const PLANS: PlanOption[] = [
 
 export default function SubscriptionUpgradePage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [step, setStep] = useState<'select-plan' | 'payment-form'>('select-plan');
   const [selectedPlan, setSelectedPlan] = useState<PlanOption | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<number>(1);
@@ -182,9 +184,7 @@ export default function SubscriptionUpgradePage() {
         proofFile
       );
 
-      alert(
-        `Payment submitted successfully!\n\nConfirmation ID: ${result.confirmationId}\n\nYour payment is being verified. You will be notified once approved.`
-      );
+      toast.success(`Payment submitted! Confirmation ID: ${result.confirmationId}. Your payment is being verified.`);
       navigate('/subscription/status');
     } catch (err: any) {
       console.error('Failed to submit payment:', err);

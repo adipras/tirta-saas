@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { tenantUserService } from '../../services/tenantUserService';
 import type { TenantUser, RoleOption } from '../../services/tenantUserService';
+import { useToast } from '../../components';
 
 interface EditUserModalProps {
   user: TenantUser;
@@ -10,6 +11,7 @@ interface EditUserModalProps {
 }
 
 export default function EditUserModal({ user, onClose, onSuccess }: EditUserModalProps) {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: user.name,
     role: user.role,
@@ -44,7 +46,7 @@ export default function EditUserModal({ user, onClose, onSuccess }: EditUserModa
 
     try {
       await tenantUserService.updateTenantUser(user.id, formData);
-      alert('User updated successfully!');
+      toast.success('User berhasil diperbarui!');
       onSuccess();
     } catch (err: any) {
       console.error('Failed to update user:', err);

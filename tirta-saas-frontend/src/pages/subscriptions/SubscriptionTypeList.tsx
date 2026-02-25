@@ -12,7 +12,7 @@ import { subscriptionService } from '../../services/subscriptionService';
 import type { SubscriptionType } from '../../types/subscription';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
-import { PageHeader } from '../../components';
+import { PageHeader, ConfirmModal } from '../../components';
 
 export default function SubscriptionTypeList() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export default function SubscriptionTypeList() {
   const [currentPage] = useState(1);
   const [, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const fetchSubscriptionTypes = useCallback(async () => {
     try {
@@ -71,19 +71,19 @@ export default function SubscriptionTypeList() {
     fetchSubscriptionTypes();
   }, [fetchSubscriptionTypes]);
 
-  const handleDelete = async (id: string) => {
-    if (deleteConfirm !== id) {
-      setDeleteConfirm(id);
-      return;
-    }
+  const handleDelete = (id: string) => {
+    setDeleteTarget(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await subscriptionService.deleteSubscriptionType(id);
+      await subscriptionService.deleteSubscriptionType(deleteTarget);
       dispatch(addNotification({
         type: 'success',
         message: 'Subscription type deleted successfully',
       }));
-      setDeleteConfirm(null);
+      setDeleteTarget(null);
       fetchSubscriptionTypes();
     } catch (error) {
       dispatch(addNotification({
@@ -163,12 +163,8 @@ export default function SubscriptionTypeList() {
           </button>
           <button
             onClick={() => handleDelete(row.id)}
-            className={`${
-              deleteConfirm === row.id
-                ? 'text-red-900 font-bold'
-                : 'text-red-600 hover:text-red-900'
-            }`}
-            title={deleteConfirm === row.id ? 'Click again to confirm' : 'Delete'}
+            className="text-red-600 hover:text-red-900"
+            title="Delete"
           >
             <TrashIcon className="w-5 h-5" />
           </button>
@@ -255,6 +251,17 @@ export default function SubscriptionTypeList() {
           loading={loading}
         />
       </div>
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Hapus Subscription Type"
+        message="Apakah kamu yakin ingin menghapus subscription type ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        type="danger"
+      />
     </div>
   );
 }

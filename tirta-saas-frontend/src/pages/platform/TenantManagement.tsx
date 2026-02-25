@@ -6,7 +6,7 @@ import {
   BuildingOfficeIcon,
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../services/apiClient';
-import { PageHeader } from '../../components';
+import { PageHeader, useToast } from '../../components';
 
 interface Tenant {
   id: string;
@@ -52,6 +52,7 @@ const statusColors: Record<string, { bg: string; text: string; label: string }> 
 };
 
 const TenantManagement = () => {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -126,7 +127,7 @@ const TenantManagement = () => {
       closeModal();
     } catch (error) {
       console.error('Action failed:', error);
-      alert('Action failed. Please try again.');
+      toast.error('Aksi gagal. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }

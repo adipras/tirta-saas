@@ -112,6 +112,51 @@
 
 ---
 
+## ✅ Phase 3.5 — Replace window.confirm/alert → ConfirmModal & Toast (SELESAI)
+
+**Tujuan:** Hapus semua `window.confirm()` dan `alert()` native browser, ganti dengan UI component yang proper.
+
+### ✅ ConfirmModal (confirm dialog)
+| File | Perubahan |
+|---|---|
+| `payments/PaymentList.tsx` | void confirm → ConfirmModal |
+| `settings/PlatformPaymentSettings.tsx` | delete bank/QR → ConfirmModal |
+| `settings/TenantPaymentSettings.tsx` | delete bank/QR → ConfirmModal |
+| `subscriptions/SubscriptionTypeList.tsx` | delete → ConfirmModal (hapus double-click pattern) |
+| `usage/UsageList.tsx` | delete → ConfirmModal (hapus double-click pattern) |
+| `user-management/UserManagementList.tsx` | delete → ConfirmModal (hapus double-click pattern) |
+| `water-rates/WaterRateList.tsx` | delete → ConfirmModal (hapus double-click pattern) |
+
+### ✅ Toast (alert → useToast)
+| File | Alert | Diganti |
+|---|---|---|
+| `reports/OutstandingReport.tsx` | Failed to export | toast.error |
+| `reports/PaymentReport.tsx` | Failed to export | toast.error |
+| `reports/UsageReport.tsx` | Failed to export | toast.error |
+| `reports/RevenueReport.tsx` | Failed to export | toast.error |
+| `payments/PaymentList.tsx` | Failed to export | toast.error |
+| `payments/PaymentReceipt.tsx` | Failed to load receipt | toast.error |
+| `payments/PaymentForm.tsx` | Failed to save payment | toast.error |
+| `customer-invoices/CustomerInvoiceDetail.tsx` | Failed to download invoice | toast.error |
+| `platform/TenantManagement.tsx` | Action failed | toast.error |
+| `platform/SubscriptionPlans.tsx` | Failed to save plan | toast.error |
+| `tenant-payments/TenantPaymentVerification.tsx` | Action failed | toast.error |
+| `platform-payments/PlatformSubscriptionVerification.tsx` | verified/rejected success | toast.success |
+| `payment-proofs/PaymentProofDetailModal.tsx` | verified/rejected success | toast.success |
+| `user-management/EditUserModal.tsx` | User updated | toast.success |
+| `settings/PlatformPaymentSettings.tsx` | save/validation errors | toast.error/warning |
+| `settings/TenantPaymentSettings.tsx` | save/validation errors | toast.error/warning |
+| `invoices/bulk-generation/BulkInvoiceGeneration.tsx` | preview/generate alerts | toast.success/error |
+| `subscription/PaymentSubmissionPage.tsx` | success | toast.success |
+| `subscription/SubscriptionUpgradePage.tsx` | success/error | toast.success |
+
+### ✅ Inline Success Panel
+| File | Perubahan |
+|---|---|
+| `user-management/CreateUserModal.tsx` | Show credentials → inline green panel with copy button |
+
+---
+
 ## ⬜ Phase 4 — Halaman Customer Portal (BELUM)
 
 Halaman customer portal (`/customer/...`) belum di-review untuk mobile-friendliness.

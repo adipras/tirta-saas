@@ -8,10 +8,12 @@ import {
 } from '@heroicons/react/24/outline';
 import { invoiceService } from '../../services/invoiceService';
 import type { Invoice } from '../../types/invoice';
+import { useToast } from '../../components';
 
 export default function CustomerInvoiceDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export default function CustomerInvoiceDetail() {
       setDownloading(true);
       await invoiceService.downloadInvoicePDF(id!);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to download invoice');
+      toast.error(err.response?.data?.message || 'Gagal mengunduh invoice');
     } finally {
       setDownloading(false);
     }

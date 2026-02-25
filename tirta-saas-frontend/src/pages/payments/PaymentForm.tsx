@@ -12,10 +12,11 @@ import {
   PAYMENT_METHOD_LABELS,
 } from '../../types/payment';
 import type { Customer } from '../../types/customer';
-import { PageHeader } from '../../components';
+import { PageHeader, useToast } from '../../components';
 
 const PaymentForm: React.FC = () => {
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [loading, setLoading] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -155,7 +156,7 @@ const PaymentForm: React.FC = () => {
       navigate('/admin/payments');
     } catch (error: any) {
       console.error('Failed to save payment:', error);
-      alert(error.response?.data?.message || 'Failed to save payment');
+      toast.error(error.response?.data?.message || 'Gagal menyimpan pembayaran');
     } finally {
       setLoading(false);
     }

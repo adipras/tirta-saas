@@ -16,7 +16,7 @@ import type { WaterUsage, WaterUsageFilters } from '../../types/usage';
 import type { Customer } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
-import { PageHeader } from '../../components';
+import { PageHeader, ConfirmModal } from '../../components';
 
 export default function UsageList() {
   const navigate = useNavigate();
@@ -28,7 +28,7 @@ export default function UsageList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [_totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<WaterUsageFilters>({
     customerId: undefined,
@@ -73,19 +73,19 @@ export default function UsageList() {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  const handleDelete = async (id: string) => {
-    if (deleteConfirm !== id) {
-      setDeleteConfirm(id);
-      return;
-    }
+  const handleDelete = (id: string) => {
+    setDeleteTarget(id);
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await usageService.deleteWaterUsage(id);
+      await usageService.deleteWaterUsage(deleteTarget);
       dispatch(addNotification({
         type: 'success',
         message: 'Water usage deleted successfully',
       }));
-      setDeleteConfirm(null);
+      setDeleteTarget(null);
       fetchWaterUsages();
     } catch (error) {
       dispatch(addNotification({
@@ -207,12 +207,8 @@ export default function UsageList() {
           </button>
           <button
             onClick={() => handleDelete(row.id)}
-            className={`${
-              deleteConfirm === row.id
-                ? 'text-red-900 font-bold'
-                : 'text-red-600 hover:text-red-900'
-            }`}
-            title={deleteConfirm === row.id ? 'Click again to confirm' : 'Delete'}
+            className="text-red-600 hover:text-red-900"
+            title="Delete"
           >
             <TrashIcon className="w-5 h-5" />
           </button>
@@ -395,6 +391,17 @@ export default function UsageList() {
           loading={loading}
         />
       </div>
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Hapus Data Pemakaian"
+        message="Apakah kamu yakin ingin menghapus data pemakaian air ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        type="danger"
+      />
     </div>
   );
 }

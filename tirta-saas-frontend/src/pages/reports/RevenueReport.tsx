@@ -16,13 +16,14 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { PageHeader } from '../../components';
+import { PageHeader, useToast } from '../../components';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
 const RevenueReport: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<RevenueReportType | null>(null);
   const [filters, setFilters] = useState({
@@ -56,7 +57,7 @@ const RevenueReport: React.FC = () => {
       reportService.downloadFile(blob, filename);
     } catch (error) {
       console.error('Failed to export report:', error);
-      alert('Failed to export report');
+      toast.error('Gagal mengekspor laporan');
     }
   };
 

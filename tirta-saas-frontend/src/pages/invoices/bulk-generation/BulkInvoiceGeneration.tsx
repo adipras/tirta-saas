@@ -5,6 +5,7 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
+import { useToast } from '../../../components';
 
 interface PreviewInvoice {
   invoice_number: string;
@@ -30,6 +31,7 @@ interface GenerationResult {
 }
 
 const BulkInvoiceGeneration = () => {
+  const toast = useToast();
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const lastMonth = new Date();
     lastMonth.setMonth(lastMonth.getMonth() - 1);
@@ -62,11 +64,11 @@ const BulkInvoiceGeneration = () => {
         setPreviewData(data);
         setShowPreview(true);
       } else {
-        alert(`Error: ${data.message || 'Failed to preview invoices'}`);
+        toast.error(`Error: ${data.message || 'Gagal preview invoice'}`);
       }
     } catch (error) {
       console.error('Error previewing:', error);
-      alert('Failed to preview invoices. Please try again.');
+      toast.error('Gagal preview invoice. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -98,13 +100,13 @@ const BulkInvoiceGeneration = () => {
         setGenerationResult(data);
         setShowPreview(false);
         setPreviewData(null);
-        alert(`Success! Generated ${data.success} invoices.`);
+        toast.success(`Berhasil! ${data.success} invoice dibuat.`);
       } else {
-        alert(`Error: ${data.message || 'Failed to generate invoices'}`);
+        toast.error(`Error: ${data.message || 'Failed to generate invoices'}`);
       }
     } catch (error) {
       console.error('Error generating:', error);
-      alert('Failed to generate invoices. Please try again.');
+      toast.error('Failed to generate invoices. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -10,8 +10,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { platformSubscriptionService } from '../../services/platformSubscriptionService';
 import type { SubscriptionPayment } from '../../services/platformSubscriptionService';
+import { useToast } from '../../components';
 
 export default function PlatformSubscriptionVerification() {
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<SubscriptionPayment[]>([]);
   const [filteredPayments, setFilteredPayments] = useState<SubscriptionPayment[]>([]);
@@ -87,10 +89,10 @@ export default function PlatformSubscriptionVerification() {
     try {
       if (modalAction === 'verify') {
         await platformSubscriptionService.verifyPayment(selectedPayment.id, { notes });
-        alert('Payment verified successfully! Tenant has been activated.');
+        toast.success('Pembayaran diverifikasi. Tenant telah diaktifkan.');
       } else if (modalAction === 'reject') {
         await platformSubscriptionService.rejectPayment(selectedPayment.id, { reason: rejectionReason });
-        alert('Payment rejected. Tenant has been notified.');
+        toast.success('Pembayaran ditolak. Tenant telah diberitahu.');
       }
 
       // Reload payments to get updated data

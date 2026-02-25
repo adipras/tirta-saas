@@ -10,7 +10,7 @@ import { tenantUserService } from '../../services/tenantUserService';
 import type { TenantUser } from '../../services/tenantUserService';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
-import { PageHeader } from '../../components';
+import { PageHeader, ConfirmModal } from '../../components';
 
 export default function UserManagementList() {
   const [users, setUsers] = useState<TenantUser[]>([]);
@@ -20,7 +20,7 @@ export default function UserManagementList() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<TenantUser | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
@@ -72,20 +72,19 @@ export default function UserManagementList() {
     setShowEditModal(true);
   };
 
-  const handleDelete = async (userId: string) => {
-    if (deleteConfirm !== userId) {
-      setDeleteConfirm(userId);
-      setTimeout(() => setDeleteConfirm(null), 3000);
-      return;
-    }
+  const handleDelete = (userId: string) => {
+    setDeleteTarget(userId);
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await tenantUserService.deleteTenantUser(userId);
+      await tenantUserService.deleteTenantUser(deleteTarget);
       loadUsers();
-      setDeleteConfirm(null);
+      setDeleteTarget(null);
     } catch (err: any) {
       console.error('Failed to delete user:', err);
-      alert(err.response?.data?.error || 'Failed to delete user');
+      setError(err.response?.data?.error || 'Failed to delete user');
     }
   };
 
@@ -233,14 +232,10 @@ export default function UserManagementList() {
                     </button>
                     <button
                       onClick={() => handleDelete(user.id)}
-                      className={`inline-flex items-center ${
-                        deleteConfirm === user.id
-                          ? 'text-red-700 font-bold'
-                          : 'text-red-600 hover:text-red-900'
-                      }`}
+                      className="text-red-600 hover:text-red-900 inline-flex items-center"
                     >
                       <TrashIcon className="h-4 w-4 mr-1" />
-                      {deleteConfirm === user.id ? 'Confirm?' : 'Delete'}
+                      Delete
                     </button>
                   </td>
                 </tr>
@@ -265,6 +260,17 @@ export default function UserManagementList() {
           onSuccess={handleEditSuccess}
         />
       )}
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Hapus User"
+        message="Apakah kamu yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        cancelText="Batal"
+        type="danger"
+      />
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
 import { apiClient } from '../../services/apiClient';
 import { qrCodeService } from '../../services/qrCodeService';
 import type { QRCode } from '../../services/qrCodeService';
-import { PageHeader } from '../../components';
+import { PageHeader, ConfirmModal, useToast } from '../../components';
 
 interface BankAccount {
   id: string;
@@ -38,6 +38,7 @@ function mapBank(b: any): BankAccount {
 }
 
 export default function TenantPaymentSettings() {
+  const toast = useToast();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [qrCodes, setQRCodes] = useState<QRCode[]>([]);
   const [showBankModal, setShowBankModal] = useState(false);
@@ -45,6 +46,7 @@ export default function TenantPaymentSettings() {
   const [editingBank, setEditingBank] = useState<BankAccount | null>(null);
   const [editingQR, setEditingQR] = useState<QRCode | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'bank' | 'qr'; id: string } | null>(null);
 
   const [bankForm, setBankForm] = useState({
     bankName: '',
@@ -144,19 +146,12 @@ export default function TenantPaymentSettings() {
       closeBankModal();
     } catch (error) {
       console.error('Failed to save bank account:', error);
-      alert('Failed to save bank account. Please try again.');
+      toast.error('Gagal menyimpan rekening bank.');
     }
   };
 
-  const handleDeleteBank = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this bank account?')) return;
-    try {
-      await apiClient.delete(`/payment-methods/bank-accounts/${id}`);
-      setBankAccounts((prev) => prev.filter((b) => b.id !== id));
-    } catch (error) {
-      console.error('Failed to delete bank account:', error);
-      alert('Failed to delete bank account. Please try again.');
-    }
+  const handleDeleteBank = (id: string) => {
+    setDeleteTarget({ type: 'bank', id });
   };
 
   const openQRModal = (qr?: QRCode) => {
@@ -194,11 +189,11 @@ export default function TenantPaymentSettings() {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        toast.warning('Harap pilih file gambar');
         return;
       }
       if (file.size > 2 * 1024 * 1024) {
-        alert('File size must not exceed 2MB');
+        toast.warning('Ukuran file tidak boleh lebih dari 2MB');
         return;
       }
       setQRForm((prev) => ({ ...prev, imageFile: file }));
@@ -233,18 +228,27 @@ export default function TenantPaymentSettings() {
       closeQRModal();
     } catch (error) {
       console.error('Failed to save QR code:', error);
-      alert('Failed to save QR code. Please try again.');
+      toast.error('Gagal menyimpan QR code.');
     }
   };
 
-  const handleDeleteQR = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this QR code?')) return;
+  const handleDeleteQR = (id: string) => {
+    setDeleteTarget({ type: 'qr', id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await qrCodeService.deleteQRCode(id);
-      setQRCodes((prev) => prev.filter((q) => q.id !== id));
+      if (deleteTarget.type === 'bank') {
+        await apiClient.delete(`/payment-methods/bank-accounts/${deleteTarget.id}`);
+        setBankAccounts((prev) => prev.filter((b) => b.id !== deleteTarget.id));
+      } else {
+        await qrCodeService.deleteQRCode(deleteTarget.id);
+        setQRCodes((prev) => prev.filter((q) => q.id !== deleteTarget.id));
+      }
+      setDeleteTarget(null);
     } catch (error) {
-      console.error('Failed to delete QR code:', error);
-      alert('Failed to delete QR code. Please try again.');
+      console.error('Failed to delete:', error);
     }
   };
 
@@ -673,6 +677,21 @@ export default function TenantPaymentSettings() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title={deleteTarget?.type === 'bank' ? 'Hapus Rekening Bank' : 'Hapus QR Code'}
+        message={
+          deleteTarget?.type === 'bank'
+            ? 'Apakah kamu yakin ingin menghapus rekening bank ini? Tindakan ini tidak dapat dibatalkan.'
+            : 'Apakah kamu yakin ingin menghapus QR code ini? Tindakan ini tidak dapat dibatalkan.'
+        }
+        confirmText="Hapus"
+        cancelText="Batal"
+        type="danger"
+      />
     </div>
   );
 }

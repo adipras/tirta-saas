@@ -6,7 +6,7 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../services/apiClient';
-import { PageHeader } from '../../components';
+import { PageHeader, useToast } from '../../components';
 
 interface SubscriptionPlan {
   id: string;
@@ -28,6 +28,7 @@ interface SubscriptionPlan {
 }
 
 export default function SubscriptionPlans() {
+  const toast = useToast();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -133,7 +134,7 @@ export default function SubscriptionPlans() {
       closeModal();
     } catch (error: any) {
       console.error('Failed to save plan:', error);
-      alert(error.response?.data?.message || 'Failed to save plan');
+      toast.error(error.response?.data?.message || 'Gagal menyimpan plan');
     } finally {
       setSubmitting(false);
     }

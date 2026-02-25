@@ -4,11 +4,12 @@ import { paymentService } from '../../services/paymentService';
 import type { PaymentReceipt as PaymentReceiptType } from '../../types/payment';
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '../../types/payment';
 import { useReactToPrint } from 'react-to-print';
-import { PageHeader } from '../../components';
+import { PageHeader, useToast } from '../../components';
 
 const PaymentReceipt: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
   const [receipt, setReceipt] = useState<PaymentReceiptType | null>(null);
   const [loading, setLoading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -32,7 +33,7 @@ const PaymentReceipt: React.FC = () => {
         setReceipt(generated);
       } catch (genError) {
         console.error('Failed to generate receipt:', genError);
-        alert('Failed to load receipt');
+        toast.error('Gagal memuat struk pembayaran');
       }
     } finally {
       setLoading(false);

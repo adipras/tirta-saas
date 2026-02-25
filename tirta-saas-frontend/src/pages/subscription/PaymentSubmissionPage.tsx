@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
 import { subscriptionPaymentService } from '../../services/subscriptionPaymentService';
+import { useToast } from '../../components';
 
 interface PaymentState {
   plan: string;
@@ -15,6 +16,7 @@ const PaymentSubmissionPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const paymentState = location.state as PaymentState;
+  const toast = useToast();
 
   const [formData, setFormData] = useState({
     paymentDate: new Date().toISOString().split('T')[0],
@@ -106,7 +108,7 @@ const PaymentSubmissionPage = () => {
       );
 
       // Success - navigate to status page
-      alert(`Payment submitted successfully! Confirmation ID: ${response.confirmationId}`);
+      toast.success(`Payment submitted! Confirmation ID: ${response.confirmationId}`);
       navigate('/subscription/status');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to submit payment. Please try again.');

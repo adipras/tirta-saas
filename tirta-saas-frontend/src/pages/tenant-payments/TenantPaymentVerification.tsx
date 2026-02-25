@@ -7,7 +7,7 @@ import {
   EyeIcon,
 } from '@heroicons/react/24/outline';
 import paymentProofService, { type PaymentProof } from '../../services/paymentProofService';
-import { PageHeader } from '../../components';
+import { PageHeader, useToast } from '../../components';
 
 type PendingPayment = {
   id: string;
@@ -42,6 +42,7 @@ function mapProofToPayment(p: PaymentProof): PendingPayment {
 }
 
 export default function TenantPaymentVerification() {
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<PendingPayment[]>([]);
   const [filteredPayments, setFilteredPayments] = useState<PendingPayment[]>([]);
@@ -117,7 +118,7 @@ export default function TenantPaymentVerification() {
       closeModal();
     } catch (error) {
       console.error('Action failed:', error);
-      alert('Action failed. Please try again.');
+      toast.error('Aksi gagal. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }

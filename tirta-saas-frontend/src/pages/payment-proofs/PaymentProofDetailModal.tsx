@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import paymentProofService from '../../services/paymentProofService';
 import type { PaymentProof } from '../../services/paymentProofService';
+import { useToast } from '../../components';
 
 interface PaymentProofDetailModalProps {
   proof: PaymentProof | null;
@@ -13,6 +14,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState<'verify' | 'reject' | null>(null);
   const [notes, setNotes] = useState('');
@@ -28,7 +30,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
       await paymentProofService.verifyPaymentProof(proof.id, {
         notes: notes || undefined,
       });
-      alert('Payment verified successfully!');
+      toast.success('Pembayaran berhasil diverifikasi!');
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -50,7 +52,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
       await paymentProofService.rejectPaymentProof(proof.id, {
         rejection_reason: rejectionReason,
       });
-      alert('Payment rejected');
+      toast.success('Pembayaran berhasil ditolak');
       onSuccess();
       onClose();
     } catch (err: any) {
