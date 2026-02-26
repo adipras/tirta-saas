@@ -157,19 +157,28 @@
 
 ---
 
-## ⬜ Phase 4 — Halaman Customer Portal (BELUM)
+## ✅ Phase 4 — Halaman Customer Portal (SELESAI)
 
-Halaman customer portal (`/customer/...`) belum di-review untuk mobile-friendliness.
-Menggunakan `CustomerLayout.tsx` terpisah — perlu audit tersendiri.
+Halaman customer portal menggunakan dua sistem:
+1. **Standalone pages** (`/customer/dashboard`, `/customer/invoices`, dll.) — layout mandiri dengan header sendiri
+2. **CustomerLayout pages** (`/customer/profile/edit`, dll.) — pakai `CustomerLayout` + sidebar
 
-| File | Status |
-|---|---|
-| `pages/customer/CustomerDashboard.tsx` | ⬜ |
-| `pages/customer/CustomerInvoices.tsx` | ⬜ |
-| `pages/customer/CustomerPayments.tsx` | ⬜ |
-| `pages/customer/CustomerProfile.tsx` | ⬜ |
-| `pages/customer/CustomerUsage.tsx` | ⬜ |
-| `pages/customer/CustomerPayInvoice.tsx` | ⬜ |
+### CustomerLayout System
+| Komponen | Status | Keterangan |
+|---|---|---|
+| `CustomerSidebar.tsx` | ✅ | Mobile overlay drawer + XMarkIcon close button, close on nav click/Escape/backdrop |
+| `CustomerHeader.tsx` | ✅ | Hamburger button (Bars3Icon) mobile only + `onMenuClick` prop |
+| `CustomerLayout.tsx` | ✅ | Wire `sidebarOpen` state, `p-6` → `p-4 sm:p-6` |
+
+### Standalone Customer Pages (audit mobile-friendliness)
+| File | Status | Keterangan |
+|---|---|---|
+| `pages/customer/CustomerDashboard.tsx` | ✅ | Grid `grid-cols-1 md:grid-cols-3`, padding `px-4 sm:px-6 lg:px-8` — sudah responsif |
+| `pages/customer/CustomerInvoices.tsx` | ✅ | Grid `grid-cols-1 md:grid-cols-2`, responsive — sudah OK |
+| `pages/customer/CustomerPayments.tsx` | ✅ | Table `overflow-x-auto`, responsive — sudah OK |
+| `pages/customer/CustomerUsage.tsx` | ✅ | Grid `grid-cols-1 md:grid-cols-3`, `overflow-x-auto` — sudah OK |
+| `pages/customer/CustomerProfile.tsx` | ✅ | Grid `grid-cols-1 md:grid-cols-2` — sudah OK |
+| `pages/customer/CustomerPayInvoice.tsx` | ✅ | `max-w-3xl` centered, padding responsif — sudah OK |
 
 ---
 

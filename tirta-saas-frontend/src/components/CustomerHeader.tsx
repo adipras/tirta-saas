@@ -1,8 +1,12 @@
-import { BellIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, BellIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../hooks/redux';
 import { logoutAsync } from '../store/slices/authSlice';
 
-const CustomerHeader = () => {
+interface CustomerHeaderProps {
+  onMenuClick?: () => void;
+}
+
+const CustomerHeader = ({ onMenuClick }: CustomerHeaderProps) => {
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
 
@@ -14,6 +18,13 @@ const CustomerHeader = () => {
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center">
+          <button
+            onClick={onMenuClick}
+            className="md:hidden p-1 mr-2 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            aria-label="Open sidebar"
+          >
+            <Bars3Icon className="h-6 w-6" />
+          </button>
           <h2 className="text-lg font-semibold text-gray-900">Customer Portal</h2>
         </div>
         <div className="flex items-center space-x-4">

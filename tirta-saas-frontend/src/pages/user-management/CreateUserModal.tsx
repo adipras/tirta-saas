@@ -121,7 +121,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
           )}
 
           {!createdCredentials && (
-          <div>
+          <><div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Full Name *
             </label>
@@ -233,7 +233,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
               {loading ? 'Creating...' : 'Create User'}
             </button>
           </div>
-          )}
+          </> )}
         </form>
       </div>
     </div>
