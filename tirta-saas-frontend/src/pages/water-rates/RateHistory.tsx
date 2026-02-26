@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { DataTable } from '../../components/DataTable';
+import { PageHeader } from '../../components';
 import { waterRateService } from '../../services/waterRateService';
 import { subscriptionService } from '../../services/subscriptionService';
 import type { RateHistory } from '../../types/waterRate';
@@ -138,8 +139,8 @@ export default function RateHistory() {
   ];
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
+    <div className="space-y-6">
+      <div>
         <button
           onClick={() => navigate('/admin/water-rates')}
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
@@ -147,10 +148,7 @@ export default function RateHistory() {
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
           Back to Water Rates
         </button>
-        <h1 className="text-2xl font-semibold text-gray-900">Rate History</h1>
-        <p className="mt-2 text-sm text-gray-700">
-          View historical water rate changes over time
-        </p>
+        <PageHeader title="Rate History" subtitle="View historical water rate changes over time" />
       </div>
 
       {/* Filter */}

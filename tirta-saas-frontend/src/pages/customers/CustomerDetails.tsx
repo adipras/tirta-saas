@@ -13,6 +13,7 @@ import customerService from '../../services/customerService';
 import type { Customer } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+import { PageHeader } from '../../components';
 
 export default function CustomerDetails() {
   const navigate = useNavigate();
@@ -117,45 +118,46 @@ export default function CustomerDetails() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => navigate('/admin/customers')}
-            className="flex items-center text-sm text-gray-500 hover:text-gray-700"
-          >
-            <ArrowLeftIcon className="mr-2 h-4 w-4" />
-            Back to Customers
-          </button>
-        </div>
-        <div className="flex items-center space-x-3">
-          {/* Toggle Switch */}
-          <div className="flex items-center space-x-2">
-            <span className={`text-sm font-medium ${customer.is_active ? 'text-green-600' : 'text-gray-500'}`}>
-              {customer.is_active ? 'Active' : 'Inactive'}
-            </span>
+      <PageHeader
+        title={customer.name || 'Customer Details'}
+        subtitle={`Meter Number: ${customer.meter_number}`}
+        actions={
+          <div className="flex items-center space-x-3">
             <button
-              onClick={() => handleStatusChange(!customer.is_active)}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                customer.is_active ? 'bg-green-600' : 'bg-gray-300'
-              }`}
-              title={customer.is_active ? 'Click to deactivate' : 'Click to activate'}
+              onClick={() => navigate('/admin/customers')}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50"
             >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                  customer.is_active ? 'translate-x-6' : 'translate-x-1'
+              <ArrowLeftIcon className="mr-2 h-4 w-4" />
+              Back
+            </button>
+            <div className="flex items-center space-x-2">
+              <span className={`text-sm font-medium ${customer.is_active ? 'text-green-600' : 'text-gray-500'}`}>
+                {customer.is_active ? 'Active' : 'Inactive'}
+              </span>
+              <button
+                onClick={() => handleStatusChange(!customer.is_active)}
+                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  customer.is_active ? 'bg-green-600' : 'bg-gray-300'
                 }`}
-              />
+                title={customer.is_active ? 'Click to deactivate' : 'Click to activate'}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                    customer.is_active ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            <button
+              onClick={() => navigate(`/admin/customers/${customer.id}/edit`)}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <PencilIcon className="mr-2 h-4 w-4" />
+              Edit
             </button>
           </div>
-          <button
-            onClick={() => navigate(`/admin/customers/${customer.id}/edit`)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <PencilIcon className="mr-2 h-4 w-4" />
-            Edit
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
         <div className="px-4 py-5 sm:px-6">

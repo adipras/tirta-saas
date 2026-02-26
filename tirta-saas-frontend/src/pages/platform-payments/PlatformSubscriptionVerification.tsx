@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { platformSubscriptionService } from '../../services/platformSubscriptionService';
 import type { SubscriptionPayment } from '../../services/platformSubscriptionService';
-import { useToast } from '../../components';
+import { useToast, PageHeader } from '../../components';
 
 export default function PlatformSubscriptionVerification() {
   const toast = useToast();
@@ -144,11 +144,7 @@ export default function PlatformSubscriptionVerification() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Subscription Payment Verification</h1>
-        <p className="text-gray-600 mt-1">Verify tenant subscription payment confirmations</p>
-      </div>
+      <PageHeader title="Subscription Payment Verification" subtitle="Verify tenant subscription payment confirmations" />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">

@@ -6,6 +6,7 @@ import customerService from '../../services/customerService';
 import type { CreateCustomerDto, UpdateCustomerDto, SubscriptionType } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+import { PageHeader } from '../../components';
 
 interface CustomerFormData {
   meter_number: string;
@@ -121,32 +122,21 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => navigate('/admin/customers')}
-          className="flex items-center text-sm text-gray-500 hover:text-gray-700"
-        >
-          <ArrowLeftIcon className="mr-2 h-4 w-4" />
-          Back to Customers
-        </button>
-      </div>
+      <PageHeader
+        title={mode === 'create' ? 'Add New Customer' : 'Edit Customer'}
+        subtitle={mode === 'create' ? 'Register a new customer in the system.' : 'Update customer information and settings.'}
+        actions={
+          <button
+            onClick={() => navigate('/admin/customers')}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50"
+          >
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
+            Back to Customers
+          </button>
+        }
+      />
 
-      <div className="md:grid md:grid-cols-3 md:gap-6">
-        <div className="md:col-span-1">
-          <div className="px-4 sm:px-0">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">
-              {mode === 'create' ? 'Add New Customer' : 'Edit Customer'}
-            </h3>
-            <p className="mt-1 text-sm text-gray-600">
-              {mode === 'create' 
-                ? 'Register a new customer in the system.'
-                : 'Update customer information and settings.'
-              }
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5 md:mt-0 md:col-span-2">
+        <div className="mt-5 md:mt-0">
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="shadow sm:rounded-md sm:overflow-hidden">
               <div className="px-4 py-5 bg-white space-y-6 sm:p-6">
@@ -309,7 +299,6 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
             </div>
           </form>
         </div>
-      </div>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import {
   CheckCircleIcon,
   ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
-import { useToast } from '../../../components';
+import { useToast, PageHeader } from '../../../components';
 
 interface PreviewInvoice {
   invoice_number: string;
@@ -122,12 +122,7 @@ const BulkInvoiceGeneration = () => {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Bulk Invoice Generation</h1>
-        <p className="mt-2 text-sm text-gray-700">
-          Generate monthly invoices for all customers in bulk
-        </p>
-      </div>
+      <PageHeader title="Bulk Invoice Generation" subtitle="Generate monthly invoices for all customers in bulk" />
 
       {/* Selection Form */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
