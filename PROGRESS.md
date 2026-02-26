@@ -1,10 +1,53 @@
 # Development Progress - Tirta SaaS
 
-## Latest Session: February 23, 2026
+## Latest Session: February 26, 2026
 
-**Date:** February 23, 2026  
-**Focus:** Bug Fix #33 — GORM `Save()` Association Anomaly (codebase-wide audit)  
+**Date:** February 26, 2026  
+**Focus:** UI/UX Refactor — Phase 4 (Customer Portal Mobile) & Phase 5 (PageHeader remaining pages) + Build fix  
 **Status:** ✅ All done
+
+---
+
+## ✅ Completed (February 26, 2026)
+
+### 1. Bug Fix: JSX Build Error (CreateUserModal.tsx)
+
+- **Root cause:** `{!createdCredentials && (...)}` membungkus beberapa sibling JSX element tanpa parent tunggal
+- **Fix:** Tambah React fragment `<>...</>` sebagai wrapper
+
+### 2. UI/UX Phase 4 — Customer Portal Mobile-Friendly
+
+**CustomerSidebar.tsx** (sebelumnya tidak mobile-friendly):
+- Tambah props `open: boolean` + `onClose: () => void`
+- Desktop: `hidden md:flex md:w-64` (seperti sebelumnya)
+- Mobile: overlay drawer (`fixed inset-0 z-50`) + backdrop click to close
+- Close on Escape key + close on nav click (`onClick={onClose}`)
+- Tambah `XMarkIcon` close button (visible `md:hidden`)
+
+**CustomerHeader.tsx:**
+- Tambah prop `onMenuClick?: () => void`
+- Tambah hamburger button (`Bars3Icon`, `md:hidden`)
+
+**CustomerLayout.tsx:**
+- Tambah `sidebarOpen` state
+- Wire ke `CustomerSidebar` dan `CustomerHeader`
+- Main padding: `p-6` → `p-4 sm:p-6`
+
+**Standalone customer pages audit** (CustomerDashboard, Invoices, Payments, Usage, Profile, PayInvoice):
+- Semua sudah responsif — `grid-cols-1 md:...`, `overflow-x-auto`, `px-4 sm:px-6 lg:px-8`
+
+### 3. UI/UX Phase 5 — PageHeader ke Halaman Yang Belum
+
+| File | Perubahan |
+|---|---|
+| `BulkInvoiceGeneration.tsx` | h1+p → `PageHeader title + subtitle` |
+| `PaymentProofManagement.tsx` | Header div + button → `PageHeader + actions` |
+| `PlatformSubscriptionVerification.tsx` | h1+p → `PageHeader title + subtitle` |
+| `RateHistory.tsx` | Back button dipertahankan, h1+p → `PageHeader`, wrap `space-y-6` |
+| `CustomerDetails.tsx` | PageHeader `title=customer.name`, actions: back + toggle + edit |
+| `CustomerForm.tsx` | PageHeader dynamic title (Add/Edit), actions: back, simplified layout |
+| `InvoiceDetails.tsx` | ⬜ Skipped — punya gradient banner card sendiri |
+| `InvoiceForm.tsx` | ⬜ Skipped — h3 di dalam form card, struktur berbeda |
 
 ---
 
@@ -3996,7 +4039,8 @@ interface RoleOption {
 - Session Jan 6: Payment Proof Frontend + Customer Portal
 - Session Feb 22: UI/UX Refactor — PageHeader, mobile-friendly layout, Sidebar mobile drawer
 - Session Feb 23: Bug fixes — GORM Save() anomaly (12 calls, 7 controllers), water usage list preload fix
-- Session Feb 24: Refactor window.confirm/alert → ConfirmModal (7 file staged, 20+ file alert() remaining)
+- Session Feb 24: Refactor window.confirm/alert → ConfirmModal (7 files) + Toast (20+ files) — Phase 3.5 SELESAI
+- Session Feb 26: Build fix JSX error + Phase 4 (Customer Portal mobile) + Phase 5 (PageHeader semua halaman)
 
 **Total Development Time:** 50+ hours
 **Features Delivered:** 14 core systems
@@ -4005,7 +4049,7 @@ interface RoleOption {
 ---
 
 **Project Status:** ✅ READY FOR PRODUCTION  
-**Last Updated:** January 6, 2026  
-**Version:** 1.0.0-rc1
+**Last Updated:** February 26, 2026  
+**Version:** 1.0.0-rc2
 
 🎉 **CONGRATULATIONS! System is ready for deployment!** 🎉

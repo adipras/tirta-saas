@@ -182,20 +182,18 @@ Halaman customer portal menggunakan dua sistem:
 
 ---
 
-## ⬜ Phase 5 — Halaman Yang Belum Ada PageHeader
+## ✅ Phase 5 — Halaman Yang Belum Ada PageHeader (SELESAI)
 
-Halaman yang masih pakai h1 inline (belum urgent, skipped karena struktur berbeda):
-
-| File | Catatan |
-|---|---|
-| `pages/customers/CustomerDetails.tsx` | Detail view — perlu custom header |
-| `pages/customers/CustomerForm.tsx` | Form — perlu custom header |
-| `pages/invoices/InvoiceDetails.tsx` | Detail view — perlu custom header |
-| `pages/invoices/InvoiceForm.tsx` | Form |
-| `pages/invoices/bulk-generation/BulkInvoiceGeneration.tsx` | Halaman baru |
-| `pages/payment-proofs/PaymentProofManagement.tsx` | Admin proof management |
-| `pages/water-rates/RateHistory.tsx` | History view |
-| `pages/platform-payments/PlatformSubscriptionVerification.tsx` | Platform page |
+| File | Status | Keterangan |
+|---|---|---|
+| `pages/invoices/bulk-generation/BulkInvoiceGeneration.tsx` | ✅ | PageHeader title + subtitle |
+| `pages/payment-proofs/PaymentProofManagement.tsx` | ✅ | PageHeader + actions (Submit button) |
+| `pages/platform-payments/PlatformSubscriptionVerification.tsx` | ✅ | PageHeader title + subtitle |
+| `pages/water-rates/RateHistory.tsx` | ✅ | Back button + PageHeader, wrap space-y-6 |
+| `pages/customers/CustomerDetails.tsx` | ✅ | PageHeader title=customer.name, actions: back+toggle+edit |
+| `pages/customers/CustomerForm.tsx` | ✅ | PageHeader dynamic title, actions: back button, simplified layout |
+| `pages/invoices/InvoiceDetails.tsx` | ⬜ Skipped | Punya gradient banner card sendiri — PageHeader redundant |
+| `pages/invoices/InvoiceForm.tsx` | ⬜ Skipped | h3 di dalam form card — struktur berbeda |
 
 ---
 
