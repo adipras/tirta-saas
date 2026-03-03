@@ -40,6 +40,6 @@
 31. ✅ http://127.0.0.1:5174/admin/subscriptions > Matric Card "Active Types" selalu 0 (tidak ada kolom active di DB) - FIXED: Replaced "Active Types" metric with "Avg Monthly Fee" yang dihitung dari data yang ada
 32. ✅ http://127.0.0.1:5174/admin/settings | Bank Account berhasil dibuat tapi data tidak muncul (tenant_id tersimpan sebagai 00000000) - FIXED: payment_method_controller.go semua method pakai c.GetString("tenant_id") → return empty string karena middleware simpan sebagai uuid.UUID. Fix: ganti ke helpers.RequireTenantID(c) di semua 10 method (bank accounts + QR codes)
 33. ✅ BACKEND: Ketika create/update customer masih menambahkan data Subscription Types baru (anomali) - FIXED: 3 lokasi Save(&customer) diganti: DeactivateCustomer→Update("is_active",false), UpdateCustomerProfile→Select().Updates(), ChangeCustomerPassword→Update("password",hash)
-34. ⬜ UI/UX: Tampilan halaman index (list data) tidak konsisten - fitur filter dan search tidak seragam antar halaman
+34. ✅ UI/UX: Tampilan halaman index (list data) tidak konsisten - FIXED: InvoiceList filter implemented (search/status/type), WaterRateList + UserManagementList standardized (Clear button, role filter, consistent card layout)
 35. ⬜ UI/UX: Delete data sebaiknya menggunakan modal konfirmasi bukan 2x klik (double click)
 36. ⬜ UI/UX: Penggunaan icon pada metric card yang terkesan asal - perlu disesuaikan agar relevan dengan konteks datanya
