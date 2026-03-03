@@ -18,6 +18,7 @@ type InvoiceResponse struct {
 	TotalAmount   float64          `json:"total_amount"`
 	TotalPaid     float64          `json:"total_paid"`
 	IsPaid        bool             `json:"is_paid"`
+	PaymentStatus string           `json:"payment_status"`
 	Type          string           `json:"type"`
 	DueDate       *time.Time       `json:"due_date,omitempty"`
 	CreatedAt     time.Time        `json:"created_at"`

@@ -6,6 +6,7 @@ import {
   TrashIcon,
   CheckCircleIcon,
   XCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { DataTable } from '../../components/DataTable';
 import { waterRateService } from '../../services/waterRateService';
@@ -224,7 +225,7 @@ export default function WaterRateList() {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Subscription Type
@@ -257,6 +258,18 @@ export default function WaterRateList() {
               <option value="false">Inactive</option>
             </select>
           </div>
+
+          {(filterSubscription !== '' || filterActive !== 'all') && (
+            <div>
+              <button
+                onClick={() => { setFilterSubscription(''); setFilterActive('all'); }}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50"
+              >
+                <XMarkIcon className="h-4 w-4 mr-1" />
+                Clear Filters
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

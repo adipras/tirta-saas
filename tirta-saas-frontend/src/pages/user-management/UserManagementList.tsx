@@ -5,6 +5,7 @@ import {
   PencilIcon,
   TrashIcon,
   UserGroupIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { tenantUserService } from '../../services/tenantUserService';
 import type { TenantUser } from '../../services/tenantUserService';
@@ -17,29 +18,39 @@ export default function UserManagementList() {
   const [filteredUsers, setFilteredUsers] = useState<TenantUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<TenantUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
 
+  const hasActiveFilters = searchTerm !== '' || filterRole !== '';
+
   useEffect(() => {
     loadUsers();
   }, []);
 
   useEffect(() => {
+    let filtered = users;
     if (searchTerm) {
-      const filtered = users.filter(
+      filtered = filtered.filter(
         (user) =>
           user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.role.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredUsers(filtered);
-    } else {
-      setFilteredUsers(users);
     }
-  }, [searchTerm, users]);
+    if (filterRole) {
+      filtered = filtered.filter((user) => user.role === filterRole);
+    }
+    setFilteredUsers(filtered);
+  }, [searchTerm, filterRole, users]);
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterRole('');
+  };
 
   const loadUsers = async () => {
     try {
@@ -167,17 +178,42 @@ export default function UserManagementList() {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by name, email, or role..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            >
+              <option value="">All Roles</option>
+              <option value="meter_reader">Meter Reader</option>
+              <option value="finance">Finance</option>
+              <option value="service">Service</option>
+            </select>
+          </div>
+          {hasActiveFilters && (
+            <div>
+              <button
+                onClick={handleClearFilters}
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50"
+              >
+                <XMarkIcon className="h-4 w-4 mr-1" />
+                Clear Filters
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

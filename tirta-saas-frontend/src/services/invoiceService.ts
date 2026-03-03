@@ -7,7 +7,8 @@ import type { PaginatedResponse } from './customerService';
 // For now, we import it.
 
 export interface InvoiceFilters {
-  status?: 'paid' | 'unpaid' | 'overdue';
+  status?: 'paid' | 'unpaid' | 'overdue' | 'partial';
+  type?: 'monthly' | 'registration';
   customerId?: string;
   search?: string;
 }
@@ -21,7 +22,10 @@ class InvoiceService {
     const params = {
       page,
       limit,
-      ...filters,
+      status: filters?.status,
+      type: filters?.type,
+      customer_id: filters?.customerId,
+      search: filters?.search,
     };
 
     const response = await apiClient.get<any>(
@@ -49,7 +53,7 @@ class InvoiceService {
       totalAmount: inv.total_amount || 0,
       amountPaid: inv.total_paid || 0,
       amountDue: (inv.total_amount || 0) - (inv.total_paid || 0),
-      status: inv.is_paid ? 'paid' : 'unpaid',
+      status: (inv.payment_status as Invoice['status']) || (inv.is_paid ? 'paid' : 'unpaid'),
       issueDate: inv.created_at || '',
       dueDate: inv.due_date || '',
       createdAt: inv.created_at || '',
@@ -86,7 +90,7 @@ class InvoiceService {
       totalAmount: inv.total_amount || 0,
       amountPaid: inv.total_paid || 0,
       amountDue: (inv.total_amount || 0) - (inv.total_paid || 0),
-      status: inv.is_paid ? 'paid' : 'unpaid',
+      status: (inv.payment_status as Invoice['status']) || (inv.is_paid ? 'paid' : 'unpaid'),
       issueDate: inv.created_at || '',
       dueDate: inv.due_date || '',
       createdAt: inv.created_at || '',

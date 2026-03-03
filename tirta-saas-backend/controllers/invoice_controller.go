@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/helpers"
@@ -228,7 +229,22 @@ func GetInvoices(c *gin.Context) {
 	query := config.DB.Preload("Customer")
 	
 	if hasSpecificTenant {
-		query = query.Where("tenant_id = ?", tenantID)
+		query = query.Where("invoices.tenant_id = ?", tenantID)
+	}
+
+	// Apply query filters
+	if status := c.Query("status"); status != "" {
+		query = query.Where("invoices.payment_status = ?", strings.ToUpper(status))
+	}
+	if invoiceType := c.Query("type"); invoiceType != "" {
+		query = query.Where("invoices.type = ?", invoiceType)
+	}
+	if customerID := c.Query("customer_id"); customerID != "" {
+		query = query.Where("invoices.customer_id = ?", customerID)
+	}
+	if search := c.Query("search"); search != "" {
+		query = query.Joins("LEFT JOIN customers ON customers.id = invoices.customer_id").
+			Where("invoices.invoice_number LIKE ? OR customers.name LIKE ?", "%"+search+"%", "%"+search+"%")
 	}
 	
 	if err := query.Find(&invoices).Error; err != nil {
@@ -250,6 +266,7 @@ func GetInvoices(c *gin.Context) {
 			TotalAmount:   invoice.TotalAmount,
 			TotalPaid:     invoice.TotalPaid,
 			IsPaid:        invoice.IsPaid,
+			PaymentStatus: strings.ToLower(string(invoice.PaymentStatus)),
 			Type:          invoice.Type,
 			DueDate:       invoice.DueDate,
 			CreatedAt:     invoice.CreatedAt,

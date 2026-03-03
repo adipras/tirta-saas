@@ -4,11 +4,12 @@ import {
   PlusIcon,
   EyeIcon,
   ArrowDownTrayIcon,
-  FunnelIcon,
   DocumentTextIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { DataTable } from '../../components/DataTable';
-import invoiceService from '../../services/invoiceService';
+import invoiceService, { type InvoiceFilters } from '../../services/invoiceService';
 import type { Invoice } from '../../types/invoice';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
@@ -21,11 +22,20 @@ export default function InvoiceList() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<InvoiceFilters['status'] | ''>('');
+  const [filterType, setFilterType] = useState<InvoiceFilters['type'] | ''>('');
+
+  const hasActiveFilters = searchTerm !== '' || filterStatus !== '' || filterType !== '';
 
   const fetchInvoices = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await invoiceService.getInvoices(currentPage, 10);
+      const response = await invoiceService.getInvoices(currentPage, 100, {
+        search: searchTerm || undefined,
+        status: filterStatus || undefined,
+        type: filterType || undefined,
+      });
       setInvoices(response.data);
     } catch {
       dispatch(addNotification({
@@ -35,11 +45,17 @@ export default function InvoiceList() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, dispatch]);
+  }, [currentPage, searchTerm, filterStatus, filterType, dispatch]);
 
   useEffect(() => {
     fetchInvoices();
   }, [fetchInvoices]);
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterStatus('');
+    setFilterType('');
+  };
 
   const getStatusBadge = (status: Invoice['status']) => {
     const statusConfig: Record<Invoice['status'], { color: string }> = {
@@ -130,34 +146,77 @@ export default function InvoiceList() {
         actions={
           <div className="flex items-center space-x-3">
             <button
-            onClick={() => navigate('/admin/invoices/bulk-generate')}
-            className="inline-flex items-center px-4 py-2 border border-blue-600 rounded-md shadow-sm text-sm font-medium text-blue-600 bg-white hover:bg-blue-50"
-          >
-            <DocumentTextIcon className="mr-2 h-4 w-4" />
-            Bulk Generate
-          </button>
-          <button
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <FunnelIcon className="mr-2 h-4 w-4" />
-            Filters
-          </button>
-          <button
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
-            Export
-          </button>
-          <button
-            onClick={() => navigate('/admin/invoices/new')}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-          >
-            <PlusIcon className="mr-2 h-4 w-4" />
-            Create Invoice
-          </button>
+              onClick={() => navigate('/admin/invoices/bulk-generate')}
+              className="inline-flex items-center px-4 py-2 border border-blue-600 rounded-md shadow-sm text-sm font-medium text-blue-600 bg-white hover:bg-blue-50"
+            >
+              <DocumentTextIcon className="mr-2 h-4 w-4" />
+              Bulk Generate
+            </button>
+            <button
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
+              Export
+            </button>
+            <button
+              onClick={() => navigate('/admin/invoices/new')}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <PlusIcon className="mr-2 h-4 w-4" />
+              Create Invoice
+            </button>
           </div>
         }
       />
+
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search invoice # or customer..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as InvoiceFilters['status'] | '')}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            >
+              <option value="">All Status</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="paid">Paid</option>
+              <option value="overdue">Overdue</option>
+              <option value="partial">Partial</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as InvoiceFilters['type'] | '')}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            >
+              <option value="">All Types</option>
+              <option value="monthly">Monthly</option>
+              <option value="registration">Registration</option>
+            </select>
+            {hasActiveFilters && (
+              <button
+                onClick={handleClearFilters}
+                className="flex-shrink-0 inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50"
+                title="Clear filters"
+              >
+                <XMarkIcon className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="bg-white shadow rounded-lg">
         <DataTable
