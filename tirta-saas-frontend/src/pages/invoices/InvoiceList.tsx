@@ -14,6 +14,7 @@ import type { Invoice } from '../../types/invoice';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader } from '../../components';
+import { exportToCSV, exportToExcel, formatIDR } from '../../utils/exportUtils';
 
 export default function InvoiceList() {
   const navigate = useNavigate();
@@ -55,6 +56,27 @@ export default function InvoiceList() {
     setSearchTerm('');
     setFilterStatus('');
     setFilterType('');
+  };
+
+  const handleExport = (format: 'csv' | 'excel') => {
+    const rows = invoices.map((inv) => ({
+      'Invoice #': inv.invoiceNumber,
+      'Customer': inv.customerName,
+      'Type': inv.billingPeriod ? 'Monthly' : 'Registration',
+      'Billing Period': inv.billingPeriod || '',
+      'Amount (IDR)': inv.totalAmount,
+      'Amount': formatIDR(inv.totalAmount),
+      'Amount Due (IDR)': inv.amountDue,
+      'Amount Due': formatIDR(inv.amountDue),
+      'Due Date': inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('id-ID') : '',
+      'Status': inv.status,
+    }));
+    const baseName = `invoices_${new Date().toISOString().split('T')[0]}`;
+    if (format === 'csv') {
+      exportToCSV(rows, `${baseName}.csv`);
+    } else {
+      exportToExcel([{ sheetName: 'Invoices', data: rows }], `${baseName}.xlsx`);
+    }
   };
 
   const getStatusBadge = (status: Invoice['status']) => {
@@ -153,10 +175,18 @@ export default function InvoiceList() {
               Bulk Generate
             </button>
             <button
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              onClick={() => handleExport('csv')}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
-              <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
-              Export
+              <ArrowDownTrayIcon className="mr-1 h-4 w-4" />
+              CSV
+            </button>
+            <button
+              onClick={() => handleExport('excel')}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <ArrowDownTrayIcon className="mr-1 h-4 w-4" />
+              Excel
             </button>
             <button
               onClick={() => navigate('/admin/invoices/new')}

@@ -16,14 +16,14 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
-import { PageHeader, useToast } from '../../components';
+import { PageHeader } from '../../components';
+import { exportToCSV, exportToExcel, formatIDR } from '../../utils/exportUtils';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
 const RevenueReport: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<RevenueReportType | null>(null);
   const [filters, setFilters] = useState({
@@ -47,17 +47,34 @@ const RevenueReport: React.FC = () => {
     }
   };
 
-  const handleExport = async (format: 'csv' | 'excel') => {
-    try {
-      const blob = await reportService.exportReport('revenue', {
-        format,
-        filters,
-      });
-      const filename = `revenue_report_${filters.startDate}_${filters.endDate}.${format === 'csv' ? 'csv' : 'xlsx'}`;
-      reportService.downloadFile(blob, filename);
-    } catch (error) {
-      console.error('Failed to export report:', error);
-      toast.error('Gagal mengekspor laporan');
+  const handleExport = (format: 'csv' | 'excel') => {
+    if (!reportData) return;
+    const baseName = `revenue_report_${filters.startDate}_${filters.endDate}`;
+
+    const monthlyRows = (reportData.monthlyRevenue || []).map((item) => ({
+      'Month': item.month,
+      'Year': item.year,
+      'Revenue (IDR)': item.revenue,
+      'Revenue': formatIDR(item.revenue),
+      'Invoices': item.invoices,
+    }));
+    const byTypeRows = (reportData.revenueBySubscriptionType || []).map((item) => ({
+      'Subscription Type': item.subscriptionType,
+      'Revenue (IDR)': item.revenue,
+      'Revenue': formatIDR(item.revenue),
+      'Percentage': `${item.percentage.toFixed(1)}%`,
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(monthlyRows, `${baseName}_monthly.csv`);
+    } else {
+      exportToExcel(
+        [
+          { sheetName: 'Monthly Revenue', data: monthlyRows },
+          { sheetName: 'By Subscription Type', data: byTypeRows },
+        ],
+        `${baseName}.xlsx`
+      );
     }
   };
 

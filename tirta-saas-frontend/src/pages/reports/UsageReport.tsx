@@ -15,12 +15,12 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { ArrowDownTrayIcon, BeakerIcon } from '@heroicons/react/24/outline';
-import { PageHeader, useToast } from '../../components';
+import { PageHeader } from '../../components';
+import { exportToCSV, exportToExcel } from '../../utils/exportUtils';
 
 const UsageReport: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<UsageReportType | null>(null);
   const [filters, setFilters] = useState({
@@ -44,17 +44,35 @@ const UsageReport: React.FC = () => {
     }
   };
 
-  const handleExport = async (format: 'csv' | 'excel') => {
-    try {
-      const blob = await reportService.exportReport('usage', {
-        format,
-        filters,
-      });
-      const filename = `usage_report_${filters.startDate}_${filters.endDate}.${format === 'csv' ? 'csv' : 'xlsx'}`;
-      reportService.downloadFile(blob, filename);
-    } catch (error) {
-      console.error('Failed to export report:', error);
-      toast.error('Gagal mengekspor laporan');
+  const handleExport = (format: 'csv' | 'excel') => {
+    if (!reportData) return;
+    const baseName = `usage_report_${filters.startDate}_${filters.endDate}`;
+
+    const trendsRows = (reportData.usageTrends || []).map((item) => ({
+      'Month': item.month,
+      'Year': item.year,
+      'Total Usage (m³)': item.totalUsage,
+      'Average Usage (m³)': item.averageUsage.toFixed(2),
+      'Customer Count': item.customerCount,
+    }));
+    const highRows = (reportData.highConsumers || []).map((item) => ({
+      'Customer': item.customerName,
+      'Meter #': item.meterNumber,
+      'Usage (m³)': item.usage,
+      'Month': item.month,
+      'Year': item.year,
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(trendsRows, `${baseName}_trends.csv`);
+    } else {
+      exportToExcel(
+        [
+          { sheetName: 'Usage Trends', data: trendsRows },
+          { sheetName: 'High Consumers', data: highRows },
+        ],
+        `${baseName}.xlsx`
+      );
     }
   };
 

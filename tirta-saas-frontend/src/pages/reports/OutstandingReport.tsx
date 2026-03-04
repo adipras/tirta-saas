@@ -12,7 +12,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { ArrowDownTrayIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { PageHeader, useToast } from '../../components';
+import { PageHeader } from '../../components';
+import { exportToCSV, exportToExcel, formatIDR } from '../../utils/exportUtils';
 
 interface AgingBucket {
   range: string;
@@ -40,7 +41,6 @@ interface OutstandingReportData {
 const OutstandingReport: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<OutstandingReportData | null>(null);
   const [filters, setFilters] = useState({
@@ -64,17 +64,37 @@ const OutstandingReport: React.FC = () => {
     }
   };
 
-  const handleExport = async (format: 'csv' | 'excel') => {
-    try {
-      const blob = await reportService.exportReport('outstanding', {
-        format,
-        filters,
-      });
-      const filename = `outstanding_report_${filters.startDate}_${filters.endDate}.${format === 'csv' ? 'csv' : 'xlsx'}`;
-      reportService.downloadFile(blob, filename);
-    } catch (error) {
-      console.error('Failed to export report:', error);
-      toast.error('Gagal mengekspor laporan');
+  const handleExport = (format: 'csv' | 'excel') => {
+    if (!reportData) return;
+    const baseName = `outstanding_report_${filters.startDate}_${filters.endDate}`;
+
+    const invoiceRows = (reportData.outstandingInvoices || []).map((item) => ({
+      'Customer': item.customerName,
+      'Invoice #': item.invoiceNumber,
+      'Invoice Date': item.invoiceDate,
+      'Due Date': item.dueDate,
+      'Amount (IDR)': item.amount,
+      'Amount': formatIDR(item.amount),
+      'Days Overdue': item.daysOverdue,
+    }));
+    const agingRows = (reportData.agingBuckets || []).map((item) => ({
+      'Aging Range': item.range,
+      'Count': item.count,
+      'Amount (IDR)': item.amount,
+      'Amount': formatIDR(item.amount),
+      'Percentage': `${item.percentage.toFixed(1)}%`,
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(invoiceRows, `${baseName}_invoices.csv`);
+    } else {
+      exportToExcel(
+        [
+          { sheetName: 'Outstanding Invoices', data: invoiceRows },
+          { sheetName: 'Aging Analysis', data: agingRows },
+        ],
+        `${baseName}.xlsx`
+      );
     }
   };
 

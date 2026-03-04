@@ -16,6 +16,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { PageHeader } from '../../components';
+import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { exportToCSV, exportToExcel, formatIDR } from '../../utils/exportUtils';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
@@ -42,6 +44,43 @@ const CustomerAnalytics: React.FC = () => {
       console.error('Failed to fetch customer analytics:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = (format: 'csv' | 'excel') => {
+    if (!reportData) return;
+    const baseName = `customer_analytics_${filters.startDate}_${filters.endDate}`;
+
+    const topRows = (reportData.topCustomers || []).map((item) => ({
+      'Rank': item.rank,
+      'Customer': item.customerName,
+      'Total Usage (m³)': item.totalUsage,
+      'Total Revenue (IDR)': item.totalRevenue,
+      'Total Revenue': formatIDR(item.totalRevenue),
+    }));
+    const growthRows = (reportData.customerGrowth || []).map((item) => ({
+      'Month': item.month,
+      'Year': item.year,
+      'New Customers': item.newCustomers,
+      'Total Customers': item.totalCustomers,
+    }));
+    const statusRows = (reportData.statusDistribution || []).map((item) => ({
+      'Status': item.status,
+      'Count': item.count,
+      'Percentage': `${item.percentage.toFixed(1)}%`,
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(topRows, `${baseName}_top_customers.csv`);
+    } else {
+      exportToExcel(
+        [
+          { sheetName: 'Top Customers', data: topRows },
+          { sheetName: 'Customer Growth', data: growthRows },
+          { sheetName: 'Status Distribution', data: statusRows },
+        ],
+        `${baseName}.xlsx`
+      );
     }
   };
 
@@ -73,12 +112,30 @@ const CustomerAnalytics: React.FC = () => {
         title="Customer Analytics"
         subtitle="Comprehensive customer insights and trends"
         actions={
-          <button
-            onClick={() => navigate('/admin/reports')}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-          >
-            Back
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handleExport('csv')}
+              disabled={!reportData}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
+              CSV
+            </button>
+            <button
+              onClick={() => handleExport('excel')}
+              disabled={!reportData}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            >
+              <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
+              Excel
+            </button>
+            <button
+              onClick={() => navigate('/admin/reports')}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+            >
+              Back
+            </button>
+          </div>
         }
       />
 
