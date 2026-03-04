@@ -135,17 +135,24 @@
 
 ---
 
+### 17. Export Data
+- ✅ Export CSV — semua halaman report (Revenue, Payment, Outstanding, Usage, Customer Analytics)
+- ✅ Export Excel (.xlsx) — semua halaman report dengan multi-sheet
+- ✅ Export CSV/Excel — Invoice List (berdasarkan filter aktif)
+- ✅ Client-side export menggunakan SheetJS (xlsx) — tidak butuh backend endpoint
+
+---
+
 ## ⏳ FUTURE ENHANCEMENTS
 
 ### High Priority
 1. **Email Notifications** - Trial expiry, invoice reminder, payment confirmation
 2. **Bulk Customer Import** - CSV/Excel upload dengan validasi
-3. **Export to Excel/PDF** - Untuk reports & invoice list
 
 ### Medium Priority
-4. **WhatsApp/SMS Notifications**
-5. **Advanced Analytics** - Charts, forecasting
-6. **Mobile Meter Reading App**
+3. **WhatsApp/SMS Notifications**
+4. **Advanced Analytics** - Charts, forecasting
+5. **Mobile Meter Reading App**
 
 ### Low Priority / Nice to Have
 7. Mobile App for Customers
@@ -160,9 +167,11 @@
 **Core Features:** ✅ Production Ready  
 **UI/UX Refactor:** ✅ Phases 1–5 Selesai  
 **Active Issues:** 0  
-**Future Enhancements (High):** Export Excel/PDF, Bulk Customer Import, Email Notifications  
+**Future Enhancements (High):** Bulk Customer Import, Email Notifications  
 
-**Overall System Readiness:** ~93% (MVP siap deployment)
+**Overall System Readiness:** ~95% (MVP siap deployment)
+
+**Last Updated:** March 3, 2026
 
 **Last Updated:** February 26, 2026
 ---
