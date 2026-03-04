@@ -3,8 +3,9 @@ import {
   UserGroupIcon,
   DocumentTextIcon,
   ExclamationCircleIcon,
-  BeakerIcon,
+  ChartBarIcon,
   BanknotesIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { reportService } from '../../services/reportService';
@@ -92,7 +93,7 @@ export default function TenantAdminDashboard() {
                 {loading ? '...' : `${(data?.totalUsageM3 ?? 0).toLocaleString('id-ID')} m³`}
               </p>
             </div>
-            <div className="bg-cyan-500 p-3 rounded-lg"><BeakerIcon className="h-6 w-6 text-white" /></div>
+            <div className="bg-cyan-500 p-3 rounded-lg"><ChartBarIcon className="h-6 w-6 text-white" /></div>
           </div>
         </div>
 
@@ -124,7 +125,7 @@ export default function TenantAdminDashboard() {
             onClick={() => navigate('/admin/usage/create')}
             className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-cyan-500 hover:bg-cyan-50 transition-colors"
           >
-            <BeakerIcon className="h-8 w-8 text-cyan-600 mb-2" />
+            <PencilSquareIcon className="h-8 w-8 text-cyan-600 mb-2" />
             <span className="text-sm font-medium text-gray-900">Catat Pemakaian</span>
           </button>
           <button
