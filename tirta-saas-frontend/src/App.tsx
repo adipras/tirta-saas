@@ -21,6 +21,7 @@ import CustomerPayInvoiceNew from './pages/customer/CustomerPayInvoice';
 import CustomerList from './pages/customers/CustomerList';
 import CustomerDetails from './pages/customers/CustomerDetails';
 import CustomerForm from './pages/customers/CustomerForm';
+import BulkImportCustomers from './pages/customers/BulkImportCustomers';
 import UsageList from './pages/usage/UsageList';
 import MeterReadingForm from './pages/usage/MeterReadingForm';
 import UsageHistory from './pages/usage/UsageHistory';
@@ -123,6 +124,7 @@ function App() {
               } />
               <Route path="test" element={<TestPage />} />
               <Route path="customers" element={<CustomerList />} />
+              <Route path="customers/bulk-import" element={<BulkImportCustomers />} />
               <Route path="customers/new" element={<CustomerForm mode="create" />} />
               <Route path="customers/:id" element={<CustomerDetails />} />
               <Route path="customers/:id/edit" element={<CustomerForm mode="edit" />} />

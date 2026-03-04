@@ -13,6 +13,7 @@ func CustomerRoutes(r *gin.Engine) {
 	group.POST("", controllers.CreateCustomer)
 	group.GET("", controllers.GetCustomers)
 	group.GET("/export", controllers.ExportCustomers)
+	group.POST("/bulk-import", controllers.BulkImportCustomers)
 	group.GET(":id", controllers.GetCustomer)
 	group.PUT(":id", controllers.UpdateCustomer)
 	group.DELETE(":id", controllers.DeleteCustomer)

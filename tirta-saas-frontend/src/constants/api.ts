@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
     SUSPEND: (id: string) => `/customers/${id}/suspend`,
     STATS: '/customers/stats',
     EXPORT: '/customers/export',
+    BULK_IMPORT: '/customers/bulk-import',
     BULK_UPDATE_STATUS: '/customers/bulk-update-status',
     SEARCH: '/customers/search',
     ASSIGN_METER: (id: string) => `/customers/${id}/assign-meter`,

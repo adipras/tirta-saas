@@ -139,7 +139,39 @@ class CustomerService {
     return response;
   }
 
-  async assignMeter(customerId: string, meterNumber: string): Promise<Customer> {
+  async bulkImportCustomers(file: File): Promise<{
+    totalRecords: number;
+    successCount: number;
+    failureCount: number;
+    skippedCount: number;
+    errors: string[];
+    durationMs: number;
+  }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post<any>(
+      API_ENDPOINTS.CUSTOMERS.BULK_IMPORT,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    const data = response.data || response;
+    return {
+      totalRecords: data.total_records ?? data.totalRecords ?? 0,
+      successCount: data.success_count ?? data.successCount ?? 0,
+      failureCount: data.failure_count ?? data.failureCount ?? 0,
+      skippedCount: data.skipped_count ?? data.skippedCount ?? 0,
+      errors: data.errors ?? [],
+      durationMs: data.duration_ms ?? data.durationMs ?? 0,
+    };
+  }
+
+  async exportCustomersCSV(): Promise<Blob> {
+    const response = await apiClient.get(
+      API_ENDPOINTS.CUSTOMERS.EXPORT,
+      { responseType: 'blob' }
+    );
+    return response as unknown as Blob;
+  }
     const response = await apiClient.post<Customer>(
       API_ENDPOINTS.CUSTOMERS.ASSIGN_METER(customerId),
       { meterNumber }
