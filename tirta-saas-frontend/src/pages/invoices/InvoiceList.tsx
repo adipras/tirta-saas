@@ -7,6 +7,7 @@ import {
   DocumentTextIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
+  PrinterIcon,
 } from '@heroicons/react/24/outline';
 import { DataTable } from '../../components/DataTable';
 import invoiceService, { type InvoiceFilters } from '../../services/invoiceService';
@@ -150,7 +151,7 @@ export default function InvoiceList() {
   ];
 
   const actions = (invoice: Invoice) => (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-2 print:hidden">
       <button
         onClick={() => navigate(`/admin/invoices/${invoice.id}`)}
         className="text-blue-600 hover:text-blue-900"
@@ -169,28 +170,35 @@ export default function InvoiceList() {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => navigate('/admin/invoices/bulk-generate')}
-              className="inline-flex items-center px-4 py-2 border border-blue-600 rounded-md shadow-sm text-sm font-medium text-blue-600 bg-white hover:bg-blue-50"
+              className="inline-flex items-center px-4 py-2 border border-blue-600 rounded-md shadow-sm text-sm font-medium text-blue-600 bg-white hover:bg-blue-50 print:hidden"
             >
               <DocumentTextIcon className="mr-2 h-4 w-4" />
               Bulk Generate
             </button>
             <button
               onClick={() => handleExport('csv')}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 print:hidden"
             >
               <ArrowDownTrayIcon className="mr-1 h-4 w-4" />
               CSV
             </button>
             <button
               onClick={() => handleExport('excel')}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 print:hidden"
             >
               <ArrowDownTrayIcon className="mr-1 h-4 w-4" />
               Excel
             </button>
             <button
+              onClick={() => window.print()}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 print:hidden"
+            >
+              <PrinterIcon className="mr-1 h-4 w-4" />
+              Print
+            </button>
+            <button
               onClick={() => navigate('/admin/invoices/new')}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 print:hidden"
             >
               <PlusIcon className="mr-2 h-4 w-4" />
               Create Invoice
@@ -200,7 +208,7 @@ export default function InvoiceList() {
       />
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow">
+      <div className="bg-white p-4 rounded-lg shadow print:hidden">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />

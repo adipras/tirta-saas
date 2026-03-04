@@ -12,10 +12,14 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="print:hidden">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </div>
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {showTrialBanner && <TrialBanner />}
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        {showTrialBanner && <div className="print:hidden"><TrialBanner /></div>}
+        <div className="print:hidden">
+          <Header onMenuClick={() => setSidebarOpen(true)} />
+        </div>
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 sm:p-6">
           <Outlet />
         </main>
