@@ -4053,3 +4053,58 @@ interface RoleOption {
 **Version:** 1.0.0-rc2
 
 🎉 **CONGRATULATIONS! System is ready for deployment!** 🎉
+
+---
+
+## Latest Session: March 3, 2026
+
+**Date:** March 3, 2026  
+**Focus:** Issue #34 (filter/search konsisten), Export CSV/Excel, Bulk Customer Import  
+**Status:** ✅ All done
+
+---
+
+## ✅ Completed (March 3, 2026)
+
+### 1. Issue #34 — Standardize Filter/Search Across List Pages
+
+**InvoiceList.tsx** (critical — filter button was dead/non-functional):
+- Add filter state: `filterStatus`, `filterType`, `searchTerm`
+- Implement filter card UI: search input + status dropdown + type dropdown + Clear button
+- Wire filters to API
+
+**Backend GetInvoices** (invoice_controller.go):
+- Add query params: `status` (→ payment_status), `type`, `search` (JOIN customers), `customer_id`
+- Add `payment_status` field to InvoiceResponse
+
+**invoiceService.ts:**
+- Add `type` to InvoiceFilters
+- Fix status mapping: use `payment_status` field (overdue/partial now correct)
+
+**WaterRateList.tsx:** Add "Clear Filters" button
+
+**UserManagementList.tsx:** Merge search + role filter in 1 card, add role dropdown + Clear button
+
+### 2. Export CSV & Excel (client-side, no backend required)
+
+- Install `xlsx` (SheetJS) library
+- Create `src/utils/exportUtils.ts` with `exportToCSV()` and `exportToExcel()` helpers
+- **RevenueReport:** Monthly Revenue + By Subscription Type sheets
+- **PaymentReport:** Daily Collection + By Payment Method + Outstanding sheets
+- **OutstandingReport:** Outstanding Invoices + Aging Analysis sheets
+- **UsageReport:** Usage Trends + High Consumers sheets
+- **CustomerAnalytics:** Add export buttons + Top Customers/Growth/Status sheets
+- **InvoiceList:** Export CSV + Export Excel buttons (from current filtered data)
+
+### 3. Bulk Customer Import
+
+**Backend:** Register `POST /api/customers/bulk-import` route
+
+**Frontend BulkImportCustomers.tsx:**
+- File upload (CSV only, drag & drop area)
+- CSV preview (first 10 rows)
+- Validation feedback (missing headers, parse errors)
+- Download template CSV button
+- Import result: success/failed/skipped counts + error details
+
+**CustomerList.tsx:** Add "Bulk Import" button to header

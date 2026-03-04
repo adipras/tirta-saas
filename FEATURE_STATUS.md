@@ -135,6 +135,8 @@
 
 ---
 
+- ✅ Bulk Customer Import (CSV upload + preview + validasi + error report)
+
 ### 17. Export Data
 - ✅ Export CSV — semua halaman report (Revenue, Payment, Outstanding, Usage, Customer Analytics)
 - ✅ Export Excel (.xlsx) — semua halaman report dengan multi-sheet
@@ -167,9 +169,9 @@
 **Core Features:** ✅ Production Ready  
 **UI/UX Refactor:** ✅ Phases 1–5 Selesai  
 **Active Issues:** 0  
-**Future Enhancements (High):** Bulk Customer Import, Email Notifications  
+**Future Enhancements (High):** Email Notifications  
 
-**Overall System Readiness:** ~95% (MVP siap deployment)
+**Overall System Readiness:** ~97% (MVP siap deployment)
 
 **Last Updated:** March 3, 2026
 
