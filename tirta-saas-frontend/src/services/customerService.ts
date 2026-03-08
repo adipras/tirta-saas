@@ -172,6 +172,8 @@ class CustomerService {
     );
     return response as unknown as Blob;
   }
+
+  async assignMeter(customerId: string, meterNumber: string): Promise<Customer> {
     const response = await apiClient.post<Customer>(
       API_ENDPOINTS.CUSTOMERS.ASSIGN_METER(customerId),
       { meterNumber }

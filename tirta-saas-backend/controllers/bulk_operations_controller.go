@@ -334,7 +334,7 @@ func ExportCustomers(c *gin.Context) {
 		query = query.Where("is_active = ?", active)
 	}
 	
-	query = query.Order("customer_code ASC")
+	query = query.Order("meter_number ASC")
 	
 	if err := query.Find(&customers).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{

@@ -1,7 +1,7 @@
 # Tirta SaaS - User Manual & Testing Guide
 
-**Version:** 1.0.1  
-**Last Updated:** January 20, 2026  
+**Version:** 1.0.2  
+**Last Updated:** March 8, 2026  
 **Status:** Production Ready  
 **Purpose:** Complete manual for testing all features in correct order
 
@@ -38,10 +38,14 @@
 4. [Platform Owner Guide](#platform-owner-guide)
 5. [Tenant Admin Guide](#tenant-admin-guide)
 6. [Customer Guide](#customer-guide)
-7. [Troubleshooting](#troubleshooting)
-8. [Testing Checklist](#testing-checklist)
-9. [API Reference](#api-endpoints-reference)
-10. [Known Issues](#known-issues)
+7. [Export Data (CSV & Excel)](#export-data-csv--excel)
+8. [Bulk Import](#bulk-import)
+9. [Print Support](#print-support)
+10. [Advanced Filtering & Search](#advanced-filtering--search)
+11. [Troubleshooting](#troubleshooting)
+12. [Testing Checklist](#testing-checklist)
+13. [API Reference](#api-endpoints-reference)
+14. [Known Issues](#known-issues)
 
 ---
 
@@ -1735,6 +1739,138 @@ subscription_payments table:
 
 ---
 
+## Export Data (CSV & Excel)
+
+### PART 36: Export Reports
+
+**Feature:** Export data from reports to CSV or Excel files (client-side, no backend required).
+
+**Location:** Available on all report pages (Revenue, Payment, Customer Analytics, Usage, Outstanding)
+
+**Steps:**
+1. Go to any report page: **Reports → Revenue Report** (or any other)
+2. Set date range (Start Date & End Date)
+3. Click **"Load Report"** button
+4. Once data loads, click:
+   - **"Export CSV"** → downloads `.csv` file
+   - **"Export Excel"** → downloads `.xlsx` file (multiple sheets)
+
+**Excel file contents per report:**
+- **Revenue Report:** "Monthly Revenue" sheet + "By Subscription Type" sheet
+- **Payment Report:** "Daily Collection" + "By Payment Method" + "Outstanding" sheets
+- **Outstanding Report:** "Outstanding Invoices" + "Aging Analysis" sheets
+- **Usage Report:** "Usage Trends" + "High Consumers" sheets
+- **Customer Analytics:** "Top Customers" + "Growth" + "Status" sheets
+
+### PART 37: Export Invoice List
+
+**Location:** Admin → Invoices
+
+**Steps:**
+1. Go to **Admin → Invoices**
+2. Apply any filters (status, type, search) as needed
+3. Click **"Export CSV"** or **"Export Excel"** button in the header
+4. File downloads with current filtered data
+
+### PART 38: Export Customer List
+
+**Location:** Admin → Customers
+
+**Steps:**
+1. Go to **Admin → Customers**
+2. Click **"Export"** button in the header
+3. CSV file downloads with all customer data (meter number, name, address, phone, email, status)
+
+---
+
+## Bulk Import
+
+### PART 39: Bulk Import Customers from CSV
+
+**Location:** Admin → Customers → Bulk Import
+
+**Steps:**
+1. Go to **Admin → Customers**
+2. Click **"Bulk Import"** button in the header
+3. Download the template: click **"Download Template CSV"**
+4. Fill the template with customer data:
+   - Required columns: `meter_number`, `name`, `email`, `password`, `subscription_id`
+   - Optional: `phone`, `address`
+5. Drag & drop the filled CSV file onto the upload area (or click to browse)
+6. Preview first 10 rows — verify data is correct
+7. Click **"Import"** button
+8. View result: success/failed/skipped counts + error details per row
+
+**Common validation errors:**
+- Missing required columns → error shown before import
+- Duplicate `meter_number` or `email` → row skipped with reason
+- Invalid `subscription_id` → row fails with error
+
+### PART 40: Bulk Import Water Usage
+
+**Location:** Admin → Water Usage → Bulk Import
+
+**Steps:**
+1. Go to **Admin → Water Usage**
+2. Click **"Bulk Import"** button
+3. Download CSV template
+4. Fill template: `customer_id`, `previous_reading`, `current_reading`, `usage_month`
+5. Upload, preview, and import
+
+---
+
+## Print Support
+
+### PART 41: Print Invoice
+
+**Location:** Admin → Invoices → Invoice Detail
+
+**Steps:**
+1. Go to **Admin → Invoices**
+2. Click on any invoice to open detail
+3. Click **"Print"** button (printer icon) in the top-right
+4. Browser print dialog opens with print-optimized layout
+5. Select printer or "Save as PDF"
+
+**Notes:**
+- Print layout hides navigation, buttons, and sidebar automatically
+- Invoice shows full details: customer info, billing period, items, total, payment status
+
+### PART 42: Print Invoice List
+
+**Location:** Admin → Invoices (list page)
+
+**Steps:**
+1. Go to **Admin → Invoices**
+2. Apply filters as needed (status, type, date range)
+3. Click **"Print"** button in the header
+4. Browser print dialog opens with list view
+
+---
+
+## Advanced Filtering & Search
+
+### PART 43: Filter Invoices
+
+**Location:** Admin → Invoices
+
+The invoice list has a filter panel with:
+- **Search:** type customer name or invoice number
+- **Status filter:** All / Unpaid / Partial / Paid / Overdue
+- **Type filter:** All / Monthly / Registration
+- Click **"Clear"** to reset all filters
+
+### PART 44: Filter Users (User Management)
+
+**Location:** Admin → User Management
+
+**Steps:**
+1. Use search box to filter by name or email
+2. Use **Role** dropdown to filter by: All / Meter Reader / Finance / Service
+3. Click **"Clear"** to reset filters
+
+---
+
 ## Troubleshooting
 
 ### Common Issues & Solutions
@@ -2238,6 +2374,20 @@ All customer passwords: customer123
 - [ ] Payment report
 - [ ] Usage report
 - [ ] Outstanding report
+- [ ] Export revenue to CSV
+- [ ] Export revenue to Excel (multi-sheet)
+- [ ] Export invoice list to CSV/Excel
+
+### Export & Import
+- [ ] Export customer list (CSV)
+- [ ] Bulk import customers from CSV (with template download)
+- [ ] Bulk import water usage from CSV
+- [ ] Preview rows before import
+- [ ] Import error reporting
+
+### Print
+- [ ] Print invoice detail
+- [ ] Print invoice list
 
 ### Edge Cases
 - [ ] Login with wrong password
@@ -2330,11 +2480,9 @@ For technical issues or questions, please refer to:
 - FEATURE_STATUS.md - Feature completion status
 - README.md - Project setup
 
-**Version:** 1.0.1  
-**Last Updated:** January 20, 2026  
+**Version:** 1.0.2  
+**Last Updated:** March 8, 2026  
 **Status:** Production Ready
-
----
 
 **Document Change Log:**
 
@@ -2342,6 +2490,7 @@ For technical issues or questions, please refer to:
 |---------|------|---------|
 | 1.0.0 | Jan 6, 2026 | Initial version |
 | 1.0.1 | Jan 20, 2026 | Added Quick Start, improved troubleshooting, added known issues section, expanded error handling |
+| 1.0.2 | Mar 8, 2026 | Added sections: Export CSV/Excel (PART 36-38), Bulk Import (PART 39-40), Print Support (PART 41-42), Advanced Filtering (PART 43-44). Updated TOC, checklist, API reference. Fixed customer_code export bug. E2E test script added (test-e2e-comprehensive.sh). |
 
 ---
 
