@@ -76,8 +76,6 @@ tirta-saas/
 |------|-----|
 | `USER_MANUAL.md` | Manual lengkap penggunaan sistem |
 | `FEATURE_STATUS.md` | Status fitur & roadmap enhancement |
-| `ISSUE_MANUAL_TEST.md` | Log bug & status perbaikan |
-| `TRIAL_CONCEPT.md` | Konsep trial & subscription plan |
 | `PROGRESS.md` | Log progress development per sesi |
 | `tirta-saas-backend/scripts/README_SEEDER.md` | Panduan seeder |
 
