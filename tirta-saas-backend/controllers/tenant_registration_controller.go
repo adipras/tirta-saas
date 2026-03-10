@@ -294,24 +294,44 @@ return
 platformOwner := user.Email
 
 now := time.Now()
-subscriptionEnds := now.AddDate(0, 1, 0) // 1 month subscription
 
-// Update tenant status
-updates := map[string]interface{}{
-"status":                string(models.TenantStatusActive),
-"approved_at":           &now,
-"approved_by":           &platformOwner,
-"subscription_starts_at": &now,
-"subscription_ends_at":  &subscriptionEnds,
-"subscription_status":   "ACTIVE",
-}
+var updates map[string]interface{}
+var responseMessage string
 
-if req.SubscriptionPlan != "" {
-updates["subscription_plan"] = req.SubscriptionPlan
-}
-
-if req.Notes != "" {
-updates["notes"] = req.Notes
+// If tenant registered via subscription plan (PENDING_APPROVAL),
+// set status to PENDING_PAYMENT so they must pay the subscription invoice.
+// Otherwise (legacy trial/manual approval), activate directly.
+if tenant.Status == models.TenantStatusPendingApproval {
+	updates = map[string]interface{}{
+		"status":      string(models.TenantStatusPendingPayment),
+		"approved_at": &now,
+		"approved_by": &platformOwner,
+	}
+	if req.SubscriptionPlan != "" {
+		updates["subscription_plan"] = req.SubscriptionPlan
+	}
+	if req.Notes != "" {
+		updates["notes"] = req.Notes
+	}
+	responseMessage = "Tenant disetujui. Invoice tagihan berlangganan telah dibuat. Tenant perlu melakukan konfirmasi pembayaran."
+} else {
+	// Legacy path: directly activate
+	subscriptionEnds := now.AddDate(0, 1, 0)
+	updates = map[string]interface{}{
+		"status":                 string(models.TenantStatusActive),
+		"approved_at":            &now,
+		"approved_by":            &platformOwner,
+		"subscription_starts_at": &now,
+		"subscription_ends_at":   &subscriptionEnds,
+		"subscription_status":    "ACTIVE",
+	}
+	if req.SubscriptionPlan != "" {
+		updates["subscription_plan"] = req.SubscriptionPlan
+	}
+	if req.Notes != "" {
+		updates["notes"] = req.Notes
+	}
+	responseMessage = "Tenant approved successfully"
 }
 
 if err := config.DB.Model(&tenant).Updates(updates).Error; err != nil {
@@ -328,7 +348,7 @@ config.DB.First(&tenant, "id = ?", tenantID)
 
 response := responses.TenantActionResponse{
 Status:  "success",
-Message: "Tenant approved successfully",
+Message: responseMessage,
 }
 response.Tenant.ID = tenant.ID
 response.Tenant.Name = tenant.Name
@@ -467,4 +487,199 @@ response.Tenant.Name = tenant.Name
 response.Tenant.Status = tenant.Status
 
 c.JSON(http.StatusOK, response)
+}
+
+// SetupTenantRequest represents the request to create a tenant for an authenticated user
+type SetupTenantRequest struct {
+// Organization Information
+OrganizationName string `json:"organization_name" binding:"required,min=3,max=100"`
+VillageCode      string `json:"village_code" binding:"required,min=3,max=20"`
+Address          string `json:"address" binding:"required"`
+Phone            string `json:"phone" binding:"required"`
+Email            string `json:"email" binding:"required,email"`
+
+// Admin Contact
+AdminPhone string `json:"admin_phone"`
+
+// Plan Selection (FEATURE-2)
+// plan_type: "trial" or "subscription"
+PlanType string `json:"plan_type" binding:"required,oneof=trial subscription"`
+// plan_id: required when plan_type = "subscription"
+PlanID string `json:"plan_id"`
+}
+
+// SetupTenant creates a tenant for an already-authenticated user who doesn't have a tenant yet.
+// This is the second step after RegisterAccount.
+// @Summary Setup tenant for authenticated user
+// @Description Create tenant for logged-in user who hasn't set up a tenant yet
+// @Tags Setup
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body SetupTenantRequest true "Tenant setup data"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400,401,409 {object} map[string]string
+// @Router /api/setup/tenant [post]
+func SetupTenant(c *gin.Context) {
+var req SetupTenantRequest
+if err := c.ShouldBindJSON(&req); err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+return
+}
+
+// Get authenticated user from context
+userIDStr, exists := c.Get("user_id")
+if !exists {
+c.JSON(http.StatusUnauthorized, gin.H{"error": "Pengguna tidak terautentikasi"})
+return
+}
+
+userUUID, err := uuid.Parse(userIDStr.(string))
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "User ID tidak valid"})
+return
+}
+
+// Load the user
+var user models.User
+if err := config.DB.First(&user, "id = ?", userUUID).Error; err != nil {
+c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+return
+}
+
+// Prevent duplicate tenant setup
+if user.TenantID != nil {
+c.JSON(http.StatusConflict, gin.H{"error": "Akun Anda sudah memiliki tenant yang terdaftar"})
+return
+}
+
+// Validate village code uniqueness
+var existing models.Tenant
+if err := config.DB.Where("village_code = ?", req.VillageCode).First(&existing).Error; err == nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "Kode desa sudah terdaftar. Gunakan kode yang unik."})
+return
+}
+
+// Validate subscription plan if plan_type is "subscription"
+var subscriptionPlan string
+if req.PlanType == "subscription" {
+if req.PlanID == "" {
+c.JSON(http.StatusBadRequest, gin.H{"error": "plan_id wajib diisi ketika memilih subscription"})
+return
+}
+var plan models.SubscriptionPlanDetails
+if err := config.DB.First(&plan, "id = ?", req.PlanID).Error; err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "Paket langganan tidak ditemukan"})
+return
+}
+subscriptionPlan = plan.Name
+}
+
+// Determine tenant status and trial date based on plan type
+var tenantStatus models.TenantStatus
+var trialEndsAt *time.Time
+switch req.PlanType {
+case "trial":
+tenantStatus = models.TenantStatusTrial
+t := time.Now().AddDate(0, 0, 14)
+trialEndsAt = &t
+case "subscription":
+tenantStatus = models.TenantStatusPendingApproval
+}
+
+// Start DB transaction
+tx := config.DB.Begin()
+defer func() {
+if r := recover(); r != nil {
+tx.Rollback()
+}
+}()
+
+adminPhone := req.AdminPhone
+if adminPhone == "" {
+adminPhone = req.Phone
+}
+
+tenant := models.Tenant{
+Name:             req.OrganizationName,
+VillageCode:      req.VillageCode,
+Email:            req.Email,
+Phone:            req.Phone,
+Address:          req.Address,
+AdminName:        user.Name,
+AdminEmail:       user.Email,
+AdminPhone:       adminPhone,
+Status:           tenantStatus,
+RegisteredAt:     time.Now(),
+TrialEndsAt:      trialEndsAt,
+SubscriptionPlan: subscriptionPlan,
+}
+
+if err := tx.Create(&tenant).Error; err != nil {
+tx.Rollback()
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat tenant: " + err.Error()})
+return
+}
+
+// Link user to tenant and update admin contact
+tenantID := tenant.ID
+if err := tx.Model(&user).Updates(map[string]interface{}{
+"tenant_id":  &tenantID,
+"admin_phone": adminPhone,
+}).Error; err != nil {
+tx.Rollback()
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghubungkan user ke tenant"})
+return
+}
+
+// Create default tenant settings
+tenantSettings := models.TenantSettings{
+BaseModel:          models.BaseModel{ID: uuid.New()},
+TenantID:           tenant.ID,
+CompanyName:        req.OrganizationName,
+Address:            req.Address,
+Phone:              req.Phone,
+Email:              req.Email,
+InvoiceDueDays:     14,
+LatePenaltyPercent: 2.0,
+LatePenaltyMaxCap:  100000,
+GracePeriodDays:    3,
+TimeZone:           "Asia/Jakarta",
+Language:           "id",
+Currency:           "IDR",
+}
+
+if err := tx.Create(&tenantSettings).Error; err != nil {
+tx.Rollback()
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat pengaturan tenant"})
+return
+}
+
+if err := tx.Commit().Error; err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyelesaikan proses setup"})
+return
+}
+
+// Reload user with updated tenant_id
+config.DB.First(&user, "id = ?", userUUID)
+
+// Issue new JWT with tenant_id populated
+newToken, err := utils.GenerateJWT(user.ID, user.TenantID, user.Role)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat token baru"})
+return
+}
+
+statusMsg := "Tenant berhasil dibuat dalam mode Trial 14 hari."
+if req.PlanType == "subscription" {
+statusMsg = "Tenant berhasil didaftarkan. Menunggu approval dari admin platform."
+}
+
+c.JSON(http.StatusCreated, gin.H{
+"message":       statusMsg,
+"token":         newToken,
+"tenant_id":     tenant.ID,
+"tenant_status": string(tenant.Status),
+"trial_ends_at": tenant.TrialEndsAt,
+})
 }

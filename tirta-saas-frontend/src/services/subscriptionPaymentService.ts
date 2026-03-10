@@ -1,7 +1,7 @@
 import { apiClient } from './apiClient';
 
 export interface SubscriptionStatus {
-  status: 'trial' | 'pending_verification' | 'active' | 'expired' | 'suspended';
+  status: 'trial' | 'pending_approval' | 'pending_payment' | 'pending_verification' | 'active' | 'expired' | 'suspended';
   subscriptionPlan?: string;
   trialEndDate?: string;
   subscriptionStart?: string;
@@ -38,6 +38,10 @@ class SubscriptionPaymentService {
 
   async getSubscriptionStatus(): Promise<SubscriptionStatus> {
     const response = await apiClient.get(`${this.BASE_URL}/status`);
+    // Normalize status to lowercase to match TypeScript interface
+    if (response && response.status) {
+      response.status = response.status.toLowerCase().replace(/_/g, '_');
+    }
     return response;
   }
 

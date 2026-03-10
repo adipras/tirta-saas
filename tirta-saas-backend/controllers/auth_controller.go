@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
+
 type RegisterInput struct {
 	TenantName    string `json:"tenant_name" binding:"required"`
 	VillageCode   string `json:"village_code" binding:"required"`
@@ -113,9 +114,27 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// Include tenant_id, trial info, and tenant status so frontend knows state
+	var tenantIDStr *string
+	var trialEndsAt interface{}
+	var tenantStatus interface{}
+	if user.TenantID != nil {
+		s := user.TenantID.String()
+		tenantIDStr = &s
+		// Load tenant info
+		var tenant models.Tenant
+		if err := config.DB.Select("trial_ends_at, status").First(&tenant, "id = ?", user.TenantID).Error; err == nil {
+			trialEndsAt = tenant.TrialEndsAt
+			tenantStatus = string(tenant.Status)
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"token": token,
-		"role":  user.Role,
+		"token":         token,
+		"role":          user.Role,
+		"tenant_id":     tenantIDStr,
+		"trial_ends_at": trialEndsAt,
+		"tenant_status": tenantStatus,
 	})
 }
 
@@ -351,6 +370,54 @@ func RegisterPlatformOwner(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Platform owner account created successfully",
+		"email":   user.Email,
+	})
+}
+
+// RegisterAccountInput represents request to create a user account only (without tenant)
+type RegisterAccountInput struct {
+	Name     string `json:"name" binding:"required,min=3,max=100"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
+// RegisterAccount creates a standalone user account without a tenant.
+// After registering, the user must log in and then call POST /api/setup/tenant.
+func RegisterAccount(c *gin.Context) {
+	var input RegisterAccountInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Check email uniqueness
+	var existing models.User
+	if err := config.DB.Where("email = ?", input.Email).First(&existing).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah terdaftar. Gunakan email lain."})
+		return
+	}
+
+	hashedPassword, err := utils.HashPassword(input.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses password"})
+		return
+	}
+
+	user := models.User{
+		Name:     input.Name,
+		Email:    input.Email,
+		Password: hashedPassword,
+		Role:     string(constants.RoleTenantAdmin),
+		TenantID: nil, // Tenant will be set up later via POST /api/setup/tenant
+	}
+
+	if err := config.DB.Create(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat akun"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Akun berhasil dibuat. Silakan login untuk melanjutkan setup tenant.",
 		"email":   user.Email,
 	})
 }

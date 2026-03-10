@@ -9,7 +9,7 @@ import {
   CloudArrowUpIcon,
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../services/apiClient';
-import { qrCodeService } from '../../services/qrCodeService';
+import { platformQrCodeService } from '../../services/platformQrCodeService';
 import type { QRCode } from '../../services/qrCodeService';
 import { PageHeader, ConfirmModal, useToast } from '../../components';
 
@@ -81,8 +81,8 @@ export default function PlatformPaymentSettings() {
   const loadSettings = async () => {
     try {
       const [bankRes, qrRes] = await Promise.allSettled([
-        apiClient.get('/payment-methods/bank-accounts'),
-        qrCodeService.getQRCodes(),
+        apiClient.get('/platform/payment-methods/bank-accounts'),
+        platformQrCodeService.getQRCodes(),
       ]);
       if (bankRes.status === 'fulfilled') {
         const list = (bankRes.value as any)?.data || [];
@@ -141,11 +141,11 @@ export default function PlatformPaymentSettings() {
         is_active: bankForm.isActive,
       };
       if (editingBank) {
-        const res = await apiClient.put(`/payment-methods/bank-accounts/${editingBank.id}`, payload);
+        const res = await apiClient.put(`/platform/payment-methods/bank-accounts/${editingBank.id}`, payload);
         const updated = mapBank((res as any).data);
         setBankAccounts((prev) => prev.map((b) => (b.id === editingBank.id ? updated : b)));
       } else {
-        const res = await apiClient.post('/payment-methods/bank-accounts', payload);
+        const res = await apiClient.post('/platform/payment-methods/bank-accounts', payload);
         const created = mapBank((res as any).data);
         setBankAccounts((prev) => [...prev, created]);
       }
@@ -213,7 +213,7 @@ export default function PlatformPaymentSettings() {
     e.preventDefault();
     try {
       if (editingQR) {
-        const updated = await qrCodeService.updateQRCode(editingQR.id, {
+        const updated = await platformQrCodeService.updateQRCode(editingQR.id, {
           type: qrForm.type,
           is_primary: qrForm.isPrimary,
           is_active: qrForm.isActive,
@@ -222,7 +222,7 @@ export default function PlatformPaymentSettings() {
         });
         setQRCodes((prev) => prev.map((q) => (q.id === editingQR.id ? updated : q)));
       } else {
-        const created = await qrCodeService.createQRCode({
+        const created = await platformQrCodeService.createQRCode({
           type: qrForm.type,
           is_primary: qrForm.isPrimary,
           is_active: qrForm.isActive,
@@ -246,10 +246,10 @@ export default function PlatformPaymentSettings() {
     if (!deleteTarget) return;
     try {
       if (deleteTarget.type === 'bank') {
-        await apiClient.delete(`/payment-methods/bank-accounts/${deleteTarget.id}`);
+        await apiClient.delete(`/platform/payment-methods/bank-accounts/${deleteTarget.id}`);
         setBankAccounts((prev) => prev.filter((b) => b.id !== deleteTarget.id));
       } else {
-        await qrCodeService.deleteQRCode(deleteTarget.id);
+        await platformQrCodeService.deleteQRCode(deleteTarget.id);
         setQRCodes((prev) => prev.filter((q) => q.id !== deleteTarget.id));
       }
       setDeleteTarget(null);

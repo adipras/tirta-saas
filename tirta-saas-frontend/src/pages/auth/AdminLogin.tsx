@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { Link, useNavigate } from 'react-router-dom';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { EyeIcon, EyeSlashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { loginAsync } from '../../store/slices/authSlice';
 import type { LoginCredentials } from '../../services/authService';
@@ -21,9 +21,14 @@ const schema = yup.object({
 
 const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [showTrialExpiredModal, setShowTrialExpiredModal] = useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoading, error } = useAppSelector((state) => state.auth);
+
+  // Success message from RegisterAccount redirect
+  const successMessage = (location.state as { message?: string })?.message;
 
   const {
     register,
@@ -31,29 +36,81 @@ const AdminLogin = () => {
     formState: { errors },
   } = useForm<LoginCredentials>({
     resolver: yupResolver(schema),
+    defaultValues: {
+      email: (location.state as { email?: string })?.email || '',
+    },
   });
 
   const onSubmit = async (data: LoginCredentials) => {
-    // Prevent double submission
     if (isLoading) return;
-    
-    console.log('=== Login Form Submit ===');
-    console.log('Login data:', data);
-    
+
     try {
       const result = await dispatch(loginAsync(data)).unwrap();
-      console.log('✅ Login Success!');
-      console.log('Login result:', result);
-      console.log('Navigating to /admin...');
+
+      const user = result.user;
+
+      // If user has no tenant yet → go to setup-tenant page
+      if (!user?.tenant_id) {
+        navigate('/setup-tenant');
+        return;
+      }
+
+      // If tenant is EXPIRED or INACTIVE (status from backend) → show modal
+      const expiredStatuses = ['EXPIRED', 'INACTIVE'];
+      if (user?.tenant_status && expiredStatuses.includes(user.tenant_status.toUpperCase())) {
+        setShowTrialExpiredModal(true);
+        return;
+      }
+
+      // Also check trial_ends_at date as fallback
+      if (user?.trial_ends_at) {
+        const trialEnd = new Date(user.trial_ends_at);
+        if (new Date() > trialEnd) {
+          setShowTrialExpiredModal(true);
+          return;
+        }
+      }
+
       navigate('/admin');
-    } catch (error) {
-      console.error('❌ Login Failed:', error);
+    } catch {
       // Error is handled by Redux slice
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      {/* Trial Expired Modal — FEATURE-3 */}
+      {showTrialExpiredModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="flex-shrink-0 h-10 w-10 bg-red-100 rounded-full flex items-center justify-center">
+                <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Masa Trial Anda Telah Habis</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Masa trial gratis 14 hari Anda sudah berakhir. Untuk melanjutkan penggunaan Tirta SaaS,
+              silakan berlangganan salah satu paket kami.
+            </p>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => navigate('/admin/subscription/upgrade')}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors"
+              >
+                Lihat Paket Berlangganan
+              </button>
+              <button
+                onClick={() => setShowTrialExpiredModal(false)}
+                className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2 px-4 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Kembali
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -68,6 +125,12 @@ const AdminLogin = () => {
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          {successMessage && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md text-sm">
+              {successMessage}
+            </div>
+          )}
+
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
               {error}
@@ -156,6 +219,12 @@ const AdminLogin = () => {
               Customer?{' '}
               <Link to="/customer/login" className="font-medium text-blue-600 hover:text-blue-500">
                 Sign in here
+              </Link>
+            </p>
+            <p className="mt-2 text-sm text-gray-600">
+              Belum punya akun?{' '}
+              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                Daftar di sini
               </Link>
             </p>
           </div>

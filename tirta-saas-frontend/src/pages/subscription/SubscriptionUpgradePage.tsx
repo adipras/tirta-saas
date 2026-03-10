@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   CheckIcon,
   CloudArrowUpIcon,
@@ -62,13 +61,12 @@ const PLANS: PlanOption[] = [
 ];
 
 export default function SubscriptionUpgradePage() {
-  const navigate = useNavigate();
   const toast = useToast();
-  const [step, setStep] = useState<'select-plan' | 'payment-form'>('select-plan');
+  const [step, setStep] = useState<'select-plan' | 'payment-form' | 'waiting-verification'>('select-plan');
   const [selectedPlan, setSelectedPlan] = useState<PlanOption | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<number>(1);
   const [paymentSettings, setPaymentSettings] = useState<PlatformPaymentSettings | null>(null);
-  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const [formData, setFormData] = useState({
     paymentDate: new Date().toISOString().split('T')[0],
     paymentMethod: 'bank_transfer',
@@ -81,10 +79,33 @@ export default function SubscriptionUpgradePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Fetch payment settings on mount
   useEffect(() => {
-    loadPaymentSettings();
+    Promise.all([
+      loadPaymentSettings(),
+      loadSubscriptionStatus(),
+    ]);
   }, []);
+
+  const loadSubscriptionStatus = async () => {
+    try {
+      const status = await subscriptionPaymentService.getSubscriptionStatus();
+      // If payment already submitted, show waiting state
+      if (status.pendingPayment) {
+        setStep('waiting-verification');
+        return;
+      }
+      // If plan already chosen (PENDING_PAYMENT with a plan), skip to payment form
+      if (status.status === 'pending_payment' && status.subscriptionPlan) {
+        const plan = PLANS.find((p) => p.id === status.subscriptionPlan?.toUpperCase());
+        if (plan) {
+          setSelectedPlan(plan);
+          setStep('payment-form');
+        }
+      }
+    } catch {
+      // If status check fails, show plan selection normally
+    }
+  };
 
   const loadPaymentSettings = async () => {
     try {
@@ -184,8 +205,8 @@ export default function SubscriptionUpgradePage() {
         proofFile
       );
 
-      toast.success(`Payment submitted! Confirmation ID: ${result.confirmationId}. Your payment is being verified.`);
-      navigate('/subscription/status');
+      toast.success(`Pembayaran berhasil dikirim! ID Konfirmasi: ${result.confirmationId}. Pembayaran Anda sedang diverifikasi.`);
+      setStep('waiting-verification');
     } catch (err: any) {
       console.error('Failed to submit payment:', err);
       setError(err.response?.data?.error || 'Failed to submit payment. Please try again.');
@@ -193,6 +214,26 @@ export default function SubscriptionUpgradePage() {
       setIsSubmitting(false);
     }
   };
+
+  if (step === 'waiting-verification') {
+    return (
+      <div className="max-w-lg mx-auto py-16 px-4 text-center">
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="mx-auto h-16 w-16 bg-yellow-100 rounded-full flex items-center justify-center mb-4">
+            <DocumentTextIcon className="h-8 w-8 text-yellow-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Menunggu Validasi Pembayaran</h2>
+          <p className="text-gray-600 mb-6">
+            Konfirmasi pembayaran Anda telah dikirim. Admin platform sedang memverifikasi pembayaran Anda.
+            Kami akan mengaktifkan akun Anda segera setelah verifikasi selesai.
+          </p>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
+            Proses verifikasi biasanya memakan waktu 1×24 jam kerja.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (step === 'select-plan') {
     return (

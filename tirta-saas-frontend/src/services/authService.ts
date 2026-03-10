@@ -9,12 +9,7 @@ export interface LoginCredentials {
 export interface AuthResponse {
   token: string;
   refreshToken: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: 'admin' | 'customer';
-  };
+  user: User;
 }
 
 export interface User {
@@ -23,6 +18,8 @@ export interface User {
   name: string;
   role: 'admin' | 'customer' | 'platform_owner' | 'tenant_admin' | 'meter_reader' | 'finance' | 'service';
   tenant_id?: string;
+  trial_ends_at?: string | null;
+  tenant_status?: string | null;
 }
 
 class AuthService {
@@ -44,7 +41,9 @@ class AuthService {
           email: response.email || credentials.email,
           name: response.name || response.username || 'Admin User',
           role: response.role || 'admin',
-          tenant_id: response.tenant_id || response.tenantId
+          tenant_id: response.tenant_id || response.tenantId,
+          trial_ends_at: response.trial_ends_at || null,
+          tenant_status: response.tenant_status || null,
         }
       };
       
@@ -158,6 +157,12 @@ class AuthService {
   }
 
   private setUser(user: User): void {
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+  }
+
+  /** Update stored auth after tenant setup — replaces the JWT with the new one (which includes tenant_id) */
+  updateAuth(token: string, user: User): void {
+    localStorage.setItem(this.TOKEN_KEY, token);
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
   }
 
