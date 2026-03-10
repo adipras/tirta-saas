@@ -151,7 +151,7 @@ func (ctrl *PaymentMethodController) CreateBankAccount(c *gin.Context) {
 
 	tenantUUID, err := helpers.RequireTenantID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -185,7 +185,7 @@ func (ctrl *PaymentMethodController) CreateBankAccount(c *gin.Context) {
 func (ctrl *PaymentMethodController) GetBankAccounts(c *gin.Context) {
 	tenantUUID, err := helpers.RequireTenantID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -208,7 +208,7 @@ func (ctrl *PaymentMethodController) UpdateBankAccount(c *gin.Context) {
 	accountID := c.Param("id")
 	tenantUUID, err := helpers.RequireTenantID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -254,7 +254,7 @@ func (ctrl *PaymentMethodController) SetPrimaryBankAccount(c *gin.Context) {
 	accountID := c.Param("id")
 	tenantUUID, err := helpers.RequireTenantID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -288,7 +288,7 @@ func (ctrl *PaymentMethodController) DeleteBankAccount(c *gin.Context) {
 	accountID := c.Param("id")
 	tenantUUID, err := helpers.RequireTenantID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -316,7 +316,7 @@ func (ctrl *PaymentMethodController) DeleteBankAccount(c *gin.Context) {
 func (ctrl *PaymentMethodController) GetQRCodes(c *gin.Context) {
 	tenantUUID, err := helpers.RequireTenantID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -337,7 +337,7 @@ func (ctrl *PaymentMethodController) GetQRCodes(c *gin.Context) {
 func (ctrl *PaymentMethodController) CreateQRCode(c *gin.Context) {
 	tenantUUID, err := helpers.RequireTenantID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -388,7 +388,7 @@ func (ctrl *PaymentMethodController) UpdateQRCode(c *gin.Context) {
 	qrID := c.Param("id")
 	tenantUUID, err := helpers.RequireTenantID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -446,7 +446,7 @@ func (ctrl *PaymentMethodController) SetPrimaryQRCode(c *gin.Context) {
 	qrID := c.Param("id")
 	tenantUUID, err := helpers.RequireTenantID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -477,7 +477,7 @@ func (ctrl *PaymentMethodController) DeleteQRCode(c *gin.Context) {
 	qrID := c.Param("id")
 	tenantUUID, err := helpers.RequireTenantID(c)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

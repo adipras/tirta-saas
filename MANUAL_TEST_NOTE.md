@@ -1,5 +1,6 @@
 1. Ketika akses POST "/api/payment-methods/bank-accounts" dengan roles "platform_owner" | seperti ada proses logout dilakukan (localStorage terkait akses_token langsung terhapus)
-2. Ketika calon user admin_tenant melakukan registrasi, pada form registirasi harus ada penentuan apakah user ingin "Mulai Trial 14 hari gratis" atau memilih salah satu Subscription plans.
+2. walaupun 1 akun = 1 tenant, tetap perlu dipisah antar registrasi akun dengan registrasi tenant. registrasi tenant hanya bisa dilakukan oleh user yang sudah login akun. untuk menjaga konsistensi data tenan misal dari TRIAL pindah ke SUBSCRIPTION. sehingga tidak perlu registrasi tenant lagi (tapi bisa ubah informasi tenant yang dibuat saat TRIAL)
+3. Ketika calon user admin_tenant melakukan registrasi, pada form registirasi harus ada penentuan apakah user ingin "Mulai Trial 14 hari gratis" atau memilih salah satu Subscription plans.
     - Trial :
         a. Setelah berhasil registrasi, tenant langsung aktif tanpa approval dan tidak membuat invoice tagihan biaya berlangganan platform.
         b. Kolom "trial_ends_at" terisi. Sebagai penanda tenant masih masa trial

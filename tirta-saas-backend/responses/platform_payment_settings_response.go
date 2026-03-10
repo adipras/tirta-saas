@@ -2,14 +2,12 @@ package responses
 
 // PlatformPaymentSettingsResponse represents platform payment settings for subscription payments
 type PlatformPaymentSettingsResponse struct {
-	BankAccounts   []BankAccountInfo `json:"bank_accounts"`
-	PaymentMethods []string          `json:"payment_methods"`
-	CompanyName    string            `json:"company_name,omitempty"`
-	Phone          string            `json:"phone,omitempty"`
-	Email          string            `json:"email,omitempty"`
+	BankAccounts   []BankAccountInfo  `json:"bank_accounts"`
+	QRCodes        []QRCodeResponse   `json:"qr_codes"`
+	PaymentMethods []string           `json:"payment_methods"`
 }
 
-// BankAccountInfo represents a bank account for payments
+// BankAccountInfo represents a simplified bank account for public payment info
 type BankAccountInfo struct {
 	BankName      string `json:"bank_name"`
 	AccountNumber string `json:"account_number"`

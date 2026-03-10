@@ -45,6 +45,19 @@ func PlatformRoutes(r *gin.Engine) {
 		platform.GET("/subscription-payments/:id", controllers.GetSubscriptionPaymentDetail)
 		platform.PUT("/subscription-payments/:id/verify", controllers.VerifySubscriptionPayment)
 		platform.PUT("/subscription-payments/:id/reject", controllers.RejectSubscriptionPayment)
+
+		// Platform Payment Methods — rekening dan QR code untuk menerima pembayaran langganan dari tenant
+		platform.GET("/payment-methods/bank-accounts", controllers.GetPlatformBankAccounts)
+		platform.POST("/payment-methods/bank-accounts", controllers.CreatePlatformBankAccount)
+		platform.PUT("/payment-methods/bank-accounts/:id", controllers.UpdatePlatformBankAccount)
+		platform.DELETE("/payment-methods/bank-accounts/:id", controllers.DeletePlatformBankAccount)
+		platform.POST("/payment-methods/bank-accounts/:id/set-primary", controllers.SetPrimaryPlatformBankAccount)
+
+		platform.GET("/payment-methods/qr-codes", controllers.GetPlatformQRCodes)
+		platform.POST("/payment-methods/qr-codes", controllers.CreatePlatformQRCode)
+		platform.PUT("/payment-methods/qr-codes/:id", controllers.UpdatePlatformQRCode)
+		platform.DELETE("/payment-methods/qr-codes/:id", controllers.DeletePlatformQRCode)
+		platform.POST("/payment-methods/qr-codes/:id/set-primary", controllers.SetPrimaryPlatformQRCode)
 		
 		// System Monitoring & Logs
 		platform.GET("/logs/audit", controllers.GetAuditLogs)

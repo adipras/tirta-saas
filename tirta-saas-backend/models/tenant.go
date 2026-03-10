@@ -6,13 +6,14 @@ import "time"
 type TenantStatus string
 
 const (
-	TenantStatusTrial              TenantStatus = "TRIAL"               // Trial period after registration
-	TenantStatusPendingPayment     TenantStatus = "PENDING_PAYMENT"     // Waiting for subscription payment
-	TenantStatusPendingVerification TenantStatus = "PENDING_VERIFICATION" // Payment made, waiting for platform owner approval
-	TenantStatusActive             TenantStatus = "ACTIVE"              // Fully active tenant
-	TenantStatusSuspended          TenantStatus = "SUSPENDED"           // Suspended by platform owner
-	TenantStatusExpired            TenantStatus = "EXPIRED"             // Subscription expired
-	TenantStatusInactive           TenantStatus = "INACTIVE"            // Deactivated
+	TenantStatusTrial               TenantStatus = "TRIAL"               // Trial period after registration
+	TenantStatusPendingApproval     TenantStatus = "PENDING_APPROVAL"    // Registered with subscription plan, waiting for platform owner approval
+	TenantStatusPendingPayment      TenantStatus = "PENDING_PAYMENT"     // Approved by platform, waiting for tenant to pay subscription invoice
+	TenantStatusPendingVerification TenantStatus = "PENDING_VERIFICATION" // Payment proof submitted, waiting for platform owner to verify
+	TenantStatusActive              TenantStatus = "ACTIVE"              // Fully active tenant
+	TenantStatusSuspended           TenantStatus = "SUSPENDED"           // Suspended by platform owner
+	TenantStatusExpired             TenantStatus = "EXPIRED"             // Subscription expired
+	TenantStatusInactive            TenantStatus = "INACTIVE"            // Deactivated
 )
 
 type Tenant struct {

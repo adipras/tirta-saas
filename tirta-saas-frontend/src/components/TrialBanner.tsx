@@ -3,6 +3,7 @@ import { XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom';
 import { subscriptionPaymentService } from '../services/subscriptionPaymentService';
 import type { SubscriptionStatus } from '../services/subscriptionPaymentService';
+import { authService } from '../services/authService';
 
 const TrialBanner = () => {
   const navigate = useNavigate();
@@ -16,9 +17,9 @@ const TrialBanner = () => {
 
   const loadSubscriptionStatus = async () => {
     try {
-      // Only load for platform owner role, skip for tenant_admin
-      const userRole = localStorage.getItem('user_role');
-      if (userRole !== 'platform_owner') {
+      // Only load for tenant_admin role — platform_owner doesn't have a trial subscription
+      const userRole = authService.getUser()?.role;
+      if (userRole !== 'tenant_admin') {
         setLoading(false);
         return;
       }
@@ -43,7 +44,7 @@ const TrialBanner = () => {
   // Don't show banner if not loading and (no status or not trial/pending)
   if (loading) return null;
   if (!status) return null;
-  if (status.status !== 'trial' && status.status !== 'pending_verification') return null;
+  if (!['trial', 'pending_verification', 'pending_approval', 'pending_payment'].includes(status.status)) return null;
   if (!isVisible) return null;
 
   // Determine banner color based on days remaining

@@ -56,6 +56,8 @@ import { PlatformSubscriptionVerification } from './pages/platform-payments';
 import { TenantPaymentSettings, PlatformPaymentSettings } from './pages/settings';
 import { LandingPage } from './pages/public';
 import TenantRegistration from './pages/auth/TenantRegistration';
+import RegisterAccount from './pages/auth/RegisterAccount';
+import SetupTenant from './pages/auth/SetupTenant';
 import SubscriptionStatusPage from './pages/subscription/SubscriptionStatusPage';
 import SubscriptionUpgradePage from './pages/subscription/SubscriptionUpgradePage';
 import UserManagementList from './pages/user-management/UserManagementList';
@@ -89,7 +91,11 @@ function App() {
             } />
 
             {/* Public Routes */}
-            <Route path="/register" element={<TenantRegistration />} />
+            <Route path="/register" element={<RegisterAccount />} />
+            <Route path="/register-legacy" element={<TenantRegistration />} />
+
+            {/* Setup Tenant — requires login but no tenant yet */}
+            <Route path="/setup-tenant" element={<SetupTenant />} />
             
             {/* Auth Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />

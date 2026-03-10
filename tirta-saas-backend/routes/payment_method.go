@@ -10,10 +10,11 @@ import (
 func PaymentMethodRoutes(r *gin.Engine) {
 	paymentMethodController := controllers.NewPaymentMethodController(config.DB)
 	
-	// Payment Methods Management (Tenant Admin)
+	// Payment Methods Management — hanya untuk tenant_admin
+	// platform_owner tidak memiliki tenant_id dan menggunakan /api/platform/payment-methods/* tersendiri
 	api := r.Group("/api/payment-methods")
 	api.Use(middleware.JWTAuthMiddleware())
-	api.Use(middleware.AdminOnly()) // Only admins can manage payment methods
+	api.Use(middleware.RequireTenantAdmin())
 	{
 		// Payment method types (Cash, Transfer, E-Wallet, etc)
 		api.GET("", paymentMethodController.GetPaymentMethods)

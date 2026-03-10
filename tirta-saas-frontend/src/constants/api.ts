@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
     LOGIN: '/auth/login',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
+    REGISTER_ACCOUNT: '/auth/register-account',
   },
   CUSTOMERS: {
     LIST: '/customers',
@@ -88,8 +89,20 @@ export const API_ENDPOINTS = {
     REJECT_TENANT: (id: string) => `/platform/tenants/${id}/reject`,
     SUSPEND_TENANT: (id: string) => `/platform/tenants/${id}/suspend`,
     ACTIVATE_TENANT: (id: string) => `/platform/tenants/${id}/activate`,
+    PAYMENT_METHODS: {
+      BANK_ACCOUNTS: '/platform/payment-methods/bank-accounts',
+      BANK_ACCOUNT_DETAIL: (id: string) => `/platform/payment-methods/bank-accounts/${id}`,
+      BANK_ACCOUNT_SET_PRIMARY: (id: string) => `/platform/payment-methods/bank-accounts/${id}/set-primary`,
+      QR_CODES: '/platform/payment-methods/qr-codes',
+      QR_CODE_DETAIL: (id: string) => `/platform/payment-methods/qr-codes/${id}`,
+      QR_CODE_SET_PRIMARY: (id: string) => `/platform/payment-methods/qr-codes/${id}/set-primary`,
+    },
   },
   PUBLIC: {
     REGISTER: '/public/register',
+    SUBSCRIPTION_PLANS: '/public/subscription-plans',
+  },
+  SETUP: {
+    TENANT: '/setup/tenant',
   },
 };

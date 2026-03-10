@@ -12,7 +12,7 @@ import (
 
 // GetPlatformPaymentSettings godoc
 // @Summary Get platform payment settings for subscription payments
-// @Description Get bank account and payment method information for platform subscription payments (public endpoint)
+// @Description Get bank account and QR code information for platform subscription payments (public endpoint)
 // @Tags Public
 // @Accept json
 // @Produce json
@@ -20,50 +20,24 @@ import (
 // @Failure 500 {object} responses.ErrorResponse
 // @Router /api/public/platform-payment-settings [get]
 func GetPlatformPaymentSettings(c *gin.Context) {
-	// Platform owner tenant ID - this should be a known constant or environment variable
-	// For now, we'll get the first tenant with platform_owner role
-	var platformTenant models.Tenant
-	
-	// Try to find platform owner tenant (you might want to use a specific ID or flag)
-	if err := config.DB.Where("status = ?", "ACTIVE").Order("created_at ASC").First(&platformTenant).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
-			Status:  "error",
-			Message: "Platform payment settings not configured",
-			Error:   "Platform tenant not found",
-		})
-		return
+	var bankAccounts []models.PlatformBankAccount
+	config.DB.Where("is_active = ?", true).Order("is_primary DESC, bank_name ASC").Find(&bankAccounts)
+
+	var qrCodes []models.PlatformQRCode
+	config.DB.Where("is_active = ?", true).Order("is_primary DESC, created_at ASC").Find(&qrCodes)
+
+	bankAccountInfos := make([]responses.BankAccountInfo, len(bankAccounts))
+	for i, a := range bankAccounts {
+		bankAccountInfos[i] = responses.BankAccountInfo{
+			BankName:      a.BankName,
+			AccountNumber: a.AccountNumber,
+			AccountName:   a.AccountName,
+		}
 	}
-	
-	// Get tenant settings
-	var settings models.TenantSettings
-	if err := config.DB.Where("tenant_id = ?", platformTenant.ID).First(&settings).Error; err != nil {
-		// Return default/hardcoded settings if not found
-		c.JSON(http.StatusOK, responses.PlatformPaymentSettingsResponse{
-			BankAccounts: []responses.BankAccountInfo{
-				{
-					BankName:      "BCA",
-					AccountNumber: "1234567890",
-					AccountName:   "PT Tirta SaaS Indonesia",
-				},
-			},
-			PaymentMethods: []string{"bank_transfer", "e_wallet"},
-		})
-		return
-	}
-	
-	// Build response
-	bankAccounts := []responses.BankAccountInfo{}
-	if settings.BankName != "" && settings.BankAccountNo != "" {
-		bankAccounts = append(bankAccounts, responses.BankAccountInfo{
-			BankName:      settings.BankName,
-			AccountNumber: settings.BankAccountNo,
-			AccountName:   settings.BankAccountName,
-		})
-	}
-	
-	// If no bank accounts, return default
-	if len(bankAccounts) == 0 {
-		bankAccounts = []responses.BankAccountInfo{
+
+	// Fallback ke data hardcoded jika platform belum mengisi rekening
+	if len(bankAccountInfos) == 0 {
+		bankAccountInfos = []responses.BankAccountInfo{
 			{
 				BankName:      "BCA",
 				AccountNumber: "1234567890",
@@ -71,18 +45,29 @@ func GetPlatformPaymentSettings(c *gin.Context) {
 			},
 		}
 	}
-	
-	paymentMethods := []string{"bank_transfer", "e_wallet", "other"}
-	
-	response := responses.PlatformPaymentSettingsResponse{
-		BankAccounts:   bankAccounts,
-		PaymentMethods: paymentMethods,
-		CompanyName:    settings.CompanyName,
-		Phone:          settings.Phone,
-		Email:          settings.Email,
+
+	qrCodeResponses := make([]responses.QRCodeResponse, len(qrCodes))
+	for i, qr := range qrCodes {
+		qrCodeResponses[i] = responses.QRCodeResponse{
+			ID:        qr.ID,
+			Type:      qr.Type,
+			ImageURL:  qr.ImageURL,
+			IsPrimary: qr.IsPrimary,
+			IsActive:  qr.IsActive,
+			Notes:     qr.Notes,
+		}
 	}
-	
-	c.JSON(http.StatusOK, response)
+
+	paymentMethods := []string{"bank_transfer"}
+	if len(qrCodes) > 0 {
+		paymentMethods = append(paymentMethods, "e_wallet")
+	}
+
+	c.JSON(http.StatusOK, responses.PlatformPaymentSettingsResponse{
+		BankAccounts:   bankAccountInfos,
+		QRCodes:        qrCodeResponses,
+		PaymentMethods: paymentMethods,
+	})
 }
 
 // For platform owner to manage platform payment settings
