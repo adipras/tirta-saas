@@ -141,14 +141,11 @@ export default function PlatformPaymentSettings() {
         is_active: bankForm.isActive,
       };
       if (editingBank) {
-        const res = await apiClient.put(`/platform/payment-methods/bank-accounts/${editingBank.id}`, payload);
-        const updated = mapBank((res as any).data);
-        setBankAccounts((prev) => prev.map((b) => (b.id === editingBank.id ? updated : b)));
+        await apiClient.put(`/platform/payment-methods/bank-accounts/${editingBank.id}`, payload);
       } else {
-        const res = await apiClient.post('/platform/payment-methods/bank-accounts', payload);
-        const created = mapBank((res as any).data);
-        setBankAccounts((prev) => [...prev, created]);
+        await apiClient.post('/platform/payment-methods/bank-accounts', payload);
       }
+      await loadSettings();
       closeBankModal();
     } catch (error) {
       console.error('Failed to save bank account:', error);
@@ -213,24 +210,23 @@ export default function PlatformPaymentSettings() {
     e.preventDefault();
     try {
       if (editingQR) {
-        const updated = await platformQrCodeService.updateQRCode(editingQR.id, {
+        await platformQrCodeService.updateQRCode(editingQR.id, {
           type: qrForm.type,
           is_primary: qrForm.isPrimary,
           is_active: qrForm.isActive,
           notes: qrForm.notes,
           image: qrForm.imageFile || undefined,
         });
-        setQRCodes((prev) => prev.map((q) => (q.id === editingQR.id ? updated : q)));
       } else {
-        const created = await platformQrCodeService.createQRCode({
+        await platformQrCodeService.createQRCode({
           type: qrForm.type,
           is_primary: qrForm.isPrimary,
           is_active: qrForm.isActive,
           notes: qrForm.notes,
           image: qrForm.imageFile || undefined,
         });
-        setQRCodes((prev) => [...prev, created]);
       }
+      await loadSettings();
       closeQRModal();
     } catch (error) {
       console.error('Failed to save QR code:', error);
@@ -582,7 +578,7 @@ export default function PlatformPaymentSettings() {
       {/* QR Code Modal - Similar structure with description field */}
       {showQRModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleQRSubmit}>
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">

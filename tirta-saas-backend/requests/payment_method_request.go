@@ -34,6 +34,7 @@ type UpdateBankAccountRequest struct {
 	SwiftCode     string `json:"swift_code"`
 	Notes         string `json:"notes"`
 	IsActive      *bool  `json:"is_active"`
+	IsPrimary     bool   `json:"is_primary"`
 }
 
 type CreateQRCodeRequest struct {

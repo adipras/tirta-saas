@@ -14,6 +14,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -21,7 +22,7 @@ import (
 // BulkImportCustomers imports customers from CSV file
 func BulkImportCustomers(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
-	
+
 	// Get file from form
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -32,7 +33,7 @@ func BulkImportCustomers(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Check file extension
 	if !strings.HasSuffix(strings.ToLower(file.Filename), ".csv") {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
@@ -42,7 +43,16 @@ func BulkImportCustomers(c *gin.Context) {
 		})
 		return
 	}
-	
+
+	if _, err := utils.ValidateFile(file, utils.DefaultCSVUploadConfig()); err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid file format",
+			Error:   err.Error(),
+		})
+		return
+	}
+
 	// Open file
 	f, err := file.Open()
 	if err != nil {
@@ -54,10 +64,10 @@ func BulkImportCustomers(c *gin.Context) {
 		return
 	}
 	defer f.Close()
-	
+
 	// Parse CSV
 	reader := csv.NewReader(f)
-	
+
 	// Read header
 	headers, err := reader.Read()
 	if err != nil {
@@ -68,14 +78,14 @@ func BulkImportCustomers(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Validate headers
 	requiredHeaders := []string{"name", "meter_number", "address", "phone"}
 	headerMap := make(map[string]int)
 	for i, header := range headers {
 		headerMap[strings.ToLower(strings.TrimSpace(header))] = i
 	}
-	
+
 	for _, required := range requiredHeaders {
 		if _, exists := headerMap[required]; !exists {
 			c.JSON(http.StatusBadRequest, responses.ErrorResponse{
@@ -86,11 +96,11 @@ func BulkImportCustomers(c *gin.Context) {
 			return
 		}
 	}
-	
+
 	startTime := time.Now()
 	var successCount, failureCount, skippedCount int
 	var errors []string
-	
+
 	// Read and process records
 	lineNumber := 1
 	for {
@@ -99,13 +109,13 @@ func BulkImportCustomers(c *gin.Context) {
 			break
 		}
 		lineNumber++
-		
+
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Line %d: Failed to read - %s", lineNumber, err.Error()))
 			failureCount++
 			continue
 		}
-		
+
 		// Extract data
 		name := strings.TrimSpace(record[headerMap["name"]])
 		meterNumber := strings.TrimSpace(record[headerMap["meter_number"]])
@@ -114,14 +124,14 @@ func BulkImportCustomers(c *gin.Context) {
 		}
 		address := strings.TrimSpace(record[headerMap["address"]])
 		phone := strings.TrimSpace(record[headerMap["phone"]])
-		
+
 		// Validate required fields
 		if name == "" || meterNumber == "" {
 			errors = append(errors, fmt.Sprintf("Line %d: Missing name or meter number", lineNumber))
 			failureCount++
 			continue
 		}
-		
+
 		// Check if customer already exists
 		var existingCustomer models.Customer
 		if err := config.DB.Where("tenant_id = ? AND meter_number = ?", tenantID, meterNumber).First(&existingCustomer).Error; err == nil {
@@ -129,18 +139,18 @@ func BulkImportCustomers(c *gin.Context) {
 			skippedCount++
 			continue
 		}
-		
+
 		// Optional fields
 		email := ""
 		if idx, exists := headerMap["email"]; exists && idx < len(record) {
 			email = strings.TrimSpace(record[idx])
 		}
-		
+
 		isActive := true
 		if idx, exists := headerMap["is_active"]; exists && idx < len(record) {
 			isActive = strings.ToLower(strings.TrimSpace(record[idx])) == "true"
 		}
-		
+
 		// Get default subscription type for tenant
 		var subscriptionType models.SubscriptionType
 		if err := config.DB.Where("tenant_id = ?", tenantID).First(&subscriptionType).Error; err != nil {
@@ -148,7 +158,7 @@ func BulkImportCustomers(c *gin.Context) {
 			failureCount++
 			continue
 		}
-		
+
 		// Create customer
 		customer := models.Customer{
 			TenantID:       tenantID,
@@ -160,18 +170,18 @@ func BulkImportCustomers(c *gin.Context) {
 			SubscriptionID: subscriptionType.ID,
 			IsActive:       isActive,
 		}
-		
+
 		if err := config.DB.Create(&customer).Error; err != nil {
 			errors = append(errors, fmt.Sprintf("Line %d: Failed to create customer - %s", lineNumber, err.Error()))
 			failureCount++
 			continue
 		}
-		
+
 		successCount++
 	}
-	
+
 	duration := time.Since(startTime)
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: fmt.Sprintf("Bulk import completed: %d succeeded, %d failed, %d skipped", successCount, failureCount, skippedCount),
@@ -190,12 +200,12 @@ func BulkImportCustomers(c *gin.Context) {
 // BulkUpdateCustomers updates multiple customers at once
 func BulkUpdateCustomers(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
-	
+
 	var req struct {
 		CustomerIDs []string               `json:"customer_ids" binding:"required"`
 		Updates     map[string]interface{} `json:"updates" binding:"required"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
 			Status:  "error",
@@ -204,7 +214,7 @@ func BulkUpdateCustomers(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	if len(req.CustomerIDs) == 0 {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
 			Status:  "error",
@@ -213,19 +223,19 @@ func BulkUpdateCustomers(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	startTime := time.Now()
 	var successCount, failureCount int
 	var errors []string
-	
+
 	// Allowed fields to update
 	allowedFields := map[string]bool{
 		"is_active": true,
-		"address":  true,
-		"phone":    true,
-		"email":    true,
+		"address":   true,
+		"phone":     true,
+		"email":     true,
 	}
-	
+
 	// Validate updates
 	for key := range req.Updates {
 		if !allowedFields[key] {
@@ -237,7 +247,7 @@ func BulkUpdateCustomers(c *gin.Context) {
 			return
 		}
 	}
-	
+
 	for _, customerID := range req.CustomerIDs {
 		var customer models.Customer
 		if err := config.DB.Where("id = ? AND tenant_id = ?", customerID, tenantID).First(&customer).Error; err != nil {
@@ -245,19 +255,19 @@ func BulkUpdateCustomers(c *gin.Context) {
 			failureCount++
 			continue
 		}
-		
+
 		// Apply updates
 		if err := config.DB.Model(&customer).Updates(req.Updates).Error; err != nil {
 			errors = append(errors, fmt.Sprintf("Customer %s: update failed - %s", customerID, err.Error()))
 			failureCount++
 			continue
 		}
-		
+
 		successCount++
 	}
-	
+
 	duration := time.Since(startTime)
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: fmt.Sprintf("Bulk update completed: %d succeeded, %d failed", successCount, failureCount),
@@ -275,11 +285,11 @@ func BulkUpdateCustomers(c *gin.Context) {
 // BulkActivateCustomers activates multiple customers
 func BulkActivateCustomers(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
-	
+
 	var req struct {
 		CustomerIDs []string `json:"customer_ids" binding:"required"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
 			Status:  "error",
@@ -288,15 +298,15 @@ func BulkActivateCustomers(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	startTime := time.Now()
-	
+
 	result := config.DB.Model(&models.Customer{}).
 		Where("id IN ? AND tenant_id = ?", req.CustomerIDs, tenantID).
 		Updates(map[string]interface{}{
 			"is_active": true,
 		})
-	
+
 	if result.Error != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -305,9 +315,9 @@ func BulkActivateCustomers(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	duration := time.Since(startTime)
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: fmt.Sprintf("Successfully activated %d customers", result.RowsAffected),
@@ -324,18 +334,18 @@ func BulkActivateCustomers(c *gin.Context) {
 // ExportCustomers exports customers to CSV
 func ExportCustomers(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
-	
+
 	var customers []models.Customer
 	query := config.DB.Where("tenant_id = ?", tenantID)
-	
+
 	// Apply filters
 	if isActive := c.Query("is_active"); isActive != "" {
 		active, _ := strconv.ParseBool(isActive)
 		query = query.Where("is_active = ?", active)
 	}
-	
+
 	query = query.Order("meter_number ASC")
-	
+
 	if err := query.Find(&customers).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -344,15 +354,15 @@ func ExportCustomers(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Set headers for CSV download
 	c.Header("Content-Type", "text/csv")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=customers_export_%s.csv", time.Now().Format("20060102_150405")))
-	
+
 	// Create CSV writer
 	writer := csv.NewWriter(c.Writer)
 	defer writer.Flush()
-	
+
 	// Write header
 	headers := []string{
 		"Meter Number", "Name", "Address", "Phone", "Email",
@@ -361,7 +371,7 @@ func ExportCustomers(c *gin.Context) {
 	if err := writer.Write(headers); err != nil {
 		return
 	}
-	
+
 	// Write data
 	for _, customer := range customers {
 		record := []string{
@@ -381,114 +391,114 @@ func ExportCustomers(c *gin.Context) {
 
 // BulkImportWaterUsage imports multiple water usage records at once via JSON body
 func BulkImportWaterUsage(c *gin.Context) {
-tenantID, err := helpers.RequireTenantID(c)
-if err != nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-return
-}
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-var req struct {
-UsageMonth string `json:"usage_month" binding:"required"`
-Records    []struct {
-MeterNumber string  `json:"meter_number"`
-CustomerID  string  `json:"customer_id"`
-MeterEnd    float64 `json:"meter_end"`
-Notes       string  `json:"notes"`
-} `json:"records" binding:"required"`
-}
+	var req struct {
+		UsageMonth string `json:"usage_month" binding:"required"`
+		Records    []struct {
+			MeterNumber string  `json:"meter_number"`
+			CustomerID  string  `json:"customer_id"`
+			MeterEnd    float64 `json:"meter_end"`
+			Notes       string  `json:"notes"`
+		} `json:"records" binding:"required"`
+	}
 
-if err := c.ShouldBindJSON(&req); err != nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-return
-}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-prevMonth, err := time.Parse("2006-01", req.UsageMonth)
-if err != nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": "Format bulan tidak valid. Gunakan YYYY-MM"})
-return
-}
-prevMonthStr := prevMonth.AddDate(0, -1, 0).Format("2006-01")
+	prevMonth, err := time.Parse("2006-01", req.UsageMonth)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format bulan tidak valid. Gunakan YYYY-MM"})
+		return
+	}
+	prevMonthStr := prevMonth.AddDate(0, -1, 0).Format("2006-01")
 
-type recordResult struct {
-Row         int    `json:"row"`
-MeterNumber string `json:"meter_number"`
-Error       string `json:"error,omitempty"`
-}
+	type recordResult struct {
+		Row         int    `json:"row"`
+		MeterNumber string `json:"meter_number"`
+		Error       string `json:"error,omitempty"`
+	}
 
-var successCount, failedCount int
-var errs []recordResult
+	var successCount, failedCount int
+	var errs []recordResult
 
-for i, rec := range req.Records {
-rowNum := i + 1
+	for i, rec := range req.Records {
+		rowNum := i + 1
 
-var customer models.Customer
-if rec.MeterNumber != "" {
-if err := config.DB.Where("meter_number = ? AND tenant_id = ?", rec.MeterNumber, tenantID).First(&customer).Error; err != nil {
-errs = append(errs, recordResult{Row: rowNum, MeterNumber: rec.MeterNumber, Error: "Pelanggan tidak ditemukan"})
-failedCount++
-continue
-}
-} else if rec.CustomerID != "" {
-custID, parseErr := uuid.Parse(rec.CustomerID)
-if parseErr != nil {
-errs = append(errs, recordResult{Row: rowNum, Error: "customer_id tidak valid"})
-failedCount++
-continue
-}
-if err := config.DB.Where("id = ? AND tenant_id = ?", custID, tenantID).First(&customer).Error; err != nil {
-errs = append(errs, recordResult{Row: rowNum, Error: "Pelanggan tidak ditemukan"})
-failedCount++
-continue
-}
-} else {
-errs = append(errs, recordResult{Row: rowNum, Error: "meter_number atau customer_id harus diisi"})
-failedCount++
-continue
-}
+		var customer models.Customer
+		if rec.MeterNumber != "" {
+			if err := config.DB.Where("meter_number = ? AND tenant_id = ?", rec.MeterNumber, tenantID).First(&customer).Error; err != nil {
+				errs = append(errs, recordResult{Row: rowNum, MeterNumber: rec.MeterNumber, Error: "Pelanggan tidak ditemukan"})
+				failedCount++
+				continue
+			}
+		} else if rec.CustomerID != "" {
+			custID, parseErr := uuid.Parse(rec.CustomerID)
+			if parseErr != nil {
+				errs = append(errs, recordResult{Row: rowNum, Error: "customer_id tidak valid"})
+				failedCount++
+				continue
+			}
+			if err := config.DB.Where("id = ? AND tenant_id = ?", custID, tenantID).First(&customer).Error; err != nil {
+				errs = append(errs, recordResult{Row: rowNum, Error: "Pelanggan tidak ditemukan"})
+				failedCount++
+				continue
+			}
+		} else {
+			errs = append(errs, recordResult{Row: rowNum, Error: "meter_number atau customer_id harus diisi"})
+			failedCount++
+			continue
+		}
 
-var lastUsage models.WaterUsage
-meterStart := 0.0
-if err := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ?", customer.ID, prevMonthStr, tenantID).First(&lastUsage).Error; err == nil {
-meterStart = lastUsage.MeterEnd
-}
+		var lastUsage models.WaterUsage
+		meterStart := 0.0
+		if err := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ?", customer.ID, prevMonthStr, tenantID).First(&lastUsage).Error; err == nil {
+			meterStart = lastUsage.MeterEnd
+		}
 
-if rec.MeterEnd < meterStart {
-errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Meter akhir lebih kecil dari meter sebelumnya"})
-failedCount++
-continue
-}
+		if rec.MeterEnd < meterStart {
+			errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Meter akhir lebih kecil dari meter sebelumnya"})
+			failedCount++
+			continue
+		}
 
-var rate models.WaterRate
-if err := config.DB.Where("subscription_id = ? AND active = ?", customer.SubscriptionID, true).Order("effective_date DESC").First(&rate).Error; err != nil {
-errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Tarif air aktif tidak ditemukan"})
-failedCount++
-continue
-}
+		var rate models.WaterRate
+		if err := config.DB.Where("subscription_id = ? AND active = ?", customer.SubscriptionID, true).Order("effective_date DESC").First(&rate).Error; err != nil {
+			errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Tarif air aktif tidak ditemukan"})
+			failedCount++
+			continue
+		}
 
-usageM3 := rec.MeterEnd - meterStart
-usage := models.WaterUsage{
-CustomerID:       customer.ID,
-UsageMonth:       req.UsageMonth,
-MeterStart:       meterStart,
-MeterEnd:         rec.MeterEnd,
-UsageM3:          usageM3,
-AmountCalculated: usageM3 * rate.Amount,
-TenantID:         tenantID,
-Notes:            rec.Notes,
-}
+		usageM3 := rec.MeterEnd - meterStart
+		usage := models.WaterUsage{
+			CustomerID:       customer.ID,
+			UsageMonth:       req.UsageMonth,
+			MeterStart:       meterStart,
+			MeterEnd:         rec.MeterEnd,
+			UsageM3:          usageM3,
+			AmountCalculated: usageM3 * rate.Amount,
+			TenantID:         tenantID,
+			Notes:            rec.Notes,
+		}
 
-if err := config.DB.Create(&usage).Error; err != nil {
-errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Gagal menyimpan: " + err.Error()})
-failedCount++
-continue
-}
-successCount++
-}
+		if err := config.DB.Create(&usage).Error; err != nil {
+			errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Gagal menyimpan: " + err.Error()})
+			failedCount++
+			continue
+		}
+		successCount++
+	}
 
-c.JSON(http.StatusOK, gin.H{
-"success": successCount,
-"failed":  failedCount,
-"total":   len(req.Records),
-"errors":  errs,
-})
+	c.JSON(http.StatusOK, gin.H{
+		"success": successCount,
+		"failed":  failedCount,
+		"total":   len(req.Records),
+		"errors":  errs,
+	})
 }

@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -11,10 +12,51 @@ import (
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func buildSubscriptionPaymentProofURL(payment *models.SubscriptionPayment) string {
+	ext := utils.GetFileExtension(payment.ProofURL)
+	if ext == "" {
+		ext = ".bin"
+	}
+
+	return fmt.Sprintf("/api/platform/subscription-payments/%s/file/proof%s", payment.ID.String(), ext)
+}
+
+func buildSubscriptionPaymentResponse(payment *models.SubscriptionPayment) responses.SubscriptionPaymentResponse {
+	resp := responses.SubscriptionPaymentResponse{
+		ID:               payment.ID.String(),
+		TenantID:         payment.TenantID,
+		SubscriptionPlan: payment.SubscriptionPlan,
+		BillingPeriod:    payment.BillingPeriod,
+		Amount:           payment.Amount,
+		PaymentDate:      payment.PaymentDate,
+		PaymentMethod:    payment.PaymentMethod,
+		AccountNumber:    payment.AccountNumber,
+		AccountName:      payment.AccountName,
+		ReferenceNumber:  payment.ReferenceNumber,
+		ProofURL:         buildSubscriptionPaymentProofURL(payment),
+		Notes:            payment.Notes,
+		Status:           string(payment.Status),
+		VerifiedAt:       payment.VerifiedAt,
+		VerifiedBy:       payment.VerifiedBy,
+		RejectionReason:  payment.RejectionReason,
+		CreatedAt:        payment.CreatedAt,
+		UpdatedAt:        payment.UpdatedAt,
+	}
+
+	if payment.Tenant != nil {
+		resp.TenantName = payment.Tenant.Name
+		resp.TenantEmail = payment.Tenant.Email
+		resp.TenantVillageCode = payment.Tenant.VillageCode
+	}
+
+	return resp
+}
 
 // SubmitSubscriptionPayment handles tenant submission of subscription payment
 func SubmitSubscriptionPayment(c *gin.Context) {
@@ -73,24 +115,11 @@ func SubmitSubscriptionPayment(c *gin.Context) {
 		return
 	}
 
-	// Validate file size (max 5MB)
-	if file.Size > 5*1024*1024 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File size must not exceed 5MB"})
-		return
-	}
-
-	// Validate file type
-	ext := file.Filename[len(file.Filename)-4:]
-	if ext != ".jpg" && ext != ".png" && ext != ".pdf" && ext != "jpeg" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Only JPG, PNG, and PDF files are allowed"})
-		return
-	}
-
-	// Save file
-	filename := fmt.Sprintf("subscription_%s_%s%s", tenantID, uuid.New().String()[:8], ext)
-	uploadPath := fmt.Sprintf("./uploads/subscription-proofs/%s", filename)
-	if err := c.SaveUploadedFile(file, uploadPath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+	uploadConfig := utils.DefaultProofUploadConfig()
+	uploadConfig.UploadDir = fmt.Sprintf("storage/private/subscription-proofs/%s", tenantID)
+	uploadPath, err := utils.SaveUploadedFile(file, uploadConfig)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to save file: " + err.Error()})
 		return
 	}
 
@@ -167,31 +196,7 @@ func GetSubscriptionPayments(c *gin.Context) {
 
 	var data []responses.SubscriptionPaymentResponse
 	for _, p := range payments {
-		resp := responses.SubscriptionPaymentResponse{
-			ID:               p.ID.String(),
-			TenantID:         p.TenantID,
-			SubscriptionPlan: p.SubscriptionPlan,
-			BillingPeriod:    p.BillingPeriod,
-			Amount:           p.Amount,
-			PaymentDate:      p.PaymentDate,
-			PaymentMethod:    p.PaymentMethod,
-			AccountNumber:    p.AccountNumber,
-			AccountName:      p.AccountName,
-			ReferenceNumber:  p.ReferenceNumber,
-			ProofURL:         p.ProofURL,
-			Notes:            p.Notes,
-			Status:           string(p.Status),
-			VerifiedAt:       p.VerifiedAt,
-			VerifiedBy:       p.VerifiedBy,
-			RejectionReason:  p.RejectionReason,
-			CreatedAt:        p.CreatedAt,
-			UpdatedAt:        p.UpdatedAt,
-		}
-		if p.Tenant != nil {
-			resp.TenantName = p.Tenant.Name
-			resp.TenantEmail = p.Tenant.Email
-		}
-		data = append(data, resp)
+		data = append(data, buildSubscriptionPaymentResponse(&p))
 	}
 
 	helpers.RespondPaginated(c, "Subscription payments retrieved successfully", data, page, limit, int(total))
@@ -207,32 +212,7 @@ func GetSubscriptionPaymentDetail(c *gin.Context) {
 		return
 	}
 
-	resp := responses.SubscriptionPaymentResponse{
-		ID:               payment.ID.String(),
-		TenantID:         payment.TenantID,
-		SubscriptionPlan: payment.SubscriptionPlan,
-		BillingPeriod:    payment.BillingPeriod,
-		Amount:           payment.Amount,
-		PaymentDate:      payment.PaymentDate,
-		PaymentMethod:    payment.PaymentMethod,
-		AccountNumber:    payment.AccountNumber,
-		AccountName:      payment.AccountName,
-		ReferenceNumber:  payment.ReferenceNumber,
-		ProofURL:         payment.ProofURL,
-		Notes:            payment.Notes,
-		Status:           string(payment.Status),
-		VerifiedAt:       payment.VerifiedAt,
-		VerifiedBy:       payment.VerifiedBy,
-		RejectionReason:  payment.RejectionReason,
-		CreatedAt:        payment.CreatedAt,
-		UpdatedAt:        payment.UpdatedAt,
-	}
-	if payment.Tenant != nil {
-		resp.TenantName = payment.Tenant.Name
-		resp.TenantEmail = payment.Tenant.Email
-	}
-
-	helpers.RespondSuccess(c, "Payment details retrieved successfully", resp)
+	helpers.RespondSuccess(c, "Payment details retrieved successfully", buildSubscriptionPaymentResponse(&payment))
 }
 
 // VerifySubscriptionPayment verifies and activates tenant subscription
@@ -280,13 +260,13 @@ func VerifySubscriptionPayment(c *gin.Context) {
 
 	// Update tenant status
 	tenantUpdates := map[string]interface{}{
-		"status":                    models.TenantStatusActive,
-		"subscription_plan":         payment.SubscriptionPlan,
-		"subscription_starts_at":    subscriptionStart,
-		"subscription_ends_at":      subscriptionEnd,
-		"subscription_status":       "active",
-		"payment_verified_at":       now,
-		"payment_verified_by":       userID,
+		"status":                 models.TenantStatusActive,
+		"subscription_plan":      payment.SubscriptionPlan,
+		"subscription_starts_at": subscriptionStart,
+		"subscription_ends_at":   subscriptionEnd,
+		"subscription_status":    "active",
+		"payment_verified_at":    now,
+		"payment_verified_by":    userID,
 	}
 
 	if err := tx.Model(&models.Tenant{}).Where("id = ?", payment.TenantID).Updates(tenantUpdates).Error; err != nil {
@@ -358,6 +338,21 @@ func RejectSubscriptionPayment(c *gin.Context) {
 	})
 }
 
+func DownloadSubscriptionPaymentProof(c *gin.Context) {
+	id := c.Param("id")
+
+	var payment models.SubscriptionPayment
+	if err := config.DB.First(&payment, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Payment not found"})
+		return
+	}
+
+	downloadName := "subscription-proof" + filepath.Ext(payment.ProofURL)
+	if err := utils.ServeStoredFile(c, payment.ProofURL, downloadName); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Payment proof file not found"})
+	}
+}
+
 // GetTenantSubscriptionStatus gets current tenant subscription status
 func GetTenantSubscriptionStatus(c *gin.Context) {
 	// Get tenant_id from context (set by JWT middleware as uuid.UUID)
@@ -366,7 +361,7 @@ func GetTenantSubscriptionStatus(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Tenant ID not found in token"})
 		return
 	}
-	
+
 	tenantID, ok := tenantIDValue.(uuid.UUID)
 	if !ok {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid tenant ID format"})

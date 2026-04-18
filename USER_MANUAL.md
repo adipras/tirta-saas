@@ -240,7 +240,7 @@ Before starting tests, verify:
 
 ## Platform Owner Guide
 
-### PART 1: Initial Login
+### PART 1: Initial Login [Done ✔️]
 
 **Duration:** 2 minutes
 
@@ -298,7 +298,7 @@ Before starting tests, verify:
 
 ---
 
-### PART 2: Configure Platform Payment Settings
+### PART 2: Configure Platform Payment Settings [Done ✔️]
 
 **Duration:** 3 minutes
 
@@ -361,13 +361,14 @@ Before starting tests, verify:
 - Refresh page and retry
 
 ❌ **Changes not persisting:**
+
 - Check backend logs for errors
 - Verify database connection
 - Try browser incognito mode
 
 ---
 
-### PART 3: Review Platform Dashboard
+### PART 3: Review Platform Dashboard [Done ✔️]
 
 **Navigation:** Dashboard → Platform
 

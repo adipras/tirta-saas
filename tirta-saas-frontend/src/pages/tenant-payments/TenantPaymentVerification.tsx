@@ -5,6 +5,7 @@ import {
   XCircleIcon,
   ClockIcon,
   EyeIcon,
+  DocumentIcon,
 } from '@heroicons/react/24/outline';
 import paymentProofService, { type PaymentProof } from '../../services/paymentProofService';
 import { PageHeader, useToast } from '../../components';
@@ -313,14 +314,28 @@ export default function TenantPaymentVerification() {
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Payment Proof</p>
                   <div className="border rounded-lg p-4 bg-gray-50">
-                    <img
-                      src={selectedPayment.proofUrl}
-                      alt="Payment proof"
-                      className="max-h-96 mx-auto rounded"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://via.placeholder.com/400x300?text=Image+Not+Available';
-                      }}
-                    />
+                    {selectedPayment.proofUrl.endsWith('.pdf') ? (
+                      <div className="text-center">
+                        <DocumentIcon className="h-16 w-16 text-gray-400 mx-auto mb-2" />
+                        <a
+                          href={selectedPayment.proofUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        >
+                          View PDF
+                        </a>
+                      </div>
+                    ) : (
+                      <img
+                        src={selectedPayment.proofUrl}
+                        alt="Payment proof"
+                        className="max-h-96 mx-auto rounded"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://via.placeholder.com/400x300?text=Image+Not+Available';
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
 

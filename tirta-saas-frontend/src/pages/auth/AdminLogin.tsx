@@ -51,6 +51,10 @@ const AdminLogin = () => {
 
       // If user has no tenant yet → go to setup-tenant page
       if (!user?.tenant_id) {
+        if (user.role == "platform_owner") {
+          navigate('/admin');
+          return;
+        }
         navigate('/setup-tenant');
         return;
       }

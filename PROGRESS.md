@@ -1,5 +1,37 @@
 # Development Progress - Tirta SaaS
 
+## Latest Session: April 18, 2026
+
+**Date:** April 18, 2026  
+**Focus:** Payment method primary consistency + upload file hardening  
+**Status:** ✅ All done
+
+---
+
+## ✅ Completed (April 18, 2026)
+
+### 1. Payment Method Fix — Only One Primary Allowed
+
+- **Scope:** tenant bank accounts, tenant QR codes, platform bank accounts, platform QR codes
+- **Fix backend:** create/update/set-primary sekarang selalu clear primary lain dalam transaksi yang sama
+- **Fix request handling:** `UpdateBankAccountRequest` kini menerima `is_primary`
+- **Fix UI sync:** halaman `TenantPaymentSettings` dan `PlatformPaymentSettings` reload data setelah simpan supaya badge **Primary** tidak stale
+- **UX fix:** modal add/edit QR code dibuat scrollable (`max-h-[90vh] overflow-y-auto`)
+
+### 2. Upload Security Hardening
+
+- **Centralized validation:** `utils/file_upload.go` diperkuat dengan content sniffing, allowlist MIME + ekstensi, limit ukuran, dan validasi path upload
+- **Private storage for sensitive files:** payment proof invoice dan subscription proof dipindahkan ke `storage/private/...`
+- **Protected file access:** file sensitif tidak lagi dibuka langsung via static `/uploads`, tetapi lewat endpoint terproteksi:
+  - `/api/payment-proofs/:id/file/*filename`
+  - `/api/platform/subscription-payments/:id/file/*filename`
+  - `/api/platform/tenants/:id/payment-proof/*filename`
+- **Static exposure reduced:** `main.go` tidak lagi membuka seluruh `/uploads`; hanya aset publik yang memang perlu
+- **Controller refactor:** payment proof, subscription payment proof, dan bulk CSV import sekarang memakai validasi backend yang lebih aman
+- **Frontend compatibility:** viewer bukti pembayaran/subscription tetap berfungsi untuk image dan PDF lewat URL aman
+
+---
+
 ## Latest Session: February 26, 2026
 
 **Date:** February 26, 2026  

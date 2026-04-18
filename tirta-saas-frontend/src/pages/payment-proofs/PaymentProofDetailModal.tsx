@@ -145,17 +145,31 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
           <div>
             <h3 className="font-semibold mb-3">Payment Proof Image</h3>
             <div className="border rounded-lg overflow-hidden">
-              <img
-                src={`http://localhost:8081${proof.proof_image_url}`}
-                alt="Payment Proof"
-                className="w-full h-auto"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://via.placeholder.com/800x400?text=Image+Not+Found';
-                }}
-              />
+              {proof.proof_image_url.endsWith('.pdf') ? (
+                <div className="p-6 text-center">
+                  <p className="text-sm text-gray-600 mb-3">File bukti pembayaran berupa PDF.</p>
+                  <a
+                    href={proof.proof_image_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    Buka PDF
+                  </a>
+                </div>
+              ) : (
+                <img
+                  src={proof.proof_image_url}
+                  alt="Payment Proof"
+                  className="w-full h-auto"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://via.placeholder.com/800x400?text=Image+Not+Found';
+                  }}
+                />
+              )}
             </div>
             <a
-              href={`http://localhost:8081${proof.proof_image_url}`}
+              href={proof.proof_image_url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block"

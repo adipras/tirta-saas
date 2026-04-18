@@ -1,5 +1,7 @@
 import { apiClient } from './apiClient';
 
+const STATIC_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api').replace('/api', '');
+
 export interface PaymentProof {
   id: string;
   invoice_id: string;
@@ -22,6 +24,13 @@ export interface PaymentProof {
   rejection_reason?: string;
   created_at: string;
   updated_at: string;
+}
+
+function withProofUrl(proof: any): PaymentProof {
+  return {
+    ...proof,
+    proof_image_url: proof.proof_image_url ? `${STATIC_BASE}${proof.proof_image_url}` : '',
+  };
 }
 
 export interface PaymentProofListResponse {
@@ -81,7 +90,7 @@ class PaymentProofService {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    return withProofUrl(response);
   }
 
   /**
@@ -94,7 +103,10 @@ class PaymentProofService {
     per_page?: number;
   }): Promise<PaymentProofListResponse> {
     const response = await apiClient.get(this.baseUrl, { params });
-    return response.data;
+    return {
+      ...response,
+      payment_proofs: (response.payment_proofs || []).map(withProofUrl),
+    };
   }
 
   /**
@@ -102,7 +114,7 @@ class PaymentProofService {
    */
   async getPaymentProof(id: string): Promise<PaymentProof> {
     const response = await apiClient.get(`${this.baseUrl}/${id}`);
-    return response.data;
+    return withProofUrl(response);
   }
 
   /**
@@ -110,7 +122,7 @@ class PaymentProofService {
    */
   async verifyPaymentProof(id: string, data: VerifyPaymentData): Promise<PaymentProof> {
     const response = await apiClient.post(`${this.baseUrl}/${id}/verify`, data);
-    return response.data;
+    return withProofUrl(response);
   }
 
   /**
@@ -118,7 +130,7 @@ class PaymentProofService {
    */
   async rejectPaymentProof(id: string, data: RejectPaymentData): Promise<PaymentProof> {
     const response = await apiClient.post(`${this.baseUrl}/${id}/reject`, data);
-    return response.data;
+    return withProofUrl(response);
   }
 }
 

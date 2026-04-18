@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
@@ -126,19 +128,19 @@ func PublicTenantRegistration(c *gin.Context) {
 
 	// Create default tenant settings
 	tenantSettings := models.TenantSettings{
-		BaseModel:           models.BaseModel{ID: uuid.New()}, // Explicitly generate UUID
-		TenantID:            tenant.ID,
-		CompanyName:         req.OrganizationName,
-		Address:             req.Address,
-		Phone:               req.Phone,
-		Email:               req.Email,
-		InvoiceDueDays:      14,
-		LatePenaltyPercent:  2.0,
-		LatePenaltyMaxCap:   100000,
-		GracePeriodDays:     3,
-		TimeZone:            "Asia/Jakarta",
-		Language:            "id",
-		Currency:            "IDR",
+		BaseModel:          models.BaseModel{ID: uuid.New()}, // Explicitly generate UUID
+		TenantID:           tenant.ID,
+		CompanyName:        req.OrganizationName,
+		Address:            req.Address,
+		Phone:              req.Phone,
+		Email:              req.Email,
+		InvoiceDueDays:     14,
+		LatePenaltyPercent: 2.0,
+		LatePenaltyMaxCap:  100000,
+		GracePeriodDays:    3,
+		TimeZone:           "Asia/Jakarta",
+		Language:           "id",
+		Currency:           "IDR",
 	}
 
 	if err := tx.Create(&tenantSettings).Error; err != nil {
@@ -188,60 +190,97 @@ func PublicTenantRegistration(c *gin.Context) {
 // @Failure 401 {object} responses.ErrorResponse
 // @Router /api/platform/tenants/pending [get]
 func GetPendingTenants(c *gin.Context) {
-status := c.Query("status")
+	status := c.Query("status")
 
-query := config.DB.Model(&models.Tenant{})
+	query := config.DB.Model(&models.Tenant{})
 
-if status != "" {
-query = query.Where("status = ?", status)
-} else {
-// Default: show TRIAL and PENDING_VERIFICATION
-query = query.Where("status IN ?", []string{
-string(models.TenantStatusTrial),
-string(models.TenantStatusPendingVerification),
-string(models.TenantStatusPendingPayment),
-})
+	if status != "" {
+		query = query.Where("status = ?", status)
+	} else {
+		// Default: show TRIAL and PENDING_VERIFICATION
+		query = query.Where("status IN ?", []string{
+			string(models.TenantStatusTrial),
+			string(models.TenantStatusPendingVerification),
+			string(models.TenantStatusPendingPayment),
+		})
+	}
+
+	var tenants []models.Tenant
+	if err := query.Order("registered_at DESC").Find(&tenants).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to fetch pending tenants",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	// Convert to response format
+	pendingTenants := make([]responses.PendingTenantResponse, len(tenants))
+	for i, t := range tenants {
+		paymentProofURL := ""
+		if t.PaymentProofURL != "" {
+			paymentProofURL = fmt.Sprintf("/api/platform/tenants/%s/payment-proof/proof%s", t.ID.String(), filepath.Ext(t.PaymentProofURL))
+		}
+
+		pendingTenants[i] = responses.PendingTenantResponse{
+			ID:              t.ID,
+			Name:            t.Name,
+			VillageCode:     t.VillageCode,
+			Email:           t.Email,
+			Phone:           t.Phone,
+			Address:         t.Address,
+			AdminName:       t.AdminName,
+			AdminEmail:      t.AdminEmail,
+			AdminPhone:      t.AdminPhone,
+			Status:          string(t.Status),
+			RegisteredAt:    t.RegisteredAt,
+			TrialEndsAt:     t.TrialEndsAt,
+			PaymentProofURL: paymentProofURL,
+			TotalUsers:      t.TotalUsers,
+			TotalCustomers:  t.TotalCustomers,
+		}
+	}
+
+	c.JSON(http.StatusOK, responses.PendingTenantsListResponse{
+		Status:  "success",
+		Data:    pendingTenants,
+		Total:   len(pendingTenants),
+		Page:    1,
+		PerPage: len(pendingTenants),
+	})
 }
 
-var tenants []models.Tenant
-if err := query.Order("registered_at DESC").Find(&tenants).Error; err != nil {
-c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
-Status:  "error",
-Message: "Failed to fetch pending tenants",
-Error:   err.Error(),
-})
-return
-}
+func DownloadTenantPaymentProof(c *gin.Context) {
+	tenantID := c.Param("id")
 
-// Convert to response format
-pendingTenants := make([]responses.PendingTenantResponse, len(tenants))
-for i, t := range tenants {
-pendingTenants[i] = responses.PendingTenantResponse{
-ID:              t.ID,
-Name:            t.Name,
-VillageCode:     t.VillageCode,
-Email:           t.Email,
-Phone:           t.Phone,
-Address:         t.Address,
-AdminName:       t.AdminName,
-AdminEmail:      t.AdminEmail,
-AdminPhone:      t.AdminPhone,
-Status:          string(t.Status),
-RegisteredAt:    t.RegisteredAt,
-TrialEndsAt:     t.TrialEndsAt,
-PaymentProofURL: t.PaymentProofURL,
-TotalUsers:      t.TotalUsers,
-TotalCustomers:  t.TotalCustomers,
-}
-}
+	var tenant models.Tenant
+	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
+		c.JSON(http.StatusNotFound, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Tenant not found",
+			Error:   err.Error(),
+		})
+		return
+	}
 
-c.JSON(http.StatusOK, responses.PendingTenantsListResponse{
-Status:  "success",
-Data:    pendingTenants,
-Total:   len(pendingTenants),
-Page:    1,
-PerPage: len(pendingTenants),
-})
+	if tenant.PaymentProofURL == "" {
+		c.JSON(http.StatusNotFound, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Payment proof not found",
+			Error:   "",
+		})
+		return
+	}
+
+	downloadName := "tenant-payment-proof" + filepath.Ext(tenant.PaymentProofURL)
+	if err := utils.ServeStoredFile(c, tenant.PaymentProofURL, downloadName); err != nil {
+		c.JSON(http.StatusNotFound, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Payment proof file not found",
+			Error:   err.Error(),
+		})
+	}
 }
 
 // ApproveTenant approves a tenant and activates their subscription
@@ -257,104 +296,104 @@ PerPage: len(pendingTenants),
 // @Failure 400,404 {object} responses.ErrorResponse
 // @Router /api/platform/tenants/{id}/approve [post]
 func ApproveTenant(c *gin.Context) {
-tenantID := c.Param("id")
+	tenantID := c.Param("id")
 
-var req requests.TenantApprovalRequest
-c.ShouldBindJSON(&req)
+	var req requests.TenantApprovalRequest
+	c.ShouldBindJSON(&req)
 
-var tenant models.Tenant
-if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
-c.JSON(http.StatusNotFound, responses.ErrorResponse{
-Status:  "error",
-Message: "Tenant not found",
-Error:   err.Error(),
-})
-return
-}
-
-// Get platform owner info from context
-userID, exists := c.Get("user_id")
-if !exists {
-c.JSON(http.StatusUnauthorized, responses.ErrorResponse{
-Status:  "error",
-Message: "User not authenticated",
-})
-return
-}
-
-// Get user email from database
-var user models.User
-if err := config.DB.First(&user, "id = ?", userID).Error; err != nil {
-c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
-Status:  "error",
-Message: "Failed to get user info",
-})
-return
-}
-platformOwner := user.Email
-
-now := time.Now()
-
-var updates map[string]interface{}
-var responseMessage string
-
-// If tenant registered via subscription plan (PENDING_APPROVAL),
-// set status to PENDING_PAYMENT so they must pay the subscription invoice.
-// Otherwise (legacy trial/manual approval), activate directly.
-if tenant.Status == models.TenantStatusPendingApproval {
-	updates = map[string]interface{}{
-		"status":      string(models.TenantStatusPendingPayment),
-		"approved_at": &now,
-		"approved_by": &platformOwner,
+	var tenant models.Tenant
+	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
+		c.JSON(http.StatusNotFound, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Tenant not found",
+			Error:   err.Error(),
+		})
+		return
 	}
-	if req.SubscriptionPlan != "" {
-		updates["subscription_plan"] = req.SubscriptionPlan
-	}
-	if req.Notes != "" {
-		updates["notes"] = req.Notes
-	}
-	responseMessage = "Tenant disetujui. Invoice tagihan berlangganan telah dibuat. Tenant perlu melakukan konfirmasi pembayaran."
-} else {
-	// Legacy path: directly activate
-	subscriptionEnds := now.AddDate(0, 1, 0)
-	updates = map[string]interface{}{
-		"status":                 string(models.TenantStatusActive),
-		"approved_at":            &now,
-		"approved_by":            &platformOwner,
-		"subscription_starts_at": &now,
-		"subscription_ends_at":   &subscriptionEnds,
-		"subscription_status":    "ACTIVE",
-	}
-	if req.SubscriptionPlan != "" {
-		updates["subscription_plan"] = req.SubscriptionPlan
-	}
-	if req.Notes != "" {
-		updates["notes"] = req.Notes
-	}
-	responseMessage = "Tenant approved successfully"
-}
 
-if err := config.DB.Model(&tenant).Updates(updates).Error; err != nil {
-c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
-Status:  "error",
-Message: "Failed to approve tenant",
-Error:   err.Error(),
-})
-return
-}
+	// Get platform owner info from context
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, responses.ErrorResponse{
+			Status:  "error",
+			Message: "User not authenticated",
+		})
+		return
+	}
 
-// Reload tenant to get updated data
-config.DB.First(&tenant, "id = ?", tenantID)
+	// Get user email from database
+	var user models.User
+	if err := config.DB.First(&user, "id = ?", userID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to get user info",
+		})
+		return
+	}
+	platformOwner := user.Email
 
-response := responses.TenantActionResponse{
-Status:  "success",
-Message: responseMessage,
-}
-response.Tenant.ID = tenant.ID
-response.Tenant.Name = tenant.Name
-response.Tenant.Status = tenant.Status
+	now := time.Now()
 
-c.JSON(http.StatusOK, response)
+	var updates map[string]interface{}
+	var responseMessage string
+
+	// If tenant registered via subscription plan (PENDING_APPROVAL),
+	// set status to PENDING_PAYMENT so they must pay the subscription invoice.
+	// Otherwise (legacy trial/manual approval), activate directly.
+	if tenant.Status == models.TenantStatusPendingApproval {
+		updates = map[string]interface{}{
+			"status":      string(models.TenantStatusPendingPayment),
+			"approved_at": &now,
+			"approved_by": &platformOwner,
+		}
+		if req.SubscriptionPlan != "" {
+			updates["subscription_plan"] = req.SubscriptionPlan
+		}
+		if req.Notes != "" {
+			updates["notes"] = req.Notes
+		}
+		responseMessage = "Tenant disetujui. Invoice tagihan berlangganan telah dibuat. Tenant perlu melakukan konfirmasi pembayaran."
+	} else {
+		// Legacy path: directly activate
+		subscriptionEnds := now.AddDate(0, 1, 0)
+		updates = map[string]interface{}{
+			"status":                 string(models.TenantStatusActive),
+			"approved_at":            &now,
+			"approved_by":            &platformOwner,
+			"subscription_starts_at": &now,
+			"subscription_ends_at":   &subscriptionEnds,
+			"subscription_status":    "ACTIVE",
+		}
+		if req.SubscriptionPlan != "" {
+			updates["subscription_plan"] = req.SubscriptionPlan
+		}
+		if req.Notes != "" {
+			updates["notes"] = req.Notes
+		}
+		responseMessage = "Tenant approved successfully"
+	}
+
+	if err := config.DB.Model(&tenant).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to approve tenant",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	// Reload tenant to get updated data
+	config.DB.First(&tenant, "id = ?", tenantID)
+
+	response := responses.TenantActionResponse{
+		Status:  "success",
+		Message: responseMessage,
+	}
+	response.Tenant.ID = tenant.ID
+	response.Tenant.Name = tenant.Name
+	response.Tenant.Status = tenant.Status
+
+	c.JSON(http.StatusOK, response)
 }
 
 // RejectTenant rejects a tenant registration
@@ -370,60 +409,60 @@ c.JSON(http.StatusOK, response)
 // @Failure 400,404 {object} responses.ErrorResponse
 // @Router /api/platform/tenants/{id}/reject [post]
 func RejectTenant(c *gin.Context) {
-tenantID := c.Param("id")
+	tenantID := c.Param("id")
 
-var req requests.TenantRejectionRequest
-if err := c.ShouldBindJSON(&req); err != nil {
-c.JSON(http.StatusBadRequest, responses.ErrorResponse{
-Status:  "error",
-Message: "Rejection reason is required",
-Error:   err.Error(),
-})
-return
-}
+	var req requests.TenantRejectionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Rejection reason is required",
+			Error:   err.Error(),
+		})
+		return
+	}
 
-var tenant models.Tenant
-if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
-c.JSON(http.StatusNotFound, responses.ErrorResponse{
-Status:  "error",
-Message: "Tenant not found",
-Error:   err.Error(),
-})
-return
-}
+	var tenant models.Tenant
+	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
+		c.JSON(http.StatusNotFound, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Tenant not found",
+			Error:   err.Error(),
+		})
+		return
+	}
 
-// Get platform owner info
-platformOwnerEmail, _ := c.Get("user_email")
-platformOwner := platformOwnerEmail.(string)
+	// Get platform owner info
+	platformOwnerEmail, _ := c.Get("user_email")
+	platformOwner := platformOwnerEmail.(string)
 
-now := time.Now()
+	now := time.Now()
 
-// Update tenant
-if err := config.DB.Model(&tenant).Updates(map[string]interface{}{
-"status":           string(models.TenantStatusInactive),
-"rejected_at":      &now,
-"rejected_by":      &platformOwner,
-"rejection_reason": req.Reason,
-}).Error; err != nil {
-c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
-Status:  "error",
-Message: "Failed to reject tenant",
-Error:   err.Error(),
-})
-return
-}
+	// Update tenant
+	if err := config.DB.Model(&tenant).Updates(map[string]interface{}{
+		"status":           string(models.TenantStatusInactive),
+		"rejected_at":      &now,
+		"rejected_by":      &platformOwner,
+		"rejection_reason": req.Reason,
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to reject tenant",
+			Error:   err.Error(),
+		})
+		return
+	}
 
-config.DB.First(&tenant, "id = ?", tenantID)
+	config.DB.First(&tenant, "id = ?", tenantID)
 
-response := responses.TenantActionResponse{
-Status:  "success",
-Message: "Tenant rejected",
-}
-response.Tenant.ID = tenant.ID
-response.Tenant.Name = tenant.Name
-response.Tenant.Status = tenant.Status
+	response := responses.TenantActionResponse{
+		Status:  "success",
+		Message: "Tenant rejected",
+	}
+	response.Tenant.ID = tenant.ID
+	response.Tenant.Name = tenant.Name
+	response.Tenant.Status = tenant.Status
 
-c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
 
 // SuspendTenant suspends an active tenant
@@ -439,73 +478,73 @@ c.JSON(http.StatusOK, response)
 // @Failure 400,404 {object} responses.ErrorResponse
 // @Router /api/platform/tenants/{id}/suspend [post]
 func SuspendTenantByPlatform(c *gin.Context) {
-tenantID := c.Param("id")
+	tenantID := c.Param("id")
 
-var req requests.TenantSuspensionRequest
-if err := c.ShouldBindJSON(&req); err != nil {
-c.JSON(http.StatusBadRequest, responses.ErrorResponse{
-Status:  "error",
-Message: "Suspension reason is required",
-Error:   err.Error(),
-})
-return
-}
+	var req requests.TenantSuspensionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Suspension reason is required",
+			Error:   err.Error(),
+		})
+		return
+	}
 
-var tenant models.Tenant
-if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
-c.JSON(http.StatusNotFound, responses.ErrorResponse{
-Status:  "error",
-Message: "Tenant not found",
-Error:   err.Error(),
-})
-return
-}
+	var tenant models.Tenant
+	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
+		c.JSON(http.StatusNotFound, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Tenant not found",
+			Error:   err.Error(),
+		})
+		return
+	}
 
-now := time.Now()
+	now := time.Now()
 
-if err := config.DB.Model(&tenant).Updates(map[string]interface{}{
-"status":            string(models.TenantStatusSuspended),
-"suspended_at":      &now,
-"suspension_reason": req.Reason,
-}).Error; err != nil {
-c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
-Status:  "error",
-Message: "Failed to suspend tenant",
-Error:   err.Error(),
-})
-return
-}
+	if err := config.DB.Model(&tenant).Updates(map[string]interface{}{
+		"status":            string(models.TenantStatusSuspended),
+		"suspended_at":      &now,
+		"suspension_reason": req.Reason,
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to suspend tenant",
+			Error:   err.Error(),
+		})
+		return
+	}
 
-config.DB.First(&tenant, "id = ?", tenantID)
+	config.DB.First(&tenant, "id = ?", tenantID)
 
-response := responses.TenantActionResponse{
-Status:  "success",
-Message: "Tenant suspended",
-}
-response.Tenant.ID = tenant.ID
-response.Tenant.Name = tenant.Name
-response.Tenant.Status = tenant.Status
+	response := responses.TenantActionResponse{
+		Status:  "success",
+		Message: "Tenant suspended",
+	}
+	response.Tenant.ID = tenant.ID
+	response.Tenant.Name = tenant.Name
+	response.Tenant.Status = tenant.Status
 
-c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, response)
 }
 
 // SetupTenantRequest represents the request to create a tenant for an authenticated user
 type SetupTenantRequest struct {
-// Organization Information
-OrganizationName string `json:"organization_name" binding:"required,min=3,max=100"`
-VillageCode      string `json:"village_code" binding:"required,min=3,max=20"`
-Address          string `json:"address" binding:"required"`
-Phone            string `json:"phone" binding:"required"`
-Email            string `json:"email" binding:"required,email"`
+	// Organization Information
+	OrganizationName string `json:"organization_name" binding:"required,min=3,max=100"`
+	VillageCode      string `json:"village_code" binding:"required,min=3,max=20"`
+	Address          string `json:"address" binding:"required"`
+	Phone            string `json:"phone" binding:"required"`
+	Email            string `json:"email" binding:"required,email"`
 
-// Admin Contact
-AdminPhone string `json:"admin_phone"`
+	// Admin Contact
+	AdminPhone string `json:"admin_phone"`
 
-// Plan Selection (FEATURE-2)
-// plan_type: "trial" or "subscription"
-PlanType string `json:"plan_type" binding:"required,oneof=trial subscription"`
-// plan_id: required when plan_type = "subscription"
-PlanID string `json:"plan_id"`
+	// Plan Selection (FEATURE-2)
+	// plan_type: "trial" or "subscription"
+	PlanType string `json:"plan_type" binding:"required,oneof=trial subscription"`
+	// plan_id: required when plan_type = "subscription"
+	PlanID string `json:"plan_id"`
 }
 
 // SetupTenant creates a tenant for an already-authenticated user who doesn't have a tenant yet.
@@ -521,165 +560,165 @@ PlanID string `json:"plan_id"`
 // @Failure 400,401,409 {object} map[string]string
 // @Router /api/setup/tenant [post]
 func SetupTenant(c *gin.Context) {
-var req SetupTenantRequest
-if err := c.ShouldBindJSON(&req); err != nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-return
-}
+	var req SetupTenantRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-// Get authenticated user from context
-userIDStr, exists := c.Get("user_id")
-if !exists {
-c.JSON(http.StatusUnauthorized, gin.H{"error": "Pengguna tidak terautentikasi"})
-return
-}
+	// Get authenticated user from context
+	userIDStr, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Pengguna tidak terautentikasi"})
+		return
+	}
 
-userUUID, err := uuid.Parse(userIDStr.(string))
-if err != nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": "User ID tidak valid"})
-return
-}
+	userUUID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID tidak valid"})
+		return
+	}
 
-// Load the user
-var user models.User
-if err := config.DB.First(&user, "id = ?", userUUID).Error; err != nil {
-c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
-return
-}
+	// Load the user
+	var user models.User
+	if err := config.DB.First(&user, "id = ?", userUUID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pengguna tidak ditemukan"})
+		return
+	}
 
-// Prevent duplicate tenant setup
-if user.TenantID != nil {
-c.JSON(http.StatusConflict, gin.H{"error": "Akun Anda sudah memiliki tenant yang terdaftar"})
-return
-}
+	// Prevent duplicate tenant setup
+	if user.TenantID != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Akun Anda sudah memiliki tenant yang terdaftar"})
+		return
+	}
 
-// Validate village code uniqueness
-var existing models.Tenant
-if err := config.DB.Where("village_code = ?", req.VillageCode).First(&existing).Error; err == nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": "Kode desa sudah terdaftar. Gunakan kode yang unik."})
-return
-}
+	// Validate village code uniqueness
+	var existing models.Tenant
+	if err := config.DB.Where("village_code = ?", req.VillageCode).First(&existing).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Kode desa sudah terdaftar. Gunakan kode yang unik."})
+		return
+	}
 
-// Validate subscription plan if plan_type is "subscription"
-var subscriptionPlan string
-if req.PlanType == "subscription" {
-if req.PlanID == "" {
-c.JSON(http.StatusBadRequest, gin.H{"error": "plan_id wajib diisi ketika memilih subscription"})
-return
-}
-var plan models.SubscriptionPlanDetails
-if err := config.DB.First(&plan, "id = ?", req.PlanID).Error; err != nil {
-c.JSON(http.StatusBadRequest, gin.H{"error": "Paket langganan tidak ditemukan"})
-return
-}
-subscriptionPlan = plan.Name
-}
+	// Validate subscription plan if plan_type is "subscription"
+	var subscriptionPlan string
+	if req.PlanType == "subscription" {
+		if req.PlanID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "plan_id wajib diisi ketika memilih subscription"})
+			return
+		}
+		var plan models.SubscriptionPlanDetails
+		if err := config.DB.First(&plan, "id = ?", req.PlanID).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Paket langganan tidak ditemukan"})
+			return
+		}
+		subscriptionPlan = plan.Name
+	}
 
-// Determine tenant status and trial date based on plan type
-var tenantStatus models.TenantStatus
-var trialEndsAt *time.Time
-switch req.PlanType {
-case "trial":
-tenantStatus = models.TenantStatusTrial
-t := time.Now().AddDate(0, 0, 14)
-trialEndsAt = &t
-case "subscription":
-tenantStatus = models.TenantStatusPendingApproval
-}
+	// Determine tenant status and trial date based on plan type
+	var tenantStatus models.TenantStatus
+	var trialEndsAt *time.Time
+	switch req.PlanType {
+	case "trial":
+		tenantStatus = models.TenantStatusTrial
+		t := time.Now().AddDate(0, 0, 14)
+		trialEndsAt = &t
+	case "subscription":
+		tenantStatus = models.TenantStatusPendingApproval
+	}
 
-// Start DB transaction
-tx := config.DB.Begin()
-defer func() {
-if r := recover(); r != nil {
-tx.Rollback()
-}
-}()
+	// Start DB transaction
+	tx := config.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
-adminPhone := req.AdminPhone
-if adminPhone == "" {
-adminPhone = req.Phone
-}
+	adminPhone := req.AdminPhone
+	if adminPhone == "" {
+		adminPhone = req.Phone
+	}
 
-tenant := models.Tenant{
-Name:             req.OrganizationName,
-VillageCode:      req.VillageCode,
-Email:            req.Email,
-Phone:            req.Phone,
-Address:          req.Address,
-AdminName:        user.Name,
-AdminEmail:       user.Email,
-AdminPhone:       adminPhone,
-Status:           tenantStatus,
-RegisteredAt:     time.Now(),
-TrialEndsAt:      trialEndsAt,
-SubscriptionPlan: subscriptionPlan,
-}
+	tenant := models.Tenant{
+		Name:             req.OrganizationName,
+		VillageCode:      req.VillageCode,
+		Email:            req.Email,
+		Phone:            req.Phone,
+		Address:          req.Address,
+		AdminName:        user.Name,
+		AdminEmail:       user.Email,
+		AdminPhone:       adminPhone,
+		Status:           tenantStatus,
+		RegisteredAt:     time.Now(),
+		TrialEndsAt:      trialEndsAt,
+		SubscriptionPlan: subscriptionPlan,
+	}
 
-if err := tx.Create(&tenant).Error; err != nil {
-tx.Rollback()
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat tenant: " + err.Error()})
-return
-}
+	if err := tx.Create(&tenant).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat tenant: " + err.Error()})
+		return
+	}
 
-// Link user to tenant and update admin contact
-tenantID := tenant.ID
-if err := tx.Model(&user).Updates(map[string]interface{}{
-"tenant_id":  &tenantID,
-"admin_phone": adminPhone,
-}).Error; err != nil {
-tx.Rollback()
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghubungkan user ke tenant"})
-return
-}
+	// Link user to tenant and update admin contact
+	tenantID := tenant.ID
+	if err := tx.Model(&user).Updates(map[string]interface{}{
+		"tenant_id":   &tenantID,
+		"admin_phone": adminPhone,
+	}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghubungkan user ke tenant"})
+		return
+	}
 
-// Create default tenant settings
-tenantSettings := models.TenantSettings{
-BaseModel:          models.BaseModel{ID: uuid.New()},
-TenantID:           tenant.ID,
-CompanyName:        req.OrganizationName,
-Address:            req.Address,
-Phone:              req.Phone,
-Email:              req.Email,
-InvoiceDueDays:     14,
-LatePenaltyPercent: 2.0,
-LatePenaltyMaxCap:  100000,
-GracePeriodDays:    3,
-TimeZone:           "Asia/Jakarta",
-Language:           "id",
-Currency:           "IDR",
-}
+	// Create default tenant settings
+	tenantSettings := models.TenantSettings{
+		BaseModel:          models.BaseModel{ID: uuid.New()},
+		TenantID:           tenant.ID,
+		CompanyName:        req.OrganizationName,
+		Address:            req.Address,
+		Phone:              req.Phone,
+		Email:              req.Email,
+		InvoiceDueDays:     14,
+		LatePenaltyPercent: 2.0,
+		LatePenaltyMaxCap:  100000,
+		GracePeriodDays:    3,
+		TimeZone:           "Asia/Jakarta",
+		Language:           "id",
+		Currency:           "IDR",
+	}
 
-if err := tx.Create(&tenantSettings).Error; err != nil {
-tx.Rollback()
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat pengaturan tenant"})
-return
-}
+	if err := tx.Create(&tenantSettings).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat pengaturan tenant"})
+		return
+	}
 
-if err := tx.Commit().Error; err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyelesaikan proses setup"})
-return
-}
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyelesaikan proses setup"})
+		return
+	}
 
-// Reload user with updated tenant_id
-config.DB.First(&user, "id = ?", userUUID)
+	// Reload user with updated tenant_id
+	config.DB.First(&user, "id = ?", userUUID)
 
-// Issue new JWT with tenant_id populated
-newToken, err := utils.GenerateJWT(user.ID, user.TenantID, user.Role)
-if err != nil {
-c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat token baru"})
-return
-}
+	// Issue new JWT with tenant_id populated
+	newToken, err := utils.GenerateJWT(user.ID, user.TenantID, user.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat token baru"})
+		return
+	}
 
-statusMsg := "Tenant berhasil dibuat dalam mode Trial 14 hari."
-if req.PlanType == "subscription" {
-statusMsg = "Tenant berhasil didaftarkan. Menunggu approval dari admin platform."
-}
+	statusMsg := "Tenant berhasil dibuat dalam mode Trial 14 hari."
+	if req.PlanType == "subscription" {
+		statusMsg = "Tenant berhasil didaftarkan. Menunggu approval dari admin platform."
+	}
 
-c.JSON(http.StatusCreated, gin.H{
-"message":       statusMsg,
-"token":         newToken,
-"tenant_id":     tenant.ID,
-"tenant_status": string(tenant.Status),
-"trial_ends_at": tenant.TrialEndsAt,
-})
+	c.JSON(http.StatusCreated, gin.H{
+		"message":       statusMsg,
+		"token":         newToken,
+		"tenant_id":     tenant.ID,
+		"tenant_status": string(tenant.Status),
+		"trial_ends_at": tenant.TrialEndsAt,
+	})
 }

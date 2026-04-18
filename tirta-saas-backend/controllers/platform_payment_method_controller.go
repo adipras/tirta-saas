@@ -11,7 +11,26 @@ import (
 	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
+
+func unsetOtherPlatformBankAccountPrimaries(tx *gorm.DB, excludeID *uuid.UUID) error {
+	query := tx.Model(&models.PlatformBankAccount{}).Where("1 = 1")
+	if excludeID != nil {
+		query = query.Where("id <> ?", *excludeID)
+	}
+
+	return query.Update("is_primary", false).Error
+}
+
+func unsetOtherPlatformQRCodePrimaries(tx *gorm.DB, excludeID *uuid.UUID) error {
+	query := tx.Model(&models.PlatformQRCode{}).Where("1 = 1")
+	if excludeID != nil {
+		query = query.Where("id <> ?", *excludeID)
+	}
+
+	return query.Update("is_primary", false).Error
+}
 
 // GetPlatformBankAccounts lists all platform bank accounts
 func GetPlatformBankAccounts(c *gin.Context) {
@@ -46,10 +65,6 @@ func CreatePlatformBankAccount(c *gin.Context) {
 		return
 	}
 
-	if req.IsPrimary {
-		config.DB.Model(&models.PlatformBankAccount{}).Update("is_primary", false)
-	}
-
 	account := models.PlatformBankAccount{
 		BankName:      req.BankName,
 		AccountNumber: req.AccountNumber,
@@ -61,7 +76,15 @@ func CreatePlatformBankAccount(c *gin.Context) {
 		IsActive:      true,
 	}
 
-	if err := config.DB.Create(&account).Error; err != nil {
+	if err := config.DB.Transaction(func(tx *gorm.DB) error {
+		if req.IsPrimary {
+			if err := unsetOtherPlatformBankAccountPrimaries(tx, nil); err != nil {
+				return err
+			}
+		}
+
+		return tx.Create(&account).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create platform bank account"})
 		return
 	}
@@ -105,8 +128,17 @@ func UpdatePlatformBankAccount(c *gin.Context) {
 	if req.IsActive != nil {
 		account.IsActive = *req.IsActive
 	}
+	account.IsPrimary = req.IsPrimary
 
-	if err := config.DB.Save(&account).Error; err != nil {
+	if err := config.DB.Transaction(func(tx *gorm.DB) error {
+		if req.IsPrimary {
+			if err := unsetOtherPlatformBankAccountPrimaries(tx, &parsedID); err != nil {
+				return err
+			}
+		}
+
+		return tx.Save(&account).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update platform bank account"})
 		return
 	}
@@ -135,9 +167,14 @@ func SetPrimaryPlatformBankAccount(c *gin.Context) {
 		return
 	}
 
-	config.DB.Model(&models.PlatformBankAccount{}).Update("is_primary", false)
-	account.IsPrimary = true
-	if err := config.DB.Save(&account).Error; err != nil {
+	if err := config.DB.Transaction(func(tx *gorm.DB) error {
+		if err := unsetOtherPlatformBankAccountPrimaries(tx, &parsedID); err != nil {
+			return err
+		}
+
+		account.IsPrimary = true
+		return tx.Save(&account).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set primary platform bank account"})
 		return
 	}
@@ -193,10 +230,6 @@ func CreatePlatformQRCode(c *gin.Context) {
 		return
 	}
 
-	if req.IsPrimary {
-		config.DB.Model(&models.PlatformQRCode{}).Update("is_primary", false)
-	}
-
 	imageURL := ""
 	file, fileErr := c.FormFile("image")
 	if fileErr == nil {
@@ -216,7 +249,15 @@ func CreatePlatformQRCode(c *gin.Context) {
 		IsPrimary: req.IsPrimary, IsActive: req.IsActive, Notes: req.Notes,
 	}
 
-	if err := config.DB.Create(&qrCode).Error; err != nil {
+	if err := config.DB.Transaction(func(tx *gorm.DB) error {
+		if req.IsPrimary {
+			if err := unsetOtherPlatformQRCodePrimaries(tx, nil); err != nil {
+				return err
+			}
+		}
+
+		return tx.Create(&qrCode).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create platform QR code"})
 		return
 	}
@@ -271,7 +312,15 @@ func UpdatePlatformQRCode(c *gin.Context) {
 		qrCode.IsActive = *req.IsActive
 	}
 
-	if err := config.DB.Save(&qrCode).Error; err != nil {
+	if err := config.DB.Transaction(func(tx *gorm.DB) error {
+		if req.IsPrimary {
+			if err := unsetOtherPlatformQRCodePrimaries(tx, &parsedID); err != nil {
+				return err
+			}
+		}
+
+		return tx.Save(&qrCode).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update platform QR code"})
 		return
 	}
@@ -299,9 +348,14 @@ func SetPrimaryPlatformQRCode(c *gin.Context) {
 		return
 	}
 
-	config.DB.Model(&models.PlatformQRCode{}).Update("is_primary", false)
-	qrCode.IsPrimary = true
-	if err := config.DB.Save(&qrCode).Error; err != nil {
+	if err := config.DB.Transaction(func(tx *gorm.DB) error {
+		if err := unsetOtherPlatformQRCodePrimaries(tx, &parsedID); err != nil {
+			return err
+		}
+
+		qrCode.IsPrimary = true
+		return tx.Save(&qrCode).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set primary platform QR code"})
 		return
 	}

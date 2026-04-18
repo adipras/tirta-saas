@@ -3,26 +3,27 @@ package responses
 import "time"
 
 type SubscriptionPaymentResponse struct {
-	ID               string     `json:"id"`
-	TenantID         string     `json:"tenant_id"`
-	TenantName       string     `json:"tenant_name,omitempty"`
-	TenantEmail      string     `json:"tenant_email,omitempty"`
-	SubscriptionPlan string     `json:"subscription_plan"`
-	BillingPeriod    int        `json:"billing_period"`
-	Amount           float64    `json:"amount"`
-	PaymentDate      time.Time  `json:"payment_date"`
-	PaymentMethod    string     `json:"payment_method"`
-	AccountNumber    string     `json:"account_number,omitempty"`
-	AccountName      string     `json:"account_name"`
-	ReferenceNumber  string     `json:"reference_number,omitempty"`
-	ProofURL         string     `json:"proof_url"`
-	Notes            string     `json:"notes,omitempty"`
-	Status           string     `json:"status"`
-	VerifiedAt       *time.Time `json:"verified_at,omitempty"`
-	VerifiedBy       *string    `json:"verified_by,omitempty"`
-	RejectionReason  string     `json:"rejection_reason,omitempty"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
+	ID                string     `json:"id"`
+	TenantID          string     `json:"tenant_id"`
+	TenantName        string     `json:"tenant_name,omitempty"`
+	TenantEmail       string     `json:"tenant_email,omitempty"`
+	TenantVillageCode string     `json:"tenant_village_code,omitempty"`
+	SubscriptionPlan  string     `json:"subscription_plan"`
+	BillingPeriod     int        `json:"billing_period"`
+	Amount            float64    `json:"amount"`
+	PaymentDate       time.Time  `json:"payment_date"`
+	PaymentMethod     string     `json:"payment_method"`
+	AccountNumber     string     `json:"account_number,omitempty"`
+	AccountName       string     `json:"account_name"`
+	ReferenceNumber   string     `json:"reference_number,omitempty"`
+	ProofURL          string     `json:"proof_url"`
+	Notes             string     `json:"notes,omitempty"`
+	Status            string     `json:"status"`
+	VerifiedAt        *time.Time `json:"verified_at,omitempty"`
+	VerifiedBy        *string    `json:"verified_by,omitempty"`
+	RejectionReason   string     `json:"rejection_reason,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
 type SubscriptionPaymentListResponse struct {
@@ -37,11 +38,11 @@ type VerifyPaymentResponse struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`
 	Tenant  struct {
-		ID                   string     `json:"id"`
-		Status               string     `json:"status"`
-		SubscriptionPlan     string     `json:"subscription_plan"`
-		SubscriptionStart    *time.Time `json:"subscription_start"`
-		SubscriptionEnd      *time.Time `json:"subscription_end"`
+		ID                string     `json:"id"`
+		Status            string     `json:"status"`
+		SubscriptionPlan  string     `json:"subscription_plan"`
+		SubscriptionStart *time.Time `json:"subscription_start"`
+		SubscriptionEnd   *time.Time `json:"subscription_end"`
 	} `json:"tenant"`
 }
 

@@ -22,6 +22,24 @@ func NewPaymentMethodController(db *gorm.DB) *PaymentMethodController {
 	return &PaymentMethodController{DB: db}
 }
 
+func unsetOtherTenantBankAccountPrimaries(tx *gorm.DB, tenantUUID uuid.UUID, excludeID *uuid.UUID) error {
+	query := tx.Model(&models.BankAccount{}).Where("tenant_id = ?", tenantUUID)
+	if excludeID != nil {
+		query = query.Where("id <> ?", *excludeID)
+	}
+
+	return query.Update("is_primary", false).Error
+}
+
+func unsetOtherTenantQRCodePrimaries(tx *gorm.DB, tenantUUID uuid.UUID, excludeID *uuid.UUID) error {
+	query := tx.Model(&models.QRCode{}).Where("tenant_id = ?", tenantUUID)
+	if excludeID != nil {
+		query = query.Where("id <> ?", *excludeID)
+	}
+
+	return query.Update("is_primary", false).Error
+}
+
 // CreatePaymentMethod creates a new payment method
 func (ctrl *PaymentMethodController) CreatePaymentMethod(c *gin.Context) {
 	var req requests.CreatePaymentMethodRequest
@@ -155,11 +173,6 @@ func (ctrl *PaymentMethodController) CreateBankAccount(c *gin.Context) {
 		return
 	}
 
-	// If set as primary, unset other primary accounts
-	if req.IsPrimary {
-		ctrl.DB.Model(&models.BankAccount{}).Where("tenant_id = ?", tenantUUID).Update("is_primary", false)
-	}
-
 	bankAccount := models.BankAccount{
 		TenantID:      tenantUUID,
 		BankName:      req.BankName,
@@ -172,7 +185,15 @@ func (ctrl *PaymentMethodController) CreateBankAccount(c *gin.Context) {
 		IsActive:      true,
 	}
 
-	if err := ctrl.DB.Create(&bankAccount).Error; err != nil {
+	if err := ctrl.DB.Transaction(func(tx *gorm.DB) error {
+		if req.IsPrimary {
+			if err := unsetOtherTenantBankAccountPrimaries(tx, tenantUUID, nil); err != nil {
+				return err
+			}
+		}
+
+		return tx.Create(&bankAccount).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create bank account"})
 		return
 	}
@@ -236,11 +257,20 @@ func (ctrl *PaymentMethodController) UpdateBankAccount(c *gin.Context) {
 	bankAccount.BankBranch = req.BankBranch
 	bankAccount.SwiftCode = req.SwiftCode
 	bankAccount.Notes = req.Notes
+	bankAccount.IsPrimary = req.IsPrimary
 	if req.IsActive != nil {
 		bankAccount.IsActive = *req.IsActive
 	}
 
-	if err := ctrl.DB.Save(&bankAccount).Error; err != nil {
+	if err := ctrl.DB.Transaction(func(tx *gorm.DB) error {
+		if req.IsPrimary {
+			if err := unsetOtherTenantBankAccountPrimaries(tx, tenantUUID, &parsedID); err != nil {
+				return err
+			}
+		}
+
+		return tx.Save(&bankAccount).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update bank account"})
 		return
 	}
@@ -270,12 +300,14 @@ func (ctrl *PaymentMethodController) SetPrimaryBankAccount(c *gin.Context) {
 		return
 	}
 
-	// Unset all primary accounts
-	ctrl.DB.Model(&models.BankAccount{}).Where("tenant_id = ?", tenantUUID).Update("is_primary", false)
+	if err := ctrl.DB.Transaction(func(tx *gorm.DB) error {
+		if err := unsetOtherTenantBankAccountPrimaries(tx, tenantUUID, &parsedID); err != nil {
+			return err
+		}
 
-	// Set this account as primary
-	bankAccount.IsPrimary = true
-	if err := ctrl.DB.Save(&bankAccount).Error; err != nil {
+		bankAccount.IsPrimary = true
+		return tx.Save(&bankAccount).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set primary bank account"})
 		return
 	}
@@ -347,11 +379,6 @@ func (ctrl *PaymentMethodController) CreateQRCode(c *gin.Context) {
 		return
 	}
 
-	// If set as primary, unset others
-	if req.IsPrimary {
-		ctrl.DB.Model(&models.QRCode{}).Where("tenant_id = ?", tenantUUID).Update("is_primary", false)
-	}
-
 	imageURL := ""
 	file, fileErr := c.FormFile("image")
 	if fileErr == nil {
@@ -375,7 +402,15 @@ func (ctrl *PaymentMethodController) CreateQRCode(c *gin.Context) {
 		Notes:     req.Notes,
 	}
 
-	if err := ctrl.DB.Create(&qrCode).Error; err != nil {
+	if err := ctrl.DB.Transaction(func(tx *gorm.DB) error {
+		if req.IsPrimary {
+			if err := unsetOtherTenantQRCodePrimaries(tx, tenantUUID, nil); err != nil {
+				return err
+			}
+		}
+
+		return tx.Create(&qrCode).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create QR code"})
 		return
 	}
@@ -433,7 +468,15 @@ func (ctrl *PaymentMethodController) UpdateQRCode(c *gin.Context) {
 		qrCode.IsActive = *req.IsActive
 	}
 
-	if err := ctrl.DB.Save(&qrCode).Error; err != nil {
+	if err := ctrl.DB.Transaction(func(tx *gorm.DB) error {
+		if req.IsPrimary {
+			if err := unsetOtherTenantQRCodePrimaries(tx, tenantUUID, &parsedID); err != nil {
+				return err
+			}
+		}
+
+		return tx.Save(&qrCode).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update QR code"})
 		return
 	}
@@ -462,9 +505,14 @@ func (ctrl *PaymentMethodController) SetPrimaryQRCode(c *gin.Context) {
 		return
 	}
 
-	ctrl.DB.Model(&models.QRCode{}).Where("tenant_id = ?", tenantUUID).Update("is_primary", false)
-	qrCode.IsPrimary = true
-	if err := ctrl.DB.Save(&qrCode).Error; err != nil {
+	if err := ctrl.DB.Transaction(func(tx *gorm.DB) error {
+		if err := unsetOtherTenantQRCodePrimaries(tx, tenantUUID, &parsedID); err != nil {
+			return err
+		}
+
+		qrCode.IsPrimary = true
+		return tx.Save(&qrCode).Error
+	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set primary QR code"})
 		return
 	}

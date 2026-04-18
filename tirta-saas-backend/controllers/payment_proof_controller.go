@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"time"
 
@@ -12,9 +11,45 @@ import (
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func buildPaymentProofFileURL(proof *models.PaymentProof) string {
+	ext := utils.GetFileExtension(proof.ProofImageURL)
+	if ext == "" {
+		ext = ".bin"
+	}
+
+	return fmt.Sprintf("/api/payment-proofs/%s/file/proof%s", proof.ID.String(), ext)
+}
+
+func buildPaymentProofResponse(proof *models.PaymentProof) responses.PaymentProofResponse {
+	return responses.PaymentProofResponse{
+		ID:              proof.ID,
+		InvoiceID:       proof.InvoiceID,
+		InvoiceNumber:   proof.Invoice.InvoiceNumber,
+		CustomerID:      proof.CustomerID,
+		CustomerName:    proof.Customer.Name,
+		TenantID:        proof.TenantID,
+		Amount:          proof.Amount,
+		PaymentDate:     proof.PaymentDate,
+		PaymentMethod:   proof.PaymentMethod,
+		AccountName:     proof.AccountName,
+		AccountNumber:   proof.AccountNumber,
+		ReferenceNumber: proof.ReferenceNumber,
+		ProofImageURL:   buildPaymentProofFileURL(proof),
+		Notes:           proof.Notes,
+		Status:          responses.PaymentProofStatus(proof.Status),
+		SubmittedAt:     proof.SubmittedAt,
+		VerifiedBy:      proof.VerifiedBy,
+		VerifiedAt:      proof.VerifiedAt,
+		RejectionReason: proof.RejectionReason,
+		CreatedAt:       proof.CreatedAt,
+		UpdatedAt:       proof.UpdatedAt,
+	}
+}
 
 // SubmitPaymentProof godoc
 // @Summary Submit payment proof for invoice
@@ -102,26 +137,10 @@ func SubmitPaymentProof(c *gin.Context) {
 		return
 	}
 
-	// Validate file size (max 5MB)
-	if file.Size > 5*1024*1024 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "File size exceeds 5MB limit"})
-		return
-	}
-
-	// Validate file type
-	ext := filepath.Ext(file.Filename)
-	allowedExts := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".pdf": true}
-	if !allowedExts[ext] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file type. Only JPG, PNG, and PDF are allowed"})
-		return
-	}
-
-	// Generate unique filename
-	filename := fmt.Sprintf("payment-proof-%s-%d%s", invoiceID.String(), time.Now().Unix(), ext)
-	uploadPath := "uploads/payment-proofs/" + filename
-
-	// Save file
-	if err := c.SaveUploadedFile(file, uploadPath); err != nil {
+	uploadConfig := utils.DefaultProofUploadConfig()
+	uploadConfig.UploadDir = fmt.Sprintf("storage/private/payment-proofs/%s", tenantID.String())
+	uploadPath, err := utils.SaveUploadedFile(file, uploadConfig)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file: " + err.Error()})
 		return
 	}
@@ -137,7 +156,7 @@ func SubmitPaymentProof(c *gin.Context) {
 		AccountName:     accountName,
 		AccountNumber:   accountNumber,
 		ReferenceNumber: referenceNumber,
-		ProofImageURL:   "/" + uploadPath,
+		ProofImageURL:   uploadPath,
 		Notes:           notes,
 		Status:          models.PaymentProofStatusPending,
 	}
@@ -150,29 +169,7 @@ func SubmitPaymentProof(c *gin.Context) {
 	// Load relations
 	config.DB.Preload("Invoice").Preload("Customer").First(&paymentProof, paymentProof.ID)
 
-	// Build response
-	response := responses.PaymentProofResponse{
-		ID:              paymentProof.ID,
-		InvoiceID:       paymentProof.InvoiceID,
-		InvoiceNumber:   paymentProof.Invoice.InvoiceNumber,
-		CustomerID:      paymentProof.CustomerID,
-		CustomerName:    paymentProof.Customer.Name,
-		TenantID:        paymentProof.TenantID,
-		Amount:          paymentProof.Amount,
-		PaymentDate:     paymentProof.PaymentDate,
-		PaymentMethod:   paymentProof.PaymentMethod,
-		AccountName:     paymentProof.AccountName,
-		AccountNumber:   paymentProof.AccountNumber,
-		ReferenceNumber: paymentProof.ReferenceNumber,
-		ProofImageURL:   paymentProof.ProofImageURL,
-		Notes:           paymentProof.Notes,
-		Status:          responses.PaymentProofStatus(paymentProof.Status),
-		SubmittedAt:     paymentProof.SubmittedAt,
-		CreatedAt:       paymentProof.CreatedAt,
-		UpdatedAt:       paymentProof.UpdatedAt,
-	}
-
-	c.JSON(http.StatusCreated, response)
+	c.JSON(http.StatusCreated, buildPaymentProofResponse(&paymentProof))
 }
 
 // GetPaymentProofs godoc
@@ -243,29 +240,7 @@ func GetPaymentProofs(c *gin.Context) {
 	// Build response
 	proofResponses := make([]responses.PaymentProofResponse, len(paymentProofs))
 	for i, proof := range paymentProofs {
-		proofResponses[i] = responses.PaymentProofResponse{
-			ID:              proof.ID,
-			InvoiceID:       proof.InvoiceID,
-			InvoiceNumber:   proof.Invoice.InvoiceNumber,
-			CustomerID:      proof.CustomerID,
-			CustomerName:    proof.Customer.Name,
-			TenantID:        proof.TenantID,
-			Amount:          proof.Amount,
-			PaymentDate:     proof.PaymentDate,
-			PaymentMethod:   proof.PaymentMethod,
-			AccountName:     proof.AccountName,
-			AccountNumber:   proof.AccountNumber,
-			ReferenceNumber: proof.ReferenceNumber,
-			ProofImageURL:   proof.ProofImageURL,
-			Notes:           proof.Notes,
-			Status:          responses.PaymentProofStatus(proof.Status),
-			SubmittedAt:     proof.SubmittedAt,
-			VerifiedBy:      proof.VerifiedBy,
-			VerifiedAt:      proof.VerifiedAt,
-			RejectionReason: proof.RejectionReason,
-			CreatedAt:       proof.CreatedAt,
-			UpdatedAt:       proof.UpdatedAt,
-		}
+		proofResponses[i] = buildPaymentProofResponse(&proof)
 	}
 
 	response := responses.PaymentProofListResponse{
@@ -310,31 +285,7 @@ func GetPaymentProof(c *gin.Context) {
 		return
 	}
 
-	response := responses.PaymentProofResponse{
-		ID:              paymentProof.ID,
-		InvoiceID:       paymentProof.InvoiceID,
-		InvoiceNumber:   paymentProof.Invoice.InvoiceNumber,
-		CustomerID:      paymentProof.CustomerID,
-		CustomerName:    paymentProof.Customer.Name,
-		TenantID:        paymentProof.TenantID,
-		Amount:          paymentProof.Amount,
-		PaymentDate:     paymentProof.PaymentDate,
-		PaymentMethod:   paymentProof.PaymentMethod,
-		AccountName:     paymentProof.AccountName,
-		AccountNumber:   paymentProof.AccountNumber,
-		ReferenceNumber: paymentProof.ReferenceNumber,
-		ProofImageURL:   paymentProof.ProofImageURL,
-		Notes:           paymentProof.Notes,
-		Status:          responses.PaymentProofStatus(paymentProof.Status),
-		SubmittedAt:     paymentProof.SubmittedAt,
-		VerifiedBy:      paymentProof.VerifiedBy,
-		VerifiedAt:      paymentProof.VerifiedAt,
-		RejectionReason: paymentProof.RejectionReason,
-		CreatedAt:       paymentProof.CreatedAt,
-		UpdatedAt:       paymentProof.UpdatedAt,
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, buildPaymentProofResponse(&paymentProof))
 }
 
 // VerifyPaymentProof godoc
@@ -454,30 +405,7 @@ func VerifyPaymentProof(c *gin.Context) {
 	// Reload with relations
 	config.DB.Preload("Invoice").Preload("Customer").First(&paymentProof, paymentProof.ID)
 
-	response := responses.PaymentProofResponse{
-		ID:              paymentProof.ID,
-		InvoiceID:       paymentProof.InvoiceID,
-		InvoiceNumber:   paymentProof.Invoice.InvoiceNumber,
-		CustomerID:      paymentProof.CustomerID,
-		CustomerName:    paymentProof.Customer.Name,
-		TenantID:        paymentProof.TenantID,
-		Amount:          paymentProof.Amount,
-		PaymentDate:     paymentProof.PaymentDate,
-		PaymentMethod:   paymentProof.PaymentMethod,
-		AccountName:     paymentProof.AccountName,
-		AccountNumber:   paymentProof.AccountNumber,
-		ReferenceNumber: paymentProof.ReferenceNumber,
-		ProofImageURL:   paymentProof.ProofImageURL,
-		Notes:           paymentProof.Notes,
-		Status:          responses.PaymentProofStatus(paymentProof.Status),
-		SubmittedAt:     paymentProof.SubmittedAt,
-		VerifiedBy:      paymentProof.VerifiedBy,
-		VerifiedAt:      paymentProof.VerifiedAt,
-		CreatedAt:       paymentProof.CreatedAt,
-		UpdatedAt:       paymentProof.UpdatedAt,
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, buildPaymentProofResponse(&paymentProof))
 }
 
 // RejectPaymentProof godoc
@@ -541,29 +469,30 @@ func RejectPaymentProof(c *gin.Context) {
 		return
 	}
 
-	response := responses.PaymentProofResponse{
-		ID:              paymentProof.ID,
-		InvoiceID:       paymentProof.InvoiceID,
-		InvoiceNumber:   paymentProof.Invoice.InvoiceNumber,
-		CustomerID:      paymentProof.CustomerID,
-		CustomerName:    paymentProof.Customer.Name,
-		TenantID:        paymentProof.TenantID,
-		Amount:          paymentProof.Amount,
-		PaymentDate:     paymentProof.PaymentDate,
-		PaymentMethod:   paymentProof.PaymentMethod,
-		AccountName:     paymentProof.AccountName,
-		AccountNumber:   paymentProof.AccountNumber,
-		ReferenceNumber: paymentProof.ReferenceNumber,
-		ProofImageURL:   paymentProof.ProofImageURL,
-		Notes:           paymentProof.Notes,
-		Status:          responses.PaymentProofStatus(paymentProof.Status),
-		SubmittedAt:     paymentProof.SubmittedAt,
-		VerifiedBy:      paymentProof.VerifiedBy,
-		VerifiedAt:      paymentProof.VerifiedAt,
-		RejectionReason: paymentProof.RejectionReason,
-		CreatedAt:       paymentProof.CreatedAt,
-		UpdatedAt:       paymentProof.UpdatedAt,
+	c.JSON(http.StatusOK, buildPaymentProofResponse(&paymentProof))
+}
+
+func DownloadPaymentProofFile(c *gin.Context) {
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment proof ID"})
+		return
+	}
+
+	var paymentProof models.PaymentProof
+	if err := config.DB.Where("id = ? AND tenant_id = ?", id, tenantID).First(&paymentProof).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Payment proof not found"})
+		return
+	}
+
+	downloadName := "payment-proof" + utils.GetFileExtension(paymentProof.ProofImageURL)
+	if err := utils.ServeStoredFile(c, paymentProof.ProofImageURL, downloadName); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Payment proof file not found"})
+	}
 }

@@ -86,7 +86,7 @@ func main() {
 	})
 
 	r := gin.Default()
-	
+
 	// Disable automatic trailing slash redirects
 	r.RedirectTrailingSlash = false
 	r.RedirectFixedPath = false
@@ -100,9 +100,11 @@ func main() {
 	// Swagger UI endpoint for API documentation
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Serve uploaded files (logos, QR codes, etc)
-	r.Static("/uploads", "./uploads")
-	
+	// Serve only public uploaded assets. Sensitive proofs are served via protected endpoints.
+	r.Static("/uploads/logos", "./uploads/logos")
+	r.Static("/uploads/platform/qr", "./uploads/platform/qr")
+	r.Static("/uploads/tenants", "./uploads/tenants")
+
 	// Register all application routes
 	routes.PublicRoutes(r) // Public routes (no auth required)
 	routes.HealthRoutes(r)
@@ -120,7 +122,7 @@ func main() {
 	routes.PlatformRoutes(r)
 	routes.SubscriptionPaymentRoutes(r)
 	routes.ReportRoutes(r)
-	
+
 	// Master Data & Settings Routes
 	routes.ServiceAreaRoutes(r)
 	routes.PaymentMethodRoutes(r)
