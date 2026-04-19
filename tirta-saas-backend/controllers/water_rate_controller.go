@@ -70,16 +70,16 @@ func GetWaterRates(c *gin.Context) {
 
 	var rates []models.WaterRate
 	query := config.DB.Preload("Subscription")
-	
+
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	
+
 	// Filter by active status if provided
 	if activeParam := c.Query("active"); activeParam != "" {
-		query = query.Where("is_active = ?", activeParam == "true")
+		query = query.Where("active = ?", activeParam == "true")
 	}
-	
+
 	if err := query.Order("effective_date DESC").Find(&rates).Error; err != nil {
 		helpers.RespondError(c, http.StatusInternalServerError, "Failed to fetch water rates", err)
 		return
@@ -109,11 +109,11 @@ func GetWaterRate(c *gin.Context) {
 
 	var rate models.WaterRate
 	query := config.DB.Preload("Subscription")
-	
+
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	
+
 	if err := query.First(&rate, "id = ?", id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Water rate not found"})
 		return
@@ -141,17 +141,17 @@ func GetCurrentWaterRate(c *gin.Context) {
 	}
 
 	query := config.DB.Preload("Subscription").Where("active = ?", true)
-	
+
 	// Filter by tenant if specified
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	
+
 	// Optional filter by subscription type
 	if subscriptionID := c.Query("subscription_id"); subscriptionID != "" {
 		query = query.Where("subscription_id = ?", subscriptionID)
 	}
-	
+
 	var rate models.WaterRate
 	if err := query.Order("effective_date DESC").First(&rate).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "No active water rate found"})
@@ -187,9 +187,9 @@ func UpdateWaterRate(c *gin.Context) {
 	}
 
 	var input struct {
-		Amount        float64 `json:"amount"`
-		EffectiveDate string  `json:"effective_date"` // YYYY-MM-DD
-		Active        bool    `json:"active"`
+		Amount        *float64 `json:"amount"`
+		EffectiveDate *string  `json:"effective_date"` // YYYY-MM-DD
+		Active        *bool    `json:"active"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -197,25 +197,43 @@ func UpdateWaterRate(c *gin.Context) {
 		return
 	}
 
-	date, err := time.Parse("2006-01-02", input.EffectiveDate)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Tanggal tidak valid"})
-		return
-	}
-
 	// If activating this rate, deactivate others for the same subscription
-	if input.Active && !rate.Active {
+	if input.Active != nil && *input.Active && !rate.Active {
 		config.DB.Model(&models.WaterRate{}).
-			Where("subscription_id = ? AND tenant_id = ? AND id != ?", 
+			Where("subscription_id = ? AND tenant_id = ? AND id != ?",
 				rate.SubscriptionID, tenantID, rateID).
 			Update("active", false)
 	}
 
-	rate.Amount = input.Amount
-	rate.EffectiveDate = date
-	rate.Active = input.Active
+	updates := map[string]interface{}{}
 
-	if err := config.DB.Model(&rate).Select("Amount", "EffectiveDate", "Active").Updates(&rate).Error; err != nil {
+	if input.Amount != nil {
+		rate.Amount = *input.Amount
+		updates["amount"] = *input.Amount
+	}
+
+	if input.EffectiveDate != nil {
+		date, err := time.Parse("2006-01-02", *input.EffectiveDate)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tanggal tidak valid"})
+			return
+		}
+
+		rate.EffectiveDate = date
+		updates["effective_date"] = date
+	}
+
+	if input.Active != nil {
+		rate.Active = *input.Active
+		updates["active"] = *input.Active
+	}
+
+	if len(updates) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tidak ada perubahan yang dikirim"})
+		return
+	}
+
+	if err := config.DB.Model(&rate).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui tarif"})
 		return
 	}

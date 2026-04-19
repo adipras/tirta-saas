@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // ListTenants godoc
@@ -119,6 +121,8 @@ func ListTenants(c *gin.Context) {
 			TotalUsers:         tenant.TotalUsers,
 			TotalCustomers:     tenant.TotalCustomers,
 			StorageUsedGB:      tenant.StorageUsedGB,
+			RegisteredAt:       tenant.RegisteredAt,
+			TrialEndsAt:        tenant.TrialEndsAt,
 			CreatedAt:          tenant.CreatedAt,
 		})
 	}
@@ -133,6 +137,69 @@ func ListTenants(c *gin.Context) {
 			TotalPages:  int((total + int64(req.PageSize) - 1) / int64(req.PageSize)),
 			TotalItems:  int(total),
 		},
+	})
+}
+
+// GetTenantManagementStats godoc
+// @Summary Get tenant management stats
+// @Description Get tenant summary counts for tenant management cards without depending on tenant list responses
+// @Tags Platform
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} responses.SuccessResponse
+// @Failure 500 {object} responses.ErrorResponse
+// @Router /api/platform/tenants/stats [get]
+func GetTenantManagementStats(c *gin.Context) {
+	var stats responses.TenantManagementStatsResponse
+
+	var totalTenants, activeTenants, pendingTenants int64
+
+	if err := config.DB.Model(&models.Tenant{}).Count(&totalTenants).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to count total tenants",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	if err := config.DB.Model(&models.Tenant{}).
+		Where("status = ?", string(models.TenantStatusActive)).
+		Count(&activeTenants).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to count active tenants",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	pendingStatuses := []string{
+		string(models.TenantStatusPendingVerification),
+		string(models.TenantStatusPendingApproval),
+		string(models.TenantStatusPendingPayment),
+	}
+
+	if err := config.DB.Model(&models.Tenant{}).
+		Where("status IN ?", pendingStatuses).
+		Count(&pendingTenants).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to count pending tenants",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	stats.TotalTenants = int(totalTenants)
+	stats.ActiveTenants = int(activeTenants)
+	stats.PendingTenants = int(pendingTenants)
+
+	c.JSON(http.StatusOK, responses.SuccessResponse{
+		Status:  "success",
+		Message: "Tenant management stats retrieved successfully",
+		Data:    stats,
 	})
 }
 
@@ -583,22 +650,19 @@ func GetTenantSettings(c *gin.Context) {
 	var settings models.TenantSettings
 	if err := config.DB.Where("tenant_id = ?", tenantID).First(&settings).Error; err != nil {
 		// If not found, return default settings
-		if err.Error() == "record not found" {
-			c.JSON(http.StatusOK, responses.SuccessResponse{
-				Status:  "success",
-				Message: "No custom settings found, using defaults",
-				Data:    gin.H{"tenant_id": tenantID},
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			settings = models.TenantSettings{TenantID: tenantID}
+			settings.ApplyBillingDefaults()
+		} else {
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+				Status:  "error",
+				Message: "Failed to fetch settings",
+				Error:   err.Error(),
 			})
 			return
 		}
-
-		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
-			Status:  "error",
-			Message: "Failed to fetch settings",
-			Error:   err.Error(),
-		})
-		return
 	}
+	settings.ApplyBillingDefaults()
 
 	// Parse payment methods JSON
 	var paymentMethods []string
@@ -607,35 +671,37 @@ func GetTenantSettings(c *gin.Context) {
 	}
 
 	response := responses.TenantSettingsResponse{
-		ID:                  settings.ID,
-		TenantID:            settings.TenantID,
-		CompanyName:         settings.CompanyName,
-		Address:             settings.Address,
-		Phone:               settings.Phone,
-		Email:               settings.Email,
-		Website:             settings.Website,
-		LogoURL:             settings.LogoURL,
-		PrimaryColor:        settings.PrimaryColor,
-		SecondaryColor:      settings.SecondaryColor,
-		InvoicePrefix:       settings.InvoicePrefix,
-		InvoiceNumberFormat: settings.InvoiceNumberFormat,
-		InvoiceDueDays:      settings.InvoiceDueDays,
-		InvoiceFooterText:   settings.InvoiceFooterText,
-		LatePenaltyPercent:  settings.LatePenaltyPercent,
-		LatePenaltyMaxCap:   settings.LatePenaltyMaxCap,
-		GracePeriodDays:     settings.GracePeriodDays,
-		MinimumBillAmount:   settings.MinimumBillAmount,
-		PaymentMethods:      paymentMethods,
-		BankName:            settings.BankName,
-		BankAccountName:     settings.BankAccountName,
-		BankAccountNo:       settings.BankAccountNo,
-		OperatingHours:      settings.OperatingHours,
-		ServiceArea:         settings.ServiceArea,
-		TimeZone:            settings.TimeZone,
-		Language:            settings.Language,
-		Currency:            settings.Currency,
-		CreatedAt:           settings.CreatedAt,
-		UpdatedAt:           settings.UpdatedAt,
+		ID:                   settings.ID,
+		TenantID:             settings.TenantID,
+		CompanyName:          settings.CompanyName,
+		Address:              settings.Address,
+		Phone:                settings.Phone,
+		Email:                settings.Email,
+		Website:              settings.Website,
+		LogoURL:              settings.LogoURL,
+		PrimaryColor:         settings.PrimaryColor,
+		SecondaryColor:       settings.SecondaryColor,
+		InvoiceGenerationDay: settings.InvoiceGenerationDay,
+		InvoiceDueDay:        settings.InvoiceDueDay,
+		InvoicePrefix:        settings.InvoicePrefix,
+		InvoiceNumberFormat:  settings.InvoiceNumberFormat,
+		InvoiceDueDays:       settings.InvoiceDueDays,
+		InvoiceFooterText:    settings.InvoiceFooterText,
+		LatePenaltyPercent:   settings.LatePenaltyPercent,
+		LatePenaltyMaxCap:    settings.LatePenaltyMaxCap,
+		GracePeriodDays:      settings.GracePeriodDays,
+		MinimumBillAmount:    settings.MinimumBillAmount,
+		PaymentMethods:       paymentMethods,
+		BankName:             settings.BankName,
+		BankAccountName:      settings.BankAccountName,
+		BankAccountNo:        settings.BankAccountNo,
+		OperatingHours:       settings.OperatingHours,
+		ServiceArea:          settings.ServiceArea,
+		TimeZone:             settings.TimeZone,
+		Language:             settings.Language,
+		Currency:             settings.Currency,
+		CreatedAt:            settings.CreatedAt,
+		UpdatedAt:            settings.UpdatedAt,
 	}
 
 	c.JSON(http.StatusOK, responses.SuccessResponse{
@@ -668,6 +734,26 @@ func UpdateTenantSettings(c *gin.Context) {
 			TenantID: tenantID,
 		}
 	}
+	settings.ApplyBillingDefaults()
+
+	invoiceGenerationDay := settings.InvoiceGenerationDay
+	if req.InvoiceGenerationDay != nil {
+		invoiceGenerationDay = *req.InvoiceGenerationDay
+	}
+
+	invoiceDueDay := settings.InvoiceDueDay
+	if req.InvoiceDueDay != nil {
+		invoiceDueDay = *req.InvoiceDueDay
+	}
+
+	if invoiceDueDay <= invoiceGenerationDay {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Tanggal jatuh tempo harus lebih besar dari tanggal generate tagihan",
+			Error:   "invoice_due_day must be greater than invoice_generation_day",
+		})
+		return
+	}
 
 	// Update fields
 	if req.CompanyName != "" {
@@ -691,26 +777,32 @@ func UpdateTenantSettings(c *gin.Context) {
 	if req.SecondaryColor != "" {
 		settings.SecondaryColor = req.SecondaryColor
 	}
+	if req.InvoiceGenerationDay != nil {
+		settings.InvoiceGenerationDay = *req.InvoiceGenerationDay
+	}
+	if req.InvoiceDueDay != nil {
+		settings.InvoiceDueDay = *req.InvoiceDueDay
+	}
 	if req.InvoicePrefix != "" {
 		settings.InvoicePrefix = req.InvoicePrefix
 	}
-	if req.InvoiceDueDays > 0 {
-		settings.InvoiceDueDays = req.InvoiceDueDays
+	if req.InvoiceDueDays != nil {
+		settings.InvoiceDueDays = *req.InvoiceDueDays
 	}
 	if req.InvoiceFooterText != "" {
 		settings.InvoiceFooterText = req.InvoiceFooterText
 	}
-	if req.LatePenaltyPercent >= 0 {
-		settings.LatePenaltyPercent = req.LatePenaltyPercent
+	if req.LatePenaltyPercent != nil {
+		settings.LatePenaltyPercent = *req.LatePenaltyPercent
 	}
-	if req.LatePenaltyMaxCap >= 0 {
-		settings.LatePenaltyMaxCap = req.LatePenaltyMaxCap
+	if req.LatePenaltyMaxCap != nil {
+		settings.LatePenaltyMaxCap = *req.LatePenaltyMaxCap
 	}
-	if req.GracePeriodDays >= 0 {
-		settings.GracePeriodDays = req.GracePeriodDays
+	if req.GracePeriodDays != nil {
+		settings.GracePeriodDays = *req.GracePeriodDays
 	}
-	if req.MinimumBillAmount >= 0 {
-		settings.MinimumBillAmount = req.MinimumBillAmount
+	if req.MinimumBillAmount != nil {
+		settings.MinimumBillAmount = *req.MinimumBillAmount
 	}
 	if req.BankName != "" {
 		settings.BankName = req.BankName

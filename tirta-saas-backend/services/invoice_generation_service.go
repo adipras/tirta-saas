@@ -7,6 +7,7 @@ import (
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/google/uuid"
 )
 
@@ -32,13 +33,13 @@ type InvoiceGenerationRequest struct {
 
 // InvoiceGenerationResult contains result of invoice generation
 type InvoiceGenerationResult struct {
-	Success       int
-	Skipped       int
-	Failed        int
-	TotalAmount   float64
-	Invoices      []models.Invoice
-	Errors        []string
-	PreviewOnly   bool
+	Success     int
+	Skipped     int
+	Failed      int
+	TotalAmount float64
+	Invoices    []models.Invoice
+	Errors      []string
+	PreviewOnly bool
 }
 
 // GenerateInvoices generates invoices for specified month and customers
@@ -53,12 +54,10 @@ func (s *InvoiceGenerationService) GenerateInvoices(req InvoiceGenerationRequest
 	var tenantSettings models.TenantSettings
 	err := config.DB.Where("tenant_id = ?", req.TenantID).First(&tenantSettings).Error
 	if err != nil {
-		// Use default settings if not found
-		tenantSettings.LatePenaltyPercent = 2.0
-		tenantSettings.LatePenaltyMaxCap = 100000
-		tenantSettings.GracePeriodDays = 3
-		tenantSettings.InvoiceDueDays = 14
+		tenantSettings = models.TenantSettings{TenantID: req.TenantID}
 	}
+	tenantSettings.ApplyBillingDefaults()
+	location := utils.ResolveLocation(tenantSettings.TimeZone)
 
 	// Get water usage records for the month
 	usageQuery := config.DB.Where("usage_month = ? AND tenant_id = ?", req.UsageMonth, req.TenantID)
@@ -123,13 +122,13 @@ func (s *InvoiceGenerationService) GenerateInvoices(req InvoiceGenerationRequest
 			pricePerM3 = usage.AmountCalculated / usage.UsageM3
 		}
 
-		// Calculate subtotal
+		// Calculate subtotal from usage charge plus all fixed subscription fees
 		waterCharge := usage.AmountCalculated
-		abonemen := subType.MonthlyFee
+		abonemen := subType.MonthlyFee + subType.MaintenanceFee
 		subTotal := waterCharge + abonemen
 
 		// Calculate late payment penalty from previous unpaid invoices
-		penaltyAmount := s.calculatePenalty(req.TenantID, usage.CustomerID, tenantSettings)
+		penaltyAmount := s.calculatePenalty(req.TenantID, usage.CustomerID, subType, tenantSettings, location)
 
 		// Calculate total
 		totalAmount := subTotal + penaltyAmount
@@ -142,7 +141,12 @@ func (s *InvoiceGenerationService) GenerateInvoices(req InvoiceGenerationRequest
 		}
 
 		// Calculate due date
-		dueDate := time.Now().AddDate(0, 0, tenantSettings.InvoiceDueDays)
+		dueDate, err := utils.DueDateFromUsageMonth(usage.UsageMonth, tenantSettings.InvoiceDueDay, location)
+		if err != nil {
+			result.Failed++
+			result.Errors = append(result.Errors, fmt.Sprintf("Failed to calculate due date for customer %s: %v", usage.CustomerID, err))
+			continue
+		}
 
 		// Create invoice
 		invoice := models.Invoice{
@@ -184,15 +188,18 @@ func (s *InvoiceGenerationService) GenerateInvoices(req InvoiceGenerationRequest
 	return result, nil
 }
 
-// calculatePenalty calculates late payment penalty for a customer
-func (s *InvoiceGenerationService) calculatePenalty(tenantID, customerID uuid.UUID, settings models.TenantSettings) float64 {
+// calculatePenalty calculates late payment penalty for a customer based on subscription settings
+func (s *InvoiceGenerationService) calculatePenalty(tenantID, customerID uuid.UUID, subType models.SubscriptionType, settings models.TenantSettings, location *time.Location) float64 {
+	if subType.LateFeePerDay <= 0 {
+		return 0
+	}
+
 	// Find unpaid invoices past due date
 	var unpaidInvoices []models.Invoice
-	now := time.Now()
-	gracePeriod := time.Duration(settings.GracePeriodDays) * 24 * time.Hour
+	now := time.Now().In(location)
 
 	config.DB.Where("tenant_id = ? AND customer_id = ? AND payment_status != ? AND due_date < ?",
-		tenantID, customerID, models.PaymentStatusPaid, now.Add(-gracePeriod)).
+		tenantID, customerID, models.PaymentStatusPaid, now).
 		Find(&unpaidInvoices)
 
 	if len(unpaidInvoices) == 0 {
@@ -201,12 +208,20 @@ func (s *InvoiceGenerationService) calculatePenalty(tenantID, customerID uuid.UU
 
 	totalPenalty := 0.0
 	for _, invoice := range unpaidInvoices {
-		outstanding := invoice.TotalAmount - invoice.TotalPaid
-		penalty := outstanding * (settings.LatePenaltyPercent / 100.0)
+		if invoice.DueDate == nil {
+			continue
+		}
 
-		// Apply max cap
-		if penalty > settings.LatePenaltyMaxCap {
-			penalty = settings.LatePenaltyMaxCap
+		overdueDays := utils.PenaltyDaysSinceDueDate(*invoice.DueDate, now, location)
+		if overdueDays <= 0 {
+			continue
+		}
+
+		penalty := float64(overdueDays) * subType.LateFeePerDay
+
+		// Apply max cap from subscription type if configured
+		if subType.MaxLateFee > 0 && penalty > subType.MaxLateFee {
+			penalty = subType.MaxLateFee
 		}
 
 		totalPenalty += penalty
@@ -221,7 +236,7 @@ func (s *InvoiceGenerationService) UpdateOverdueInvoices(tenantID uuid.UUID) err
 
 	// Update invoices that are past due date and not paid
 	result := config.DB.Model(&models.Invoice{}).
-		Where("tenant_id = ? AND due_date < ? AND payment_status = ?", 
+		Where("tenant_id = ? AND due_date < ? AND payment_status = ?",
 			tenantID, now, models.PaymentStatusUnpaid).
 		Update("payment_status", models.PaymentStatusOverdue)
 

@@ -16,7 +16,32 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm/clause"
 )
+
+type subscriptionPaymentListRow struct {
+	ID                uuid.UUID  `gorm:"column:id"`
+	TenantID          string     `gorm:"column:tenant_id"`
+	TenantName        string     `gorm:"column:tenant_name"`
+	TenantEmail       string     `gorm:"column:tenant_email"`
+	TenantVillageCode string     `gorm:"column:tenant_village_code"`
+	SubscriptionPlan  string     `gorm:"column:subscription_plan"`
+	BillingPeriod     int        `gorm:"column:billing_period"`
+	Amount            float64    `gorm:"column:amount"`
+	PaymentDate       time.Time  `gorm:"column:payment_date"`
+	PaymentMethod     string     `gorm:"column:payment_method"`
+	AccountNumber     string     `gorm:"column:account_number"`
+	AccountName       string     `gorm:"column:account_name"`
+	ReferenceNumber   string     `gorm:"column:reference_number"`
+	ProofURL          string     `gorm:"column:proof_url"`
+	Notes             string     `gorm:"column:notes"`
+	Status            string     `gorm:"column:status"`
+	VerifiedAt        *time.Time `gorm:"column:verified_at"`
+	VerifiedBy        *string    `gorm:"column:verified_by"`
+	RejectionReason   string     `gorm:"column:rejection_reason"`
+	CreatedAt         time.Time  `gorm:"column:created_at"`
+	UpdatedAt         time.Time  `gorm:"column:updated_at"`
+}
 
 func buildSubscriptionPaymentProofURL(payment *models.SubscriptionPayment) string {
 	ext := utils.GetFileExtension(payment.ProofURL)
@@ -25,6 +50,55 @@ func buildSubscriptionPaymentProofURL(payment *models.SubscriptionPayment) strin
 	}
 
 	return fmt.Sprintf("/api/platform/subscription-payments/%s/file/proof%s", payment.ID.String(), ext)
+}
+
+func loadTenantForSubscriptionPayment(payment *models.SubscriptionPayment) *models.Tenant {
+	if payment.Tenant != nil {
+		return payment.Tenant
+	}
+
+	if payment.TenantID == "" {
+		return nil
+	}
+
+	var tenant models.Tenant
+	if err := config.DB.First(&tenant, "id = ?", payment.TenantID).Error; err != nil {
+		return nil
+	}
+
+	return &tenant
+}
+
+func loadTenantMapForSubscriptionPayments(payments []models.SubscriptionPayment) map[string]models.Tenant {
+	tenantIDs := make([]string, 0, len(payments))
+	seen := make(map[string]struct{}, len(payments))
+
+	for _, payment := range payments {
+		if payment.TenantID == "" {
+			continue
+		}
+		if _, exists := seen[payment.TenantID]; exists {
+			continue
+		}
+		seen[payment.TenantID] = struct{}{}
+		tenantIDs = append(tenantIDs, payment.TenantID)
+	}
+
+	if len(tenantIDs) == 0 {
+		return map[string]models.Tenant{}
+	}
+
+	var tenants []models.Tenant
+	if err := config.DB.Where("id IN ?", tenantIDs).Find(&tenants).Error; err != nil {
+		return map[string]models.Tenant{}
+	}
+
+	tenantMap := make(map[string]models.Tenant, len(tenants))
+	for _, tenant := range tenants {
+		tenantMap[tenant.ID.String()] = tenant
+	}
+
+	return tenantMap
 }
 
 func buildSubscriptionPaymentResponse(payment *models.SubscriptionPayment) responses.SubscriptionPaymentResponse {
@@ -49,22 +123,68 @@ func buildSubscriptionPaymentResponse(payment *models.SubscriptionPayment) respo
 		UpdatedAt:        payment.UpdatedAt,
 	}
 
-	if payment.Tenant != nil {
-		resp.TenantName = payment.Tenant.Name
-		resp.TenantEmail = payment.Tenant.Email
-		resp.TenantVillageCode = payment.Tenant.VillageCode
+	if tenant := loadTenantForSubscriptionPayment(payment); tenant != nil {
+		resp.TenantName = tenant.Name
+		resp.TenantEmail = tenant.Email
+		resp.TenantVillageCode = tenant.VillageCode
 	}
 
 	return resp
 }
 
+func buildSubscriptionPaymentResponseFromRow(row subscriptionPaymentListRow) responses.SubscriptionPaymentResponse {
+	proofPayment := models.SubscriptionPayment{
+		BaseModel:        models.BaseModel{ID: row.ID, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt},
+		TenantID:         row.TenantID,
+		SubscriptionPlan: row.SubscriptionPlan,
+		BillingPeriod:    row.BillingPeriod,
+		Amount:           row.Amount,
+		PaymentDate:      row.PaymentDate,
+		PaymentMethod:    row.PaymentMethod,
+		AccountNumber:    row.AccountNumber,
+		AccountName:      row.AccountName,
+		ReferenceNumber:  row.ReferenceNumber,
+		ProofURL:         row.ProofURL,
+		Notes:            row.Notes,
+		Status:           models.SubscriptionPaymentStatus(row.Status),
+		VerifiedAt:       row.VerifiedAt,
+		VerifiedBy:       row.VerifiedBy,
+		RejectionReason:  row.RejectionReason,
+	}
+
+	resp := buildSubscriptionPaymentResponse(&proofPayment)
+	resp.TenantName = row.TenantName
+	resp.TenantEmail = row.TenantEmail
+	resp.TenantVillageCode = row.TenantVillageCode
+	return resp
+}
+
 // SubmitSubscriptionPayment handles tenant submission of subscription payment
 func SubmitSubscriptionPayment(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
-	if tenantID == "" {
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	userID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID format"})
+		return
+	}
+
+	var user models.User
+	if err := config.DB.Select("tenant_id").First(&user, "id = ?", userID).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	if user.TenantID == nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Tenant ID not found"})
 		return
 	}
+
+	tenantID := user.TenantID.String()
 
 	// Parse form data
 	subscriptionPlan := c.PostForm("subscription_plan")
@@ -146,8 +266,9 @@ func SubmitSubscriptionPayment(c *gin.Context) {
 
 	// Update tenant status to PENDING_VERIFICATION
 	config.DB.Model(&models.Tenant{}).Where("id = ?", tenantID).Updates(map[string]interface{}{
-		"status":            models.TenantStatusPendingVerification,
-		"payment_proof_url": uploadPath,
+		"status":              string(models.TenantStatusPendingVerification),
+		"subscription_status": "PENDING_VERIFICATION",
+		"payment_proof_url":   uploadPath,
 	})
 
 	confirmationID := fmt.Sprintf("SUB-%s-%s", time.Now().Format("20060102"), payment.ID.String()[:8])
@@ -176,27 +297,50 @@ func GetSubscriptionPayments(c *gin.Context) {
 
 	offset := (page - 1) * limit
 
-	query := config.DB.Model(&models.SubscriptionPayment{}).Preload("Tenant")
+	query := config.DB.Table("subscription_payments AS sp").
+		Joins("LEFT JOIN tenants AS t ON t.id = sp.tenant_id AND t.deleted_at IS NULL")
 
 	if status != "" {
-		query = query.Where("status = ?", status)
+		query = query.Where("sp.status = ?", status)
 	}
 	if tenantID != "" {
-		query = query.Where("tenant_id = ?", tenantID)
+		query = query.Where("sp.tenant_id = ?", tenantID)
 	}
 
 	var total int64
 	query.Count(&total)
 
-	var payments []models.SubscriptionPayment
-	if err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&payments).Error; err != nil {
+	var rows []subscriptionPaymentListRow
+	if err := query.Select(`
+		sp.id,
+		sp.tenant_id,
+		t.name AS tenant_name,
+		t.email AS tenant_email,
+		t.village_code AS tenant_village_code,
+		sp.subscription_plan,
+		sp.billing_period,
+		sp.amount,
+		sp.payment_date,
+		sp.payment_method,
+		sp.account_number,
+		sp.account_name,
+		sp.reference_number,
+		sp.proof_url,
+		sp.notes,
+		sp.status,
+		sp.verified_at,
+		sp.verified_by,
+		sp.rejection_reason,
+		sp.created_at,
+		sp.updated_at
+	`).Order("sp.created_at DESC").Limit(limit).Offset(offset).Scan(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch payments"})
 		return
 	}
 
 	var data []responses.SubscriptionPaymentResponse
-	for _, p := range payments {
-		data = append(data, buildSubscriptionPaymentResponse(&p))
+	for _, row := range rows {
+		data = append(data, buildSubscriptionPaymentResponseFromRow(row))
 	}
 
 	helpers.RespondPaginated(c, "Subscription payments retrieved successfully", data, page, limit, int(total))
@@ -218,72 +362,95 @@ func GetSubscriptionPaymentDetail(c *gin.Context) {
 // VerifySubscriptionPayment verifies and activates tenant subscription
 func VerifySubscriptionPayment(c *gin.Context) {
 	id := c.Param("id")
-	userID := c.GetString("user_id")
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	userID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID format"})
+		return
+	}
 
 	var req requests.VerifySubscriptionPaymentRequest
 	c.ShouldBindJSON(&req)
 
+	// Lock and update only the intended columns so the payment foreign key cannot be altered during verification.
+	tx := config.DB.Begin()
+
 	var payment models.SubscriptionPayment
-	if err := config.DB.Preload("Tenant").First(&payment, "id = ?", id).Error; err != nil {
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&payment, "id = ?", id).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusNotFound, gin.H{"error": "Payment not found"})
 		return
 	}
 
 	if payment.Status != models.PaymentStatusPending {
+		tx.Rollback()
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Payment already processed"})
 		return
 	}
 
-	// Start transaction
-	tx := config.DB.Begin()
+	originalTenantID := payment.TenantID
+
+	var tenant models.Tenant
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&tenant, "id = ?", originalTenantID).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusNotFound, gin.H{"error": "Tenant not found"})
+		return
+	}
 
 	// Update payment status
 	now := time.Now()
 	updates := map[string]interface{}{
 		"status":      models.PaymentStatusVerified,
 		"verified_at": now,
-		"verified_by": userID,
+		"verified_by": userID.String(),
 	}
+	paymentColumns := []string{"status", "verified_at", "verified_by"}
 	if req.Notes != "" {
 		updates["notes"] = req.Notes
+		paymentColumns = append(paymentColumns, "notes")
 	}
 
-	if err := tx.Model(&payment).Updates(updates).Error; err != nil {
+	if err := tx.Model(&models.SubscriptionPayment{}).
+		Where("id = ?", payment.ID).
+		Select(paymentColumns).
+		Updates(updates).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update payment"})
 		return
 	}
 
-	// Calculate subscription dates
-	subscriptionStart := time.Now()
-	subscriptionEnd := subscriptionStart.AddDate(0, payment.BillingPeriod, 0)
-
-	// Update tenant status
 	tenantUpdates := map[string]interface{}{
-		"status":                 models.TenantStatusActive,
-		"subscription_plan":      payment.SubscriptionPlan,
-		"subscription_starts_at": subscriptionStart,
-		"subscription_ends_at":   subscriptionEnd,
-		"subscription_status":    "active",
-		"payment_verified_at":    now,
-		"payment_verified_by":    userID,
+		"status":              string(models.TenantStatusPendingVerification),
+		"subscription_status": "VERIFIED",
+		"payment_verified_at": now,
+		"payment_verified_by": userID.String(),
 	}
 
-	if err := tx.Model(&models.Tenant{}).Where("id = ?", payment.TenantID).Updates(tenantUpdates).Error; err != nil {
+	if err := tx.Model(&models.Tenant{}).
+		Where("id = ?", originalTenantID).
+		Select("status", "subscription_status", "payment_verified_at", "payment_verified_by").
+		Updates(tenantUpdates).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update tenant"})
 		return
 	}
 
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to finalize verification"})
+		return
+	}
 
 	// Fetch updated tenant
-	var tenant models.Tenant
-	config.DB.First(&tenant, "id = ?", payment.TenantID)
+	config.DB.First(&tenant, "id = ?", originalTenantID)
 
 	resp := responses.VerifyPaymentResponse{
 		Success: true,
-		Message: "Payment verified and tenant activated successfully",
+		Message: "Payment verified successfully. Tenant is ready for activation.",
 	}
 	resp.Tenant.ID = tenant.ID.String()
 	resp.Tenant.Status = string(tenant.Status)
@@ -297,7 +464,17 @@ func VerifySubscriptionPayment(c *gin.Context) {
 // RejectSubscriptionPayment rejects a payment submission
 func RejectSubscriptionPayment(c *gin.Context) {
 	id := c.Param("id")
-	userID := c.GetString("user_id")
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	userID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID format"})
+		return
+	}
 
 	var req requests.RejectSubscriptionPaymentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -316,21 +493,31 @@ func RejectSubscriptionPayment(c *gin.Context) {
 		return
 	}
 
+	originalTenantID := payment.TenantID
+
 	// Update payment status
 	updates := map[string]interface{}{
 		"status":           models.PaymentStatusRejected,
 		"rejection_reason": req.Reason,
-		"verified_by":      userID,
+		"verified_by":      userID.String(),
 		"verified_at":      time.Now(),
 	}
 
-	if err := config.DB.Model(&payment).Updates(updates).Error; err != nil {
+	if err := config.DB.Model(&models.SubscriptionPayment{}).
+		Where("id = ?", payment.ID).
+		Select("status", "rejection_reason", "verified_by", "verified_at").
+		Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reject payment"})
 		return
 	}
 
 	// Keep tenant in TRIAL status
-	config.DB.Model(&models.Tenant{}).Where("id = ?", payment.TenantID).Update("status", models.TenantStatusTrial)
+	config.DB.Model(&models.Tenant{}).Where("id = ?", originalTenantID).Updates(map[string]interface{}{
+		"status":              string(models.TenantStatusTrial),
+		"subscription_status": "TRIAL",
+		"payment_verified_at": nil,
+		"payment_verified_by": nil,
+	})
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

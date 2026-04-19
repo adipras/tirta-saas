@@ -30,6 +30,7 @@ type InvoicePreviewItem struct {
 	PricePerM3    float64    `json:"price_per_m3"`
 	WaterCharge   float64    `json:"water_charge"`
 	Abonemen      float64    `json:"abonemen"`
+	MaintenanceFee float64   `json:"maintenance_fee"`
 	PenaltyAmount float64    `json:"penalty_amount"`
 	SubTotal      float64    `json:"sub_total"`
 	TotalAmount   float64    `json:"total_amount"`

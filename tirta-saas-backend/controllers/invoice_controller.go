@@ -514,6 +514,11 @@ func BulkGenerateInvoices(c *gin.Context) {
 		// Get customer details
 		var customer models.Customer
 		config.DB.First(&customer, "id = ?", inv.CustomerID)
+		var subType models.SubscriptionType
+		config.DB.First(&subType, "id = ?", customer.SubscriptionID)
+
+		subTotal := inv.WaterCharge + subType.MonthlyFee + subType.MaintenanceFee
+		totalAmount := subTotal + inv.PenaltyAmount
 
 		invoiceItems[i] = responses.InvoicePreviewItem{
 			InvoiceNumber: inv.InvoiceNumber,
@@ -524,10 +529,11 @@ func BulkGenerateInvoices(c *gin.Context) {
 			UsageM3:       inv.UsageM3,
 			PricePerM3:    inv.PricePerM3,
 			WaterCharge:   inv.WaterCharge,
-			Abonemen:      inv.Abonemen,
+			Abonemen:      subType.MonthlyFee,
+			MaintenanceFee: subType.MaintenanceFee,
 			PenaltyAmount: inv.PenaltyAmount,
-			SubTotal:      inv.SubTotal,
-			TotalAmount:   inv.TotalAmount,
+			SubTotal:      subTotal,
+			TotalAmount:   totalAmount,
 			DueDate:       inv.DueDate,
 			Notes:         inv.Notes,
 		}
@@ -605,6 +611,11 @@ func PreviewInvoiceGeneration(c *gin.Context) {
 	for i, inv := range result.Invoices {
 		var customer models.Customer
 		config.DB.First(&customer, "id = ?", inv.CustomerID)
+		var subType models.SubscriptionType
+		config.DB.First(&subType, "id = ?", customer.SubscriptionID)
+
+		subTotal := inv.WaterCharge + subType.MonthlyFee + subType.MaintenanceFee
+		totalAmount := subTotal + inv.PenaltyAmount
 
 		invoiceItems[i] = responses.InvoicePreviewItem{
 			InvoiceNumber: inv.InvoiceNumber,
@@ -615,10 +626,11 @@ func PreviewInvoiceGeneration(c *gin.Context) {
 			UsageM3:       inv.UsageM3,
 			PricePerM3:    inv.PricePerM3,
 			WaterCharge:   inv.WaterCharge,
-			Abonemen:      inv.Abonemen,
+			Abonemen:      subType.MonthlyFee,
+			MaintenanceFee: subType.MaintenanceFee,
 			PenaltyAmount: inv.PenaltyAmount,
-			SubTotal:      inv.SubTotal,
-			TotalAmount:   inv.TotalAmount,
+			SubTotal:      subTotal,
+			TotalAmount:   totalAmount,
 			DueDate:       inv.DueDate,
 			Notes:         inv.Notes,
 		}

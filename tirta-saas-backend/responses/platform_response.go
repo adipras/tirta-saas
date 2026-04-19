@@ -23,6 +23,8 @@ type TenantListResponse struct {
 	TotalUsers         int        `json:"total_users"`
 	TotalCustomers     int        `json:"total_customers"`
 	StorageUsedGB      float64    `json:"storage_used_gb"`
+	RegisteredAt       time.Time  `json:"registered_at"`
+	TrialEndsAt        *time.Time `json:"trial_ends_at"`
 	CreatedAt          time.Time  `json:"created_at"`
 }
 
@@ -46,6 +48,13 @@ type TenantDetailResponse struct {
 	Notes              string     `json:"notes"`
 	CreatedAt          time.Time  `json:"created_at"`
 	UpdatedAt          time.Time  `json:"updated_at"`
+}
+
+// TenantManagementStatsResponse represents summary cards for tenant management
+type TenantManagementStatsResponse struct {
+	PendingTenants int `json:"pending_tenants"`
+	ActiveTenants  int `json:"active_tenants"`
+	TotalTenants   int `json:"total_tenants"`
 }
 
 // TenantStatisticsResponse represents tenant usage statistics
@@ -181,10 +190,12 @@ type TenantSettingsResponse struct {
 	SecondaryColor string `json:"secondary_color"`
 
 	// Invoice Configuration
-	InvoicePrefix       string `json:"invoice_prefix"`
-	InvoiceNumberFormat string `json:"invoice_number_format"`
-	InvoiceDueDays      int    `json:"invoice_due_days"`
-	InvoiceFooterText   string `json:"invoice_footer_text"`
+	InvoiceGenerationDay int    `json:"invoice_generation_day"`
+	InvoiceDueDay        int    `json:"invoice_due_day"`
+	InvoicePrefix        string `json:"invoice_prefix"`
+	InvoiceNumberFormat  string `json:"invoice_number_format"`
+	InvoiceDueDays       int    `json:"invoice_due_days"`
+	InvoiceFooterText    string `json:"invoice_footer_text"`
 
 	// Payment Configuration
 	LatePenaltyPercent float64  `json:"late_penalty_percent"`

@@ -12,9 +12,9 @@ func WaterUsageRoutes(r *gin.Engine) {
 	group.Use(middleware.JWTAuthMiddleware(), middleware.CheckTenantStatus(), middleware.AdminOnly())
 
 	group.POST("", controllers.CreateWaterUsage)
-	group.POST("bulk-import", controllers.BulkImportWaterUsage)
+	group.POST("/bulk-import", controllers.BulkImportWaterUsage)
 	group.GET("", controllers.GetWaterUsages)
-	group.GET(":id", controllers.GetWaterUsageByID)
-	group.PUT(":id", controllers.UpdateWaterUsage)
-	group.DELETE(":id", controllers.DeleteWaterUsage)
+	group.GET("/:id", controllers.GetWaterUsageByID)
+	group.PUT("/:id", controllers.UpdateWaterUsage)
+	group.DELETE("/:id", controllers.DeleteWaterUsage)
 }

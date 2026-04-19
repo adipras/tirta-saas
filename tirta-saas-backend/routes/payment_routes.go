@@ -13,8 +13,11 @@ func PaymentRoutes(r *gin.Engine) {
 
 	group.POST("", controllers.CreatePayment)
 	group.GET("", controllers.GetAllPayments)
-	group.GET(":id", controllers.GetPayment)
-	group.PUT(":id", controllers.UpdatePayment)
-	group.DELETE(":id", controllers.DeletePayment)
-	group.GET("customer/:customer_id", controllers.GetPaymentHistoryByCustomerID)
+	group.GET("/customer/:customer_id", controllers.GetPaymentHistoryByCustomerID)
+	group.POST("/:id/void", controllers.VoidPayment)
+	group.GET("/:id/receipt", controllers.GetPaymentReceipt)
+	group.POST("/:id/receipt", controllers.GeneratePaymentReceipt)
+	group.GET("/:id", controllers.GetPayment)
+	group.PUT("/:id", controllers.UpdatePayment)
+	group.DELETE("/:id", controllers.DeletePayment)
 }

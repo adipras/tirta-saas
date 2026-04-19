@@ -20,6 +20,7 @@ func PlatformRoutes(r *gin.Engine) {
 
 		// Tenant Management
 		platform.GET("/tenants", controllers.ListTenants)
+		platform.GET("/tenants/stats", controllers.GetTenantManagementStats)
 		platform.GET("/tenants/:id", controllers.GetTenantDetail)
 		platform.GET("/tenants/:id/payment-proof/*filename", controllers.DownloadTenantPaymentProof)
 		platform.PUT("/tenants/:id", controllers.UpdateTenant)

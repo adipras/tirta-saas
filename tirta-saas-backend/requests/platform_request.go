@@ -4,12 +4,12 @@ import "github.com/google/uuid"
 
 // UpdateTenantRequest represents request to update tenant information
 type UpdateTenantRequest struct {
-	Name             string  `json:"name" binding:"omitempty,min=3,max=100"`
-	Email            string  `json:"email" binding:"omitempty,email"`
-	Phone            string  `json:"phone" binding:"omitempty,max=20"`
-	Address          string  `json:"address"`
-	Notes            string  `json:"notes"`
-	SubscriptionPlan string  `json:"subscription_plan" binding:"omitempty,oneof=BASIC PREMIUM ENTERPRISE"`
+	Name             string `json:"name" binding:"omitempty,min=3,max=100"`
+	Email            string `json:"email" binding:"omitempty,email"`
+	Phone            string `json:"phone" binding:"omitempty,max=20"`
+	Address          string `json:"address"`
+	Notes            string `json:"notes"`
+	SubscriptionPlan string `json:"subscription_plan" binding:"omitempty,oneof=BASIC PREMIUM ENTERPRISE"`
 }
 
 // SuspendTenantRequest represents request to suspend a tenant
@@ -19,34 +19,34 @@ type SuspendTenantRequest struct {
 
 // CreateSubscriptionPlanRequest represents request to create a subscription plan
 type CreateSubscriptionPlanRequest struct {
-	Plan          string   `json:"plan" binding:"required,oneof=BASIC PREMIUM ENTERPRISE"`
-	Name          string   `json:"name" binding:"required,min=3,max=50"`
-	Description   string   `json:"description"`
-	MonthlyPrice  float64  `json:"monthly_price" binding:"required,min=0"`
-	YearlyPrice   float64  `json:"yearly_price" binding:"required,min=0"`
-	MaxUsers      int      `json:"max_users" binding:"required,min=1"`
-	MaxCustomers  int      `json:"max_customers" binding:"required,min=1"`
-	MaxStorageGB  int      `json:"max_storage_gb" binding:"required,min=1"`
-	MaxAPICallsPerDay int  `json:"max_api_calls_per_day" binding:"required,min=1"`
-	Features      []string `json:"features"`
-	TrialDays     int      `json:"trial_days" binding:"min=0"`
-	DisplayOrder  int      `json:"display_order"`
+	Plan              string   `json:"plan" binding:"required,oneof=BASIC PREMIUM ENTERPRISE"`
+	Name              string   `json:"name" binding:"required,min=3,max=50"`
+	Description       string   `json:"description"`
+	MonthlyPrice      float64  `json:"monthly_price" binding:"required,min=0"`
+	YearlyPrice       float64  `json:"yearly_price" binding:"required,min=0"`
+	MaxUsers          int      `json:"max_users" binding:"required,min=1"`
+	MaxCustomers      int      `json:"max_customers" binding:"required,min=1"`
+	MaxStorageGB      int      `json:"max_storage_gb" binding:"required,min=1"`
+	MaxAPICallsPerDay int      `json:"max_api_calls_per_day" binding:"required,min=1"`
+	Features          []string `json:"features"`
+	TrialDays         int      `json:"trial_days" binding:"min=0"`
+	DisplayOrder      int      `json:"display_order"`
 }
 
 // UpdateSubscriptionPlanRequest represents request to update a subscription plan
 type UpdateSubscriptionPlanRequest struct {
-	Name          string   `json:"name" binding:"omitempty,min=3,max=50"`
-	Description   string   `json:"description"`
-	MonthlyPrice  float64  `json:"monthly_price" binding:"omitempty,min=0"`
-	YearlyPrice   float64  `json:"yearly_price" binding:"omitempty,min=0"`
-	MaxUsers      int      `json:"max_users" binding:"omitempty,min=1"`
-	MaxCustomers  int      `json:"max_customers" binding:"omitempty,min=1"`
-	MaxStorageGB  int      `json:"max_storage_gb" binding:"omitempty,min=1"`
-	MaxAPICallsPerDay int  `json:"max_api_calls_per_day" binding:"omitempty,min=1"`
-	Features      []string `json:"features"`
-	TrialDays     int      `json:"trial_days" binding:"omitempty,min=0"`
-	DisplayOrder  int      `json:"display_order"`
-	IsActive      *bool    `json:"is_active"`
+	Name              string   `json:"name" binding:"omitempty,min=3,max=50"`
+	Description       string   `json:"description"`
+	MonthlyPrice      float64  `json:"monthly_price" binding:"omitempty,min=0"`
+	YearlyPrice       float64  `json:"yearly_price" binding:"omitempty,min=0"`
+	MaxUsers          int      `json:"max_users" binding:"omitempty,min=1"`
+	MaxCustomers      int      `json:"max_customers" binding:"omitempty,min=1"`
+	MaxStorageGB      int      `json:"max_storage_gb" binding:"omitempty,min=1"`
+	MaxAPICallsPerDay int      `json:"max_api_calls_per_day" binding:"omitempty,min=1"`
+	Features          []string `json:"features"`
+	TrialDays         int      `json:"trial_days" binding:"omitempty,min=0"`
+	DisplayOrder      int      `json:"display_order"`
+	IsActive          *bool    `json:"is_active"`
 }
 
 // AssignSubscriptionRequest represents request to assign subscription to tenant
@@ -76,27 +76,29 @@ type UpdateTenantSettingsRequest struct {
 	Phone       string `json:"phone" binding:"omitempty,max=20"`
 	Email       string `json:"email" binding:"omitempty,email"`
 	Website     string `json:"website" binding:"omitempty,url"`
-	
+
 	// Branding
 	PrimaryColor   string `json:"primary_color" binding:"omitempty,hexcolor"`
 	SecondaryColor string `json:"secondary_color" binding:"omitempty,hexcolor"`
-	
+
 	// Invoice Configuration
-	InvoicePrefix       string `json:"invoice_prefix" binding:"omitempty,max=10"`
-	InvoiceDueDays      int    `json:"invoice_due_days" binding:"omitempty,min=1,max=90"`
-	InvoiceFooterText   string `json:"invoice_footer_text"`
-	
+	InvoiceGenerationDay *int   `json:"invoice_generation_day" binding:"omitempty,min=1,max=31"`
+	InvoiceDueDay        *int   `json:"invoice_due_day" binding:"omitempty,min=1,max=31"`
+	InvoicePrefix        string `json:"invoice_prefix" binding:"omitempty,max=10"`
+	InvoiceDueDays       *int   `json:"invoice_due_days" binding:"omitempty,min=1,max=90"`
+	InvoiceFooterText    string `json:"invoice_footer_text"`
+
 	// Payment Configuration
-	LatePenaltyPercent float64 `json:"late_penalty_percent" binding:"omitempty,min=0,max=100"`
-	LatePenaltyMaxCap  float64 `json:"late_penalty_max_cap" binding:"omitempty,min=0"`
-	GracePeriodDays    int     `json:"grace_period_days" binding:"omitempty,min=0,max=30"`
-	MinimumBillAmount  float64 `json:"minimum_bill_amount" binding:"omitempty,min=0"`
-	
+	LatePenaltyPercent *float64 `json:"late_penalty_percent" binding:"omitempty,min=0,max=100"`
+	LatePenaltyMaxCap  *float64 `json:"late_penalty_max_cap" binding:"omitempty,min=0"`
+	GracePeriodDays    *int     `json:"grace_period_days" binding:"omitempty,min=0,max=30"`
+	MinimumBillAmount  *float64 `json:"minimum_bill_amount" binding:"omitempty,min=0"`
+
 	// Bank Account
 	BankName        string `json:"bank_name"`
 	BankAccountName string `json:"bank_account_name"`
 	BankAccountNo   string `json:"bank_account_no"`
-	
+
 	// Operational Settings
 	OperatingHours string `json:"operating_hours"`
 	ServiceArea    string `json:"service_area"`

@@ -11,7 +11,7 @@ func InvoiceRoutes(r *gin.Engine) {
 	group.Use(middleware.JWTAuthMiddleware(), middleware.CheckTenantStatus(), middleware.AdminOnly())
 
 	// Legacy single generation
-	group.POST("generate-monthly", controllers.GenerateMonthlyInvoice)
+	group.POST("/generate-monthly", controllers.GenerateMonthlyInvoice)
 	
 	// New bulk generation endpoints
 	group.POST("/bulk-generate", controllers.BulkGenerateInvoices)
@@ -19,8 +19,8 @@ func InvoiceRoutes(r *gin.Engine) {
 	
 	// CRUD operations
 	group.GET("", controllers.GetInvoices)
-	group.GET("outstanding", controllers.GetOutstandingInvoices)
-	group.GET(":id", controllers.GetInvoice)
-	group.PUT(":id", controllers.UpdateInvoice)
-	group.DELETE(":id", controllers.DeleteInvoice)
+	group.GET("/outstanding", controllers.GetOutstandingInvoices)
+	group.GET("/:id", controllers.GetInvoice)
+	group.PUT("/:id", controllers.UpdateInvoice)
+	group.DELETE("/:id", controllers.DeleteInvoice)
 }

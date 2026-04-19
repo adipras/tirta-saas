@@ -45,12 +45,12 @@ func CreateWaterUsage(c *gin.Context) {
 
 	// Business rule validation: Check reasonable meter reading
 	if req.MeterEnd < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Meter end reading cannot be negative"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Meter akhir tidak boleh bernilai negatif"})
 		return
 	}
 
 	if req.MeterEnd > 99999999 { // 8 digit max reasonable meter reading
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Meter reading exceeds maximum allowed value"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nilai meter melebihi batas maksimum yang diizinkan"})
 		return
 	}
 
@@ -89,7 +89,7 @@ func CreateWaterUsage(c *gin.Context) {
 		Where("subscription_id = ? AND active = ? AND tenant_id = ?", customer.SubscriptionID, true, tenantID).
 		Order("effective_date DESC").
 		First(&rate).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan untuk subscription pelanggan ini. Silakan tambahkan tarif air terlebih dahulu di menu Water Rates."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan untuk tipe langganan pelanggan ini. Silakan tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air."})
 		return
 	}
 
@@ -97,12 +97,12 @@ func CreateWaterUsage(c *gin.Context) {
 
 	// Business rule validation: Check reasonable usage amount
 	if UsageM3 < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Calculated usage cannot be negative"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Pemakaian terhitung tidak boleh bernilai negatif"})
 		return
 	}
 
 	if UsageM3 > 1000 { // Max 1000 m3 per month seems reasonable
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Usage amount exceeds reasonable limit (1000 m3/month)"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Jumlah pemakaian melebihi batas wajar (1000 m3/bulan)"})
 		return
 	}
 
@@ -266,12 +266,12 @@ func UpdateWaterUsage(c *gin.Context) {
 
 	// Business rule validations
 	if input.MeterEnd < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Meter end reading cannot be negative"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Meter akhir tidak boleh bernilai negatif"})
 		return
 	}
 
 	if input.MeterEnd > 99999999 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Meter reading exceeds maximum allowed value"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nilai meter melebihi batas maksimum yang diizinkan"})
 		return
 	}
 
@@ -293,7 +293,7 @@ func UpdateWaterUsage(c *gin.Context) {
 		Where("subscription_id = ? AND active = ? AND tenant_id = ?", customer.SubscriptionID, true, tenantID).
 		Order("effective_date DESC").
 		First(&rate).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan untuk subscription pelanggan ini. Silakan tambahkan tarif air terlebih dahulu di menu Water Rates."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan untuk tipe langganan pelanggan ini. Silakan tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air."})
 		return
 	}
 
@@ -301,7 +301,7 @@ func UpdateWaterUsage(c *gin.Context) {
 
 	// Business rule validation: Check reasonable usage amount
 	if UsageM3 > 1000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Usage amount exceeds reasonable limit (1000 m3/month)"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Jumlah pemakaian melebihi batas wajar (1000 m3/bulan)"})
 		return
 	}
 

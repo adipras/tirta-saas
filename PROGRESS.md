@@ -1,5 +1,88 @@
 # Development Progress - Tirta SaaS
 
+## Latest Session: April 19, 2026
+
+**Date:** April 19, 2026  
+**Focus:** Perbaikan billing flow tenant, lokalisasi FE, payments/invoices, dan aturan denda bulanan  
+**Status:** ✅ Mayoritas selesai, 1 gap bisnis denda sudah diidentifikasi untuk tindak lanjut
+
+---
+
+## ✅ Completed (April 19, 2026)
+
+### 1. Tenant management & platform tenant stats
+
+- Card statistik di `/admin/platform/tenants` dipisah ke endpoint khusus, tidak lagi bergantung pada response list tenant/pending tenant
+- List tenant aktif diperbaiki agar menampilkan `subscription_ends_at` alih-alih `trial_ends_at`
+
+### 2. Navigasi & lokalisasi frontend
+
+- Menu-menu master/sidebar tenant dirapikan ke submenu **Pengaturan**
+- Refactor besar label FE ke Bahasa Indonesia pada komponen shared dan halaman-halaman utama
+- Perbaikan beberapa regression import/export akibat refactor label skala besar
+
+### 3. Konfigurasi Tarif Air
+
+- Field `active` pada tarif air dibuat benar-benar fungsional
+- Backend update tarif air diubah agar mendukung partial update
+- FE action tarif air diubah menjadi toggle switch pada kolom aksi
+- Filter active rate backend diperbaiki agar membaca kolom yang benar
+
+### 4. Payments flow
+
+- Halaman `/admin/payments` dilokalisasi ke Bahasa Indonesia
+- Aksi di list pembayaran diubah dari text link menjadi icon action
+- Endpoint backend untuk receipt dan void payment ditambahkan/diperbaiki
+- Receipt pembayaran sekarang bisa dimuat dengan benar
+- Void payment sekarang benar-benar merekalkulasi status invoice setelah pembatalan
+- Alur `/admin/payment-verification` dikonfirmasi: khusus untuk verifikasi bukti bayar dari pelanggan, bukan untuk pencatatan pembayaran internal
+
+### 5. Water usage & invoice generation
+
+- `/admin/usage/create` dilokalisasi dan ditambah pre-check active water rate sebelum submit
+- Error backend terkait active water rate diubah ke Bahasa Indonesia yang lebih jelas
+- Route water usage dan invoice yang sebelumnya bermasalah karena slash/path mismatch sudah diperbaiki
+- Status invoice di FE diperbaiki agar `is_paid=true` tidak lagi tampil sebagai `Unpaid`
+- Bulk invoice preview/generation FE diperbaiki agar memakai API backend yang benar, bukan request ke origin frontend
+- Formula generate invoice diperbaiki agar memasukkan:
+  - biaya air
+  - abonemen bulanan
+  - biaya maintenance
+  - denda berdasarkan `subscription_type.late_fee_per_day` dan `max_late_fee`
+- Preview generate invoice sekarang menampilkan breakdown **Abonemen** dan **Maintenance** secara terpisah
+
+### 6. Aturan billing bulanan & denda
+
+- Disepakati aturan bisnis baru:
+  - generate tagihan tanggal **5**
+  - pelanggan membayar paling lambat tanggal **25**
+  - denda mulai berlaku tanggal **26**
+- Backend `TenantSettings` ditambah konfigurasi:
+  - `invoice_generation_day`
+  - `invoice_due_day`
+- Generate invoice sekarang menghitung `due_date` berbasis tanggal tetap per bulan, bukan lagi offset hari dari tanggal generate
+- Scheduler invoice diubah agar cek harian dan generate saat masuk tanggal generate tenant
+- Halaman `/admin/settings` sekarang punya blok **Siklus Tagihan Bulanan** untuk mengatur tanggal generate dan tanggal jatuh tempo
+- `TenantSettings.BeforeCreate()` diperbaiki agar tetap menghasilkan UUID valid saat membuat settings baru
+
+## ⚠️ Open Gap / Follow-up
+
+### Penagihan denda untuk invoice yang sudah terlanjur terbentuk
+
+Gap bisnis yang ditemukan:
+
+- Saat invoice dibuat otomatis, `penalty_amount` masih **0** bila saat itu belum overdue
+- Jika pelanggan telat bayar invoice tersebut, invoice lama saat ini hanya berubah status menjadi `OVERDUE`
+- Denda **belum otomatis ditambahkan** ke invoice lama saat invoice dibuka atau saat pembayaran dicatat
+- Denda baru ikut terhitung saat generate invoice bulan berikutnya, dengan menarik penalti dari invoice lama yang belum lunas
+
+Kesimpulan:
+
+- Mekanisme penagihan denda overdue **belum lengkap**
+- Next step yang direkomendasikan: denda harus **melekat dinamis ke invoice lama** saat invoice dibuka/dibayar, sehingga total tagihan yang dibayar mencerminkan denda aktual sampai tanggal pembayaran
+
+---
+
 ## Latest Session: April 18, 2026
 
 **Date:** April 18, 2026  

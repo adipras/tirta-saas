@@ -4,6 +4,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/models"
@@ -13,6 +14,82 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func recalculateInvoicePaymentStatus(invoice *models.Invoice) {
+	switch {
+	case invoice.TotalPaid <= 0:
+		invoice.PaymentStatus = models.PaymentStatusUnpaid
+		invoice.IsPaid = false
+		invoice.PaidDate = nil
+	case invoice.TotalPaid >= invoice.TotalAmount:
+		invoice.PaymentStatus = models.PaymentStatusPaid
+		invoice.IsPaid = true
+		now := time.Now()
+		invoice.PaidDate = &now
+	default:
+		invoice.PaymentStatus = models.PaymentStatusPartial
+		invoice.IsPaid = false
+		invoice.PaidDate = nil
+	}
+}
+
+func loadPaymentWithRelations(paymentID uuid.UUID, tenantID uuid.UUID) (*models.Payment, error) {
+	var payment models.Payment
+	if err := config.DB.
+		Preload("Invoice.Customer").
+		Preload("PaymentMethod").
+		Where("id = ? AND tenant_id = ?", paymentID, tenantID).
+		First(&payment).Error; err != nil {
+		return nil, err
+	}
+
+	return &payment, nil
+}
+
+func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
+	dueDate := ""
+	if payment.Invoice.DueDate != nil {
+		dueDate = payment.Invoice.DueDate.Format(time.RFC3339)
+	}
+
+	paymentMethod := "cash"
+	if payment.PaymentMethod != nil && payment.PaymentMethod.Type != "" {
+		paymentMethod = payment.PaymentMethod.Type
+	}
+
+	return gin.H{
+		"id":             payment.ID,
+		"payment_id":     payment.ID,
+		"receipt_number": fmt.Sprintf("RCT-%s", payment.ID.String()[:8]),
+		"payment": gin.H{
+			"id":              payment.ID,
+			"invoiceId":       payment.InvoiceID,
+			"amount":          payment.Amount,
+			"paymentMethod":   paymentMethod,
+			"paymentDate":     payment.PaidAt,
+			"referenceNumber": payment.ReferenceNumber,
+			"notes":           payment.Notes,
+			"status":          payment.Status,
+			"invoiceNumber":   payment.Invoice.InvoiceNumber,
+			"customerName":    payment.Invoice.Customer.Name,
+			"createdAt":       payment.CreatedAt,
+			"updatedAt":       payment.UpdatedAt,
+		},
+		"invoiceDetails": gin.H{
+			"invoiceNumber": payment.Invoice.InvoiceNumber,
+			"invoiceDate":   payment.Invoice.CreatedAt,
+			"dueDate":       dueDate,
+			"totalAmount":   payment.Invoice.TotalAmount,
+		},
+		"customerDetails": gin.H{
+			"name":        payment.Invoice.Customer.Name,
+			"address":     payment.Invoice.Customer.Address,
+			"phone":       payment.Invoice.Customer.Phone,
+			"meterNumber": payment.Invoice.Customer.MeterNumber,
+		},
+		"generatedAt": time.Now(),
+	}
+}
 
 // CreatePayment godoc
 // @Summary Create payment
@@ -97,8 +174,13 @@ func CreatePayment(c *gin.Context) {
 
 	// Update invoice
 	invoice.TotalPaid = totalPaid
-	invoice.IsPaid = totalPaid >= invoice.TotalAmount
-	if err := config.DB.Model(&invoice).Updates(map[string]interface{}{"total_paid": invoice.TotalPaid, "is_paid": invoice.IsPaid}).Error; err != nil {
+	recalculateInvoicePaymentStatus(&invoice)
+	if err := config.DB.Model(&invoice).Updates(map[string]interface{}{
+		"total_paid":      invoice.TotalPaid,
+		"is_paid":         invoice.IsPaid,
+		"payment_status":  invoice.PaymentStatus,
+		"paid_date":       invoice.PaidDate,
+	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui status invoice"})
 		return
 	}
@@ -302,12 +384,17 @@ func UpdatePayment(c *gin.Context) {
 	// Update invoice total paid
 	var newTotalPaid float64
 	config.DB.Model(&models.Payment{}).
-		Where("invoice_id = ?", payment.InvoiceID).
+		Where("invoice_id = ? AND status != ?", payment.InvoiceID, "voided").
 		Select("SUM(amount)").Scan(&newTotalPaid)
 
 	invoice.TotalPaid = newTotalPaid
-	invoice.IsPaid = newTotalPaid >= invoice.TotalAmount
-	config.DB.Model(&invoice).Updates(map[string]interface{}{"total_paid": invoice.TotalPaid, "is_paid": invoice.IsPaid})
+	recalculateInvoicePaymentStatus(&invoice)
+	config.DB.Model(&invoice).Updates(map[string]interface{}{
+		"total_paid":     invoice.TotalPaid,
+		"is_paid":        invoice.IsPaid,
+		"payment_status": invoice.PaymentStatus,
+		"paid_date":      invoice.PaidDate,
+	})
 
 	c.JSON(http.StatusOK, payment)
 }
@@ -351,12 +438,17 @@ func DeletePayment(c *gin.Context) {
 	if err := config.DB.Where("id = ? AND tenant_id = ?", invoiceID, tenantID).First(&invoice).Error; err == nil {
 		var newTotalPaid float64
 		config.DB.Model(&models.Payment{}).
-			Where("invoice_id = ?", invoiceID).
+			Where("invoice_id = ? AND status != ?", invoiceID, "voided").
 			Select("COALESCE(SUM(amount), 0)").Scan(&newTotalPaid)
 
 		invoice.TotalPaid = newTotalPaid
-		invoice.IsPaid = newTotalPaid >= invoice.TotalAmount
-		config.DB.Model(&invoice).Updates(map[string]interface{}{"total_paid": invoice.TotalPaid, "is_paid": invoice.IsPaid})
+		recalculateInvoicePaymentStatus(&invoice)
+		config.DB.Model(&invoice).Updates(map[string]interface{}{
+			"total_paid":     invoice.TotalPaid,
+			"is_paid":        invoice.IsPaid,
+			"payment_status": invoice.PaymentStatus,
+			"paid_date":      invoice.PaidDate,
+		})
 
 		// If this was a registration invoice and is no longer paid, deactivate customer
 		if invoice.Type == "registration" && !invoice.IsPaid {
@@ -367,4 +459,98 @@ func DeletePayment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Pembayaran berhasil dihapus"})
+}
+
+func VoidPayment(c *gin.Context) {
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	paymentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID pembayaran tidak valid"})
+		return
+	}
+
+	payment, err := loadPaymentWithRelations(paymentID, tenantID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pembayaran tidak ditemukan"})
+		return
+	}
+
+	if payment.Status == "voided" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Pembayaran sudah dibatalkan"})
+		return
+	}
+
+	payment.Status = "voided"
+	if err := config.DB.Model(payment).Update("status", payment.Status).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membatalkan pembayaran"})
+		return
+	}
+
+	var invoice models.Invoice
+	if err := config.DB.Where("id = ? AND tenant_id = ?", payment.InvoiceID, tenantID).First(&invoice).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil invoice terkait"})
+		return
+	}
+
+	var totalPaid float64
+	config.DB.Model(&models.Payment{}).
+		Where("invoice_id = ? AND status != ?", payment.InvoiceID, "voided").
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalPaid)
+
+	invoice.TotalPaid = totalPaid
+	recalculateInvoicePaymentStatus(&invoice)
+	if err := config.DB.Model(&invoice).Updates(map[string]interface{}{
+		"total_paid":     invoice.TotalPaid,
+		"is_paid":        invoice.IsPaid,
+		"payment_status": invoice.PaymentStatus,
+		"paid_date":      invoice.PaidDate,
+	}).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui status invoice"})
+		return
+	}
+
+	if invoice.Type == "registration" && !invoice.IsPaid {
+		if err := config.DB.Model(&models.Customer{}).
+			Where("id = ? AND tenant_id = ?", invoice.CustomerID, tenantID).
+			Update("is_active", false).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui status pelanggan"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Pembayaran berhasil dibatalkan",
+		"data":    payment,
+	})
+}
+
+func GetPaymentReceipt(c *gin.Context) {
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	paymentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID pembayaran tidak valid"})
+		return
+	}
+
+	payment, err := loadPaymentWithRelations(paymentID, tenantID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pembayaran tidak ditemukan"})
+		return
+	}
+
+	c.JSON(http.StatusOK, buildPaymentReceiptResponse(payment))
+}
+
+func GeneratePaymentReceipt(c *gin.Context) {
+	GetPaymentReceipt(c)
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 )
@@ -27,10 +28,10 @@ func NewInvoiceScheduler() *InvoiceScheduler {
 
 // Start starts the scheduler
 func (s *InvoiceScheduler) Start() error {
-	// Schedule monthly invoice generation
-	// Default: Run on 1st of every month at 00:00 (midnight)
-	_, err := s.cron.AddFunc("0 0 1 * *", func() {
-		log.Println("🕐 Starting scheduled invoice generation...")
+	// Evaluate scheduled invoice generation every day.
+	// Each tenant is generated only when today matches their configured billing day.
+	_, err := s.cron.AddFunc("0 0 * * *", func() {
+		log.Println("🕐 Evaluating scheduled invoice generation...")
 		s.runMonthlyGeneration()
 	})
 	if err != nil {
@@ -50,7 +51,7 @@ func (s *InvoiceScheduler) Start() error {
 	// Start the cron scheduler
 	s.cron.Start()
 	log.Println("✅ Invoice scheduler started successfully")
-	log.Println("📅 Monthly generation: 1st of month at 00:00")
+	log.Println("📅 Scheduled generation check: every day at 00:00")
 	log.Println("📅 Overdue update: Every day at 01:00")
 
 	return nil
@@ -83,8 +84,18 @@ func (s *InvoiceScheduler) runMonthlyGeneration() {
 	successCount := 0
 	failCount := 0
 
-	// Generate invoices for each tenant
+	// Generate invoices only for tenants whose configured billing day matches today.
 	for _, tenant := range tenants {
+		var settings models.TenantSettings
+		if err := config.DB.Where("tenant_id = ?", tenant.ID).First(&settings).Error; err != nil {
+			settings = models.TenantSettings{TenantID: tenant.ID}
+		}
+		settings.ApplyBillingDefaults()
+		location := utils.ResolveLocation(settings.TimeZone)
+		if now.In(location).Day() != settings.InvoiceGenerationDay {
+			continue
+		}
+
 		result, err := s.generator.GenerateInvoices(InvoiceGenerationRequest{
 			TenantID:    tenant.ID,
 			UsageMonth:  usageMonth,
@@ -136,14 +147,14 @@ func (s *InvoiceScheduler) updateOverdueInvoices() {
 // logGenerationHistory logs invoice generation history
 func (s *InvoiceScheduler) logGenerationHistory(tenantID uuid.UUID, month string, success, skipped, failed int, errorMsg string) {
 	history := models.InvoiceGenerationHistory{
-		TenantID:      tenantID,
-		GeneratedFor:  month,
-		SuccessCount:  success,
-		SkippedCount:  skipped,
-		FailedCount:   failed,
-		GeneratedAt:   time.Now(),
-		Status:        "success",
-		ErrorMessage:  errorMsg,
+		TenantID:     tenantID,
+		GeneratedFor: month,
+		SuccessCount: success,
+		SkippedCount: skipped,
+		FailedCount:  failed,
+		GeneratedAt:  time.Now(),
+		Status:       "success",
+		ErrorMessage: errorMsg,
 	}
 
 	if errorMsg != "" {

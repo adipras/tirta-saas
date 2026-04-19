@@ -128,19 +128,21 @@ func PublicTenantRegistration(c *gin.Context) {
 
 	// Create default tenant settings
 	tenantSettings := models.TenantSettings{
-		BaseModel:          models.BaseModel{ID: uuid.New()}, // Explicitly generate UUID
-		TenantID:           tenant.ID,
-		CompanyName:        req.OrganizationName,
-		Address:            req.Address,
-		Phone:              req.Phone,
-		Email:              req.Email,
-		InvoiceDueDays:     14,
-		LatePenaltyPercent: 2.0,
-		LatePenaltyMaxCap:  100000,
-		GracePeriodDays:    3,
-		TimeZone:           "Asia/Jakarta",
-		Language:           "id",
-		Currency:           "IDR",
+		BaseModel:            models.BaseModel{ID: uuid.New()}, // Explicitly generate UUID
+		TenantID:             tenant.ID,
+		CompanyName:          req.OrganizationName,
+		Address:              req.Address,
+		Phone:                req.Phone,
+		Email:                req.Email,
+		InvoiceGenerationDay: models.DefaultInvoiceGenerationDay,
+		InvoiceDueDay:        models.DefaultInvoiceDueDay,
+		InvoiceDueDays:       models.DefaultInvoiceDueDays,
+		LatePenaltyPercent:   2.0,
+		LatePenaltyMaxCap:    100000,
+		GracePeriodDays:      models.DefaultGracePeriodDays,
+		TimeZone:             "Asia/Jakarta",
+		Language:             "id",
+		Currency:             "IDR",
 	}
 
 	if err := tx.Create(&tenantSettings).Error; err != nil {
@@ -180,12 +182,12 @@ func PublicTenantRegistration(c *gin.Context) {
 
 // GetPendingTenants returns list of tenants waiting for approval
 // @Summary Get pending tenants
-// @Description Get list of tenants with TRIAL or PENDING_VERIFICATION status
+// @Description Get list of tenants awaiting platform action, primarily pending activation after payment verification
 // @Tags Platform
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param status query string false "Filter by status (TRIAL, PENDING_VERIFICATION, PENDING_PAYMENT)"
+// @Param status query string false "Filter by status (PENDING_VERIFICATION, PENDING_APPROVAL, PENDING_PAYMENT, TRIAL)"
 // @Success 200 {object} responses.PendingTenantsListResponse
 // @Failure 401 {object} responses.ErrorResponse
 // @Router /api/platform/tenants/pending [get]
@@ -197,10 +199,9 @@ func GetPendingTenants(c *gin.Context) {
 	if status != "" {
 		query = query.Where("status = ?", status)
 	} else {
-		// Default: show TRIAL and PENDING_VERIFICATION
 		query = query.Where("status IN ?", []string{
-			string(models.TenantStatusTrial),
 			string(models.TenantStatusPendingVerification),
+			string(models.TenantStatusPendingApproval),
 			string(models.TenantStatusPendingPayment),
 		})
 	}
@@ -224,21 +225,23 @@ func GetPendingTenants(c *gin.Context) {
 		}
 
 		pendingTenants[i] = responses.PendingTenantResponse{
-			ID:              t.ID,
-			Name:            t.Name,
-			VillageCode:     t.VillageCode,
-			Email:           t.Email,
-			Phone:           t.Phone,
-			Address:         t.Address,
-			AdminName:       t.AdminName,
-			AdminEmail:      t.AdminEmail,
-			AdminPhone:      t.AdminPhone,
-			Status:          string(t.Status),
-			RegisteredAt:    t.RegisteredAt,
-			TrialEndsAt:     t.TrialEndsAt,
-			PaymentProofURL: paymentProofURL,
-			TotalUsers:      t.TotalUsers,
-			TotalCustomers:  t.TotalCustomers,
+			ID:                 t.ID,
+			Name:               t.Name,
+			VillageCode:        t.VillageCode,
+			Email:              t.Email,
+			Phone:              t.Phone,
+			Address:            t.Address,
+			AdminName:          t.AdminName,
+			AdminEmail:         t.AdminEmail,
+			AdminPhone:         t.AdminPhone,
+			Status:             string(t.Status),
+			SubscriptionStatus: t.SubscriptionStatus,
+			RegisteredAt:       t.RegisteredAt,
+			TrialEndsAt:        t.TrialEndsAt,
+			PaymentProofURL:    paymentProofURL,
+			PaymentVerifiedAt:  t.PaymentVerifiedAt,
+			TotalUsers:         t.TotalUsers,
+			TotalCustomers:     t.TotalCustomers,
 		}
 	}
 
@@ -339,7 +342,7 @@ func ApproveTenant(c *gin.Context) {
 
 	// If tenant registered via subscription plan (PENDING_APPROVAL),
 	// set status to PENDING_PAYMENT so they must pay the subscription invoice.
-	// Otherwise (legacy trial/manual approval), activate directly.
+	// If tenant is pending verification, only activate after payment has been verified.
 	if tenant.Status == models.TenantStatusPendingApproval {
 		updates = map[string]interface{}{
 			"status":      string(models.TenantStatusPendingPayment),
@@ -353,24 +356,55 @@ func ApproveTenant(c *gin.Context) {
 			updates["notes"] = req.Notes
 		}
 		responseMessage = "Tenant disetujui. Invoice tagihan berlangganan telah dibuat. Tenant perlu melakukan konfirmasi pembayaran."
-	} else {
-		// Legacy path: directly activate
-		subscriptionEnds := now.AddDate(0, 1, 0)
+	} else if tenant.Status == models.TenantStatusPendingVerification {
+		if tenant.SubscriptionStatus != "VERIFIED" || tenant.PaymentVerifiedAt == nil {
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+				Status:  "error",
+				Message: "Tenant belum bisa diaktifkan karena pembayaran belum diverifikasi",
+			})
+			return
+		}
+
+		var verifiedPayment models.SubscriptionPayment
+		err := config.DB.
+			Where("tenant_id = ? AND status = ?", tenant.ID.String(), models.PaymentStatusVerified).
+			Order("verified_at DESC, created_at DESC").
+			First(&verifiedPayment).Error
+		if err != nil && tenant.PaymentProofURL != "" {
+			err = config.DB.
+				Where("proof_url = ? AND status = ?", tenant.PaymentProofURL, models.PaymentStatusVerified).
+				Order("verified_at DESC, created_at DESC").
+				First(&verifiedPayment).Error
+		}
+		if err != nil {
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+				Status:  "error",
+				Message: "Pembayaran terverifikasi tidak ditemukan untuk tenant ini",
+			})
+			return
+		}
+
+		subscriptionStarts := now
+		subscriptionEnds := subscriptionStarts.AddDate(0, verifiedPayment.BillingPeriod, 0)
 		updates = map[string]interface{}{
 			"status":                 string(models.TenantStatusActive),
 			"approved_at":            &now,
 			"approved_by":            &platformOwner,
-			"subscription_starts_at": &now,
+			"subscription_plan":      verifiedPayment.SubscriptionPlan,
+			"subscription_starts_at": &subscriptionStarts,
 			"subscription_ends_at":   &subscriptionEnds,
 			"subscription_status":    "ACTIVE",
-		}
-		if req.SubscriptionPlan != "" {
-			updates["subscription_plan"] = req.SubscriptionPlan
 		}
 		if req.Notes != "" {
 			updates["notes"] = req.Notes
 		}
-		responseMessage = "Tenant approved successfully"
+		responseMessage = "Tenant berhasil diaktifkan setelah pembayaran terverifikasi."
+	} else {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Tenant dengan status ini tidak dapat diproses dari menu Pending",
+		})
+		return
 	}
 
 	if err := config.DB.Model(&tenant).Updates(updates).Error; err != nil {
@@ -566,16 +600,16 @@ func SetupTenant(c *gin.Context) {
 		return
 	}
 
-	// Get authenticated user from context
-	userIDStr, exists := c.Get("user_id")
+	// JWT middleware stores user_id in Gin context as uuid.UUID
+	userIDValue, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Pengguna tidak terautentikasi"})
 		return
 	}
 
-	userUUID, err := uuid.Parse(userIDStr.(string))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID tidak valid"})
+	userUUID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID tidak valid"})
 		return
 	}
 
@@ -660,11 +694,10 @@ func SetupTenant(c *gin.Context) {
 		return
 	}
 
-	// Link user to tenant and update admin contact
+	// Link authenticated user to the newly created tenant
 	tenantID := tenant.ID
 	if err := tx.Model(&user).Updates(map[string]interface{}{
-		"tenant_id":   &tenantID,
-		"admin_phone": adminPhone,
+		"tenant_id": &tenantID,
 	}).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghubungkan user ke tenant"})
@@ -673,19 +706,21 @@ func SetupTenant(c *gin.Context) {
 
 	// Create default tenant settings
 	tenantSettings := models.TenantSettings{
-		BaseModel:          models.BaseModel{ID: uuid.New()},
-		TenantID:           tenant.ID,
-		CompanyName:        req.OrganizationName,
-		Address:            req.Address,
-		Phone:              req.Phone,
-		Email:              req.Email,
-		InvoiceDueDays:     14,
-		LatePenaltyPercent: 2.0,
-		LatePenaltyMaxCap:  100000,
-		GracePeriodDays:    3,
-		TimeZone:           "Asia/Jakarta",
-		Language:           "id",
-		Currency:           "IDR",
+		BaseModel:            models.BaseModel{ID: uuid.New()},
+		TenantID:             tenant.ID,
+		CompanyName:          req.OrganizationName,
+		Address:              req.Address,
+		Phone:                req.Phone,
+		Email:                req.Email,
+		InvoiceGenerationDay: models.DefaultInvoiceGenerationDay,
+		InvoiceDueDay:        models.DefaultInvoiceDueDay,
+		InvoiceDueDays:       models.DefaultInvoiceDueDays,
+		LatePenaltyPercent:   2.0,
+		LatePenaltyMaxCap:    100000,
+		GracePeriodDays:      models.DefaultGracePeriodDays,
+		TimeZone:             "Asia/Jakarta",
+		Language:             "id",
+		Currency:             "IDR",
 	}
 
 	if err := tx.Create(&tenantSettings).Error; err != nil {
