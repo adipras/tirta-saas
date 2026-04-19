@@ -2,16 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeftIcon, UserCircleIcon, KeyIcon } from '@heroicons/react/24/outline';
 import customerAuthService from '../../services/customerAuthService';
-import customerPortalService, { type CustomerProfile as ProfileType } from '../../services/customerPortalService';
+import customerPortalService, { type CustomerProfil as ProfilType } from '../../services/customerPortalService';
 
-const CustomerProfile: React.FC = () => {
+const CustomerProfil: React.FC = () => {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<ProfileType | null>(null);
+  const [profile, setProfil] = useState<ProfilType | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  const [profileForm, setProfileForm] = useState({
+  const [profileForm, setProfilForm] = useState({
     name: '',
     address: '',
     phone: '',
@@ -28,14 +28,14 @@ const CustomerProfile: React.FC = () => {
       navigate('/customer/login');
       return;
     }
-    loadProfile();
+    loadProfil();
   }, [navigate]);
 
-  const loadProfile = async () => {
+  const loadProfil = async () => {
     try {
-      const data = await customerPortalService.getProfile();
-      setProfile(data);
-      setProfileForm({
+      const data = await customerPortalService.getProfil();
+      setProfil(data);
+      setProfilForm({
         name: data.name,
         address: data.address,
         phone: data.phone,
@@ -47,15 +47,15 @@ const CustomerProfile: React.FC = () => {
     }
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  const handleUpdateProfil = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
     setSaving(true);
 
     try {
-      await customerPortalService.updateProfile(profileForm);
+      await customerPortalService.updateProfil(profileForm);
       setMessage({ type: 'success', text: 'Profil berhasil diperbarui!' });
-      await loadProfile();
+      await loadProfil();
     } catch (error: any) {
       setMessage({ type: 'error', text: error.response?.data?.error || 'Gagal memperbarui profil' });
     } finally {
@@ -98,7 +98,7 @@ const CustomerProfile: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center h-screen">Memuat...</div>;
   }
 
   return (
@@ -131,7 +131,7 @@ const CustomerProfile: React.FC = () => {
           </div>
         )}
 
-        {/* Profile Info Card */}
+        {/* Profil Info Card */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center gap-4 mb-6">
             <UserCircleIcon className="h-16 w-16 text-indigo-600" />
@@ -160,10 +160,10 @@ const CustomerProfile: React.FC = () => {
           </div>
         </div>
 
-        {/* Update Profile Form */}
+        {/* Update Profil Form */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Update Profil</h3>
-          <form onSubmit={handleUpdateProfile} className="space-y-4">
+          <form onSubmit={handleUpdateProfil} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Nama Lengkap
@@ -172,7 +172,7 @@ const CustomerProfile: React.FC = () => {
                 type="text"
                 required
                 value={profileForm.name}
-                onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                onChange={(e) => setProfilForm({ ...profileForm, name: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
@@ -185,7 +185,7 @@ const CustomerProfile: React.FC = () => {
                 required
                 rows={3}
                 value={profileForm.address}
-                onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
+                onChange={(e) => setProfilForm({ ...profileForm, address: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
@@ -198,7 +198,7 @@ const CustomerProfile: React.FC = () => {
                 type="tel"
                 required
                 value={profileForm.phone}
-                onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                onChange={(e) => setProfilForm({ ...profileForm, phone: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
             </div>
@@ -282,4 +282,4 @@ const CustomerProfile: React.FC = () => {
   );
 };
 
-export default CustomerProfile;
+export default CustomerProfil;

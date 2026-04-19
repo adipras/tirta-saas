@@ -109,7 +109,7 @@ export default function PaymentSuccess() {
               className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
             >
               <DocumentTextIcon className="h-5 w-5 mr-2" />
-              View My Invoices
+              View My Tagihan
             </Link>
             <Link
               to="/customer/dashboard"

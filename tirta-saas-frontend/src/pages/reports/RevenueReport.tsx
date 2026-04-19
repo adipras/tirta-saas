@@ -56,7 +56,7 @@ const RevenueReport: React.FC = () => {
       'Year': item.year,
       'Revenue (IDR)': item.revenue,
       'Revenue': formatIDR(item.revenue),
-      'Invoices': item.invoices,
+      'Tagihan': item.invoices,
     }));
     const byTypeRows = (reportData.revenueBySubscriptionType || []).map((item) => ({
       'Subscription Type': item.subscriptionType,
@@ -270,7 +270,7 @@ const RevenueReport: React.FC = () => {
                   Revenue
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Invoices
+                  Tagihan
                 </th>
               </tr>
             </thead>

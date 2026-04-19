@@ -53,10 +53,10 @@ export interface CustomerFilters {
 }
 
 export interface CustomerStats {
-  totalCustomers: number;
-  activeCustomers: number;
-  inactiveCustomers: number;
-  suspendedCustomers: number;
+  totalPelanggan: number;
+  activePelanggan: number;
+  inactivePelanggan: number;
+  suspendedPelanggan: number;
   customersWithOutstandingBalance: number;
   totalOutstandingBalance: number;
 }

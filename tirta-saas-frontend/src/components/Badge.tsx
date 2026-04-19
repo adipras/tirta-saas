@@ -73,12 +73,12 @@ export const StatusBadge: React.FC<{
   size?: BadgeSize;
 }> = ({ status, size = 'sm' }) => {
   const statusConfig = {
-    active: { variant: 'success' as BadgeVariant, label: 'Active', dot: true },
-    inactive: { variant: 'default' as BadgeVariant, label: 'Inactive', dot: true },
-    pending: { variant: 'warning' as BadgeVariant, label: 'Pending', dot: true },
-    suspended: { variant: 'danger' as BadgeVariant, label: 'Suspended', dot: true },
-    completed: { variant: 'success' as BadgeVariant, label: 'Completed', dot: false },
-    cancelled: { variant: 'danger' as BadgeVariant, label: 'Cancelled', dot: false },
+    active: { variant: 'success' as BadgeVariant, label: 'Aktif', dot: true },
+    inactive: { variant: 'default' as BadgeVariant, label: 'Nonaktif', dot: true },
+    pending: { variant: 'warning' as BadgeVariant, label: 'Menunggu', dot: true },
+    suspended: { variant: 'danger' as BadgeVariant, label: 'Ditangguhkan', dot: true },
+    completed: { variant: 'success' as BadgeVariant, label: 'Selesai', dot: false },
+    cancelled: { variant: 'danger' as BadgeVariant, label: 'Dibatalkan', dot: false },
   };
 
   const config = statusConfig[status];
@@ -95,11 +95,11 @@ export const PaymentStatusBadge: React.FC<{
   size?: BadgeSize;
 }> = ({ status, size = 'sm' }) => {
   const statusConfig = {
-    paid: { variant: 'success' as BadgeVariant, label: 'Paid', dot: true },
-    unpaid: { variant: 'warning' as BadgeVariant, label: 'Unpaid', dot: true },
-    partial: { variant: 'info' as BadgeVariant, label: 'Partial', dot: true },
-    overdue: { variant: 'danger' as BadgeVariant, label: 'Overdue', dot: true },
-    void: { variant: 'default' as BadgeVariant, label: 'Void', dot: false },
+    paid: { variant: 'success' as BadgeVariant, label: 'Lunas', dot: true },
+    unpaid: { variant: 'warning' as BadgeVariant, label: 'Belum Lunas', dot: true },
+    partial: { variant: 'info' as BadgeVariant, label: 'Sebagian', dot: true },
+    overdue: { variant: 'danger' as BadgeVariant, label: 'Jatuh Tempo', dot: true },
+    void: { variant: 'default' as BadgeVariant, label: 'Dibatalkan', dot: false },
   };
 
   const config = statusConfig[status];

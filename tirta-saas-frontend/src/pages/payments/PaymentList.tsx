@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ArrowPathIcon,
+  DocumentTextIcon,
+  EyeIcon,
+  NoSymbolIcon,
+  PlusIcon,
+} from '@heroicons/react/24/outline';
 import { DataTable, type Column } from '../../components/DataTable';
 import { paymentService, type PaymentFilters } from '../../services/paymentService';
 import { PageHeader, ConfirmModal, useToast } from '../../components';
@@ -15,7 +22,7 @@ import {
 const PaymentList: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const [payments, setPembayaran] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
@@ -23,33 +30,34 @@ const PaymentList: React.FC = () => {
   const [filters, setFilters] = useState<PaymentFilters>({});
   const [voidTarget, setVoidTarget] = useState<Payment | null>(null);
 
-  const fetchPayments = useCallback(async (page: number, search: string, currentFilters: PaymentFilters) => {
+  const fetchPembayaran = useCallback(async (page: number, search: string, currentFilters: PaymentFilters) => {
     try {
       setLoading(true);
-      const response = await paymentService.getPayments(page, 10, {
+      const response = await paymentService.getPembayaran(page, 10, {
         ...currentFilters,
         search: search || undefined,
       });
-      setPayments(response.data);
+      setPembayaran(response.data);
       setTotalPages(response.pagination.totalPages);
       setCurrentPage(response.pagination.currentPage);
     } catch (error) {
       console.error('Failed to fetch payments:', error);
+      toast.error('Gagal memuat data pembayaran');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
-    fetchPayments(1, searchTerm, filters);
-  }, [fetchPayments, searchTerm, filters]);
+    fetchPembayaran(1, searchTerm, filters);
+  }, [fetchPembayaran, searchTerm, filters]);
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
   };
 
   const handlePageChange = (page: number) => {
-    fetchPayments(page, searchTerm, filters);
+    fetchPembayaran(page, searchTerm, filters);
   };
 
   const handleFilterChange = (key: keyof PaymentFilters, value: string) => {
@@ -74,17 +82,19 @@ const PaymentList: React.FC = () => {
   const confirmVoidPayment = async () => {
     if (!voidTarget) return;
     try {
-      await paymentService.voidPayment(voidTarget.id as unknown as number);
+      await paymentService.voidPayment(voidTarget.id);
+      toast.success('Pembayaran berhasil dibatalkan');
       setVoidTarget(null);
-      fetchPayments(currentPage, searchTerm, filters);
+      fetchPembayaran(currentPage, searchTerm, filters);
     } catch (error) {
       console.error('Failed to void payment:', error);
+      toast.error('Gagal membatalkan pembayaran');
     }
   };
 
   const handleExport = async () => {
     try {
-      const blob = await paymentService.exportPayments(filters);
+      const blob = await paymentService.exportPembayaran(filters);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -117,19 +127,19 @@ const PaymentList: React.FC = () => {
   const columns: Column<Payment>[] = [
     {
       key: 'paymentDate',
-      label: 'Date',
+      label: 'Tanggal',
       sortable: true,
-      render: (_: any, payment: Payment) => new Date(payment.paymentDate).toLocaleDateString(),
+      render: (_: any, payment: Payment) => new Date(payment.paymentDate).toLocaleDateString('id-ID'),
     },
     {
       key: 'customerName',
-      label: 'Customer',
+      label: 'Pelanggan',
       sortable: true,
       render: (_: any, payment: Payment) => payment.customerName || '-',
     },
     {
       key: 'invoiceNumber',
-      label: 'Invoice',
+      label: 'Tagihan',
       sortable: true,
       render: (_: any, payment: Payment) => (
         <button
@@ -142,19 +152,19 @@ const PaymentList: React.FC = () => {
     },
     {
       key: 'amount',
-      label: 'Amount',
+      label: 'Nominal',
       sortable: true,
       render: (_: any, payment: Payment) => `Rp ${payment.amount.toLocaleString('id-ID')}`,
     },
     {
       key: 'paymentMethod',
-      label: 'Method',
+      label: 'Metode',
       sortable: true,
-      render: (_: any, payment: Payment) => PAYMENT_METHOD_LABELS[payment.paymentMethod],
+      render: (_: any, payment: Payment) => PAYMENT_METHOD_LABELS[payment.paymentMethod] || payment.paymentMethod,
     },
     {
       key: 'referenceNumber',
-      label: 'Reference',
+      label: 'Referensi',
       render: (_: any, payment: Payment) => payment.referenceNumber || '-',
     },
     {
@@ -171,23 +181,33 @@ const PaymentList: React.FC = () => {
     },
     {
       key: 'actions',
-      label: 'Actions',
+      label: 'Aksi',
       render: (_: any, payment: Payment) => (
-        <div className="flex space-x-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => handleViewReceipt(payment)}
-            className="text-blue-600 hover:text-blue-800 text-sm"
-            title="View Receipt"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 text-blue-600 transition hover:bg-blue-50"
+            title="Lihat struk pembayaran"
+            aria-label="Lihat struk pembayaran"
           >
-            Receipt
+            <DocumentTextIcon className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleViewInvoice(payment)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:bg-gray-50"
+            title="Lihat detail tagihan"
+            aria-label="Lihat detail tagihan"
+          >
+            <EyeIcon className="h-4 w-4" />
           </button>
           {payment.status === 'completed' && (
             <button
               onClick={() => handleVoidPayment(payment)}
-              className="text-red-600 hover:text-red-800 text-sm"
-              title="Void Payment"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50"
+              title="Batalkan pembayaran"
+              aria-label="Batalkan pembayaran"
             >
-              Void
+              <NoSymbolIcon className="h-4 w-4" />
             </button>
           )}
         </div>
@@ -197,21 +217,21 @@ const PaymentList: React.FC = () => {
 
   return (
     <div className="p-6">
-      <PageHeader title="Payments" subtitle="Manage payment records and receipts" />
+      <PageHeader title="Pembayaran" subtitle="Kelola transaksi pembayaran dan struk pembayaran" />
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Method
-            </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+               Metode Pembayaran
+              </label>
             <select
               className="w-full border border-gray-300 rounded-md px-3 py-2"
               value={filters.paymentMethod || ''}
               onChange={(e) => handleFilterChange('paymentMethod', e.target.value)}
             >
-              <option value="">All Methods</option>
+              <option value="">Semua metode</option>
               {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -221,15 +241,15 @@ const PaymentList: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+               Status
+              </label>
             <select
               className="w-full border border-gray-300 rounded-md px-3 py-2"
               value={filters.status || ''}
               onChange={(e) => handleFilterChange('status', e.target.value)}
             >
-              <option value="">All Status</option>
+              <option value="">Semua status</option>
               {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -239,9 +259,9 @@ const PaymentList: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date From
-            </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+               Tanggal Mulai
+              </label>
             <input
               type="date"
               className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -251,9 +271,9 @@ const PaymentList: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date To
-            </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+               Tanggal Selesai
+              </label>
             <input
               type="date"
               className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -268,7 +288,7 @@ const PaymentList: React.FC = () => {
             onClick={() => setFilters({})}
             className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
           >
-            Clear Filters
+            Reset Filter
           </button>
         </div>
       </div>
@@ -277,7 +297,7 @@ const PaymentList: React.FC = () => {
         <div className="p-4 border-b flex justify-between items-center">
           <input
             type="text"
-            placeholder="Search payments..."
+            placeholder="Cari pembayaran..."
             className="border border-gray-300 rounded-md px-4 py-2 w-96"
             value={searchTerm}
             onChange={(e) => handleSearch(e.target.value)}
@@ -285,15 +305,17 @@ const PaymentList: React.FC = () => {
           <div className="flex space-x-2">
             <button
               onClick={handleExport}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
             >
-              Export
+              <ArrowPathIcon className="h-4 w-4" />
+              Ekspor
             </button>
             <button
               onClick={() => navigate('/admin/payments/new')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              Record Payment
+              <PlusIcon className="h-4 w-4" />
+              Catat Pembayaran
             </button>
           </div>
         </div>
@@ -308,7 +330,7 @@ const PaymentList: React.FC = () => {
         {totalPages > 1 && (
           <div className="px-4 py-3 border-t flex justify-between items-center">
             <div className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
+              Halaman {currentPage} dari {totalPages}
             </div>
             <div className="flex space-x-2">
               <button
@@ -316,14 +338,14 @@ const PaymentList: React.FC = () => {
                 disabled={currentPage === 1}
                 className="px-3 py-1 border rounded disabled:opacity-50"
               >
-                Previous
+                Sebelumnya
               </button>
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}
                 className="px-3 py-1 border rounded disabled:opacity-50"
               >
-                Next
+                Berikutnya
               </button>
             </div>
           </div>
@@ -334,9 +356,9 @@ const PaymentList: React.FC = () => {
         isOpen={voidTarget !== null}
         onClose={() => setVoidTarget(null)}
         onConfirm={confirmVoidPayment}
-        title="Void Pembayaran"
-        message={`Apakah kamu yakin ingin mem-void pembayaran ini? Tindakan ini tidak dapat dibatalkan.`}
-        confirmText="Void"
+        title="Batalkan Pembayaran"
+        message="Pembayaran yang dibatalkan akan dikeluarkan dari total pelunasan tagihan. Tindakan ini tidak dapat dibatalkan."
+        confirmText="Ya, batalkan"
         cancelText="Batal"
         type="danger"
       />

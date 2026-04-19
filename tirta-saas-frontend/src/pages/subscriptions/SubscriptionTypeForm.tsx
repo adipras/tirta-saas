@@ -173,7 +173,7 @@ export default function SubscriptionTypeForm() {
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
-          Back to Subscription Types
+          Back to Golongan Langganan
         </button>
       <PageHeader
         title={isEditMode ? 'Edit Subscription Type' : 'Create Subscription Type'}

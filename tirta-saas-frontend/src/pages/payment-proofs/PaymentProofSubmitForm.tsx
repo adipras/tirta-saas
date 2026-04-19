@@ -7,7 +7,7 @@ import type { Invoice } from '../../types/invoice';
 const PaymentProofSubmitForm: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoices, setTagihan] = useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   
   const [formData, setFormData] = useState({
@@ -27,15 +27,15 @@ const PaymentProofSubmitForm: React.FC = () => {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    fetchUnpaidInvoices();
+    fetchUnpaidTagihan();
   }, []);
 
-  const fetchUnpaidInvoices = async () => {
+  const fetchUnpaidTagihan = async () => {
     try {
-      const response = await invoiceService.getInvoices(1, 100, {
+      const response = await invoiceService.getTagihan(1, 100, {
         status: 'unpaid',
       });
-      setInvoices(response.data || []);
+      setTagihan(response.data || []);
     } catch (err) {
       console.error('Failed to fetch invoices:', err);
     }

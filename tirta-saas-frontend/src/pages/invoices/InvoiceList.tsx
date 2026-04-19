@@ -21,7 +21,7 @@ export default function InvoiceList() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoices, setTagihan] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,15 +30,15 @@ export default function InvoiceList() {
 
   const hasActiveFilters = searchTerm !== '' || filterStatus !== '' || filterType !== '';
 
-  const fetchInvoices = useCallback(async () => {
+  const fetchTagihan = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await invoiceService.getInvoices(currentPage, 100, {
+      const response = await invoiceService.getTagihan(currentPage, 100, {
         search: searchTerm || undefined,
         status: filterStatus || undefined,
         type: filterType || undefined,
       });
-      setInvoices(response.data);
+      setTagihan(response.data);
     } catch {
       dispatch(addNotification({
         type: 'error',
@@ -50,8 +50,8 @@ export default function InvoiceList() {
   }, [currentPage, searchTerm, filterStatus, filterType, dispatch]);
 
   useEffect(() => {
-    fetchInvoices();
-  }, [fetchInvoices]);
+    fetchTagihan();
+  }, [fetchTagihan]);
 
   const handleClearFilters = () => {
     setSearchTerm('');
@@ -76,7 +76,7 @@ export default function InvoiceList() {
     if (format === 'csv') {
       exportToCSV(rows, `${baseName}.csv`);
     } else {
-      exportToExcel([{ sheetName: 'Invoices', data: rows }], `${baseName}.xlsx`);
+      exportToExcel([{ sheetName: 'Tagihan', data: rows }], `${baseName}.xlsx`);
     }
   };
 
@@ -165,7 +165,7 @@ export default function InvoiceList() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Invoices"
+        title="Tagihan"
         actions={
           <div className="flex items-center space-x-3">
             <button

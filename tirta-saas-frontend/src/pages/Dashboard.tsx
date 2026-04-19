@@ -8,7 +8,7 @@ import { PageHeader } from '../components';
 
 const stats = [
   {
-    name: 'Total Customers',
+    name: 'Total Pelanggan',
     stat: '1,245',
     icon: UserGroupIcon,
     change: '12%',
@@ -22,14 +22,14 @@ const stats = [
     changeType: 'increase',
   },
   {
-    name: 'Total Invoices',
+    name: 'Total Tagihan',
     stat: '892',
     icon: DocumentDuplicateIcon,
     change: '3%',
     changeType: 'increase',
   },
   {
-    name: 'Pending Payments',
+    name: 'Pending Pembayaran',
     stat: '23',
     icon: ExclamationTriangleIcon,
     change: '5%',
@@ -104,7 +104,7 @@ const Dashboard = () => {
               Record Payment
             </button>
             <button className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
-              View Reports
+              View Laporan
             </button>
           </div>
         </div>

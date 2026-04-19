@@ -21,7 +21,7 @@ export default function CustomerList() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setPelanggan] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -34,7 +34,7 @@ export default function CustomerList() {
     search: '',
   });
 
-  const fetchCustomers = useCallback(async () => {
+  const fetchPelanggan = useCallback(async () => {
     try {
       setLoading(true);
       const filterParams: CustomerFilters = {
@@ -45,8 +45,8 @@ export default function CustomerList() {
         search: filters.search || undefined,
       };
 
-      const response = await customerService.getCustomers(currentPage, 10, filterParams);
-      setCustomers(response.data);
+      const response = await customerService.getPelanggan(currentPage, 10, filterParams);
+      setPelanggan(response.data);
     } catch {
       dispatch(addNotification({
         type: 'error',
@@ -58,9 +58,9 @@ export default function CustomerList() {
   }, [currentPage, filters, dispatch]);
 
   useEffect(() => {
-    fetchCustomers();
+    fetchPelanggan();
     fetchSubscriptionTypes();
-  }, [currentPage, filters, fetchCustomers]);
+  }, [currentPage, filters, fetchPelanggan]);
 
   const fetchSubscriptionTypes = async () => {
     try {
@@ -84,7 +84,7 @@ export default function CustomerList() {
         message: `Customer ${isActive ? 'activated' : 'deactivated'} successfully`,
       }));
       
-      fetchCustomers();
+      fetchPelanggan();
     } catch {
       dispatch(addNotification({
         type: 'error',
@@ -102,7 +102,7 @@ export default function CustomerList() {
                                filters.hasOutstandingBalance === 'false' ? false : undefined,
         search: filters.search || undefined,
       };
-      const blob = await customerService.exportCustomers(exportFilters);
+      const blob = await customerService.exportPelanggan(exportFilters);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -114,7 +114,7 @@ export default function CustomerList() {
       
       dispatch(addNotification({
         type: 'success',
-        message: 'Customers exported successfully',
+        message: 'Pelanggan exported successfully',
       }));
     } catch {
       dispatch(addNotification({
@@ -228,7 +228,7 @@ export default function CustomerList() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Customers"
+        title="Pelanggan"
         actions={
           <div className="flex items-center space-x-3">
             <button

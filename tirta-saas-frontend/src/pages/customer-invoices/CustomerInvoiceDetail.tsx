@@ -96,7 +96,7 @@ export default function CustomerInvoiceDetail() {
           className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          Back to Invoices
+          Back to Tagihan
         </button>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-600">{error || 'Invoice not found'}</p>
@@ -114,7 +114,7 @@ export default function CustomerInvoiceDetail() {
           className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          Back to Invoices
+          Back to Tagihan
         </button>
         <div className="flex gap-3">
           <button

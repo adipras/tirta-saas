@@ -11,12 +11,12 @@ import type { LoginCredentials } from '../../services/authService';
 const schema = yup.object({
   email: yup
     .string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+    .email('Masukkan alamat email yang valid')
+    .required('Email wajib diisi'),
   password: yup
     .string()
-    .min(6, 'Password must be at least 6 characters')
-    .required('Password is required'),
+    .min(6, 'Password minimal 6 karakter')
+    .required('Password wajib diisi'),
 });
 
 const AdminLogin = () => {
@@ -121,10 +121,10 @@ const AdminLogin = () => {
             <span className="text-white font-bold text-xl">T</span>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Admin Sign In
+            Login Admin
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Access the Tirta SaaS admin panel
+            Masuk ke panel admin Tirta SaaS
           </p>
         </div>
         
@@ -144,14 +144,14 @@ const AdminLogin = () => {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
+                Alamat Email
               </label>
               <input
                 {...register('email')}
                 type="email"
                 autoComplete="email"
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Enter your email"
+                placeholder="Masukkan email Anda"
               />
               {errors.email && (
                 <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
@@ -160,7 +160,7 @@ const AdminLogin = () => {
             
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
+                Kata Sandi
               </label>
               <div className="mt-1 relative">
                 <input
@@ -168,7 +168,7 @@ const AdminLogin = () => {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   className="appearance-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Enter your password"
+                  placeholder="Masukkan kata sandi Anda"
                 />
                 <button
                   type="button"
@@ -197,13 +197,13 @@ const AdminLogin = () => {
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
+                Ingat saya
               </label>
             </div>
 
             <div className="text-sm">
               <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                Forgot your password?
+                Lupa password?
               </a>
             </div>
           </div>
@@ -214,15 +214,15 @@ const AdminLogin = () => {
               disabled={isLoading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? 'Sedang masuk...' : 'Masuk'}
             </button>
           </div>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Customer?{' '}
+              Pelanggan?{' '}
               <Link to="/customer/login" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign in here
+                Login di sini
               </Link>
             </p>
             <p className="mt-2 text-sm text-gray-600">

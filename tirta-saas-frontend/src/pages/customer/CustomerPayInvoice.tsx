@@ -37,7 +37,7 @@ const CustomerPayInvoice: React.FC = () => {
 
   const loadInvoice = async () => {
     try {
-      const invoices = await customerPortalService.getInvoices();
+      const invoices = await customerPortalService.getTagihan();
       const found = invoices.find((inv) => inv.id === invoiceId);
       if (found) {
         setInvoice(found);
@@ -130,7 +130,7 @@ const CustomerPayInvoice: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center h-screen">Memuat...</div>;
   }
 
   if (!invoice) {

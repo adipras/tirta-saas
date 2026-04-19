@@ -1,4 +1,4 @@
-export interface CustomerProfile {
+export interface CustomerProfil {
   id: string;
   customerId: string;
   name: string;
@@ -22,7 +22,7 @@ export interface CustomerProfile {
   updatedAt: string;
 }
 
-export interface UpdateProfileDto {
+export interface UpdateProfilDto {
   name: string;
   email: string;
   phone: string;

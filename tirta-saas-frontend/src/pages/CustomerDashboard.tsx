@@ -14,14 +14,14 @@ const stats = [
     bgColor: 'bg-green-500',
   },
   {
-    name: 'This Month Usage',
+    name: 'This Month Pemakaian',
     stat: '45.2 m³',
     icon: ChartBarIcon,
     color: 'text-blue-600',
     bgColor: 'bg-blue-500',
   },
   {
-    name: 'Pending Invoices',
+    name: 'Pending Tagihan',
     stat: '2',
     icon: DocumentDuplicateIcon,
     color: 'text-yellow-600',
@@ -62,7 +62,7 @@ const CustomerDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Invoices</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Tagihan</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between py-2 border-b border-gray-100">
               <div>
@@ -109,7 +109,7 @@ const CustomerDashboard = () => {
         </div>
 
         <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Usage Summary</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Pemakaian Summary</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">This Month</span>
@@ -125,7 +125,7 @@ const CustomerDashboard = () => {
             </div>
             <div className="mt-6 pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-900">Usage Trend</span>
+                <span className="text-sm font-medium text-gray-900">Pemakaian Trend</span>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                   -14% vs last month
                 </span>
@@ -147,7 +147,7 @@ const CustomerDashboard = () => {
             Pay Invoice
           </button>
           <button className="bg-green-600 text-white px-4 py-3 rounded-md hover:bg-green-700 transition-colors text-sm font-medium">
-            View Usage
+            View Pemakaian
           </button>
           <button className="bg-blue-600 text-white px-4 py-3 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium">
             Download Receipt

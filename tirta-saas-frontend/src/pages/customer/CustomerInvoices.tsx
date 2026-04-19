@@ -4,9 +4,9 @@ import { ArrowLeftIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import customerAuthService from '../../services/customerAuthService';
 import customerPortalService, { type CustomerInvoice } from '../../services/customerPortalService';
 
-const CustomerInvoices: React.FC = () => {
+const CustomerTagihan: React.FC = () => {
   const navigate = useNavigate();
-  const [invoices, setInvoices] = useState<CustomerInvoice[]>([]);
+  const [invoices, setTagihan] = useState<CustomerInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unpaid' | 'paid'>('all');
 
@@ -15,13 +15,13 @@ const CustomerInvoices: React.FC = () => {
       navigate('/customer/login');
       return;
     }
-    loadInvoices();
+    loadTagihan();
   }, [navigate]);
 
-  const loadInvoices = async () => {
+  const loadTagihan = async () => {
     try {
-      const data = await customerPortalService.getInvoices();
-      setInvoices(data);
+      const data = await customerPortalService.getTagihan();
+      setTagihan(data);
     } catch (error) {
       console.error('Error loading invoices:', error);
     } finally {
@@ -29,7 +29,7 @@ const CustomerInvoices: React.FC = () => {
     }
   };
 
-  const filteredInvoices = invoices.filter((inv) => {
+  const filteredTagihan = invoices.filter((inv) => {
     if (filter === 'unpaid') return !inv.is_paid;
     if (filter === 'paid') return inv.is_paid;
     return true;
@@ -63,7 +63,7 @@ const CustomerInvoices: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center h-screen">Memuat...</div>;
   }
 
   return (
@@ -113,15 +113,15 @@ const CustomerInvoices: React.FC = () => {
           </div>
         </div>
 
-        {/* Invoices List */}
-        {filteredInvoices.length === 0 ? (
+        {/* Tagihan List */}
+        {filteredTagihan.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <DocumentTextIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">Tidak ada tagihan</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredInvoices.map((invoice) => (
+            {filteredTagihan.map((invoice) => (
               <div key={invoice.id} className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -201,4 +201,4 @@ const CustomerInvoices: React.FC = () => {
   );
 };
 
-export default CustomerInvoices;
+export default CustomerTagihan;

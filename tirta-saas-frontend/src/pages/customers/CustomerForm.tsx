@@ -131,7 +131,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
             className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50"
           >
             <ArrowLeftIcon className="mr-2 h-4 w-4" />
-            Back to Customers
+            Back to Pelanggan
           </button>
         }
       />
@@ -179,7 +179,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   {/* Email */}
                   <div className="col-span-6 sm:col-span-3">
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                      Email Address *
+                      Alamat Email *
                     </label>
                     <input
                       {...register('email', { 

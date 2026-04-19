@@ -33,7 +33,7 @@ export default function SubscriptionTypeList() {
         10, 
         search || undefined
       );
-      console.log('Subscription Types Response:', response);
+      console.log('Golongan Langganan Response:', response);
       
       // Response is already formatted by service with {data, totalPages}
       if (response && response.data) {
@@ -176,7 +176,7 @@ export default function SubscriptionTypeList() {
 
   return (
     <div className="p-6">
-      <PageHeader title="Subscription Types" subtitle="Manage subscription types and their fee structures" />
+      <PageHeader title="Golongan Langganan" subtitle="Manage subscription types and their fee structures" />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">

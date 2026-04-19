@@ -81,7 +81,7 @@ export const Modal: React.FC<ModalProps> = ({
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
-                aria-label="Close modal"
+                aria-label="Tutup modal"
               >
                 <XMarkIcon className="h-6 w-6" />
               </button>
@@ -130,10 +130,10 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  title = 'Confirmation',
+  title = 'Konfirmasi',
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText = 'Konfirmasi',
+  cancelText = 'Batal',
   type = 'info',
   isLoading = false,
 }) => {
@@ -164,7 +164,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             disabled={isLoading}
             className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${styles.button}`}
           >
-            {isLoading ? 'Processing...' : confirmText}
+            {isLoading ? 'Memproses...' : confirmText}
           </button>
         </div>
       </div>

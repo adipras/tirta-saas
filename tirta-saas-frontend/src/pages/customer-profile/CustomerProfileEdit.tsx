@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { customerProfileService } from '../../services/customerProfileService';
-import type { CustomerProfile, UpdateProfileDto } from '../../types/customerProfile';
+import { customerProfilService } from '../../services/customerProfileService';
+import type { CustomerProfil, UpdateProfilDto } from '../../types/customerProfile';
 
-export default function CustomerProfileEdit() {
+export default function CustomerProfilEdit() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<CustomerProfile | null>(null);
+  const [profile, setProfil] = useState<CustomerProfil | null>(null);
   
-  const [formData, setFormData] = useState<UpdateProfileDto>({
+  const [formData, setFormData] = useState<UpdateProfilDto>({
     name: '',
     email: '',
     phone: '',
@@ -22,14 +22,14 @@ export default function CustomerProfileEdit() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    loadProfile();
+    loadProfil();
   }, []);
 
-  const loadProfile = async () => {
+  const loadProfil = async () => {
     try {
       setLoading(true);
-      const data = await customerProfileService.getProfile();
-      setProfile(data);
+      const data = await customerProfilService.getProfil();
+      setProfil(data);
       setFormData({
         name: data.name,
         email: data.email,
@@ -40,7 +40,7 @@ export default function CustomerProfileEdit() {
       });
       setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load profile');
+      setError(err.response?.data?.message || 'Gagal memuat profil');
     } finally {
       setLoading(false);
     }
@@ -50,31 +50,31 @@ export default function CustomerProfileEdit() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = 'Nama wajib diisi';
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = 'Email wajib diisi';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
+      newErrors.email = 'Format email tidak valid';
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
+      newErrors.phone = 'Nomor telepon wajib diisi';
     } else if (!/^[0-9+\-\s()]+$/.test(formData.phone)) {
-      newErrors.phone = 'Invalid phone number format';
+      newErrors.phone = 'Format nomor telepon tidak valid';
     }
 
     if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
+      newErrors.address = 'Alamat wajib diisi';
     }
 
     if (!formData.city.trim()) {
-      newErrors.city = 'City is required';
+      newErrors.city = 'Kota wajib diisi';
     }
 
     if (!formData.postalCode.trim()) {
-      newErrors.postalCode = 'Postal code is required';
+      newErrors.postalCode = 'Kode pos wajib diisi';
     }
 
     setErrors(newErrors);
@@ -103,10 +103,10 @@ export default function CustomerProfileEdit() {
 
     try {
       setSaving(true);
-      await customerProfileService.updateProfile(formData);
+      await customerProfilService.updateProfil(formData);
       navigate('/customer/profile');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to update profile');
+      setError(err.response?.data?.message || 'Gagal memperbarui profil');
     } finally {
       setSaving(false);
     }
@@ -136,8 +136,8 @@ export default function CustomerProfileEdit() {
     <div className="max-w-3xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
-        <p className="text-gray-600">Update your personal information</p>
+        <h1 className="text-2xl font-bold text-gray-900">Edit Profil</h1>
+          <p className="text-gray-600">Perbarui informasi pribadi Anda</p>
       </div>
 
       {/* Error Alert */}
@@ -150,14 +150,14 @@ export default function CustomerProfileEdit() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Informasi Pribadi</h2>
         </div>
 
         <div className="px-6 py-4 space-y-6">
           {/* Name */}
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name <span className="text-red-500">*</span>
+              Nama Lengkap <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -175,7 +175,7 @@ export default function CustomerProfileEdit() {
           {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address <span className="text-red-500">*</span>
+              Alamat Email <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
@@ -193,7 +193,7 @@ export default function CustomerProfileEdit() {
           {/* Phone */}
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number <span className="text-red-500">*</span>
+              Nomor Telepon <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
@@ -211,7 +211,7 @@ export default function CustomerProfileEdit() {
           {/* Address */}
           <div>
             <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-              Address <span className="text-red-500">*</span>
+              Alamat <span className="text-red-500">*</span>
             </label>
             <textarea
               id="address"
@@ -230,7 +230,7 @@ export default function CustomerProfileEdit() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-                City <span className="text-red-500">*</span>
+                Kota <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -247,7 +247,7 @@ export default function CustomerProfileEdit() {
 
             <div>
               <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-1">
-                Postal Code <span className="text-red-500">*</span>
+                Kode Pos <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -272,7 +272,7 @@ export default function CustomerProfileEdit() {
             disabled={saving}
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
           >
-            Cancel
+            Batal
           </button>
           <button
             type="submit"
@@ -282,10 +282,10 @@ export default function CustomerProfileEdit() {
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
+                Menyimpan...
               </>
             ) : (
-              'Save Changes'
+              'Simpan Perubahan'
             )}
           </button>
         </div>

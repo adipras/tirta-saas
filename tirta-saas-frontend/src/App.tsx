@@ -9,23 +9,23 @@ import CustomerLayout from './layouts/CustomerLayout';
 import RoleBasedDashboard from './pages/RoleBasedDashboard';
 import CustomerDashboard from './pages/CustomerDashboard';
 import AdminLogin from './pages/auth/AdminLogin';
-// Customer Portal - NEW
+// Portal Pelanggan - NEW
 import CustomerLoginNew from './pages/customer/CustomerLogin';
 import CustomerDashboardNew from './pages/customer/CustomerDashboard';
-import CustomerInvoicesNew from './pages/customer/CustomerInvoices';
-import CustomerPaymentsNew from './pages/customer/CustomerPayments';
-import CustomerUsageNew from './pages/customer/CustomerUsage';
-import CustomerProfileNew from './pages/customer/CustomerProfile';
+import CustomerTagihanNew from './pages/customer/CustomerInvoices';
+import CustomerPembayaranNew from './pages/customer/CustomerPayments';
+import CustomerPemakaianNew from './pages/customer/CustomerUsage';
+import CustomerProfilNew from './pages/customer/CustomerProfile';
 import CustomerPayInvoiceNew from './pages/customer/CustomerPayInvoice';
-// End Customer Portal
+// End Portal Pelanggan
 import CustomerList from './pages/customers/CustomerList';
 import CustomerDetails from './pages/customers/CustomerDetails';
 import CustomerForm from './pages/customers/CustomerForm';
-import BulkImportCustomers from './pages/customers/BulkImportCustomers';
-import UsageList from './pages/usage/UsageList';
+import BulkImportPelanggan from './pages/customers/BulkImportCustomers';
+import PemakaianList from './pages/usage/UsageList';
 import MeterReadingForm from './pages/usage/MeterReadingForm';
-import UsageHistory from './pages/usage/UsageHistory';
-import BulkImportWaterUsage from './pages/usage/BulkImportWaterUsage';
+import PemakaianHistory from './pages/usage/UsageHistory';
+import BulkImportWaterPemakaian from './pages/usage/BulkImportWaterUsage';
 import InvoiceList from './pages/invoices/InvoiceList';
 import InvoiceForm from './pages/invoices/InvoiceForm';
 import InvoiceDetails from './pages/invoices/InvoiceDetails';
@@ -39,17 +39,17 @@ import { PaymentList, PaymentForm, PaymentReceipt } from './pages/payments';
 import PaymentProofManagement from './pages/payment-proofs/PaymentProofManagement';
 import PaymentProofSubmitForm from './pages/payment-proofs/PaymentProofSubmitForm';
 import { 
-  ReportsDashboard, 
+  LaporanDashboard, 
   RevenueReport, 
   CustomerAnalytics,
   PaymentReport,
-  UsageReport,
+  PemakaianReport,
   OutstandingReport
 } from './pages/reports';
-import { CustomerProfile, CustomerProfileEdit, ChangePassword } from './pages/customer-profile';
+import { CustomerProfil, CustomerProfilEdit, ChangePassword } from './pages/customer-profile';
 import { CustomerInvoiceList, CustomerInvoiceDetail } from './pages/customer-invoices';
 import { CustomerPaymentForm, PaymentSuccess, CustomerPaymentInfo, CustomerPaymentConfirmation } from './pages/customer-payments';
-import { CustomerUsageMonitor } from './pages/customer-usage';
+import { CustomerPemakaianMonitor } from './pages/customer-usage';
 import { TenantManagement, PlatformAnalytics, SubscriptionPlans } from './pages/platform';
 import { TenantPaymentVerification } from './pages/tenant-payments';
 import { PlatformSubscriptionVerification } from './pages/platform-payments';
@@ -69,7 +69,7 @@ function App() {
   
   return (
     <Provider store={store}>
-      <PersistGate loading={<div>Loading...</div>} persistor={persistor}>
+      <PersistGate loading={<div>Memuat...</div>} persistor={persistor}>
         <ErrorBoundary>
           <ToastProvider>
             <Router>
@@ -100,14 +100,14 @@ function App() {
             {/* Auth Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
             
-            {/* Customer Portal Routes */}
+            {/* Portal Pelanggan Routes */}
             <Route path="/customer/login" element={<CustomerLoginNew />} />
             <Route path="/customer/dashboard" element={<CustomerDashboardNew />} />
-            <Route path="/customer/invoices" element={<CustomerInvoicesNew />} />
+            <Route path="/customer/invoices" element={<CustomerTagihanNew />} />
             <Route path="/customer/pay/:invoiceId" element={<CustomerPayInvoiceNew />} />
-            <Route path="/customer/payments" element={<CustomerPaymentsNew />} />
-            <Route path="/customer/usage" element={<CustomerUsageNew />} />
-            <Route path="/customer/profile" element={<CustomerProfileNew />} />
+            <Route path="/customer/payments" element={<CustomerPembayaranNew />} />
+            <Route path="/customer/usage" element={<CustomerPemakaianNew />} />
+            <Route path="/customer/profile" element={<CustomerProfilNew />} />
             
             {/* Test route - outside auth to verify routing works */}
             <Route path="/test-simple" element={
@@ -130,7 +130,7 @@ function App() {
               } />
               <Route path="test" element={<TestPage />} />
               <Route path="customers" element={<CustomerList />} />
-              <Route path="customers/bulk-import" element={<BulkImportCustomers />} />
+              <Route path="customers/bulk-import" element={<BulkImportPelanggan />} />
               <Route path="customers/new" element={<CustomerForm mode="create" />} />
               <Route path="customers/:id" element={<CustomerDetails />} />
               <Route path="customers/:id/edit" element={<CustomerForm mode="edit" />} />
@@ -154,20 +154,20 @@ function App() {
               {/* Payment Proof Routes */}
               <Route path="payment-proofs" element={<PaymentProofManagement />} />
               <Route path="payment-proofs/submit" element={<PaymentProofSubmitForm />} />
-              <Route path="reports" element={<ReportsDashboard />} />
+              <Route path="reports" element={<LaporanDashboard />} />
               <Route path="reports/revenue" element={<RevenueReport />} />
               <Route path="reports/customers" element={<CustomerAnalytics />} />
               <Route path="reports/payments" element={<PaymentReport />} />
-              <Route path="reports/usage" element={<UsageReport />} />
+              <Route path="reports/usage" element={<PemakaianReport />} />
               <Route path="reports/outstanding" element={<OutstandingReport />} />
               <Route path="settings" element={<TenantPaymentSettings />} />
-              <Route path="usage" element={<UsageList />} />
+              <Route path="usage" element={<PemakaianList />} />
               <Route path="usage/create" element={<MeterReadingForm />} />
-              <Route path="usage/bulk-import" element={<BulkImportWaterUsage />} />
+              <Route path="usage/bulk-import" element={<BulkImportWaterPemakaian />} />
               <Route path="usage/edit/:id" element={<MeterReadingForm />} />
-              <Route path="usage/:customerId/history" element={<UsageHistory />} />
+              <Route path="usage/:customerId/history" element={<PemakaianHistory />} />
               
-              {/* User Management */}
+              {/* Manajemen Pengguna */}
               <Route path="users" element={<UserManagementList />} />
               
               {/* Platform Owner Routes */}
@@ -177,7 +177,7 @@ function App() {
               <Route path="platform/subscription-payments" element={<PlatformSubscriptionVerification />} />
               <Route path="platform/settings" element={<PlatformPaymentSettings />} />
               
-              {/* Tenant Admin - Payment Verification */}
+              {/* Tenant Admin - Verifikasi Pembayaran */}
               <Route path="payment-verification" element={<TenantPaymentVerification />} />
               
               {/* Subscription Upgrade Routes */}
@@ -193,8 +193,8 @@ function App() {
             }>
               <Route index element={<CustomerDashboard />} />
               <Route path="dashboard" element={<CustomerDashboard />} />
-              <Route path="profile" element={<CustomerProfile />} />
-              <Route path="profile/edit" element={<CustomerProfileEdit />} />
+              <Route path="profile" element={<CustomerProfil />} />
+              <Route path="profile/edit" element={<CustomerProfilEdit />} />
               <Route path="profile/change-password" element={<ChangePassword />} />
               <Route path="invoices" element={<CustomerInvoiceList />} />
               <Route path="invoices/:id" element={<CustomerInvoiceDetail />} />
@@ -202,7 +202,7 @@ function App() {
               <Route path="payments/info" element={<CustomerPaymentInfo />} />
               <Route path="payments/confirm" element={<CustomerPaymentConfirmation />} />
               <Route path="payments/success" element={<PaymentSuccess />} />
-              <Route path="usage" element={<CustomerUsageMonitor />} />
+              <Route path="usage" element={<CustomerPemakaianMonitor />} />
             </Route>
 
             {/* Not Found Route */}

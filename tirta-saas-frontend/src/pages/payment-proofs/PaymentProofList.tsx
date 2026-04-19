@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { EyeIcon } from '@heroicons/react/24/outline';
 import paymentProofService from '../../services/paymentProofService';
 import type { PaymentProof } from '../../services/paymentProofService';
 
@@ -6,7 +7,7 @@ interface PaymentProofListProps {
   onViewDetails: (proof: PaymentProof) => void;
 }
 
-const PaymentProofList: React.FC<PaymentProofListProps> = ({ onViewDetails }) => {
+function PaymentProofList({ onViewDetails }: PaymentProofListProps) {
   const [paymentProofs, setPaymentProofs] = useState<PaymentProof[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -142,7 +143,7 @@ const PaymentProofList: React.FC<PaymentProofListProps> = ({ onViewDetails }) =>
               {loading ? (
                 <tr>
                   <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                    Loading...
+                    Memuat...
                   </td>
                 </tr>
               ) : filteredProofs.length === 0 ? (
@@ -177,12 +178,14 @@ const PaymentProofList: React.FC<PaymentProofListProps> = ({ onViewDetails }) =>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(proof.submitted_at).toLocaleDateString('id-ID')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => onViewDetails(proof)}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
+                        title="Lihat detail"
+                        aria-label="Lihat detail"
                       >
-                        View Details
+                        <EyeIcon className="h-5 w-5" />
                       </button>
                     </td>
                   </tr>
@@ -194,6 +197,6 @@ const PaymentProofList: React.FC<PaymentProofListProps> = ({ onViewDetails }) =>
       </div>
     </div>
   );
-};
+}
 
 export default PaymentProofList;

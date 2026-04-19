@@ -11,8 +11,8 @@ import type { Invoice } from '../../types/invoice';
 type InvoiceStatus = 'all' | 'paid' | 'unpaid' | 'overdue' | 'partial';
 
 export default function CustomerInvoiceList() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
+  const [invoices, setTagihan] = useState<Invoice[]>([]);
+  const [filteredTagihan, setFilteredTagihan] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,21 +20,21 @@ export default function CustomerInvoiceList() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    loadInvoices();
+    loadTagihan();
   }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    filterInvoices();
+    filterTagihan();
   }, [invoices, searchTerm, statusFilter]);
 
-  const loadInvoices = async () => {
+  const loadTagihan = async () => {
     try {
       setLoading(true);
       // In real scenario, this would call a customer-specific endpoint
       // For now, we'll use the same service
-      const data = await invoiceService.getCustomerInvoices();
-      setInvoices(data);
+      const data = await invoiceService.getCustomerTagihan();
+      setTagihan(data);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load invoices');
@@ -43,7 +43,7 @@ export default function CustomerInvoiceList() {
     }
   };
 
-  const filterInvoices = () => {
+  const filterTagihan = () => {
     let filtered = [...invoices];
 
     // Filter by status
@@ -60,7 +60,7 @@ export default function CustomerInvoiceList() {
       );
     }
 
-    setFilteredInvoices(filtered);
+    setFilteredTagihan(filtered);
   };
 
   const getStatusBadge = (status: string) => {
@@ -120,14 +120,14 @@ export default function CustomerInvoiceList() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">My Invoices</h1>
+        <h1 className="text-2xl font-bold text-gray-900">My Tagihan</h1>
         <p className="text-gray-600">View and manage your water bills</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-sm font-medium text-gray-600">Total Invoices</p>
+          <p className="text-sm font-medium text-gray-600">Total Tagihan</p>
           <p className="text-2xl font-bold text-gray-900 mt-2">{invoices.length}</p>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
@@ -200,7 +200,7 @@ export default function CustomerInvoiceList() {
 
         {/* Invoice List */}
         <div className="divide-y divide-gray-200">
-          {filteredInvoices.length === 0 ? (
+          {filteredTagihan.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No invoices found</h3>
@@ -211,7 +211,7 @@ export default function CustomerInvoiceList() {
               </p>
             </div>
           ) : (
-            filteredInvoices.map((invoice) => (
+            filteredTagihan.map((invoice) => (
               <div key={invoice.id} className="px-6 py-4 hover:bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">

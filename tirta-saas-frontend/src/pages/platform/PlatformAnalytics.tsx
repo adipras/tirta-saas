@@ -129,7 +129,7 @@ export default function PlatformAnalytics() {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader title="Platform Analytics" subtitle="Overview of platform performance and tenant statistics" />
+      <PageHeader title="Analitik Platform" subtitle="Overview of platform performance and tenant statistics" />
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -230,9 +230,9 @@ export default function PlatformAnalytics() {
         </div>
       </div>
 
-      {/* Usage Statistics */}
+      {/* Pemakaian Statistics */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Platform Usage</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Platform Pemakaian</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div>
             <p className="text-sm text-gray-600">Total Users</p>
@@ -241,7 +241,7 @@ export default function PlatformAnalytics() {
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Total Customers</p>
+            <p className="text-sm text-gray-600">Total Pelanggan</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">
               {formatNumber(overview.total_customers)}
             </p>

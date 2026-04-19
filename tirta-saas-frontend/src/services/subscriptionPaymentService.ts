@@ -38,11 +38,22 @@ class SubscriptionPaymentService {
 
   async getSubscriptionStatus(): Promise<SubscriptionStatus> {
     const response = await apiClient.get(`${this.BASE_URL}/status`);
-    // Normalize status to lowercase to match TypeScript interface
-    if (response && response.status) {
-      response.status = response.status.toLowerCase().replace(/_/g, '_');
-    }
-    return response;
+
+    return {
+      status: (response.status || '').toLowerCase() as SubscriptionStatus['status'],
+      subscriptionPlan: response.subscription_plan,
+      trialEndDate: response.trial_end_date,
+      subscriptionStart: response.subscription_start,
+      subscriptionEnd: response.subscription_end,
+      daysRemaining: response.days_remaining ?? 0,
+      pendingPayment: response.pending_payment
+        ? {
+            id: response.pending_payment.id,
+            status: response.pending_payment.status,
+            submittedAt: response.pending_payment.submitted_at,
+          }
+        : undefined,
+    };
   }
 
   async submitPayment(

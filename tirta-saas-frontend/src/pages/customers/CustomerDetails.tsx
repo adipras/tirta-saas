@@ -244,7 +244,7 @@ export default function CustomerDetails() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">
-                    Recent Invoices
+                    Recent Tagihan
                   </dt>
                   <dd>
                     <div className="text-lg font-medium text-gray-900">
@@ -308,7 +308,7 @@ export default function CustomerDetails() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">
-                    Water Usage
+                    Pemakaian Air
                   </dt>
                   <dd>
                     <div className="text-lg font-medium text-gray-900">

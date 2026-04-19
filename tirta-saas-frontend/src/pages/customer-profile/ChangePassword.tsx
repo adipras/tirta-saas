@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import { customerProfileService } from '../../services/customerProfileService';
+import { customerProfilService } from '../../services/customerProfileService';
 import type { ChangePasswordDto, PasswordValidation } from '../../types/customerProfile';
 
 export default function ChangePassword() {
@@ -70,28 +70,28 @@ export default function ChangePassword() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.currentPassword) {
-      newErrors.currentPassword = 'Current password is required';
+      newErrors.currentPassword = 'Kata sandi saat ini wajib diisi';
     }
 
     if (!formData.newPassword) {
-      newErrors.newPassword = 'New password is required';
+      newErrors.newPassword = 'Kata sandi baru wajib diisi';
     } else {
       const passwordValidation = validatePassword(formData.newPassword);
       const isValid = Object.values(passwordValidation).every(v => v);
       
       if (!isValid) {
-        newErrors.newPassword = 'Password does not meet the requirements';
+        newErrors.newPassword = 'Kata sandi belum memenuhi persyaratan';
       }
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your new password';
+      newErrors.confirmPassword = 'Konfirmasi kata sandi baru wajib diisi';
     } else if (formData.newPassword !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Konfirmasi kata sandi tidak cocok';
     }
 
     if (formData.currentPassword && formData.newPassword && formData.currentPassword === formData.newPassword) {
-      newErrors.newPassword = 'New password must be different from current password';
+      newErrors.newPassword = 'Kata sandi baru harus berbeda dari kata sandi saat ini';
     }
 
     setErrors(newErrors);
@@ -108,7 +108,7 @@ export default function ChangePassword() {
     try {
       setLoading(true);
       setError(null);
-      await customerProfileService.changePassword(formData);
+      await customerProfilService.changePassword(formData);
       setSuccess(true);
       
       // Redirect after 2 seconds
@@ -116,7 +116,7 @@ export default function ChangePassword() {
         navigate('/customer/profile');
       }, 2000);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to change password');
+      setError(err.response?.data?.message || 'Gagal mengubah kata sandi');
     } finally {
       setLoading(false);
     }
@@ -143,8 +143,8 @@ export default function ChangePassword() {
       <div className="max-w-2xl mx-auto">
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
           <CheckCircleIcon className="h-16 w-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-green-900 mb-2">Password Changed Successfully!</h2>
-          <p className="text-green-700">Redirecting you back to your profile...</p>
+          <h2 className="text-xl font-semibold text-green-900 mb-2">Kata sandi berhasil diubah!</h2>
+          <p className="text-green-700">Mengembalikan Anda ke halaman profil...</p>
         </div>
       </div>
     );
@@ -154,8 +154,8 @@ export default function ChangePassword() {
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Change Password</h1>
-        <p className="text-gray-600">Update your password to keep your account secure</p>
+          <h1 className="text-2xl font-bold text-gray-900">Ubah Kata Sandi</h1>
+          <p className="text-gray-600">Perbarui kata sandi untuk menjaga keamanan akun Anda</p>
       </div>
 
       {/* Error Alert */}
@@ -168,14 +168,14 @@ export default function ChangePassword() {
       {/* Form */}
       <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Password Information</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Informasi Kata Sandi</h2>
         </div>
 
         <div className="px-6 py-4 space-y-6">
           {/* Current Password */}
           <div>
             <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              Current Password <span className="text-red-500">*</span>
+              Kata Sandi Saat Ini <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -206,7 +206,7 @@ export default function ChangePassword() {
           {/* New Password */}
           <div>
             <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              New Password <span className="text-red-500">*</span>
+              Kata Sandi Baru <span className="text-red-500">*</span>
             </label>
             <div className="relative">
               <input
@@ -236,36 +236,36 @@ export default function ChangePassword() {
             {/* Password Requirements */}
             {formData.newPassword && (
               <div className="mt-3 space-y-2">
-                <p className="text-sm font-medium text-gray-700">Password must contain:</p>
+                <p className="text-sm font-medium text-gray-700">Kata sandi harus mengandung:</p>
                 <div className="space-y-1">
                   <div className="flex items-center">
                     {getValidationIcon(validation.minLength)}
                     <span className={`ml-2 text-sm ${getValidationColor(validation.minLength)}`}>
-                      At least 8 characters
+                      Minimal 8 karakter
                     </span>
                   </div>
                   <div className="flex items-center">
                     {getValidationIcon(validation.hasUpperCase)}
                     <span className={`ml-2 text-sm ${getValidationColor(validation.hasUpperCase)}`}>
-                      One uppercase letter
+                      Satu huruf kapital
                     </span>
                   </div>
                   <div className="flex items-center">
                     {getValidationIcon(validation.hasLowerCase)}
                     <span className={`ml-2 text-sm ${getValidationColor(validation.hasLowerCase)}`}>
-                      One lowercase letter
+                      Satu huruf kecil
                     </span>
                   </div>
                   <div className="flex items-center">
                     {getValidationIcon(validation.hasNumber)}
                     <span className={`ml-2 text-sm ${getValidationColor(validation.hasNumber)}`}>
-                      One number
+                      Satu angka
                     </span>
                   </div>
                   <div className="flex items-center">
                     {getValidationIcon(validation.hasSpecialChar)}
                     <span className={`ml-2 text-sm ${getValidationColor(validation.hasSpecialChar)}`}>
-                      One special character (!@#$%^&*...)
+                      Satu karakter spesial (!@#$%^&*...)
                     </span>
                   </div>
                 </div>
@@ -273,11 +273,11 @@ export default function ChangePassword() {
             )}
           </div>
 
-          {/* Confirm Password */}
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm New Password <span className="text-red-500">*</span>
-            </label>
+            {/* Confirm Password */}
+           <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Konfirmasi Kata Sandi Baru <span className="text-red-500">*</span>
+              </label>
             <div className="relative">
               <input
                 type={showPasswords.confirm ? 'text' : 'password'}
@@ -313,7 +313,7 @@ export default function ChangePassword() {
             disabled={loading}
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
           >
-            Cancel
+            Batal
           </button>
           <button
             type="submit"
@@ -323,10 +323,10 @@ export default function ChangePassword() {
             {loading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Changing Password...
+                Mengubah kata sandi...
               </>
             ) : (
-              'Change Password'
+              'Ubah Kata Sandi'
             )}
           </button>
         </div>

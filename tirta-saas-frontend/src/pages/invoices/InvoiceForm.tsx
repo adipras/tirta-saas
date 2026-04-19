@@ -28,7 +28,7 @@ export default function InvoiceForm() {
   const { id } = useParams<{ id: string }>();
   const mode = id ? 'edit' : 'create';
 
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setPelanggan] = useState<Customer[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -52,16 +52,16 @@ export default function InvoiceForm() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    fetchCustomers();
+    fetchPelanggan();
     if (mode === 'edit' && id) {
       fetchInvoice(id);
     }
   }, [id, mode]);
 
-  const fetchCustomers = async () => {
+  const fetchPelanggan = async () => {
     try {
-      const response = await customerService.getCustomers(1, 100); // Fetch up to 100 customers
-      setCustomers(response.data);
+      const response = await customerService.getPelanggan(1, 100); // Fetch up to 100 customers
+      setPelanggan(response.data);
     } catch {
       dispatch(addNotification({
         type: 'error',
@@ -145,7 +145,7 @@ export default function InvoiceForm() {
           className="flex items-center text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeftIcon className="mr-2 h-4 w-4" />
-          Back to Invoices
+          Back to Tagihan
         </button>
       </div>
 

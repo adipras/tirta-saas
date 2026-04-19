@@ -23,6 +23,11 @@ interface BankAccount {
   isPrimary: boolean;
 }
 
+interface BillingSettingsForm {
+  invoiceGenerationDay: string;
+  invoiceDueDay: string;
+}
+
 type QRCodeType = 'QRIS' | 'DANA' | 'GOPAY' | 'OVO' | 'SHOPEEPAY';
 
 function mapBank(b: any): BankAccount {
@@ -41,6 +46,11 @@ export default function TenantPaymentSettings() {
   const toast = useToast();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [qrCodes, setQRCodes] = useState<QRCode[]>([]);
+  const [billingForm, setBillingForm] = useState<BillingSettingsForm>({
+    invoiceGenerationDay: '5',
+    invoiceDueDay: '25',
+  });
+  const [billingSaving, setBillingSaving] = useState(false);
   const [showBankModal, setShowBankModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [editingBank, setEditingBank] = useState<BankAccount | null>(null);
@@ -77,10 +87,18 @@ export default function TenantPaymentSettings() {
 
   const loadSettings = async () => {
     try {
-      const [bankRes, qrRes] = await Promise.allSettled([
+      const [settingsRes, bankRes, qrRes] = await Promise.allSettled([
+        apiClient.get('/platform/settings'),
         apiClient.get('/payment-methods/bank-accounts'),
         qrCodeService.getQRCodes(),
       ]);
+      if (settingsRes.status === 'fulfilled') {
+        const settings = (settingsRes.value as any)?.data || {};
+        setBillingForm({
+          invoiceGenerationDay: String(settings.invoice_generation_day ?? 5),
+          invoiceDueDay: String(settings.invoice_due_day ?? 25),
+        });
+      }
       if (bankRes.status === 'fulfilled') {
         const list = (bankRes.value as any)?.data || [];
         setBankAccounts(list.map(mapBank));
@@ -90,6 +108,48 @@ export default function TenantPaymentSettings() {
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
+    }
+  };
+
+  const handleBillingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const invoiceGenerationDay = Number(billingForm.invoiceGenerationDay);
+    const invoiceDueDay = Number(billingForm.invoiceDueDay);
+
+    if (
+      !Number.isInteger(invoiceGenerationDay) ||
+      invoiceGenerationDay < 1 ||
+      invoiceGenerationDay > 31 ||
+      !Number.isInteger(invoiceDueDay) ||
+      invoiceDueDay < 1 ||
+      invoiceDueDay > 31
+    ) {
+      toast.error('Tanggal generate dan jatuh tempo harus berupa angka 1 sampai 31.');
+      return;
+    }
+
+    if (invoiceDueDay <= invoiceGenerationDay) {
+      toast.error('Tanggal jatuh tempo harus lebih besar dari tanggal generate tagihan.');
+      return;
+    }
+
+    setBillingSaving(true);
+    try {
+      await apiClient.put('/platform/settings', {
+        invoice_generation_day: invoiceGenerationDay,
+        invoice_due_day: invoiceDueDay,
+        invoice_due_days: Math.max(invoiceDueDay - invoiceGenerationDay, 1),
+        grace_period_days: 0,
+      });
+
+      toast.success('Siklus tagihan berhasil diperbarui.');
+      await loadSettings();
+    } catch (error) {
+      console.error('Failed to save billing settings:', error);
+      toast.error('Gagal menyimpan siklus tagihan.');
+    } finally {
+      setBillingSaving(false);
     }
   };
 
@@ -250,7 +310,85 @@ export default function TenantPaymentSettings() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Payment Settings" subtitle="Manage bank accounts and QR codes for customer payments" />
+      <PageHeader
+        title="Pengaturan Pembayaran"
+        subtitle="Kelola siklus tagihan, rekening bank, dan QR code untuk pembayaran pelanggan"
+      />
+
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <h2 className="text-lg font-semibold text-gray-900">Siklus Tagihan Bulanan</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Atur tanggal generate tagihan dan batas akhir pembayaran. Denda mulai berlaku
+            sehari setelah tanggal jatuh tempo.
+          </p>
+        </div>
+
+        <form onSubmit={handleBillingSubmit} className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tanggal generate tagihan
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={31}
+                value={billingForm.invoiceGenerationDay}
+                onChange={(e) =>
+                  setBillingForm((prev) => ({ ...prev, invoiceGenerationDay: e.target.value }))
+                }
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Tagihan bulanan dijadwalkan dibuat setiap tanggal ini.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tanggal jatuh tempo
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={31}
+                value={billingForm.invoiceDueDay}
+                onChange={(e) =>
+                  setBillingForm((prev) => ({ ...prev, invoiceDueDay: e.target.value }))
+                }
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Pelanggan harus melunasi tagihan paling lambat pada tanggal ini.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+            <p>
+              <span className="font-medium">Aturan aktif:</span> tagihan digenerate tanggal{' '}
+              <strong>{billingForm.invoiceGenerationDay}</strong>, pelanggan membayar paling lambat
+              tanggal <strong>{billingForm.invoiceDueDay}</strong>, dan denda mulai berlaku pada
+              hari berikutnya.
+            </p>
+            <p className="mt-2 text-blue-800">
+              Nilai denda per hari tetap diatur per golongan langganan pada menu{' '}
+              <strong>Golongan Langganan</strong>.
+            </p>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={billingSaving}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {billingSaving ? 'Menyimpan...' : 'Simpan Siklus Tagihan'}
+            </button>
+          </div>
+        </form>
+      </div>
 
       {/* Bank Accounts Section */}
       <div className="bg-white rounded-lg shadow">

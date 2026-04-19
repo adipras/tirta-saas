@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeftIcon, ChartBarIcon } from '@heroicons/react/24/outline';
 import customerAuthService from '../../services/customerAuthService';
-import customerPortalService, { type CustomerWaterUsage } from '../../services/customerPortalService';
+import customerPortalService, { type CustomerWaterPemakaian } from '../../services/customerPortalService';
 
-const CustomerUsage: React.FC = () => {
+const CustomerPemakaian: React.FC = () => {
   const navigate = useNavigate();
-  const [usageData, setUsageData] = useState<CustomerWaterUsage[]>([]);
+  const [usageData, setPemakaianData] = useState<CustomerWaterPemakaian[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,13 +14,13 @@ const CustomerUsage: React.FC = () => {
       navigate('/customer/login');
       return;
     }
-    loadUsage();
+    loadPemakaian();
   }, [navigate]);
 
-  const loadUsage = async () => {
+  const loadPemakaian = async () => {
     try {
-      const data = await customerPortalService.getWaterUsage();
-      setUsageData(data);
+      const data = await customerPortalService.getWaterPemakaian();
+      setPemakaianData(data);
     } catch (error) {
       console.error('Error loading usage:', error);
     } finally {
@@ -36,12 +36,12 @@ const CustomerUsage: React.FC = () => {
     });
   };
 
-  const totalUsage = usageData.reduce((sum, usage) => sum + usage.usage_amount, 0);
-  const averageUsage = usageData.length > 0 ? totalUsage / usageData.length : 0;
-  const latestUsage = usageData[0];
+  const totalPemakaian = usageData.reduce((sum, usage) => sum + usage.usage_amount, 0);
+  const averagePemakaian = usageData.length > 0 ? totalPemakaian / usageData.length : 0;
+  const latestPemakaian = usageData[0];
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center h-screen">Memuat...</div>;
   }
 
   return (
@@ -68,10 +68,10 @@ const CustomerUsage: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Pemakaian Bulan Ini</p>
                 <p className="text-3xl font-bold text-blue-600">
-                  {latestUsage ? latestUsage.usage_amount : 0} m³
+                  {latestPemakaian ? latestPemakaian.usage_amount : 0} m³
                 </p>
                 <p className="text-sm text-gray-500 mt-1">
-                  {latestUsage ? `${latestUsage.usage_month} ${latestUsage.usage_year}` : '-'}
+                  {latestPemakaian ? `${latestPemakaian.usage_month} ${latestPemakaian.usage_year}` : '-'}
                 </p>
               </div>
               <ChartBarIcon className="h-12 w-12 text-blue-600" />
@@ -83,7 +83,7 @@ const CustomerUsage: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Rata-rata Pemakaian</p>
                 <p className="text-3xl font-bold text-green-600">
-                  {averageUsage.toFixed(1)} m³
+                  {averagePemakaian.toFixed(1)} m³
                 </p>
                 <p className="text-sm text-gray-500 mt-1">Per bulan</p>
               </div>
@@ -96,7 +96,7 @@ const CustomerUsage: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-600">Total Pemakaian</p>
                 <p className="text-3xl font-bold text-indigo-600">
-                  {totalUsage.toFixed(0)} m³
+                  {totalPemakaian.toFixed(0)} m³
                 </p>
                 <p className="text-sm text-gray-500 mt-1">{usageData.length} bulan</p>
               </div>
@@ -105,7 +105,7 @@ const CustomerUsage: React.FC = () => {
           </div>
         </div>
 
-        {/* Usage History */}
+        {/* Pemakaian History */}
         {usageData.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <ChartBarIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -169,4 +169,4 @@ const CustomerUsage: React.FC = () => {
   );
 };
 
-export default CustomerUsage;
+export default CustomerPemakaian;

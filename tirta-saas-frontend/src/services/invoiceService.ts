@@ -13,8 +13,30 @@ export interface InvoiceFilters {
   search?: string;
 }
 
+const normalizeInvoiceStatus = (inv: any): Invoice['status'] => {
+  const totalAmount = Number(inv.total_amount || 0);
+  const totalPaid = Number(inv.total_paid || 0);
+  const rawStatus = typeof inv.payment_status === 'string'
+    ? inv.payment_status.toLowerCase()
+    : '';
+
+  if (inv.is_paid === true || (totalAmount > 0 && totalPaid >= totalAmount)) {
+    return 'paid';
+  }
+
+  if (rawStatus === 'paid' || rawStatus === 'unpaid' || rawStatus === 'overdue' || rawStatus === 'partial') {
+    return rawStatus;
+  }
+
+  if (totalPaid > 0 && totalPaid < totalAmount) {
+    return 'partial';
+  }
+
+  return 'unpaid';
+};
+
 class InvoiceService {
-  async getInvoices(
+  async getTagihan(
     page: number = 1,
     limit: number = 10,
     filters?: InvoiceFilters
@@ -40,7 +62,7 @@ class InvoiceService {
     const invoicesArray = responseData.invoices || responseData.data || [];
     
     // Map backend fields to frontend format
-    const mappedInvoices = invoicesArray.map((inv: any) => ({
+    const mappedTagihan = invoicesArray.map((inv: any) => ({
       id: inv.id,
       invoiceNumber: inv.invoice_number || `INV-${inv.id?.substring(0, 8)}`,
       customerId: inv.customer_id,
@@ -53,7 +75,7 @@ class InvoiceService {
       totalAmount: inv.total_amount || 0,
       amountPaid: inv.total_paid || 0,
       amountDue: (inv.total_amount || 0) - (inv.total_paid || 0),
-      status: (inv.payment_status as Invoice['status']) || (inv.is_paid ? 'paid' : 'unpaid'),
+      status: normalizeInvoiceStatus(inv),
       issueDate: inv.created_at || '',
       dueDate: inv.due_date || '',
       createdAt: inv.created_at || '',
@@ -61,12 +83,12 @@ class InvoiceService {
     }));
     
     return {
-      data: mappedInvoices,
+      data: mappedTagihan,
       pagination: responseData.pagination || {
-        total: responseData.total || mappedInvoices.length,
+        total: responseData.total || mappedTagihan.length,
         page: page,
         limit: limit,
-        totalPages: Math.ceil((responseData.total || mappedInvoices.length) / limit),
+        totalPages: Math.ceil((responseData.total || mappedTagihan.length) / limit),
         currentPage: page,
       }
     };
@@ -90,7 +112,7 @@ class InvoiceService {
       totalAmount: inv.total_amount || 0,
       amountPaid: inv.total_paid || 0,
       amountDue: (inv.total_amount || 0) - (inv.total_paid || 0),
-      status: (inv.payment_status as Invoice['status']) || (inv.is_paid ? 'paid' : 'unpaid'),
+      status: normalizeInvoiceStatus(inv),
       issueDate: inv.created_at || '',
       dueDate: inv.due_date || '',
       createdAt: inv.created_at || '',
@@ -117,7 +139,7 @@ class InvoiceService {
     await apiClient.delete(API_ENDPOINTS.INVOICES.DELETE(id));
   }
 
-  async generateInvoices(customerIds: string[], issueDate: string): Promise<{ count: number }> {
+  async generateTagihan(customerIds: string[], issueDate: string): Promise<{ count: number }> {
     const response = await apiClient.post<any>(API_ENDPOINTS.INVOICES.GENERATE, {
       customerIds,
       issueDate,
@@ -126,7 +148,7 @@ class InvoiceService {
   }
 
   // Customer-specific methods
-  async getCustomerInvoices(): Promise<Invoice[]> {
+  async getCustomerTagihan(): Promise<Invoice[]> {
     const response = await apiClient.get<any>('/customer/invoices');
     const data = response.data || response;
     return Array.isArray(data) ? data : [];

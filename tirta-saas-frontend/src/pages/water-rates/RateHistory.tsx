@@ -146,7 +146,7 @@ export default function RateHistory() {
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
-          Back to Water Rates
+          Back to Tarif Air
         </button>
         <PageHeader title="Rate History" subtitle="View historical water rate changes over time" />
       </div>
@@ -166,7 +166,7 @@ export default function RateHistory() {
               }}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             >
-              <option value="">All Subscription Types</option>
+              <option value="">All Golongan Langganan</option>
               {subscriptionTypes.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.name}

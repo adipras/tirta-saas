@@ -4,7 +4,7 @@ import type {
   RevenueReport,
   PaymentReport,
   CustomerAnalytics,
-  UsageReport,
+  PemakaianReport,
   ReportFilters,
   ExportOptions,
 } from '../types/report';
@@ -34,7 +34,7 @@ class ReportService {
     return response.data || response;
   }
 
-  async getUsageReport(filters?: ReportFilters): Promise<UsageReport> {
+  async getPemakaianReport(filters?: ReportFilters): Promise<PemakaianReport> {
     const response = await apiClient.get<any>(
       API_ENDPOINTS.REPORTS.USAGE,
       { params: filters }

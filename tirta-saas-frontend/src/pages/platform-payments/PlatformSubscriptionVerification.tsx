@@ -15,8 +15,8 @@ import { useToast, PageHeader } from '../../components';
 export default function PlatformSubscriptionVerification() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
-  const [payments, setPayments] = useState<SubscriptionPayment[]>([]);
-  const [filteredPayments, setFilteredPayments] = useState<SubscriptionPayment[]>([]);
+  const [payments, setPembayaran] = useState<SubscriptionPayment[]>([]);
+  const [filteredPembayaran, setFilteredPembayaran] = useState<SubscriptionPayment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPayment | null>(null);
@@ -26,9 +26,13 @@ export default function PlatformSubscriptionVerification() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>('');
+  const [proofPreviewUrl, setProofPreviewUrl] = useState('');
+  const [proofContentType, setProofContentType] = useState('');
+  const [isProofLoading, setIsProofLoading] = useState(false);
+  const [proofError, setProofError] = useState('');
 
   useEffect(() => {
-    loadPayments();
+    loadPembayaran();
   }, [filterStatus]);
 
   useEffect(() => {
@@ -38,20 +42,65 @@ export default function PlatformSubscriptionVerification() {
           p.tenant?.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.tenant?.villageCode.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredPayments(filtered);
+      setFilteredPembayaran(filtered);
     } else {
-      setFilteredPayments(payments);
+      setFilteredPembayaran(payments);
     }
   }, [searchTerm, payments]);
 
-  const loadPayments = async () => {
+  useEffect(() => {
+    if (!showModal || !selectedPayment?.proofUrl) {
+      return;
+    }
+
+    let active = true;
+    let objectUrl = '';
+
+    const loadProofPreview = async () => {
+      try {
+        setIsProofLoading(true);
+        setProofError('');
+        setProofPreviewUrl('');
+        setProofContentType('');
+
+        const blob = await platformSubscriptionService.getPaymentProofBlob(selectedPayment.proofUrl);
+        if (!active) {
+          return;
+        }
+
+        objectUrl = URL.createObjectURL(blob);
+        setProofPreviewUrl(objectUrl);
+        setProofContentType(blob.type || '');
+      } catch (err: any) {
+        if (!active) {
+          return;
+        }
+        setProofError(err.message || 'Gagal memuat bukti pembayaran.');
+      } finally {
+        if (active) {
+          setIsProofLoading(false);
+        }
+      }
+    };
+
+    void loadProofPreview();
+
+    return () => {
+      active = false;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [showModal, selectedPayment?.id, selectedPayment?.proofUrl]);
+
+  const loadPembayaran = async () => {
     try {
       setLoading(true);
       setError('');
       const statusFilter = filterStatus === 'all' ? undefined : filterStatus;
-      const data = await platformSubscriptionService.getSubscriptionPayments(statusFilter);
-      setPayments(data);
-      setFilteredPayments(data);
+      const data = await platformSubscriptionService.getSubscriptionPembayaran(statusFilter);
+      setPembayaran(data);
+      setFilteredPembayaran(data);
     } catch (err: any) {
       console.error('Failed to load payments:', err);
       setError(err.response?.data?.error || 'Failed to load subscription payments');
@@ -73,6 +122,9 @@ export default function PlatformSubscriptionVerification() {
     setSelectedPayment(null);
     setNotes('');
     setRejectionReason('');
+    setProofPreviewUrl('');
+    setProofContentType('');
+    setProofError('');
   };
 
   const handleAction = async () => {
@@ -86,17 +138,17 @@ export default function PlatformSubscriptionVerification() {
     setIsSubmitting(true);
     setError('');
     
-    try {
-      if (modalAction === 'verify') {
-        await platformSubscriptionService.verifyPayment(selectedPayment.id, { notes });
-        toast.success('Pembayaran diverifikasi. Tenant telah diaktifkan.');
-      } else if (modalAction === 'reject') {
+      try {
+        if (modalAction === 'verify') {
+          await platformSubscriptionService.verifyPayment(selectedPayment.id, { notes });
+          toast.success('Pembayaran diverifikasi. Tenant sekarang siap diaktifkan dari tab Pending.');
+        } else if (modalAction === 'reject') {
         await platformSubscriptionService.rejectPayment(selectedPayment.id, { reason: rejectionReason });
         toast.success('Pembayaran ditolak. Tenant telah diberitahu.');
       }
 
       // Reload payments to get updated data
-      await loadPayments();
+      await loadPembayaran();
       closeModal();
     } catch (err: any) {
       console.error('Action failed:', err);
@@ -142,9 +194,11 @@ export default function PlatformSubscriptionVerification() {
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>{plan}</span>;
   };
 
+  const isPdfProof = proofContentType.includes('pdf') || selectedPayment?.proofUrl.toLowerCase().endsWith('.pdf');
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Subscription Payment Verification" subtitle="Verify tenant subscription payment confirmations" />
+      <PageHeader title="Subscription Verifikasi Pembayaran" subtitle="Verify tenant subscription payment confirmations" />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
@@ -209,13 +263,13 @@ export default function PlatformSubscriptionVerification() {
         </div>
       )}
 
-      {/* Payments List */}
+      {/* Pembayaran List */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           </div>
-        ) : filteredPayments.length === 0 ? (
+        ) : filteredPembayaran.length === 0 ? (
           <div className="p-8 text-center">
             <BuildingOfficeIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
             <p className="text-gray-600">No subscription payments found</p>
@@ -234,7 +288,7 @@ export default function PlatformSubscriptionVerification() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPayments.map((payment) => (
+              {filteredPembayaran.map((payment) => (
                 <tr key={payment.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div>
@@ -249,33 +303,40 @@ export default function PlatformSubscriptionVerification() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">{formatDate(payment.paymentDate)}</td>
                   <td className="px-6 py-4">{getStatusBadge(payment.status)}</td>
-                  <td className="px-6 py-4 text-right text-sm space-x-2">
-                    <button
-                      onClick={() => openModal(payment, 'view')}
-                      className="text-blue-600 hover:text-blue-900 inline-flex items-center"
-                    >
-                      <EyeIcon className="h-4 w-4 mr-1" />
-                      View
-                    </button>
-                    {payment.status === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => openModal(payment, 'verify')}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          Verify
-                        </button>
-                        <button
-                          onClick={() => openModal(payment, 'reject')}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-end gap-2">
+                     <button
+                       onClick={() => openModal(payment, 'view')}
+                       className="inline-flex items-center justify-center rounded-md p-2 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
+                       title="Lihat detail"
+                       aria-label="Lihat detail"
+                     >
+                       <EyeIcon className="h-4 w-4" />
+                     </button>
+                     {payment.status === 'pending' && (
+                       <>
+                         <button
+                           onClick={() => openModal(payment, 'verify')}
+                           className="inline-flex items-center justify-center rounded-md p-2 text-green-600 hover:bg-green-50 hover:text-green-900"
+                           title="Verifikasi pembayaran"
+                           aria-label="Verifikasi pembayaran"
+                         >
+                           <CheckCircleIcon className="h-4 w-4" />
+                         </button>
+                         <button
+                           onClick={() => openModal(payment, 'reject')}
+                           className="inline-flex items-center justify-center rounded-md p-2 text-red-600 hover:bg-red-50 hover:text-red-900"
+                           title="Tolak pembayaran"
+                           aria-label="Tolak pembayaran"
+                         >
+                           <XCircleIcon className="h-4 w-4" />
+                         </button>
+                       </>
+                     )}
+                    </div>
+                   </td>
+                 </tr>
+               ))}
             </tbody>
           </table>
         )}
@@ -366,12 +427,24 @@ export default function PlatformSubscriptionVerification() {
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Payment Proof</p>
                   <div className="border rounded-lg p-4 bg-gray-50 flex items-center justify-center">
-                    {selectedPayment.proofUrl.endsWith('.pdf') ? (
+                    {isProofLoading ? (
+                      <div className="py-10 text-center">
+                        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
+                      </div>
+                    ) : proofError ? (
+                      <div className="text-center text-sm text-red-600">
+                        {proofError}
+                      </div>
+                    ) : !proofPreviewUrl ? (
+                      <div className="text-center text-sm text-gray-500">
+                        Preview bukti pembayaran tidak tersedia.
+                      </div>
+                    ) : isPdfProof ? (
                       <div className="text-center">
                         <DocumentIcon className="h-16 w-16 text-gray-400 mx-auto mb-2" />
                         <p className="text-sm text-gray-600 mb-2">PDF Document</p>
                         <a
-                          href={selectedPayment.proofUrl}
+                          href={proofPreviewUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-800 text-sm font-medium"
@@ -381,12 +454,9 @@ export default function PlatformSubscriptionVerification() {
                       </div>
                     ) : (
                       <img
-                        src={selectedPayment.proofUrl}
+                        src={proofPreviewUrl}
                         alt="Payment proof"
                         className="max-h-96 mx-auto rounded"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/400x300?text=Image+Not+Available';
-                        }}
                       />
                     )}
                   </div>
@@ -434,7 +504,7 @@ export default function PlatformSubscriptionVerification() {
                         : 'bg-red-600 hover:bg-red-700'
                     }`}
                   >
-                    {isSubmitting ? 'Processing...' : modalAction === 'verify' ? 'Verify & Activate' : 'Reject Payment'}
+                    {isSubmitting ? 'Processing...' : modalAction === 'verify' ? 'Verify' : 'Reject Payment'}
                   </button>
                 )}
               </div>

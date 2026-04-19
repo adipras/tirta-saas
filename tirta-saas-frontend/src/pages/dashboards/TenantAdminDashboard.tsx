@@ -12,13 +12,13 @@ import { reportService } from '../../services/reportService';
 import { PageHeader } from '../../components';
 
 interface DashboardData {
-  totalCustomers: number;
-  activeCustomers: number;
+  totalPelanggan: number;
+  activePelanggan: number;
   unpaidCount: number;
   totalOutstanding: number;
-  totalUsageM3: number;
+  totalPemakaianM3: number;
   totalRevenue: number;
-  oldestInvoices: Array<{ invoice_id: string; customer_id: string; total_amount: number; outstanding: number; created_at: string }>;
+  oldestTagihan: Array<{ invoice_id: string; customer_id: string; total_amount: number; outstanding: number; created_at: string }>;
 }
 
 export default function TenantAdminDashboard() {
@@ -31,7 +31,7 @@ export default function TenantAdminDashboard() {
     Promise.allSettled([
       reportService.getCustomerAnalytics(),
       reportService.getOutstandingReport(),
-      reportService.getUsageReport({ month: thisMonth } as any),
+      reportService.getPemakaianReport({ month: thisMonth } as any),
       reportService.getRevenueReport(),
     ]).then(([custRes, outRes, usageRes, revRes]) => {
       const cust = custRes.status === 'fulfilled' ? custRes.value as any : {};
@@ -40,13 +40,13 @@ export default function TenantAdminDashboard() {
       const rev = revRes.status === 'fulfilled' ? revRes.value as any : {};
 
       setData({
-        totalCustomers: cust.total_customers || 0,
-        activeCustomers: cust.active_customers || 0,
+        totalPelanggan: cust.total_customers || 0,
+        activePelanggan: cust.active_customers || 0,
         unpaidCount: out.unpaid_count || 0,
         totalOutstanding: out.total_outstanding || 0,
-        totalUsageM3: usage.total_usage_m3 || 0,
+        totalPemakaianM3: usage.total_usage_m3 || 0,
         totalRevenue: rev.total_revenue || 0,
-        oldestInvoices: out.oldest_invoices || [],
+        oldestTagihan: out.oldest_invoices || [],
       });
     }).finally(() => setLoading(false));
   }, []);
@@ -64,9 +64,9 @@ export default function TenantAdminDashboard() {
             <div>
               <p className="text-sm text-gray-600">Total Pelanggan</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {loading ? '...' : data?.totalCustomers ?? 0}
+                {loading ? '...' : data?.totalPelanggan ?? 0}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Aktif: {loading ? '-' : data?.activeCustomers ?? 0}</p>
+              <p className="text-xs text-gray-500 mt-1">Aktif: {loading ? '-' : data?.activePelanggan ?? 0}</p>
             </div>
             <div className="bg-blue-500 p-3 rounded-lg"><UserGroupIcon className="h-6 w-6 text-white" /></div>
           </div>
@@ -90,7 +90,7 @@ export default function TenantAdminDashboard() {
             <div>
               <p className="text-sm text-gray-600">Pemakaian Air Bulan Ini</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {loading ? '...' : `${(data?.totalUsageM3 ?? 0).toLocaleString('id-ID')} m³`}
+                {loading ? '...' : `${(data?.totalPemakaianM3 ?? 0).toLocaleString('id-ID')} m³`}
               </p>
             </div>
             <div className="bg-cyan-500 p-3 rounded-lg"><ChartBarIcon className="h-6 w-6 text-white" /></div>
@@ -145,7 +145,7 @@ export default function TenantAdminDashboard() {
         </div>
       </div>
 
-      {/* Outstanding Invoices */}
+      {/* Outstanding Tagihan */}
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Tagihan Belum Dibayar (Terlama)</h2>
@@ -158,11 +158,11 @@ export default function TenantAdminDashboard() {
         </div>
         {loading ? (
           <p className="text-sm text-gray-400">Memuat data...</p>
-        ) : data?.oldestInvoices.length === 0 ? (
+        ) : data?.oldestTagihan.length === 0 ? (
           <p className="text-sm text-gray-500">Tidak ada tagihan outstanding.</p>
         ) : (
           <div className="space-y-3">
-            {data?.oldestInvoices.map((inv) => (
+            {data?.oldestTagihan.map((inv) => (
               <div key={inv.invoice_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="text-xs text-gray-400 font-mono">{inv.invoice_id.slice(0, 8)}...</p>

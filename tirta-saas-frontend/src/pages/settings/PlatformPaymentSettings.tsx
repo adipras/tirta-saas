@@ -256,7 +256,7 @@ export default function PlatformPaymentSettings() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Platform Payment Settings" subtitle="Manage bank accounts and QR codes for tenant subscription payments" />
+      <PageHeader title="Platform Pengaturan Pembayaran" subtitle="Manage bank accounts and QR codes for tenant subscription payments" />
 
       {/* Info Banner */}
       <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">

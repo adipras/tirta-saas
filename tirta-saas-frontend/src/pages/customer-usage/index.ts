@@ -1,1 +1,1 @@
-export { default as CustomerUsageMonitor } from './CustomerUsageMonitor';
+export { default as CustomerPemakaianMonitor } from './CustomerUsageMonitor';

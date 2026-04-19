@@ -31,7 +31,7 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within ToastProvider');
+    throw new Error('useToast harus digunakan di dalam ToastProvider');
   }
   return context;
 };
@@ -169,7 +169,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
       <button
         onClick={handleClose}
         className={`flex-shrink-0 ${config.textColor} hover:opacity-70 transition-opacity`}
-        aria-label="Close notification"
+        aria-label="Tutup notifikasi"
       >
         <XMarkIcon className="h-5 w-5" />
       </button>

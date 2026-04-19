@@ -163,7 +163,7 @@ export default function SubscriptionPlans() {
   return (
     <div className="p-6">
       <PageHeader
-        title="Subscription Plans"
+        title="Paket Langganan"
         subtitle="Manage platform subscription plans and pricing"
         actions={
           <button
@@ -224,7 +224,7 @@ export default function SubscriptionPlans() {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Max Customers</span>
+                <span className="text-gray-600">Max Pelanggan</span>
                 <span className="font-medium text-gray-900">
                   {formatNumber(plan.max_customers)}
                 </span>
@@ -392,7 +392,7 @@ export default function SubscriptionPlans() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Max Customers *
+                      Max Pelanggan *
                     </label>
                     <input
                       type="number"

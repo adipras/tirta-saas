@@ -19,10 +19,10 @@ const PaymentForm: React.FC = () => {
   const toast = useToast();
 
   const [loading, setLoading] = useState(false);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setPelanggan] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
-  const [outstandingInvoices, setOutstandingInvoices] = useState<OutstandingInvoice[]>([]);
-  const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
+  const [outstandingTagihan, setOutstandingTagihan] = useState<OutstandingInvoice[]>([]);
+  const [selectedTagihan, setSelectedTagihan] = useState<Set<string>>(new Set());
   
   const [formData, setFormData] = useState<PaymentFormData>({
     invoiceId: '',
@@ -36,57 +36,57 @@ const PaymentForm: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetchCustomers();
+    fetchPelanggan();
   }, []);
 
   useEffect(() => {
     if (selectedCustomerId) {
-      fetchOutstandingInvoices(selectedCustomerId);
+      fetchOutstandingTagihan(selectedCustomerId);
     } else {
-      setOutstandingInvoices([]);
-      setSelectedInvoices(new Set());
+      setOutstandingTagihan([]);
+      setSelectedTagihan(new Set());
     }
   }, [selectedCustomerId]);
 
-  const fetchCustomers = async () => {
+  const fetchPelanggan = async () => {
     try {
-      const response = await customerService.getCustomers(1, 1000);
+      const response = await customerService.getPelanggan(1, 1000);
       // Allow payment for all customers (including inactive)
       // Because registration fee payment is required to activate customer
-      setCustomers(response.data);
+      setPelanggan(response.data);
     } catch (error) {
       console.error('Failed to fetch customers:', error);
     }
   };
 
-  const fetchOutstandingInvoices = async (customerId: string) => {
+  const fetchOutstandingTagihan = async (customerId: string) => {
     try {
-      const invoices = await paymentService.getOutstandingInvoices(customerId);
-      setOutstandingInvoices(invoices);
+      const invoices = await paymentService.getOutstandingTagihan(customerId);
+      setOutstandingTagihan(invoices);
     } catch (error) {
       console.error('Failed to fetch outstanding invoices:', error);
-      setOutstandingInvoices([]);
+      setOutstandingTagihan([]);
     }
   };
 
   const handleCustomerChange = (customerId: string) => {
     setSelectedCustomerId(customerId);
-    setSelectedInvoices(new Set());
+    setSelectedTagihan(new Set());
   };
 
   const toggleInvoiceSelection = (invoiceId: string) => {
-    const newSelected = new Set(selectedInvoices);
+    const newSelected = new Set(selectedTagihan);
     if (newSelected.has(invoiceId)) {
       newSelected.delete(invoiceId);
     } else {
       newSelected.add(invoiceId);
     }
-    setSelectedInvoices(newSelected);
+    setSelectedTagihan(newSelected);
   };
 
   const calculateTotalAmount = () => {
-    return outstandingInvoices
-      .filter(inv => selectedInvoices.has(inv.id))
+    return outstandingTagihan
+      .filter(inv => selectedTagihan.has(inv.id))
       .reduce((sum, inv) => sum + inv.remainingAmount, 0);
   };
 
@@ -108,19 +108,19 @@ const PaymentForm: React.FC = () => {
     const newErrors: Record<string, string> = {};
 
     if (!selectedCustomerId) {
-      newErrors.customerId = 'Please select a customer';
+      newErrors.customerId = 'Pilih pelanggan terlebih dahulu';
     }
 
-    if (selectedInvoices.size === 0) {
-      newErrors.invoices = 'Please select at least one invoice';
+    if (selectedTagihan.size === 0) {
+      newErrors.invoices = 'Pilih minimal satu tagihan';
     }
 
     if (!formData.paymentDate) {
-      newErrors.paymentDate = 'Payment date is required';
+      newErrors.paymentDate = 'Tanggal pembayaran wajib diisi';
     }
 
     if (!formData.paymentMethod) {
-      newErrors.paymentMethod = 'Payment method is required';
+      newErrors.paymentMethod = 'Metode pembayaran wajib dipilih';
     }
 
     setErrors(newErrors);
@@ -138,8 +138,8 @@ const PaymentForm: React.FC = () => {
       setLoading(true);
       
       // Process each selected invoice
-      for (const invoiceId of Array.from(selectedInvoices)) {
-        const invoice = outstandingInvoices.find(inv => inv.id === invoiceId);
+      for (const invoiceId of Array.from(selectedTagihan)) {
+        const invoice = outstandingTagihan.find(inv => inv.id === invoiceId);
         if (invoice) {
           const paymentData: PaymentFormData = {
             invoiceId: invoice.id,
@@ -169,15 +169,15 @@ const PaymentForm: React.FC = () => {
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="mr-2 h-4 w-4" />
-          Back to Payments
+          Kembali ke Pembayaran
         </button>
-      <PageHeader title="Record Payment" subtitle="Select customer and invoices to record payment" />
+      <PageHeader title="Catat Pembayaran" subtitle="Pilih pelanggan dan tagihan yang akan dibayar" />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Selection */}
         <div className="bg-white rounded-lg shadow p-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Customer <span className="text-red-500">*</span>
+            Pelanggan <span className="text-red-500">*</span>
           </label>
           <CustomerSearchSelect
             customers={customers}
@@ -190,16 +190,16 @@ const PaymentForm: React.FC = () => {
           )}
         </div>
 
-        {/* Outstanding Invoices Cards */}
-        {selectedCustomerId && outstandingInvoices.length > 0 && (
+        {/* Outstanding Tagihan Cards */}
+        {selectedCustomerId && outstandingTagihan.length > 0 && (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-gray-900">
-                Outstanding Invoices
-              </h2>
-              <span className="text-sm text-gray-500">
-                Select invoices to pay
-              </span>
+                <h2 className="text-lg font-medium text-gray-900">
+                  Tagihan Belum Lunas
+                </h2>
+                <span className="text-sm text-gray-500">
+                  Pilih tagihan yang ingin dibayar
+                </span>
             </div>
             
             {errors.invoices && (
@@ -207,8 +207,8 @@ const PaymentForm: React.FC = () => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {outstandingInvoices.map((invoice) => {
-                const isSelected = selectedInvoices.has(invoice.id);
+              {outstandingTagihan.map((invoice) => {
+                const isSelected = selectedTagihan.has(invoice.id);
                 return (
                   <div
                     key={invoice.id}
@@ -232,14 +232,14 @@ const PaymentForm: React.FC = () => {
                             {invoice.invoiceNumber || `INV-${invoice.id}`}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {invoice.usageMonth || 'Registration Fee'}
+                            {invoice.usageMonth || 'Biaya Registrasi'}
                           </p>
                         </div>
                       </div>
                       
                       <div className="border-t border-gray-200 pt-2 space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Total Amount:</span>
+                          <span className="text-gray-600">Total Tagihan:</span>
                           <span className="font-medium text-gray-900">
                             {new Intl.NumberFormat('id-ID', {
                               style: 'currency',
@@ -249,7 +249,7 @@ const PaymentForm: React.FC = () => {
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Paid:</span>
+                          <span className="text-gray-600">Sudah Dibayar:</span>
                           <span className="font-medium text-green-600">
                             {new Intl.NumberFormat('id-ID', {
                               style: 'currency',
@@ -259,7 +259,7 @@ const PaymentForm: React.FC = () => {
                           </span>
                         </div>
                         <div className="flex justify-between text-sm border-t pt-1">
-                          <span className="font-medium text-gray-700">Remaining:</span>
+                          <span className="font-medium text-gray-700">Sisa:</span>
                           <span className="font-bold text-red-600">
                             {new Intl.NumberFormat('id-ID', {
                               style: 'currency',
@@ -271,13 +271,13 @@ const PaymentForm: React.FC = () => {
                       </div>
                       
                       <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
-                        <span>Due: {new Date(invoice.dueDate).toLocaleDateString('id-ID')}</span>
+                         <span>Jatuh Tempo: {new Date(invoice.dueDate).toLocaleDateString('id-ID')}</span>
                         <span className={`px-2 py-0.5 rounded-full ${
                           invoice.status === 'overdue' 
                             ? 'bg-red-100 text-red-700'
                             : 'bg-yellow-100 text-yellow-700'
                         }`}>
-                          {invoice.status === 'overdue' ? 'Overdue' : 'Pending'}
+                          {invoice.status === 'overdue' ? 'Terlambat' : 'Menunggu'}
                         </span>
                       </div>
                     </div>
@@ -287,11 +287,11 @@ const PaymentForm: React.FC = () => {
             </div>
 
             {/* Payment Summary */}
-            {selectedInvoices.size > 0 && (
+            {selectedTagihan.size > 0 && (
               <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Payment for {selectedInvoices.size} invoice(s)</p>
+                     <p className="text-sm text-gray-600">Total pembayaran untuk {selectedTagihan.size} tagihan</p>
                     <p className="text-2xl font-bold text-blue-900 mt-1">
                       {new Intl.NumberFormat('id-ID', {
                         style: 'currency',
@@ -306,27 +306,27 @@ const PaymentForm: React.FC = () => {
           </div>
         )}
 
-        {selectedCustomerId && outstandingInvoices.length === 0 && (
+        {selectedCustomerId && outstandingTagihan.length === 0 && (
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-center py-8">
               <p className="text-gray-500">
-                No outstanding invoices found for this customer.
+                Tidak ada tagihan aktif untuk pelanggan ini.
               </p>
             </div>
           </div>
         )}
 
         {/* Payment Details */}
-        {selectedInvoices.size > 0 && (
+        {selectedTagihan.size > 0 && (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Payment Details
+              Detail Pembayaran
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Date <span className="text-red-500">*</span>
+                  Tanggal Pembayaran <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -344,7 +344,7 @@ const PaymentForm: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Method <span className="text-red-500">*</span>
+                  Metode Pembayaran <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="paymentMethod"
@@ -367,28 +367,28 @@ const PaymentForm: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reference Number
+                  Nomor Referensi
                 </label>
                 <input
                   type="text"
                   name="referenceNumber"
                   value={formData.referenceNumber}
                   onChange={handleInputChange}
-                  placeholder="e.g., Transfer receipt number"
+                  placeholder="Contoh: nomor bukti transfer"
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes
+                  Catatan
                 </label>
                 <textarea
                   name="notes"
                   value={formData.notes}
                   onChange={handleInputChange}
                   rows={3}
-                  placeholder="Additional notes..."
+                  placeholder="Tambahkan catatan jika diperlukan..."
                   className="w-full border border-gray-300 rounded-md px-3 py-2"
                 />
               </div>
@@ -397,7 +397,7 @@ const PaymentForm: React.FC = () => {
         )}
 
         {/* Action Buttons */}
-        {selectedInvoices.size > 0 && (
+        {selectedTagihan.size > 0 && (
           <div className="flex items-center justify-end space-x-3">
             <button
               type="button"
@@ -405,14 +405,14 @@ const PaymentForm: React.FC = () => {
               className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               disabled={loading}
             >
-              Cancel
+              Batal
             </button>
             <button
               type="submit"
               className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
               disabled={loading}
             >
-              {loading ? 'Processing...' : `Record Payment (${selectedInvoices.size} invoice${selectedInvoices.size > 1 ? 's' : ''})`}
+              {loading ? 'Menyimpan...' : `Catat Pembayaran (${selectedTagihan.size} tagihan)`}
             </button>
           </div>
         )}

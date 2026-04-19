@@ -53,7 +53,7 @@ const CustomerLogin = () => {
             <span className="text-white font-bold text-xl">T</span>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Customer Portal
+            Portal Pelanggan
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Access your Tirta SaaS account
@@ -71,7 +71,7 @@ const CustomerLogin = () => {
             <div className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address
+                  Alamat Email
                 </label>
                 <input
                   {...register('email')}
@@ -124,7 +124,7 @@ const CustomerLogin = () => {
                   className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Remember me
+                  Ingat saya
                 </label>
               </div>
 
@@ -141,7 +141,7 @@ const CustomerLogin = () => {
                 disabled={isLoading}
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Signing in...' : 'Sign in'}
+                {isLoading ? 'Sedang masuk...' : 'Masuk'}
               </button>
             </div>
 
@@ -160,7 +160,7 @@ const CustomerLogin = () => {
           <p className="text-sm text-gray-600">
             Administrator?{' '}
             <Link to="/admin/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-              Sign in here
+              Login di sini
             </Link>
           </p>
         </div>

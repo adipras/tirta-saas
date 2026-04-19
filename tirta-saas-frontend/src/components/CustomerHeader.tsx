@@ -21,11 +21,11 @@ const CustomerHeader = ({ onMenuClick }: CustomerHeaderProps) => {
           <button
             onClick={onMenuClick}
             className="md:hidden p-1 mr-2 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-            aria-label="Open sidebar"
+            aria-label="Buka sidebar"
           >
             <Bars3Icon className="h-6 w-6" />
           </button>
-          <h2 className="text-lg font-semibold text-gray-900">Customer Portal</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Portal Pelanggan</h2>
         </div>
         <div className="flex items-center space-x-4">
           <button className="p-1 rounded-full text-gray-400 hover:text-gray-500">
@@ -34,23 +34,23 @@ const CustomerHeader = ({ onMenuClick }: CustomerHeaderProps) => {
           <div className="relative group">
             <div className="flex items-center space-x-3 cursor-pointer">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{user?.name || 'Customer'}</p>
+                <p className="text-sm font-medium text-gray-900">{user?.name || 'Pelanggan'}</p>
                 <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
               </div>
               <UserCircleIcon className="h-8 w-8 text-gray-400" />
             </div>
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
               <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                Your Profile
+                Profil Anda
               </a>
               <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                Settings
+                Pengaturan
               </a>
               <button
                 onClick={handleLogout}
                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
-                Sign out
+                Keluar
               </button>
             </div>
           </div>

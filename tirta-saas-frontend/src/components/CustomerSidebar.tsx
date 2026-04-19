@@ -11,10 +11,10 @@ import {
 
 const navigation = [
   { name: 'Dashboard', href: '/customer/dashboard', icon: HomeIcon },
-  { name: 'Profile', href: '/customer/profile', icon: UserIcon },
-  { name: 'Invoices', href: '/customer/invoices', icon: DocumentDuplicateIcon },
-  { name: 'Payments', href: '/customer/payments', icon: CreditCardIcon },
-  { name: 'Usage', href: '/customer/usage', icon: ChartBarIcon },
+  { name: 'Profil', href: '/customer/profile', icon: UserIcon },
+  { name: 'Tagihan', href: '/customer/invoices', icon: DocumentDuplicateIcon },
+  { name: 'Pembayaran', href: '/customer/payments', icon: CreditCardIcon },
+  { name: 'Pemakaian', href: '/customer/usage', icon: ChartBarIcon },
 ];
 
 interface CustomerSidebarProps {

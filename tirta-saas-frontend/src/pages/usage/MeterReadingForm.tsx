@@ -3,9 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
+import { waterRateService } from '../../services/waterRateService';
 import { CustomerSearchSelect } from '../../components';
-import type { WaterUsageFormData } from '../../types/usage';
+import type { WaterPemakaianFormData } from '../../types/usage';
 import type { Customer } from '../../types/customer';
+import type { WaterRate } from '../../types/waterRate';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader } from '../../components';
@@ -17,23 +19,26 @@ export default function MeterReadingForm() {
   const isEditMode = !!id;
 
   const [loading, setLoading] = useState(false);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setPelanggan] = useState<Customer[]>([]);
   const [previousReading, setPreviousReading] = useState<number | null>(null);
-  const [calculatedUsage, setCalculatedUsage] = useState<number>(0);
+  const [calculatedPemakaian, setCalculatedPemakaian] = useState<number>(0);
+  const [activeRate, setActiveRate] = useState<WaterRate | null>(null);
+  const [isCheckingRate, setIsCheckingRate] = useState(false);
+  const [rateWarning, setRateWarning] = useState<string>('');
   
-  const [formData, setFormData] = useState<WaterUsageFormData>({
+  const [formData, setFormData] = useState<WaterPemakaianFormData>({
     customerId: '',
     usageMonth: new Date().toISOString().slice(0, 7),
     meterEnd: '',
     notes: '',
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof WaterUsageFormData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof WaterPemakaianFormData, string>>>({});
 
   useEffect(() => {
-    fetchCustomers();
+    fetchPelanggan();
     if (isEditMode && id) {
-      fetchWaterUsage(id);
+      fetchWaterPemakaian(id);
     }
   }, [id, isEditMode]);
 
@@ -44,30 +49,66 @@ export default function MeterReadingForm() {
   }, [formData.customerId, formData.usageMonth, isEditMode]);
 
   useEffect(() => {
+    if (!formData.customerId) {
+      setActiveRate(null);
+      setRateWarning('');
+      return;
+    }
+
+    const selectedCustomer = customers.find((customer) => customer.id === formData.customerId);
+    if (!selectedCustomer?.subscription_id) {
+      setActiveRate(null);
+      setRateWarning('Tipe langganan pelanggan belum tersedia.');
+      return;
+    }
+
+    void fetchActiveRate(selectedCustomer.subscription_id);
+  }, [formData.customerId, customers]);
+
+  useEffect(() => {
     if (previousReading !== null && formData.meterEnd) {
       const meterEnd = parseFloat(formData.meterEnd);
       if (!isNaN(meterEnd)) {
-        setCalculatedUsage(Math.max(0, meterEnd - previousReading));
+        setCalculatedPemakaian(Math.max(0, meterEnd - previousReading));
       }
     }
   }, [previousReading, formData.meterEnd]);
 
-  const fetchCustomers = async () => {
+  const fetchPelanggan = async () => {
     try {
-      const response = await customerService.getCustomers(1, 1000, { isActive: true });
-      setCustomers(response.data);
+      const response = await customerService.getPelanggan(1, 1000, { isActive: true });
+      setPelanggan(response.data);
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
-        message: 'Failed to fetch customers',
+        message: 'Gagal memuat data pelanggan',
       }));
       console.error('Error fetching customers:', error);
     }
   };
 
+  const fetchActiveRate = async (subscriptionId: string) => {
+    try {
+      setIsCheckingRate(true);
+      const rate = await waterRateService.getCurrentRate(subscriptionId);
+      setActiveRate(rate);
+      setRateWarning(
+        rate
+          ? ''
+          : 'Belum ada tarif air aktif untuk tipe langganan pelanggan ini. Tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air.'
+      );
+    } catch (error) {
+      setActiveRate(null);
+      setRateWarning('Gagal memeriksa tarif air aktif untuk pelanggan ini.');
+      console.error('Error fetching active water rate:', error);
+    } finally {
+      setIsCheckingRate(false);
+    }
+  };
+
   const fetchPreviousReading = async (customerId: string) => {
     try {
-      const history = await usageService.getCustomerUsageHistoryById(customerId);
+      const history = await usageService.getCustomerPemakaianHistoryById(customerId);
       if (history.length > 0) {
         // Backend returns DESC order, so index 0 is the most recent reading
         const lastReading = history[0];
@@ -81,10 +122,10 @@ export default function MeterReadingForm() {
     }
   };
 
-  const fetchWaterUsage = async (usageId: string) => {
+  const fetchWaterPemakaian = async (usageId: string) => {
     try {
       setLoading(true);
-      const data = await usageService.getWaterUsage(usageId);
+      const data = await usageService.getWaterPemakaian(usageId);
       setFormData({
         customerId: data.customerId,
         usageMonth: data.usageMonth,
@@ -95,7 +136,7 @@ export default function MeterReadingForm() {
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
-        message: 'Failed to fetch water usage',
+        message: 'Gagal memuat data pemakaian air',
       }));
       console.error('Error fetching water usage:', error);
     } finally {
@@ -104,21 +145,21 @@ export default function MeterReadingForm() {
   };
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof WaterUsageFormData, string>> = {};
+    const newErrors: Partial<Record<keyof WaterPemakaianFormData, string>> = {};
 
     if (!formData.customerId) {
-      newErrors.customerId = 'Customer is required';
+      newErrors.customerId = 'Pelanggan wajib dipilih';
     }
 
     if (!formData.usageMonth) {
-      newErrors.usageMonth = 'Usage month is required';
+      newErrors.usageMonth = 'Bulan pemakaian wajib diisi';
     }
 
     const meterEnd = parseFloat(formData.meterEnd);
     if (isNaN(meterEnd) || meterEnd < 0) {
-      newErrors.meterEnd = 'Current meter reading must be a non-negative number';
+      newErrors.meterEnd = 'Meter akhir harus berupa angka dan tidak boleh negatif';
     } else if (previousReading !== null && meterEnd < previousReading) {
-      newErrors.meterEnd = `Current reading cannot be less than previous reading (${previousReading.toFixed(2)})`;
+      newErrors.meterEnd = `Meter akhir tidak boleh lebih kecil dari meter sebelumnya (${previousReading.toFixed(2)})`;
     }
 
     setErrors(newErrors);
@@ -130,7 +171,7 @@ export default function MeterReadingForm() {
   ) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name as keyof WaterUsageFormData]) {
+    if (errors[name as keyof WaterPemakaianFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
@@ -139,6 +180,14 @@ export default function MeterReadingForm() {
     e.preventDefault();
 
     if (!validateForm()) {
+      return;
+    }
+
+    if (!isEditMode && !activeRate) {
+      dispatch(addNotification({
+        type: 'error',
+        message: rateWarning || 'Tarif air aktif belum tersedia untuk pelanggan ini',
+      }));
       return;
     }
 
@@ -153,19 +202,19 @@ export default function MeterReadingForm() {
       };
 
       if (isEditMode && id) {
-        await usageService.updateWaterUsage(id, {
+        await usageService.updateWaterPemakaian(id, {
           meterEnd: payload.meterEnd,
           notes: payload.notes,
         });
         dispatch(addNotification({
           type: 'success',
-          message: 'Meter reading updated successfully',
+          message: 'Pembacaan meter berhasil diperbarui',
         }));
       } else {
-        await usageService.createWaterUsage(payload);
+        await usageService.createWaterPemakaian(payload);
         dispatch(addNotification({
           type: 'success',
-          message: 'Meter reading recorded successfully',
+          message: 'Pembacaan meter berhasil dicatat',
         }));
       }
 
@@ -173,7 +222,7 @@ export default function MeterReadingForm() {
     } catch (error: any) {
       dispatch(addNotification({
         type: 'error',
-        message: error?.response?.data?.error || `Failed to ${isEditMode ? 'update' : 'record'} meter reading`,
+        message: error?.response?.data?.error || `Gagal ${isEditMode ? 'memperbarui' : 'mencatat'} pembacaan meter`,
       }));
       console.error('Error submitting form:', error);
     } finally {
@@ -188,18 +237,18 @@ export default function MeterReadingForm() {
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
-          Back to Water Usage
+          Kembali ke Pemakaian Air
         </button>
       <PageHeader
-        title={isEditMode ? 'Edit Meter Reading' : 'Record Meter Reading'}
-        subtitle={isEditMode ? 'Update the meter reading and usage will be recalculated' : 'Enter current meter reading to calculate water usage'}
+        title={isEditMode ? 'Ubah Pembacaan Meter' : 'Catat Pembacaan Meter'}
+        subtitle={isEditMode ? 'Perbarui pembacaan meter dan pemakaian akan dihitung ulang' : 'Masukkan meter akhir untuk menghitung pemakaian air'}
       />
 
       <div className="bg-white shadow rounded-lg">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Customer Selection */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Pelanggan</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <CustomerSearchSelect
@@ -207,18 +256,18 @@ export default function MeterReadingForm() {
                   value={formData.customerId}
                   onChange={(customerId) => {
                     setFormData({ ...formData, customerId });
-                    setErrors({ ...errors, customerId: '' });
+                   setErrors({ ...errors, customerId: '' });
                   }}
                   disabled={isEditMode}
                   error={errors.customerId}
-                  label="Customer"
+                  label="Pelanggan"
                   required
                 />
               </div>
 
               <div>
                 <label htmlFor="usageMonth" className="block text-sm font-medium text-gray-700">
-                  Usage Month <span className="text-red-500">*</span>
+                  Bulan Pemakaian <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="month"
@@ -238,15 +287,53 @@ export default function MeterReadingForm() {
                 )}
               </div>
             </div>
+
+            {formData.customerId && (
+              <div className={`mt-4 rounded-lg border p-4 ${
+                activeRate
+                  ? 'border-green-200 bg-green-50'
+                  : 'border-yellow-200 bg-yellow-50'
+              }`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {isCheckingRate ? 'Memeriksa tarif air aktif...' : 'Status Tarif Air'}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      Tipe langganan: {customers.find((customer) => customer.id === formData.customerId)?.subscription?.name || '-'}
+                    </p>
+                    {activeRate ? (
+                      <p className="mt-1 text-sm text-green-700">
+                        Tarif aktif tersedia: Rp {activeRate.amount.toLocaleString('id-ID')} / m3
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-sm text-yellow-800">
+                        {rateWarning || 'Tarif air aktif belum tersedia untuk pelanggan ini.'}
+                      </p>
+                    )}
+                  </div>
+
+                  {!activeRate && !isCheckingRate && !isEditMode && (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/admin/water-rates')}
+                      className="shrink-0 rounded-md border border-yellow-300 px-3 py-2 text-sm font-medium text-yellow-800 hover:bg-yellow-100"
+                    >
+                      Buka Konfigurasi Tarif Air
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Meter Reading */}
           <div className="pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Meter Reading</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Pembacaan Meter</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Previous Reading
+                  Meter Sebelumnya
                 </label>
                 <input
                   type="text"
@@ -255,13 +342,13 @@ export default function MeterReadingForm() {
                   className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm"
                 />
                 <p className="mt-1 text-sm text-gray-500">
-                  From last month's reading
+                  Diambil dari catatan bulan sebelumnya
                 </p>
               </div>
 
               <div>
                 <label htmlFor="meterEnd" className="block text-sm font-medium text-gray-700">
-                  Current Reading <span className="text-red-500">*</span>
+                  Meter Akhir <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -275,9 +362,9 @@ export default function MeterReadingForm() {
                     errors.meterEnd
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                  placeholder="0.00"
-                />
+                   }`}
+                   placeholder="Contoh: 1250.50"
+                 />
                 {errors.meterEnd && (
                   <p className="mt-1 text-sm text-red-600">{errors.meterEnd}</p>
                 )}
@@ -285,38 +372,38 @@ export default function MeterReadingForm() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Calculated Usage
+                  Pemakaian Terkalkulasi
                 </label>
                 <input
                   type="text"
-                  value={`${calculatedUsage.toFixed(2)} m³`}
+                  value={`${calculatedPemakaian.toFixed(2)} m³`}
                   disabled
                   className="mt-1 block w-full rounded-md border-gray-300 bg-blue-50 shadow-sm sm:text-sm font-medium text-blue-900"
                 />
                 <p className="mt-1 text-sm text-gray-500">
-                  Automatic calculation
+                  Dihitung otomatis dari meter sebelumnya dan meter akhir
                 </p>
               </div>
 
               <div className="md:col-span-3">
                 <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                  Notes
+                  Catatan
                 </label>
                 <textarea
                   id="notes"
                   name="notes"
-                  rows={3}
-                  value={formData.notes}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Optional notes about this reading"
-                />
+                   rows={3}
+                   value={formData.notes}
+                   onChange={handleChange}
+                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                   placeholder="Catatan tambahan tentang pembacaan ini (opsional)"
+                 />
               </div>
             </div>
           </div>
 
           {/* Important Notice */}
-          {calculatedUsage > 100 && (
+          {calculatedPemakaian > 100 && (
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
@@ -334,12 +421,12 @@ export default function MeterReadingForm() {
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm text-yellow-700">
-                    <strong>High Usage Alert:</strong> The calculated usage ({calculatedUsage.toFixed(2)} m³) 
-                    is unusually high. Please verify the meter reading is correct.
-                  </p>
-                </div>
-              </div>
+                   <p className="text-sm text-yellow-700">
+                     <strong>Peringatan Pemakaian Tinggi:</strong> Pemakaian terhitung ({calculatedPemakaian.toFixed(2)} m³)
+                     {' '}terlihat cukup tinggi. Pastikan angka meter yang dimasukkan sudah benar.
+                   </p>
+                 </div>
+               </div>
             </div>
           )}
 
@@ -350,14 +437,14 @@ export default function MeterReadingForm() {
               onClick={() => navigate('/admin/usage')}
               className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              Cancel
+              Batal
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (!isEditMode && !activeRate) || isCheckingRate}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Saving...' : isEditMode ? 'Update Reading' : 'Record Reading'}
+              {loading ? 'Menyimpan...' : isEditMode ? 'Perbarui Pembacaan' : 'Catat Pembacaan'}
             </button>
           </div>
         </form>

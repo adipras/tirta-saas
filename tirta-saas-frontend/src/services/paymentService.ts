@@ -19,7 +19,7 @@ export interface PaymentFilters {
 }
 
 class PaymentService {
-  async getPayments(
+  async getPembayaran(
     page: number = 1,
     limit: number = 10,
     filters?: PaymentFilters
@@ -49,7 +49,7 @@ class PaymentService {
       customerName: p.invoice?.customer?.name || '-',
       invoiceNumber: p.invoice?.invoice_number || '',
       amount: p.amount || 0,
-      paymentMethod: p.payment_method?.name || p.payment_method_type || 'cash',
+      paymentMethod: p.payment_method?.type || p.payment_method_type || 'cash',
       paymentDate: p.paid_at || p.created_at || '',
       referenceNumber: p.reference_number || '',
       notes: p.notes || '',
@@ -70,14 +70,14 @@ class PaymentService {
     };
   }
 
-  async getPaymentById(id: number): Promise<Payment> {
+  async getPaymentById(id: string): Promise<Payment> {
     const response = await apiClient.get<any>(
       API_ENDPOINTS.PAYMENTS.GET.replace(':id', String(id))
     );
     return response.data || response;
   }
 
-  async getPaymentsByInvoice(invoiceId: number): Promise<Payment[]> {
+  async getPembayaranByInvoice(invoiceId: number): Promise<Payment[]> {
     const response = await apiClient.get<any>(
       API_ENDPOINTS.PAYMENTS.BY_INVOICE.replace(':invoiceId', String(invoiceId))
     );
@@ -85,7 +85,7 @@ class PaymentService {
     return Array.isArray(data) ? data : [];
   }
 
-  async getOutstandingInvoices(customerId?: string): Promise<OutstandingInvoice[]> {
+  async getOutstandingTagihan(customerId?: string): Promise<OutstandingInvoice[]> {
     const params = customerId ? { customer_id: customerId } : {};
     const response = await apiClient.get<any>(
       API_ENDPOINTS.PAYMENTS.OUTSTANDING_INVOICES,
@@ -122,7 +122,7 @@ class PaymentService {
     return response.data || response;
   }
 
-  async updatePayment(id: number, data: Partial<PaymentFormData>): Promise<Payment> {
+  async updatePayment(id: string, data: Partial<PaymentFormData>): Promise<Payment> {
     const response = await apiClient.put<any>(
       API_ENDPOINTS.PAYMENTS.UPDATE.replace(':id', String(id)),
       data
@@ -130,13 +130,13 @@ class PaymentService {
     return response.data || response;
   }
 
-  async deletePayment(id: number): Promise<void> {
+  async deletePayment(id: string): Promise<void> {
     await apiClient.delete(
       API_ENDPOINTS.PAYMENTS.DELETE.replace(':id', String(id))
     );
   }
 
-  async voidPayment(id: number, reason?: string): Promise<Payment> {
+  async voidPayment(id: string, reason?: string): Promise<Payment> {
     const response = await apiClient.post<any>(
       API_ENDPOINTS.PAYMENTS.VOID.replace(':id', String(id)),
       { reason }
@@ -144,21 +144,21 @@ class PaymentService {
     return response.data || response;
   }
 
-  async generateReceipt(paymentId: number): Promise<PaymentReceipt> {
+  async generateReceipt(paymentId: string): Promise<PaymentReceipt> {
     const response = await apiClient.post<any>(
       API_ENDPOINTS.PAYMENTS.GENERATE_RECEIPT.replace(':id', String(paymentId))
     );
     return response.data || response;
   }
 
-  async getReceipt(paymentId: number): Promise<PaymentReceipt> {
+  async getReceipt(paymentId: string): Promise<PaymentReceipt> {
     const response = await apiClient.get<any>(
       API_ENDPOINTS.PAYMENTS.GET_RECEIPT.replace(':id', String(paymentId))
     );
     return response.data || response;
   }
 
-  async exportPayments(filters?: PaymentFilters): Promise<Blob> {
+  async exportPembayaran(filters?: PaymentFilters): Promise<Blob> {
     const response = await apiClient.get(API_ENDPOINTS.PAYMENTS.EXPORT, {
       params: filters,
       responseType: 'blob',
@@ -178,7 +178,7 @@ class PaymentService {
     return response.data || response;
   }
 
-  async getCustomerPayments(): Promise<Payment[]> {
+  async getCustomerPembayaran(): Promise<Payment[]> {
     const response = await apiClient.get<any>('/customer/payments');
     const data = response.data || response;
     return Array.isArray(data) ? data : [];

@@ -21,7 +21,7 @@ export interface PaginatedResponse<T> {
 }
 
 class CustomerService {
-  async getCustomers(
+  async getPelanggan(
     page: number = 1,
     limit: number = 10,
     filters?: CustomerFilters
@@ -103,7 +103,7 @@ class CustomerService {
     return response;
   }
 
-  async searchCustomers(query: string): Promise<Customer[]> {
+  async searchPelanggan(query: string): Promise<Customer[]> {
     const response = await apiClient.get<Customer[]>(
       API_ENDPOINTS.CUSTOMERS.SEARCH,
       { params: { q: query } }
@@ -111,7 +111,7 @@ class CustomerService {
     return response;
   }
 
-  async exportCustomers(filters?: CustomerFilters): Promise<Blob> {
+  async exportPelanggan(filters?: CustomerFilters): Promise<Blob> {
     const response = await apiClient.get(
       API_ENDPOINTS.CUSTOMERS.EXPORT,
       {
@@ -139,7 +139,7 @@ class CustomerService {
     return response;
   }
 
-  async bulkImportCustomers(file: File): Promise<{
+  async bulkImportPelanggan(file: File): Promise<{
     totalRecords: number;
     successCount: number;
     failureCount: number;
@@ -165,7 +165,7 @@ class CustomerService {
     };
   }
 
-  async exportCustomersCSV(): Promise<Blob> {
+  async exportPelangganCSV(): Promise<Blob> {
     const response = await apiClient.get(
       API_ENDPOINTS.CUSTOMERS.EXPORT,
       { responseType: 'blob' }

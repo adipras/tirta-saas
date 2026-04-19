@@ -1,3 +1,3 @@
-export { default as CustomerProfile } from './CustomerProfile';
-export { default as CustomerProfileEdit } from './CustomerProfileEdit';
+export { default as CustomerProfil } from './CustomerProfile';
+export { default as CustomerProfilEdit } from './CustomerProfileEdit';
 export { default as ChangePassword } from './ChangePassword';

@@ -12,12 +12,12 @@ import {
   XCircleIcon
 } from '@heroicons/react/24/outline';
 import customerAuthService from '../../services/customerAuthService';
-import customerPortalService, { type CustomerInvoice, type CustomerProfile } from '../../services/customerPortalService';
+import customerPortalService, { type CustomerInvoice, type CustomerProfil } from '../../services/customerPortalService';
 
 const CustomerDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<CustomerProfile | null>(null);
-  const [invoices, setInvoices] = useState<CustomerInvoice[]>([]);
+  const [profile, setProfil] = useState<CustomerProfil | null>(null);
+  const [invoices, setTagihan] = useState<CustomerInvoice[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,11 +31,11 @@ const CustomerDashboard: React.FC = () => {
   const loadData = async () => {
     try {
       const [profileData, invoicesData] = await Promise.all([
-        customerPortalService.getProfile(),
-        customerPortalService.getInvoices()
+        customerPortalService.getProfil(),
+        customerPortalService.getTagihan()
       ]);
-      setProfile(profileData);
-      setInvoices(invoicesData);
+      setProfil(profileData);
+      setTagihan(invoicesData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -48,12 +48,12 @@ const CustomerDashboard: React.FC = () => {
     navigate('/customer/login');
   };
 
-  const unpaidInvoices = invoices.filter(inv => !inv.is_paid);
-  const totalUnpaid = unpaidInvoices.reduce((sum, inv) => sum + (inv.total_amount - inv.total_paid), 0);
-  const overdueInvoices = unpaidInvoices.filter(inv => new Date(inv.due_date) < new Date());
+  const unpaidTagihan = invoices.filter(inv => !inv.is_paid);
+  const totalUnpaid = unpaidTagihan.reduce((sum, inv) => sum + (inv.total_amount - inv.total_paid), 0);
+  const overdueTagihan = unpaidTagihan.filter(inv => new Date(inv.due_date) < new Date());
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center h-screen">Memuat...</div>;
   }
 
   return (
@@ -78,7 +78,7 @@ const CustomerDashboard: React.FC = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Card */}
+        {/* Profil Card */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex gap-4">
@@ -116,7 +116,7 @@ const CustomerDashboard: React.FC = () => {
                 <p className="text-2xl font-bold text-gray-900">
                   Rp {totalUnpaid.toLocaleString('id-ID')}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">{unpaidInvoices.length} tagihan</p>
+                <p className="text-sm text-gray-500 mt-1">{unpaidTagihan.length} tagihan</p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-full">
                 <CurrencyDollarIcon className="h-8 w-8 text-yellow-600" />
@@ -128,9 +128,9 @@ const CustomerDashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Tagihan Terlambat</p>
-                <p className="text-2xl font-bold text-red-600">{overdueInvoices.length}</p>
+                <p className="text-2xl font-bold text-red-600">{overdueTagihan.length}</p>
                 <p className="text-sm text-gray-500 mt-1">
-                  {overdueInvoices.length > 0 ? 'Segera bayar!' : 'Tidak ada'}
+                  {overdueTagihan.length > 0 ? 'Segera bayar!' : 'Tidak ada'}
                 </p>
               </div>
               <div className="p-3 bg-red-100 rounded-full">
@@ -202,10 +202,10 @@ const CustomerDashboard: React.FC = () => {
           </Link>
         </div>
 
-        {/* Recent Invoices */}
+        {/* Recent Tagihan */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Tagihan Terbaru</h3>
-          {unpaidInvoices.length === 0 ? (
+          {unpaidTagihan.length === 0 ? (
             <p className="text-gray-600 text-center py-8">Tidak ada tagihan yang belum dibayar</p>
           ) : (
             <div className="overflow-x-auto">
@@ -220,7 +220,7 @@ const CustomerDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {unpaidInvoices.slice(0, 5).map((invoice) => {
+                  {unpaidTagihan.slice(0, 5).map((invoice) => {
                     const isOverdue = new Date(invoice.due_date) < new Date();
                     return (
                       <tr key={invoice.id} className="hover:bg-gray-50">
@@ -254,7 +254,7 @@ const CustomerDashboard: React.FC = () => {
               </table>
             </div>
           )}
-          {unpaidInvoices.length > 5 && (
+          {unpaidTagihan.length > 5 && (
             <div className="mt-4 text-center">
               <Link to="/customer/invoices" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
                 Lihat Semua Tagihan →

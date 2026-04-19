@@ -4,8 +4,6 @@ import {
   PlusIcon, 
   PencilIcon,
   TrashIcon,
-  CheckCircleIcon,
-  XCircleIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { DataTable } from '../../components/DataTable';
@@ -29,6 +27,7 @@ export default function WaterRateList() {
   const [filterSubscription, setFilterSubscription] = useState('');
   const [filterActive, setFilterActive] = useState<'all' | 'true' | 'false'>('all');
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [togglingRateId, setTogglingRateId] = useState<string | null>(null);
 
   const fetchWaterRates = useCallback(async () => {
     try {
@@ -47,7 +46,7 @@ export default function WaterRateList() {
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
-        message: 'Failed to fetch water rates',
+        message: 'Gagal memuat tarif air',
       }));
       console.error('Error fetching water rates:', error);
       setWaterRates([]);
@@ -80,14 +79,14 @@ export default function WaterRateList() {
       await waterRateService.deleteWaterRate(deleteTarget);
       dispatch(addNotification({
         type: 'success',
-        message: 'Water rate deleted successfully',
+        message: 'Tarif air berhasil dihapus',
       }));
       setDeleteTarget(null);
       fetchWaterRates();
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
-        message: 'Failed to delete water rate',
+        message: 'Gagal menghapus tarif air',
       }));
       console.error('Error deleting water rate:', error);
     }
@@ -95,6 +94,7 @@ export default function WaterRateList() {
 
   const handleToggleActive = async (id: string, currentActive: boolean) => {
     try {
+      setTogglingRateId(id);
       if (currentActive) {
         await waterRateService.deactivateWaterRate(id);
       } else {
@@ -103,14 +103,16 @@ export default function WaterRateList() {
       
       dispatch(addNotification({
         type: 'success',
-        message: `Water rate ${currentActive ? 'deactivated' : 'activated'} successfully`,
+        message: `Tarif air berhasil ${currentActive ? 'dinonaktifkan' : 'diaktifkan'}`,
       }));
-      fetchWaterRates();
+      await fetchWaterRates();
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
-        message: 'Failed to update water rate status',
+        message: 'Gagal memperbarui status tarif air',
       }));
+    } finally {
+      setTogglingRateId(null);
     }
   };
 
@@ -133,71 +135,77 @@ export default function WaterRateList() {
   const columns = [
     {
       key: 'subscription',
-      label: 'Subscription Type',
+      label: 'Golongan Langganan',
       render: (_value: any, row: WaterRate) => row.subscription?.name || '-',
       sortable: true,
     },
     {
       key: 'amount',
-      label: 'Rate per m³',
+      label: 'Tarif per m3',
       render: (_value: any, row: WaterRate) => formatCurrency(row.amount),
       align: 'right' as const,
       sortable: true,
     },
     {
       key: 'effective_date',
-      label: 'Effective Date',
+      label: 'Berlaku Mulai',
       render: (_value: any, row: WaterRate) => formatDate(row.effective_date),
       sortable: true,
     },
     {
       key: 'description',
-      label: 'Description',
+      label: 'Deskripsi',
       render: (_value: any, row: WaterRate) => row.description || '-',
     },
     {
       key: 'active',
       label: 'Status',
       render: (_value: any, row: WaterRate) => (
-        <button
-          onClick={() => handleToggleActive(row.id, row.active)}
+        <span
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
             row.active
-              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              ? 'bg-green-100 text-green-800'
+              : 'bg-gray-100 text-gray-800'
           }`}
         >
-          {row.active ? (
-            <>
-              <CheckCircleIcon className="w-4 h-4 mr-1" />
-              Active
-            </>
-          ) : (
-            <>
-              <XCircleIcon className="w-4 h-4 mr-1" />
-              Inactive
-            </>
-          )}
-        </button>
+          {row.active ? 'Aktif' : 'Nonaktif'}
+        </span>
       ),
       align: 'center' as const,
     },
     {
       key: 'actions',
-      label: 'Actions',
+      label: 'Aksi',
       render: (_value: any, row: WaterRate) => (
         <div className="flex space-x-2 justify-center">
           <button
+            type="button"
+            onClick={() => handleToggleActive(row.id, row.active)}
+            disabled={togglingRateId === row.id}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              row.active ? 'bg-green-600' : 'bg-gray-300'
+            } ${togglingRateId === row.id ? 'cursor-not-allowed opacity-60' : ''}`}
+            title={row.active ? 'Nonaktifkan tarif' : 'Aktifkan tarif'}
+            aria-label={row.active ? 'Nonaktifkan tarif' : 'Aktifkan tarif'}
+            aria-pressed={row.active}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                row.active ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <button
             onClick={() => navigate(`/admin/water-rates/edit/${row.id}`)}
             className="text-blue-600 hover:text-blue-900"
-            title="Edit"
+            title="Ubah"
           >
             <PencilIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => handleDelete(row.id)}
             className="text-red-600 hover:text-red-900"
-            title="Delete"
+            title="Hapus"
           >
             <TrashIcon className="w-5 h-5" />
           </button>
@@ -210,15 +218,15 @@ export default function WaterRateList() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Water Rates"
-        subtitle="Manage water rates per cubic meter for different subscription types"
+        title="Tarif Air"
+        subtitle="Kelola tarif air per meter kubik untuk setiap golongan langganan"
         actions={
           <button
             onClick={() => navigate('/admin/water-rates/create')}
             className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <PlusIcon className="h-5 w-5 mr-2" />
-            Add Water Rate
+            Tambah Tarif Air
           </button>
         }
       />
@@ -228,14 +236,14 @@ export default function WaterRateList() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Subscription Type
+              Golongan Langganan
             </label>
             <select
               value={filterSubscription}
               onChange={(e) => setFilterSubscription(e.target.value)}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             >
-              <option value="">All Types</option>
+              <option value="">Semua Golongan</option>
               {subscriptionTypes.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.name}
@@ -253,9 +261,9 @@ export default function WaterRateList() {
               onChange={(e) => setFilterActive(e.target.value as 'all' | 'true' | 'false')}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             >
-              <option value="all">All Status</option>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
+              <option value="all">Semua Status</option>
+              <option value="true">Aktif</option>
+              <option value="false">Nonaktif</option>
             </select>
           </div>
 
@@ -266,7 +274,7 @@ export default function WaterRateList() {
                 className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50"
               >
                 <XMarkIcon className="h-4 w-4 mr-1" />
-                Clear Filters
+                Reset Filter
               </button>
             </div>
           )}
@@ -279,14 +287,14 @@ export default function WaterRateList() {
           columns={columns}
           data={waterRates}
           loading={loading}
-          emptyMessage="No water rates found. Create your first water rate to get started."
+          emptyMessage="Belum ada tarif air. Tambahkan tarif air pertama untuk memulai."
         />
       </div>
 
       {/* Stats */}
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="text-sm text-gray-600">
-          Showing {waterRates.length} water rate{waterRates.length !== 1 ? 's' : ''}
+          Menampilkan {waterRates.length} tarif air
         </div>
       </div>
 

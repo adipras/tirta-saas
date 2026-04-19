@@ -12,7 +12,7 @@ const getAuthHeaders = () => {
   };
 };
 
-export interface CustomerProfile {
+export interface CustomerProfil {
   id: string;
   meter_number: string;
   name: string;
@@ -63,7 +63,7 @@ export interface CustomerPayment {
   };
 }
 
-export interface CustomerWaterUsage {
+export interface CustomerWaterPemakaian {
   id: string;
   customer_id: string;
   usage_month: string;
@@ -76,12 +76,12 @@ export interface CustomerWaterUsage {
 }
 
 class CustomerPortalService {
-  async getProfile(): Promise<CustomerProfile> {
+  async getProfil(): Promise<CustomerProfil> {
     const response = await axios.get(`${API_URL}/api/customer/profile`, getAuthHeaders());
     return response.data;
   }
 
-  async updateProfile(data: { name: string; address: string; phone: string }): Promise<void> {
+  async updateProfil(data: { name: string; address: string; phone: string }): Promise<void> {
     await axios.put(`${API_URL}/api/customer/profile`, data, getAuthHeaders());
   }
 
@@ -89,17 +89,17 @@ class CustomerPortalService {
     await axios.put(`${API_URL}/api/customer/password`, data, getAuthHeaders());
   }
 
-  async getInvoices(): Promise<CustomerInvoice[]> {
+  async getTagihan(): Promise<CustomerInvoice[]> {
     const response = await axios.get(`${API_URL}/api/customer/invoices`, getAuthHeaders());
     return response.data;
   }
 
-  async getPayments(): Promise<CustomerPayment[]> {
+  async getPembayaran(): Promise<CustomerPayment[]> {
     const response = await axios.get(`${API_URL}/api/customer/payments`, getAuthHeaders());
     return response.data;
   }
 
-  async getWaterUsage(): Promise<CustomerWaterUsage[]> {
+  async getWaterPemakaian(): Promise<CustomerWaterPemakaian[]> {
     const response = await axios.get(`${API_URL}/api/customer/water-usage`, getAuthHeaders());
     return response.data;
   }

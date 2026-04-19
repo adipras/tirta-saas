@@ -8,7 +8,7 @@ import {
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { PageHeader } from '../../components';
-const ReportsDashboard: React.FC = () => {
+const LaporanDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState({
     startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -44,7 +44,7 @@ const ReportsDashboard: React.FC = () => {
     },
     {
       id: 'usage',
-      title: 'Usage Report',
+      title: 'Pemakaian Report',
       description: 'Monitor water usage trends and identify high consumers',
       icon: BeakerIcon,
       color: 'bg-cyan-500',
@@ -66,7 +66,7 @@ const ReportsDashboard: React.FC = () => {
 
   return (
     <div className="p-6">
-      <PageHeader title="Reports & Analytics" subtitle="Comprehensive reports and analytics for your water supply management" />
+      <PageHeader title="Laporan & Analytics" subtitle="Comprehensive reports and analytics for your water supply management" />
 
       {/* Date Range Filter */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -180,7 +180,7 @@ const ReportsDashboard: React.FC = () => {
             onClick={() => navigate('/admin/invoices')}
             className="p-4 border border-gray-300 rounded-md hover:bg-gray-50 text-left"
           >
-            <div className="text-sm font-medium text-gray-900">Generate Invoices</div>
+            <div className="text-sm font-medium text-gray-900">Generate Tagihan</div>
             <div className="text-xs text-gray-600 mt-1">Create monthly invoices</div>
           </button>
           <button
@@ -194,7 +194,7 @@ const ReportsDashboard: React.FC = () => {
             onClick={() => navigate('/admin/usage/create')}
             className="p-4 border border-gray-300 rounded-md hover:bg-gray-50 text-left"
           >
-            <div className="text-sm font-medium text-gray-900">Enter Usage</div>
+            <div className="text-sm font-medium text-gray-900">Enter Pemakaian</div>
             <div className="text-xs text-gray-600 mt-1">Record meter readings</div>
           </button>
         </div>
@@ -203,4 +203,4 @@ const ReportsDashboard: React.FC = () => {
   );
 };
 
-export default ReportsDashboard;
+export default LaporanDashboard;

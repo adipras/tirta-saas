@@ -64,7 +64,7 @@ const PaymentReport: React.FC = () => {
       'Transactions': item.count,
       'Percentage': `${item.percentage.toFixed(1)}%`,
     }));
-    const outstandingRows = (reportData.outstandingPayments || []).map((item) => ({
+    const outstandingRows = (reportData.outstandingPembayaran || []).map((item) => ({
       'Customer': item.customerName,
       'Invoice #': item.invoiceNumber,
       'Amount (IDR)': item.amount,
@@ -300,10 +300,10 @@ const PaymentReport: React.FC = () => {
         </ResponsiveContainer>
       </div>
 
-      {/* Outstanding Payments Table */}
+      {/* Outstanding Pembayaran Table */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Outstanding Payments
+          Outstanding Pembayaran
         </h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -327,7 +327,7 @@ const PaymentReport: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.outstandingPayments.map((payment, index) => (
+              {reportData.outstandingPembayaran.map((payment, index) => (
                 <tr key={index} className={payment.daysOverdue > 0 ? 'bg-red-50' : ''}>
                   <td className="px-4 py-2 text-sm text-gray-900">
                     {payment.customerName}

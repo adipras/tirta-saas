@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../hooks/redux';
+import { authService } from '../services/authService';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -9,6 +10,7 @@ interface PrivateRouteProps {
 const PrivateRoute = ({ children, requiredRole }: PrivateRouteProps) => {
   const location = useLocation();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const hasStoredSession = authService.isAuthenticated();
   
   console.log('=== PrivateRoute Render ===');
   console.log('Location:', location.pathname);
@@ -18,7 +20,7 @@ const PrivateRoute = ({ children, requiredRole }: PrivateRouteProps) => {
   console.log('user?.role:', user?.role);
   console.log('Match:', user?.role === requiredRole);
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !hasStoredSession) {
     console.log('❌ Not authenticated, redirecting to login');
     const loginPath = requiredRole === 'customer' ? '/customer/login' : '/admin/login';
     console.log('Redirect to:', loginPath);

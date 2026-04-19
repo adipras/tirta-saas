@@ -14,13 +14,18 @@ const PaymentReceipt: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const receiptRef = useRef<HTMLDivElement>(null);
 
+  const formatTanggal = (value?: string) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleDateString('id-ID');
+  };
+
   useEffect(() => {
     if (id) {
-      fetchReceipt(Number(id));
+      fetchReceipt(id);
     }
   }, [id]);
 
-  const fetchReceipt = async (paymentId: number) => {
+  const fetchReceipt = async (paymentId: string) => {
     try {
       setLoading(true);
       const data = await paymentService.getReceipt(paymentId);
@@ -42,7 +47,7 @@ const PaymentReceipt: React.FC = () => {
 
   const handlePrint = useReactToPrint({
     contentRef: receiptRef,
-    documentTitle: receipt ? `Receipt_${receipt.receiptNumber}` : 'Receipt',
+    documentTitle: receipt ? `Struk_${receipt.receiptNumber}` : 'Struk',
   });
 
   if (loading) {
@@ -50,7 +55,7 @@ const PaymentReceipt: React.FC = () => {
       <div className="p-6">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading receipt...</p>
+          <p className="mt-4 text-gray-600">Memuat struk pembayaran...</p>
         </div>
       </div>
     );
@@ -60,12 +65,12 @@ const PaymentReceipt: React.FC = () => {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <p className="text-gray-600">Receipt not found</p>
+          <p className="text-gray-600">Struk pembayaran tidak ditemukan</p>
           <button
             onClick={() => navigate('/admin/payments')}
             className="mt-4 text-blue-600 hover:text-blue-800"
           >
-            Back to Payments
+            Kembali ke Pembayaran
           </button>
         </div>
       </div>
@@ -75,21 +80,21 @@ const PaymentReceipt: React.FC = () => {
   return (
     <div className="p-6">
       <PageHeader
-        title="Payment Receipt"
-        subtitle={`Receipt #${receipt.receiptNumber}`}
+        title="Struk Pembayaran"
+        subtitle={`No. Struk ${receipt.receiptNumber}`}
         actions={
           <>
             <button
               onClick={() => navigate('/admin/payments')}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
             >
-              Back to Payments
+              Kembali ke Pembayaran
             </button>
             <button
               onClick={handlePrint}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
             >
-              Print Receipt
+              Cetak Struk
             </button>
           </>
         }
@@ -101,43 +106,43 @@ const PaymentReceipt: React.FC = () => {
         <div className="border-b-2 border-gray-300 pb-6 mb-6">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900">TIRTA SAAS</h2>
-            <p className="text-gray-600 mt-1">Water Supply Management System</p>
+            <p className="text-gray-600 mt-1">Sistem Manajemen Tagihan Air</p>
             <p className="text-sm text-gray-500 mt-2">
               Jl. Contoh No. 123, Kota ABC 12345<br />
-              Phone: (021) 1234-5678 | Email: info@tirtasaas.com
+              Telepon: (021) 1234-5678 | Email: info@tirtasaas.com
             </p>
           </div>
           <div className="mt-4 text-center">
-            <h3 className="text-xl font-bold text-gray-900">PAYMENT RECEIPT</h3>
-            <p className="text-sm text-gray-600 mt-1">Receipt No: {receipt.receiptNumber}</p>
+            <h3 className="text-xl font-bold text-gray-900">STRUK PEMBAYARAN</h3>
+            <p className="text-sm text-gray-600 mt-1">No. Struk: {receipt.receiptNumber}</p>
           </div>
         </div>
 
         {/* Customer & Payment Info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
-            <h4 className="font-semibold text-gray-900 mb-2">Customer Information</h4>
+            <h4 className="font-semibold text-gray-900 mb-2">Informasi Pelanggan</h4>
             <div className="text-sm space-y-1">
-              <p><span className="text-gray-600">Name:</span> <span className="font-medium">{receipt.customerDetails.name}</span></p>
+              <p><span className="text-gray-600">Nama:</span> <span className="font-medium">{receipt.customerDetails.name}</span></p>
               {receipt.customerDetails.address && (
-                <p><span className="text-gray-600">Address:</span> {receipt.customerDetails.address}</p>
+                <p><span className="text-gray-600">Alamat:</span> {receipt.customerDetails.address}</p>
               )}
               {receipt.customerDetails.phone && (
-                <p><span className="text-gray-600">Phone:</span> {receipt.customerDetails.phone}</p>
+                <p><span className="text-gray-600">Telepon:</span> {receipt.customerDetails.phone}</p>
               )}
               {receipt.customerDetails.meterNumber && (
-                <p><span className="text-gray-600">Meter Number:</span> {receipt.customerDetails.meterNumber}</p>
+                <p><span className="text-gray-600">No. Meter:</span> {receipt.customerDetails.meterNumber}</p>
               )}
             </div>
           </div>
 
           <div>
-            <h4 className="font-semibold text-gray-900 mb-2">Payment Information</h4>
+            <h4 className="font-semibold text-gray-900 mb-2">Informasi Pembayaran</h4>
             <div className="text-sm space-y-1">
-              <p><span className="text-gray-600">Payment Date:</span> <span className="font-medium">{new Date(receipt.payment.paymentDate).toLocaleDateString()}</span></p>
-              <p><span className="text-gray-600">Payment Method:</span> {PAYMENT_METHOD_LABELS[receipt.payment.paymentMethod]}</p>
+              <p><span className="text-gray-600">Tanggal Bayar:</span> <span className="font-medium">{formatTanggal(receipt.payment.paymentDate)}</span></p>
+              <p><span className="text-gray-600">Metode Pembayaran:</span> {PAYMENT_METHOD_LABELS[receipt.payment.paymentMethod] || receipt.payment.paymentMethod}</p>
               {receipt.payment.referenceNumber && (
-                <p><span className="text-gray-600">Reference:</span> {receipt.payment.referenceNumber}</p>
+                <p><span className="text-gray-600">Referensi:</span> {receipt.payment.referenceNumber}</p>
               )}
               <p><span className="text-gray-600">Status:</span> <span className="font-medium text-green-600">{PAYMENT_STATUS_LABELS[receipt.payment.status]}</span></p>
             </div>
@@ -146,22 +151,22 @@ const PaymentReceipt: React.FC = () => {
 
         {/* Invoice Details */}
         <div className="mb-6">
-          <h4 className="font-semibold text-gray-900 mb-2">Invoice Details</h4>
+          <h4 className="font-semibold text-gray-900 mb-2">Detail Tagihan</h4>
           <div className="border border-gray-200 rounded-md overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-2 text-left">Invoice Number</th>
-                  <th className="px-4 py-2 text-left">Invoice Date</th>
-                  <th className="px-4 py-2 text-left">Due Date</th>
-                  <th className="px-4 py-2 text-right">Total Amount</th>
+                  <th className="px-4 py-2 text-left">No. Tagihan</th>
+                  <th className="px-4 py-2 text-left">Tanggal Tagihan</th>
+                  <th className="px-4 py-2 text-left">Jatuh Tempo</th>
+                  <th className="px-4 py-2 text-right">Total Tagihan</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td className="px-4 py-2 border-t">{receipt.invoiceDetails.invoiceNumber}</td>
-                  <td className="px-4 py-2 border-t">{new Date(receipt.invoiceDetails.invoiceDate).toLocaleDateString()}</td>
-                  <td className="px-4 py-2 border-t">{new Date(receipt.invoiceDetails.dueDate).toLocaleDateString()}</td>
+                  <td className="px-4 py-2 border-t">{formatTanggal(receipt.invoiceDetails.invoiceDate)}</td>
+                  <td className="px-4 py-2 border-t">{formatTanggal(receipt.invoiceDetails.dueDate)}</td>
                   <td className="px-4 py-2 border-t text-right">Rp {receipt.invoiceDetails.totalAmount.toLocaleString('id-ID')}</td>
                 </tr>
               </tbody>
@@ -174,9 +179,9 @@ const PaymentReceipt: React.FC = () => {
           <div className="flex justify-end">
             <div className="w-64">
               <div className="flex justify-between py-2 text-lg font-bold">
-                <span>Amount Paid:</span>
-                <span className="text-green-600">Rp {receipt.payment.amount.toLocaleString('id-ID')}</span>
-              </div>
+                 <span>Nominal Dibayar:</span>
+                 <span className="text-green-600">Rp {receipt.payment.amount.toLocaleString('id-ID')}</span>
+               </div>
             </div>
           </div>
         </div>
@@ -184,16 +189,16 @@ const PaymentReceipt: React.FC = () => {
         {/* Notes */}
         {receipt.payment.notes && (
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <h4 className="font-semibold text-gray-900 mb-2">Notes</h4>
+            <h4 className="font-semibold text-gray-900 mb-2">Catatan</h4>
             <p className="text-sm text-gray-600">{receipt.payment.notes}</p>
           </div>
         )}
 
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
-          <p>Thank you for your payment!</p>
-          <p className="mt-2">This is a computer-generated receipt and does not require a signature.</p>
-          <p className="mt-1">Generated on: {new Date(receipt.generatedAt).toLocaleString()}</p>
+          <p>Terima kasih atas pembayaran Anda.</p>
+          <p className="mt-2">Struk ini dibuat secara otomatis dan tidak memerlukan tanda tangan.</p>
+          <p className="mt-1">Dibuat pada: {new Date(receipt.generatedAt).toLocaleString('id-ID')}</p>
         </div>
       </div>
     </div>

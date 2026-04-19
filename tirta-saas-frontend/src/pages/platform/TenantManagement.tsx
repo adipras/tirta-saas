@@ -4,7 +4,10 @@ import {
   ClockIcon,
   UserGroupIcon,
   BuildingOfficeIcon,
+  EyeIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/outline';
+import { API_ENDPOINTS } from '../../constants/api';
 import { apiClient } from '../../services/apiClient';
 import { PageHeader, useToast } from '../../components';
 
@@ -19,8 +22,10 @@ interface Tenant {
   admin_email: string;
   admin_phone: string;
   status: string;
+  subscription_status?: string;
   registered_at: string;
   trial_ends_at?: string;
+  payment_verified_at?: string;
   approved_at?: string;
   approved_by?: string;
   rejected_at?: string;
@@ -29,6 +34,12 @@ interface Tenant {
   subscription_plan?: string;
   subscription_starts_at?: string;
   subscription_ends_at?: string;
+}
+
+interface TenantManagementStats {
+  pending_tenants: number;
+  active_tenants: number;
+  total_tenants: number;
 }
 
 type TabType = 'pending' | 'all';
@@ -51,16 +62,30 @@ const statusColors: Record<string, { bg: string; text: string; label: string }> 
   INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Inactive' },
 };
 
+const subscriptionStatusColors: Record<string, { bg: string; text: string; label: string }> = {
+  VERIFIED: { bg: 'bg-green-100', text: 'text-green-800', label: 'Payment Verified' },
+  PENDING_VERIFICATION: {
+    bg: 'bg-yellow-100',
+    text: 'text-yellow-800',
+    label: 'Menunggu Verifikasi Pembayaran',
+  },
+  ACTIVE: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Subscription Active' },
+  TRIAL: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Trial' },
+};
+
 const TenantManagement = () => {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [tenantStats, setTenantStats] = useState<TenantManagementStats>({
+    pending_tenants: 0,
+    active_tenants: 0,
+    total_tenants: 0,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [modalAction, setModalAction] = useState<'approve' | 'reject' | 'suspend' | 'view'>(
-    'view'
-  );
+  const [modalAction, setModalAction] = useState<'approve' | 'suspend' | 'view'>('view');
   const [actionReason, setActionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -68,10 +93,17 @@ const TenantManagement = () => {
     loadTenants();
   }, [activeTab]);
 
+  useEffect(() => {
+    loadTenantStats();
+  }, []);
+
   const loadTenants = async () => {
     setIsLoading(true);
     try {
-      const endpoint = activeTab === 'pending' ? '/platform/tenants/pending' : '/platform/tenants';
+      const endpoint =
+        activeTab === 'pending'
+          ? API_ENDPOINTS.PLATFORM.PENDING_TENANTS
+          : API_ENDPOINTS.PLATFORM.TENANTS;
       const response = await apiClient.get(endpoint);
       setTenants(response.data || []);
     } catch (error) {
@@ -81,9 +113,24 @@ const TenantManagement = () => {
     }
   };
 
+  const loadTenantStats = async () => {
+    try {
+      const response = await apiClient.get<{ data?: TenantManagementStats }>(
+        API_ENDPOINTS.PLATFORM.TENANT_STATS
+      );
+      setTenantStats(response.data ?? {
+        pending_tenants: 0,
+        active_tenants: 0,
+        total_tenants: 0,
+      });
+    } catch (error) {
+      console.error('Failed to load tenant stats:', error);
+    }
+  };
+
   const openModal = (
     tenant: Tenant,
-    action: 'approve' | 'reject' | 'suspend' | 'view'
+    action: 'approve' | 'suspend' | 'view'
   ) => {
     setSelectedTenant(tenant);
     setModalAction(action);
@@ -110,10 +157,6 @@ const TenantManagement = () => {
           endpoint = `/platform/tenants/${selectedTenant.id}/approve`;
           payload = { notes: actionReason };
           break;
-        case 'reject':
-          endpoint = `/platform/tenants/${selectedTenant.id}/reject`;
-          payload = { reason: actionReason };
-          break;
         case 'suspend':
           endpoint = `/platform/tenants/${selectedTenant.id}/suspend`;
           payload = { reason: actionReason };
@@ -121,9 +164,7 @@ const TenantManagement = () => {
       }
 
       await apiClient.post(endpoint, payload);
-
-      // Reload tenants
-      await loadTenants();
+      await Promise.all([loadTenants(), loadTenantStats()]);
       closeModal();
     } catch (error) {
       console.error('Action failed:', error);
@@ -142,6 +183,14 @@ const TenantManagement = () => {
     });
   };
 
+  const getEndDate = (tenant: Tenant) => {
+    if (tenant.subscription_status === 'ACTIVE') {
+      return tenant.subscription_ends_at;
+    }
+
+    return tenant.trial_ends_at;
+  };
+
   const getStatusBadge = (status: string) => {
     const config = statusColors[status] || statusColors.INACTIVE;
     return (
@@ -153,9 +202,28 @@ const TenantManagement = () => {
     );
   };
 
+  const getSubscriptionStatusBadge = (status?: string) => {
+    if (!status) return <span className="text-xs text-gray-400">-</span>;
+    const config = subscriptionStatusColors[status] || {
+      bg: 'bg-gray-100',
+      text: 'text-gray-800',
+      label: status,
+    };
+    return (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+      >
+        {config.label}
+      </span>
+    );
+  };
+
+  const canApproveTenant = (tenant: Tenant) =>
+    tenant.status === 'PENDING_VERIFICATION' && tenant.subscription_status === 'VERIFIED';
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Tenant Management" subtitle="Manage tenant registrations and approvals" />
+      <PageHeader title="Tenant Management" subtitle="Kelola tenant pending, aktif, dan status langganannya" />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -165,12 +233,12 @@ const TenantManagement = () => {
               <ClockIcon className="h-8 w-8 text-yellow-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Pending Review</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {tenants.filter((t) => t.status === 'TRIAL').length}
-              </p>
-            </div>
-          </div>
+               <p className="text-sm font-medium text-gray-600">Pending Tenants</p>
+               <p className="text-2xl font-bold text-gray-900">
+                 {tenantStats.pending_tenants}
+               </p>
+             </div>
+           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
@@ -179,12 +247,12 @@ const TenantManagement = () => {
               <CheckCircleIcon className="h-8 w-8 text-green-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Tenants</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {tenants.filter((t) => t.status === 'ACTIVE').length}
-              </p>
-            </div>
-          </div>
+               <p className="text-sm font-medium text-gray-600">Active Tenants</p>
+               <p className="text-2xl font-bold text-gray-900">
+                 {tenantStats.active_tenants}
+               </p>
+             </div>
+           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
@@ -193,11 +261,11 @@ const TenantManagement = () => {
               <BuildingOfficeIcon className="h-8 w-8 text-blue-500" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Tenants</p>
-              <p className="text-2xl font-bold text-gray-900">{tenants.length}</p>
-            </div>
-          </div>
-        </div>
+               <p className="text-sm font-medium text-gray-600">Total Tenants</p>
+               <p className="text-2xl font-bold text-gray-900">{tenantStats.total_tenants}</p>
+             </div>
+           </div>
+         </div>
       </div>
 
       {/* Tabs */}
@@ -212,7 +280,7 @@ const TenantManagement = () => {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Pending Review
+              Pending
             </button>
             <button
               onClick={() => setActiveTab('all')}
@@ -232,12 +300,12 @@ const TenantManagement = () => {
           {isLoading ? (
             <div className="p-8 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="mt-2 text-gray-600">Loading tenants...</p>
+              <p className="mt-2 text-gray-600">Memuat data tenant...</p>
             </div>
           ) : tenants.length === 0 ? (
             <div className="p-8 text-center">
               <UserGroupIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2 text-gray-600">No tenants found</p>
+              <p className="mt-2 text-gray-600">Tidak ada tenant ditemukan</p>
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
@@ -253,10 +321,13 @@ const TenantManagement = () => {
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Payment Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Registered
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trial Ends
+                    Ends At
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -277,45 +348,46 @@ const TenantManagement = () => {
                         <div className="text-sm text-gray-900">{tenant.admin_name}</div>
                         <div className="text-sm text-gray-500">{tenant.admin_email}</div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">{getStatusBadge(tenant.status)}</td>
+                     </td>
+                     <td className="px-6 py-4">{getStatusBadge(tenant.status)}</td>
+                     <td className="px-6 py-4">{getSubscriptionStatusBadge(tenant.subscription_status)}</td>
+                     <td className="px-6 py-4 text-sm text-gray-500">
+                       {formatDate(tenant.registered_at)}
+                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {formatDate(tenant.registered_at)}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {formatDate(tenant.trial_ends_at)}
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm font-medium space-x-2">
+                       {formatDate(getEndDate(tenant))}
+                     </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => openModal(tenant, 'view')}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
+                        title="Lihat detail"
+                        aria-label="Lihat detail"
                       >
-                        View
+                        <EyeIcon className="h-5 w-5" />
                       </button>
-                      {tenant.status === 'TRIAL' && (
-                        <>
-                          <button
-                            onClick={() => openModal(tenant, 'approve')}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() => openModal(tenant, 'reject')}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Reject
-                          </button>
-                        </>
+                      {canApproveTenant(tenant) && (
+                        <button
+                          onClick={() => openModal(tenant, 'approve')}
+                          className="inline-flex items-center justify-center rounded-md p-2.5 text-green-600 hover:bg-green-50 hover:text-green-900"
+                          title="Approve & activate"
+                          aria-label="Approve & activate"
+                        >
+                          <CheckCircleIcon className="h-5 w-5" />
+                        </button>
                       )}
                       {tenant.status === 'ACTIVE' && (
                         <button
                           onClick={() => openModal(tenant, 'suspend')}
-                          className="text-orange-600 hover:text-orange-900"
+                          className="inline-flex items-center justify-center rounded-md p-2.5 text-orange-600 hover:bg-orange-50 hover:text-orange-900"
+                          title="Suspend tenant"
+                          aria-label="Suspend tenant"
                         >
-                          Suspend
+                          <XCircleIcon className="h-5 w-5" />
                         </button>
                       )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -334,8 +406,7 @@ const TenantManagement = () => {
               <div className="mb-4 pb-4 border-b">
                 <h3 className="text-lg font-semibold text-gray-900">
                   {modalAction === 'view' && 'Tenant Details'}
-                  {modalAction === 'approve' && 'Approve Tenant'}
-                  {modalAction === 'reject' && 'Reject Tenant'}
+                  {modalAction === 'approve' && 'Activate Tenant'}
                   {modalAction === 'suspend' && 'Suspend Tenant'}
                 </h3>
               </div>
@@ -386,6 +457,10 @@ const TenantManagement = () => {
                       <p className="text-sm font-medium text-gray-500">Status</p>
                       {getStatusBadge(selectedTenant.status)}
                     </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Payment Status</p>
+                      {getSubscriptionStatusBadge(selectedTenant.subscription_status)}
+                    </div>
                   </div>
                 </div>
 
@@ -393,8 +468,7 @@ const TenantManagement = () => {
                 {modalAction !== 'view' && (
                   <div className="border-t pt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {modalAction === 'approve' && 'Notes (Optional)'}
-                      {modalAction === 'reject' && 'Rejection Reason *'}
+                      {modalAction === 'approve' && 'Activation Notes (Optional)'}
                       {modalAction === 'suspend' && 'Suspension Reason *'}
                     </label>
                     <textarea
@@ -402,8 +476,12 @@ const TenantManagement = () => {
                       onChange={(e) => setActionReason(e.target.value)}
                       rows={3}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder={`Enter ${modalAction} reason...`}
-                      required={modalAction !== 'approve'}
+                      placeholder={
+                        modalAction === 'approve'
+                          ? 'Tambah catatan aktivasi...'
+                          : 'Enter suspension reason...'
+                      }
+                      required={modalAction === 'suspend'}
                     />
                   </div>
                 )}
@@ -422,24 +500,19 @@ const TenantManagement = () => {
                   <button
                     onClick={handleAction}
                     disabled={
-                      isSubmitting ||
-                      (modalAction !== 'approve' && !actionReason.trim())
+                      isSubmitting || (modalAction === 'suspend' && !actionReason.trim())
                     }
                     className={`px-4 py-2 text-white rounded-md disabled:opacity-50 ${
                       modalAction === 'approve'
                         ? 'bg-green-600 hover:bg-green-700'
-                        : modalAction === 'reject'
-                        ? 'bg-red-600 hover:bg-red-700'
                         : 'bg-orange-600 hover:bg-orange-700'
                     }`}
                   >
                     {isSubmitting
                       ? 'Processing...'
                       : modalAction === 'approve'
-                      ? 'Approve'
-                      : modalAction === 'reject'
-                      ? 'Reject'
-                      : 'Suspend'}
+                        ? 'Approve & Activate'
+                        : 'Suspend'}
                   </button>
                 )}
               </div>

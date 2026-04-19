@@ -7,6 +7,7 @@ export interface ApiError {
   message: string;
   code?: string;
   status?: number;
+  response?: any;
 }
 
 class ApiClient {
@@ -59,7 +60,7 @@ class ApiClient {
       async (error) => {
         const originalRequest = error.config;
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (this.shouldAttemptTokenRefresh(error) && !originalRequest._retry) {
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
               this.failedQueue.push({ resolve, reject });
@@ -93,6 +94,31 @@ class ApiClient {
     );
   }
 
+  private shouldAttemptTokenRefresh(error: any): boolean {
+    if (error.response?.status !== 401 || !error.config) {
+      return false;
+    }
+
+    const authErrorMessage = String(
+      error.response?.data?.error || error.response?.data?.message || ''
+    ).toLowerCase();
+
+    if (!authErrorMessage) {
+      return false;
+    }
+
+    return [
+      'authorization header missing or invalid',
+      'token tidak valid',
+      'gagal membaca klaim token',
+      'invalid user_id in token',
+      'invalid tenant_id in token',
+      'invalid role in token',
+      'invalid user_id format',
+      'invalid tenant_id format',
+    ].some((message) => authErrorMessage.includes(message));
+  }
+
   private processQueue(error: any, token: string | null): void {
     this.failedQueue.forEach(({ resolve, reject }) => {
       if (error) {
@@ -109,9 +135,10 @@ class ApiClient {
     if (error.response) {
       const { status, data } = error.response;
       return {
-        message: data?.message || 'An error occurred',
+        message: data?.error || data?.message || 'An error occurred',
         code: data?.code,
         status,
+        response: error.response,
       };
     } else if (error.request) {
       return {

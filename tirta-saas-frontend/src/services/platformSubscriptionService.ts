@@ -69,15 +69,36 @@ export interface RejectPaymentRequest {
 class PlatformSubscriptionService {
   private readonly BASE_URL = '/platform/subscription-payments';
 
-  async getSubscriptionPayments(status?: string): Promise<SubscriptionPayment[]> {
+  private extractPayload<T>(response: any): T {
+    return (response?.data ?? response) as T;
+  }
+
+  private toRelativeProofUrl(proofUrl: string): string {
+    try {
+      const url = new URL(proofUrl, STATIC_BASE);
+      return `${url.pathname.replace(/^\/api/, '')}${url.search}`;
+    } catch {
+      return proofUrl.replace(/^\/api/, '');
+    }
+  }
+
+  async getSubscriptionPembayaran(status?: string): Promise<SubscriptionPayment[]> {
     const params = status ? { status } : {};
-    const response = await apiClient.get<{ data: SubscriptionPayment[] }>(this.BASE_URL, { params });
-    return ((response.data as any[]) || []).map(mapSubscriptionPayment);
+    const response = await apiClient.get(this.BASE_URL, { params });
+    const data = this.extractPayload<any[]>(response);
+    return (data || []).map(mapSubscriptionPayment);
   }
 
   async getSubscriptionPaymentDetail(id: string): Promise<SubscriptionPayment> {
-    const response = await apiClient.get<{ data: SubscriptionPayment }>(`${this.BASE_URL}/${id}`);
-    return mapSubscriptionPayment(response.data);
+    const response = await apiClient.get(`${this.BASE_URL}/${id}`);
+    return mapSubscriptionPayment(this.extractPayload<any>(response));
+  }
+
+  async getPaymentProofBlob(proofUrl: string): Promise<Blob> {
+    const response = await apiClient.get<Blob>(this.toRelativeProofUrl(proofUrl), {
+      responseType: 'blob',
+    });
+    return response;
   }
 
   async verifyPayment(id: string, data: VerifyPaymentRequest): Promise<void> {

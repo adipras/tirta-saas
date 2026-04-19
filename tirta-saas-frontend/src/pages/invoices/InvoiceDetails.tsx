@@ -85,7 +85,7 @@ export default function InvoiceDetails() {
           className="flex items-center text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeftIcon className="mr-2 h-4 w-4" />
-          Back to Invoices
+          Back to Tagihan
         </button>
         <div className="flex items-center space-x-3">
           <button
@@ -194,7 +194,7 @@ export default function InvoiceDetails() {
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-5 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">
-            {isRegistration ? 'Registration Fee' : 'Usage Details & Charges'}
+            {isRegistration ? 'Registration Fee' : 'Pemakaian Details & Charges'}
           </h2>
         </div>
         <div className="px-6 py-5">
@@ -224,7 +224,7 @@ export default function InvoiceDetails() {
                 <div className="bg-blue-50 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-blue-900">Water Usage</p>
+                      <p className="text-sm font-medium text-blue-900">Pemakaian Air</p>
                       <p className="text-3xl font-bold text-blue-600 mt-1">{invoice.usage} m³</p>
                     </div>
                     <div className="text-right">

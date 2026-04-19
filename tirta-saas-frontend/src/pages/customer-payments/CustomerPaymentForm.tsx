@@ -30,7 +30,7 @@ export default function CustomerPaymentForm() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoices, setTagihan] = useState<Invoice[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   const [formData, setFormData] = useState<PaymentFormData>({
@@ -45,7 +45,7 @@ export default function CustomerPaymentForm() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    loadUnpaidInvoices();
+    loadUnpaidTagihan();
   }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,12 +55,12 @@ export default function CustomerPaymentForm() {
     }
   }, [preSelectedInvoiceId, invoices]);
 
-  const loadUnpaidInvoices = async () => {
+  const loadUnpaidTagihan = async () => {
     try {
       setLoading(true);
-      const data = await invoiceService.getCustomerInvoices();
+      const data = await invoiceService.getCustomerTagihan();
       const unpaid = data.filter(inv => inv.status !== 'paid');
-      setInvoices(unpaid);
+      setTagihan(unpaid);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load invoices');
@@ -206,13 +206,13 @@ export default function CustomerPaymentForm() {
       <div className="max-w-2xl mx-auto">
         <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
           <CheckCircleIcon className="h-16 w-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-green-900 mb-2">All Invoices Paid!</h2>
+          <h2 className="text-xl font-semibold text-green-900 mb-2">All Tagihan Paid!</h2>
           <p className="text-green-700 mb-6">You don't have any outstanding invoices at the moment.</p>
           <button
             onClick={() => navigate('/customer/invoices')}
             className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
-            View All Invoices
+            View All Tagihan
           </button>
         </div>
       </div>

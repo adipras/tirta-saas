@@ -119,7 +119,7 @@ export default function UserManagementList() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="User Management"
+        title="Manajemen Pengguna"
         subtitle="Manage operational users (meter reader, finance, service)"
         actions={
           <button
@@ -258,21 +258,25 @@ export default function UserManagementList() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID') : '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm space-x-2">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => handleEdit(user)}
-                      className="text-blue-600 hover:text-blue-900 inline-flex items-center"
+                      className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
+                      title="Edit user"
+                      aria-label="Edit user"
                     >
-                      <PencilIcon className="h-4 w-4 mr-1" />
-                      Edit
+                      <PencilIcon className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => handleDelete(user.id)}
-                      className="text-red-600 hover:text-red-900 inline-flex items-center"
+                      className="inline-flex items-center justify-center rounded-md p-2.5 text-red-600 hover:bg-red-50 hover:text-red-900"
+                      title="Delete user"
+                      aria-label="Delete user"
                     >
-                      <TrashIcon className="h-4 w-4 mr-1" />
-                      Delete
+                      <TrashIcon className="h-5 w-5" />
                     </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -1,5 +1,5 @@
 
-export interface WaterUsage {
+export interface WaterPemakaian {
   id: string;
   customerId: string;
   customer?: {
@@ -25,26 +25,26 @@ export interface WaterUsage {
   updatedAt: string;
 }
 
-export interface CreateWaterUsageDto {
+export interface CreateWaterPemakaianDto {
   customerId: string;
   usageMonth: string;
   meterEnd: number;
   notes?: string;
 }
 
-export interface UpdateWaterUsageDto {
+export interface UpdateWaterPemakaianDto {
   meterEnd?: number;
   notes?: string;
 }
 
-export interface WaterUsageFormData {
+export interface WaterPemakaianFormData {
   customerId: string;
   usageMonth: string;
   meterEnd: string;
   notes: string;
 }
 
-export interface WaterUsageFilters {
+export interface WaterPemakaianFilters {
   customerId?: string;
   usageMonth?: string;
   startMonth?: string;
@@ -52,7 +52,7 @@ export interface WaterUsageFilters {
   isAnomaly?: boolean;
 }
 
-export interface UsageHistory {
+export interface PemakaianHistory {
   month: string;
   meterStart: number;
   meterEnd: number;
@@ -60,7 +60,7 @@ export interface UsageHistory {
   amount: number;
 }
 
-export interface UsageTrend {
+export interface PemakaianTrend {
   month: string;
   usage: number;
 }
@@ -77,7 +77,7 @@ export interface BulkImportRow {
 }
 
 // Legacy support
-export interface Usage {
+export interface Pemakaian {
   id: string;
   customerId: string;
   meterReading: number;

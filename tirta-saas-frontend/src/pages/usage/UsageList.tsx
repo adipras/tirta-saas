@@ -12,38 +12,38 @@ import {
 import { DataTable } from '../../components/DataTable';
 import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
-import type { WaterUsage, WaterUsageFilters } from '../../types/usage';
+import type { WaterPemakaian, WaterPemakaianFilters } from '../../types/usage';
 import type { Customer } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader, ConfirmModal } from '../../components';
 
-export default function UsageList() {
+export default function PemakaianList() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   
-  const [waterUsages, setWaterUsages] = useState<WaterUsage[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [waterPemakaians, setWaterPemakaians] = useState<WaterPemakaian[]>([]);
+  const [customers, setPelanggan] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [_totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState<WaterUsageFilters>({
+  const [filters, setFilters] = useState<WaterPemakaianFilters>({
     customerId: undefined,
     usageMonth: undefined,
   });
 
-  const fetchWaterUsages = useCallback(async () => {
+  const fetchWaterPemakaians = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await usageService.getWaterUsages(
+      const response = await usageService.getWaterPemakaians(
         currentPage, 
         10, 
         filters
       );
-      setWaterUsages(response.data);
+      setWaterPemakaians(response.data);
       setTotalPages(response.totalPages);
     } catch (error) {
       dispatch(addNotification({
@@ -56,22 +56,22 @@ export default function UsageList() {
     }
   }, [currentPage, filters, dispatch]);
 
-  const fetchCustomers = useCallback(async () => {
+  const fetchPelanggan = useCallback(async () => {
     try {
-      const response = await customerService.getCustomers(1, 1000, { isActive: true });
-      setCustomers(response.data);
+      const response = await customerService.getPelanggan(1, 1000, { isActive: true });
+      setPelanggan(response.data);
     } catch (error) {
       console.error('Error fetching customers:', error);
     }
   }, []);
 
   useEffect(() => {
-    fetchWaterUsages();
-  }, [fetchWaterUsages]);
+    fetchWaterPemakaians();
+  }, [fetchWaterPemakaians]);
 
   useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+    fetchPelanggan();
+  }, [fetchPelanggan]);
 
   const handleDelete = (id: string) => {
     setDeleteTarget(id);
@@ -80,13 +80,13 @@ export default function UsageList() {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await usageService.deleteWaterUsage(deleteTarget);
+      await usageService.deleteWaterPemakaian(deleteTarget);
       dispatch(addNotification({
         type: 'success',
         message: 'Water usage deleted successfully',
       }));
       setDeleteTarget(null);
-      fetchWaterUsages();
+      fetchWaterPemakaians();
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
@@ -96,7 +96,7 @@ export default function UsageList() {
     }
   };
 
-  const handleFilterChange = (key: keyof WaterUsageFilters, value: string) => {
+  const handleFilterChange = (key: keyof WaterPemakaianFilters, value: string) => {
     setFilters(prev => ({
       ...prev,
       [key]: value === '' ? undefined : value,
@@ -134,7 +134,7 @@ export default function UsageList() {
     {
       key: 'customer',
       label: 'Customer',
-      render: (_: any, row: WaterUsage) => (
+      render: (_: any, row: WaterPemakaian) => (
         <div>
           <div className="font-medium text-gray-900">{row.customer?.name || '-'}</div>
           <div className="text-sm text-gray-500">{row.customer?.address || '-'}</div>
@@ -145,30 +145,30 @@ export default function UsageList() {
     {
       key: 'usageMonth',
       label: 'Period',
-      render: (_: any, row: WaterUsage) => formatMonth(row.usageMonth),
+      render: (_: any, row: WaterPemakaian) => formatMonth(row.usageMonth),
       sortable: true,
     },
     {
       key: 'meterNumber',
       label: 'Meter No.',
-      render: (_: any, row: WaterUsage) => row.customer?.meterNumber || '-',
+      render: (_: any, row: WaterPemakaian) => row.customer?.meterNumber || '-',
     },
     {
       key: 'meterStart',
       label: 'Previous',
-      render: (_: any, row: WaterUsage) => (row.meterStart ?? 0).toFixed(2),
+      render: (_: any, row: WaterPemakaian) => (row.meterStart ?? 0).toFixed(2),
       align: 'right' as const,
     },
     {
       key: 'meterEnd',
       label: 'Current',
-      render: (_: any, row: WaterUsage) => (row.meterEnd ?? 0).toFixed(2),
+      render: (_: any, row: WaterPemakaian) => (row.meterEnd ?? 0).toFixed(2),
       align: 'right' as const,
     },
     {
       key: 'usageM3',
-      label: 'Usage (m³)',
-      render: (_: any, row: WaterUsage) => (
+      label: 'Pemakaian (m³)',
+      render: (_: any, row: WaterPemakaian) => (
         <div className="flex items-center justify-end">
           <span className="font-medium">{(row.usageM3 ?? 0).toFixed(2)}</span>
           {row.isAnomaly && (
@@ -182,14 +182,14 @@ export default function UsageList() {
     {
       key: 'amountCalculated',
       label: 'Amount',
-      render: (_: any, row: WaterUsage) => formatCurrency(row.amountCalculated),
+      render: (_: any, row: WaterPemakaian) => formatCurrency(row.amountCalculated),
       align: 'right' as const,
       sortable: true,
     },
     {
       key: 'actions',
       label: 'Actions',
-      render: (_: any, row: WaterUsage) => (
+      render: (_: any, row: WaterPemakaian) => (
         <div className="flex space-x-2">
           <button
             onClick={() => navigate(`/admin/usage/${row.customerId}/history`)}
@@ -218,13 +218,13 @@ export default function UsageList() {
     },
   ];
 
-  const totalUsage = waterUsages.reduce((sum, usage) => sum + usage.usageM3, 0);
-  const totalAmount = waterUsages.reduce((sum, usage) => sum + usage.amountCalculated, 0);
-  const anomaliesCount = waterUsages.filter(u => u.isAnomaly).length;
+  const totalPemakaian = waterPemakaians.reduce((sum, usage) => sum + usage.usageM3, 0);
+  const totalAmount = waterPemakaians.reduce((sum, usage) => sum + usage.amountCalculated, 0);
+  const anomaliesCount = waterPemakaians.filter(u => u.isAnomaly).length;
 
   return (
     <div className="p-6">
-      <PageHeader title="Water Usage" subtitle="Track and manage water meter readings and usage calculations" />
+      <PageHeader title="Pemakaian Air" subtitle="Track and manage water meter readings and usage calculations" />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -240,7 +240,7 @@ export default function UsageList() {
                     Total Records
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {waterUsages.length}
+                    {waterPemakaians.length}
                   </dd>
                 </dl>
               </div>
@@ -257,10 +257,10 @@ export default function UsageList() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Usage
+                    Total Pemakaian
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {totalUsage.toFixed(2)} m³
+                    {totalPemakaian.toFixed(2)} m³
                   </dd>
                 </dl>
               </div>
@@ -331,7 +331,7 @@ export default function UsageList() {
                   onChange={(e) => handleFilterChange('customerId', e.target.value)}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="">All Customers</option>
+                  <option value="">All Pelanggan</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name} ({customer.meter_number})
@@ -387,7 +387,7 @@ export default function UsageList() {
       <div className="bg-white shadow rounded-lg">
         <DataTable
           columns={columns}
-          data={waterUsages}
+          data={waterPemakaians}
           loading={loading}
         />
       </div>

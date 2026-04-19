@@ -39,6 +39,6 @@ export interface SubscriptionTypeFormData {
 export interface SubscriptionTypeStats {
   totalTypes: number;
   activeTypes: number;
-  totalCustomers: number;
+  totalPelanggan: number;
   totalMonthlyRevenue: number;
 }

@@ -31,7 +31,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    console.error('ErrorBoundary menangkap error:', error, errorInfo);
     this.setState({
       error,
       errorInfo,
@@ -49,15 +49,15 @@ class ErrorBoundary extends Component<Props, State> {
           <div className="max-w-md w-full space-y-8">
             <div>
               <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Oops! Something went wrong
+                Oops! Terjadi kesalahan
               </h2>
               <p className="mt-2 text-center text-sm text-gray-600">
-                An error occurred while rendering this page.
+                Terjadi kesalahan saat memuat halaman ini.
               </p>
             </div>
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
-                <h3 className="text-sm font-medium text-red-800 mb-2">Error Details:</h3>
+                <h3 className="text-sm font-medium text-red-800 mb-2">Detail Error:</h3>
                 <pre className="text-xs text-red-700 overflow-auto">
                   {this.state.error.toString()}
                   {this.state.errorInfo && this.state.errorInfo.componentStack}
@@ -69,7 +69,7 @@ class ErrorBoundary extends Component<Props, State> {
                 onClick={() => window.location.reload()}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                Reload Page
+                Muat Ulang Halaman
               </button>
             </div>
           </div>

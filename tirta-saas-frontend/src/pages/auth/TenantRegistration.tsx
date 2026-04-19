@@ -54,6 +54,19 @@ interface RegistrationForm {
   confirm_password: string;
 }
 
+async function parseJsonSafely(response: Response): Promise<any> {
+  const raw = await response.text();
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 const TenantRegistration = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -87,10 +100,18 @@ const TenantRegistration = () => {
         body: JSON.stringify(registrationData),
       });
 
-      const result = await response.json();
+      const result = await parseJsonSafely(response);
 
       if (!response.ok) {
-        throw new Error(result.message || result.error || 'Registration failed');
+        throw new Error(
+          result?.message ||
+            result?.error ||
+            `Registration failed (${response.status}${response.statusText ? ` ${response.statusText}` : ''})`
+        );
+      }
+
+      if (!result) {
+        throw new Error('Registration failed: server returned an empty response.');
       }
 
       setSuccessMessage(

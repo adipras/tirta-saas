@@ -16,11 +16,11 @@ interface RowEntry {
 
 const EMPTY_ROW: RowEntry = { meter_number: '', meter_end: '', notes: '' };
 
-export default function BulkImportWaterUsage() {
+export default function BulkImportWaterPemakaian() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const [usageMonth, setUsageMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [usageMonth, setPemakaianMonth] = useState(new Date().toISOString().slice(0, 7));
   const [rows, setRows] = useState<RowEntry[]>([{ ...EMPTY_ROW }]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: number; failed: number; total: number } | null>(null);
@@ -73,7 +73,7 @@ export default function BulkImportWaterUsage() {
         notes: r.notes,
       }));
 
-      const res = await usageService.bulkImportWaterUsage(usageMonth, records);
+      const res = await usageService.bulkImportWaterPemakaian(usageMonth, records);
       setResult(res);
 
       // Mark row statuses
@@ -121,13 +121,13 @@ export default function BulkImportWaterUsage() {
       )}
 
       <div className="bg-white shadow rounded-lg p-6 space-y-6">
-        {/* Usage Month */}
+        {/* Pemakaian Month */}
         <div className="max-w-xs">
           <label className="block text-sm font-medium text-gray-700 mb-1">Bulan Pemakaian</label>
           <input
             type="month"
             value={usageMonth}
-            onChange={e => setUsageMonth(e.target.value)}
+            onChange={e => setPemakaianMonth(e.target.value)}
             className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
         </div>

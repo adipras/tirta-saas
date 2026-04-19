@@ -22,7 +22,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           <button
             onClick={onMenuClick}
             className="md:hidden mr-3 p-1.5 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-            aria-label="Open sidebar"
+            aria-label="Buka sidebar"
           >
             <Bars3Icon className="h-6 w-6" />
           </button>
@@ -34,8 +34,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           <div className="relative group">
             <div className="flex items-center space-x-2 cursor-pointer">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-gray-900">{user?.name || 'Admin User'}</p>
-                <p className="text-xs text-gray-500 capitalize">{user?.role || 'Administrator'}</p>
+                <p className="text-sm font-medium text-gray-900">{user?.name || 'Pengguna Admin'}</p>
+                <p className="text-xs text-gray-500 capitalize">{user?.role || 'admin'}</p>
               </div>
               <UserCircleIcon className="h-8 w-8 text-gray-400 flex-shrink-0" />
             </div>
@@ -44,7 +44,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                 onClick={handleLogout}
                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
-                Sign out
+                Keluar
               </button>
             </div>
           </div>

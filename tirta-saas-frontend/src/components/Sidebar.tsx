@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { useEffect, useMemo, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
+  ChevronDownIcon,
+  ChevronRightIcon,
   HomeIcon,
   UserGroupIcon,
   DocumentDuplicateIcon,
@@ -15,29 +16,33 @@ import {
   ClipboardDocumentListIcon,
   CheckBadgeIcon,
   UsersIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { authService } from '../services/authService';
 
 const allNavigation = [
   // Platform Owner Menu
-  { name: 'Platform Dashboard', href: '/admin', icon: HomeIcon, roles: ['PLATFORM_OWNER'] },
-  { name: 'Tenants', href: '/admin/platform/tenants', icon: BuildingOfficeIcon, roles: ['PLATFORM_OWNER'] },
-  { name: 'Subscription Payments', href: '/admin/platform/subscription-payments', icon: CheckBadgeIcon, roles: ['PLATFORM_OWNER'] },
-  { name: 'Subscription Plans', href: '/admin/platform/subscription-plans', icon: ClipboardDocumentListIcon, roles: ['PLATFORM_OWNER'] },
-  { name: 'Platform Analytics', href: '/admin/platform/analytics', icon: ChartBarIcon, roles: ['PLATFORM_OWNER'] },
-  { name: 'Platform Settings', href: '/admin/platform/settings', icon: CogIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Dashboard Platform', href: '/admin', icon: HomeIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Tenant', href: '/admin/platform/tenants', icon: BuildingOfficeIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Pembayaran Langganan', href: '/admin/platform/subscription-payments', icon: CheckBadgeIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Paket Langganan', href: '/admin/platform/subscription-plans', icon: ClipboardDocumentListIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Analitik Platform', href: '/admin/platform/analytics', icon: ChartBarIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Pengaturan Platform', href: '/admin/platform/settings', icon: CogIcon, roles: ['PLATFORM_OWNER'] },
   // Tenant Admin Menu
   { name: 'Dashboard', href: '/admin', icon: HomeIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE', 'METER_READER'] },
-  { name: 'Customers', href: '/admin/customers', icon: UserGroupIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE'] },
-  { name: 'Subscription Types', href: '/admin/subscriptions', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
-  { name: 'Water Rates', href: '/admin/water-rates', icon: CurrencyDollarIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
-  { name: 'Invoices', href: '/admin/invoices', icon: DocumentDuplicateIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
-  { name: 'Payments', href: '/admin/payments', icon: CreditCardIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
-  { name: 'Payment Verification', href: '/admin/payment-verification', icon: CheckBadgeIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
-  { name: 'Water Usage', href: '/admin/usage', icon: BeakerIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'METER_READER'] },
-  { name: 'Reports', href: '/admin/reports', icon: ChartBarIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
-  { name: 'User Management', href: '/admin/users', icon: UsersIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
-  { name: 'Settings', href: '/admin/settings', icon: CogIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Pelanggan', href: '/admin/customers', icon: UserGroupIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE'] },
+  { name: 'Tagihan', href: '/admin/invoices', icon: DocumentDuplicateIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
+  { name: 'Pembayaran', href: '/admin/payments', icon: CreditCardIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
+  { name: 'Verifikasi Pembayaran', href: '/admin/payment-verification', icon: CheckBadgeIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
+  { name: 'Pemakaian Air', href: '/admin/usage', icon: BeakerIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'METER_READER'] },
+  { name: 'Laporan', href: '/admin/reports', icon: ChartBarIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'FINANCE'] },
+];
+
+const settingsNavigation = [
+  { name: 'Golongan Langganan', href: '/admin/subscriptions', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Tarif Air', href: '/admin/water-rates', icon: CurrencyDollarIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Manajemen Pengguna', href: '/admin/users', icon: UsersIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Pengaturan Pembayaran', href: '/admin/settings', icon: CogIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
 ];
 
 interface SidebarProps {
@@ -47,8 +52,24 @@ interface SidebarProps {
 
 const SidebarContent = ({ onClose }: { onClose: () => void }) => {
   const user = authService.getUser();
+  const location = useLocation();
   const userRole = user?.role?.toUpperCase() || 'ADMIN';
   const navigation = allNavigation.filter(item => item.roles.includes(userRole));
+  const visibleSettingsNavigation = useMemo(
+    () => settingsNavigation.filter(item => item.roles.includes(userRole)),
+    [userRole]
+  );
+  const hasSettingsMenu = visibleSettingsNavigation.length > 0;
+  const hasActiveSettingsItem = visibleSettingsNavigation.some(item =>
+    location.pathname.startsWith(item.href)
+  );
+  const [settingsOpen, setSettingsOpen] = useState(hasActiveSettingsItem);
+
+  useEffect(() => {
+    if (hasActiveSettingsItem) {
+      setSettingsOpen(true);
+    }
+  }, [hasActiveSettingsItem]);
 
   return (
     <div className="flex flex-col h-full bg-white border-r border-gray-200">
@@ -91,6 +112,52 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
             {item.name}
           </NavLink>
         ))}
+
+        {hasSettingsMenu && (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => setSettingsOpen((prev) => !prev)}
+              className={`group flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                hasActiveSettingsItem
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              <span className="flex items-center">
+                <CogIcon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                Pengaturan
+              </span>
+              {settingsOpen ? (
+                <ChevronDownIcon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+              ) : (
+                <ChevronRightIcon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+              )}
+            </button>
+
+            {settingsOpen && (
+              <div className="mt-1 space-y-0.5 pl-4">
+                {visibleSettingsNavigation.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    to={item.href}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      `group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700 pl-2'
+                          : 'border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      }`
+                    }
+                  >
+                    <item.icon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                    {item.name}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       {/* User info footer */}

@@ -34,7 +34,7 @@ const PaymentSubmissionPage = () => {
   const [error, setError] = useState<string>('');
 
   if (!paymentState) {
-    navigate('/subscription/upgrade');
+    navigate('/admin/subscription/upgrade');
     return null;
   }
 
@@ -167,11 +167,11 @@ const PaymentSubmissionPage = () => {
 
           {/* Payment Instructions */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="font-semibold text-blue-900 mb-3">Payment Instructions</h3>
+            <h3 className="font-semibold text-blue-900 mb-3">Petunjuk Pembayaran</h3>
             
             <div className="space-y-4">
               <div>
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Bank Transfer:</h4>
+                <h4 className="text-sm font-medium text-blue-900 mb-2">Transfer Bank:</h4>
                 <div className="bg-white rounded p-3 text-sm space-y-1">
                   <p><span className="font-medium">Bank:</span> BCA</p>
                   <p><span className="font-medium">Account:</span> 1234567890</p>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { reportService } from '../../services/reportService';
-import type { UsageReport as UsageReportType } from '../../types/report';
+import type { PemakaianReport as PemakaianReportType } from '../../types/report';
 import {
   LineChart,
   Line,
@@ -18,11 +18,11 @@ import { ArrowDownTrayIcon, BeakerIcon } from '@heroicons/react/24/outline';
 import { PageHeader } from '../../components';
 import { exportToCSV, exportToExcel } from '../../utils/exportUtils';
 
-const UsageReport: React.FC = () => {
+const PemakaianReport: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [reportData, setReportData] = useState<UsageReportType | null>(null);
+  const [reportData, setReportData] = useState<PemakaianReportType | null>(null);
   const [filters, setFilters] = useState({
     startDate: searchParams.get('startDate') || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     endDate: searchParams.get('endDate') || new Date().toISOString().split('T')[0],
@@ -35,7 +35,7 @@ const UsageReport: React.FC = () => {
   const fetchReportData = async () => {
     try {
       setLoading(true);
-      const data = await reportService.getUsageReport(filters);
+      const data = await reportService.getPemakaianReport(filters);
       setReportData(data);
     } catch (error) {
       console.error('Failed to fetch usage report:', error);
@@ -51,14 +51,14 @@ const UsageReport: React.FC = () => {
     const trendsRows = (reportData.usageTrends || []).map((item) => ({
       'Month': item.month,
       'Year': item.year,
-      'Total Usage (m³)': item.totalUsage,
-      'Average Usage (m³)': item.averageUsage.toFixed(2),
+      'Total Pemakaian (m³)': item.totalPemakaian,
+      'Average Pemakaian (m³)': item.averagePemakaian.toFixed(2),
       'Customer Count': item.customerCount,
     }));
     const highRows = (reportData.highConsumers || []).map((item) => ({
       'Customer': item.customerName,
       'Meter #': item.meterNumber,
-      'Usage (m³)': item.usage,
+      'Pemakaian (m³)': item.usage,
       'Month': item.month,
       'Year': item.year,
     }));
@@ -68,7 +68,7 @@ const UsageReport: React.FC = () => {
     } else {
       exportToExcel(
         [
-          { sheetName: 'Usage Trends', data: trendsRows },
+          { sheetName: 'Pemakaian Trends', data: trendsRows },
           { sheetName: 'High Consumers', data: highRows },
         ],
         `${baseName}.xlsx`
@@ -101,7 +101,7 @@ const UsageReport: React.FC = () => {
     <div className="p-6">
       {/* Header */}
       <PageHeader
-        title="Water Usage Report"
+        title="Pemakaian Air Report"
         subtitle="Water consumption trends and analysis"
         actions={
           <div className="flex space-x-2">
@@ -166,32 +166,32 @@ const UsageReport: React.FC = () => {
         <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-lg shadow p-8 text-white">
           <div className="flex items-center mb-2">
             <BeakerIcon className="h-8 w-8 mr-3" />
-            <div className="text-sm font-medium">Total Water Usage</div>
+            <div className="text-sm font-medium">Total Pemakaian Air</div>
           </div>
           <div className="text-4xl font-bold">
-            {reportData.totalUsage.toLocaleString('id-ID')} m³
+            {reportData.totalPemakaian.toLocaleString('id-ID')} m³
           </div>
         </div>
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow p-8 text-white">
           <div className="flex items-center mb-2">
             <BeakerIcon className="h-8 w-8 mr-3" />
-            <div className="text-sm font-medium">Average Usage per Customer</div>
+            <div className="text-sm font-medium">Average Pemakaian per Customer</div>
           </div>
           <div className="text-4xl font-bold">
-            {reportData.averageUsage.toFixed(2)} m³
+            {reportData.averagePemakaian.toFixed(2)} m³
           </div>
         </div>
       </div>
 
-      {/* Usage Trend Chart */}
+      {/* Pemakaian Trend Chart */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Water Usage Trends
+          Pemakaian Air Trends
         </h2>
         <ResponsiveContainer width="100%" height={350}>
           <AreaChart data={reportData.usageTrends}>
             <defs>
-              <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="colorPemakaian" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.8}/>
                 <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
               </linearGradient>
@@ -205,20 +205,20 @@ const UsageReport: React.FC = () => {
             <Legend />
             <Area
               type="monotone"
-              dataKey="totalUsage"
+              dataKey="totalPemakaian"
               stroke="#06B6D4"
               fillOpacity={1}
-              fill="url(#colorUsage)"
-              name="Total Usage (m³)"
+              fill="url(#colorPemakaian)"
+              name="Total Pemakaian (m³)"
             />
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Average Usage per Customer Chart */}
+      {/* Average Pemakaian per Customer Chart */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Average Usage per Customer
+          Average Pemakaian per Customer
         </h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={reportData.usageTrends}>
@@ -231,10 +231,10 @@ const UsageReport: React.FC = () => {
             <Legend />
             <Line
               type="monotone"
-              dataKey="averageUsage"
+              dataKey="averagePemakaian"
               stroke="#3B82F6"
               strokeWidth={2}
-              name="Average Usage (m³)"
+              name="Average Pemakaian (m³)"
             />
           </LineChart>
         </ResponsiveContainer>
@@ -259,7 +259,7 @@ const UsageReport: React.FC = () => {
                   Meter Number
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Usage (m³)
+                  Pemakaian (m³)
                 </th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                   Period
@@ -291,10 +291,10 @@ const UsageReport: React.FC = () => {
         </div>
       </div>
 
-      {/* Monthly Usage Details */}
+      {/* Monthly Pemakaian Details */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Monthly Usage Details
+          Monthly Pemakaian Details
         </h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -304,13 +304,13 @@ const UsageReport: React.FC = () => {
                   Month
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Total Usage (m³)
+                  Total Pemakaian (m³)
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                   Avg per Customer
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Active Customers
+                  Active Pelanggan
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                   Change from Previous
@@ -319,18 +319,18 @@ const UsageReport: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {reportData.usageTrends.map((item, index) => {
-                const prevUsage = index > 0 ? reportData.usageTrends[index - 1].totalUsage : 0;
-                const change = prevUsage > 0 ? ((item.totalUsage - prevUsage) / prevUsage) * 100 : 0;
+                const prevPemakaian = index > 0 ? reportData.usageTrends[index - 1].totalPemakaian : 0;
+                const change = prevPemakaian > 0 ? ((item.totalPemakaian - prevPemakaian) / prevPemakaian) * 100 : 0;
                 return (
                   <tr key={index}>
                     <td className="px-4 py-2 text-sm text-gray-900">
                       {item.month} {item.year}
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-900 text-right font-medium">
-                      {item.totalUsage.toLocaleString('id-ID')}
+                      {item.totalPemakaian.toLocaleString('id-ID')}
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                      {item.averageUsage.toFixed(2)}
+                      {item.averagePemakaian.toFixed(2)}
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-900 text-right">
                       {item.customerCount}
@@ -359,4 +359,4 @@ const UsageReport: React.FC = () => {
   );
 };
 
-export default UsageReport;
+export default PemakaianReport;

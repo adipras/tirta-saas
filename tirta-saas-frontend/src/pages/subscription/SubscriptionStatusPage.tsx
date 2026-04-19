@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { subscriptionPaymentService } from '../../services/subscriptionPaymentService';
 import type { SubscriptionStatus } from '../../services/subscriptionPaymentService';
 
-const SubscriptionStatusPage = () => {
+export default function SubscriptionStatusPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +128,7 @@ const SubscriptionStatusPage = () => {
               </div>
               <div className="mt-6">
                 <button
-                  onClick={() => navigate('/subscription/upgrade')}
+                  onClick={() => navigate('/admin/subscription/upgrade')}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
                 >
                   Upgrade to Premium
@@ -217,10 +217,10 @@ const SubscriptionStatusPage = () => {
               {status.status === 'expired' && (
                 <div className="mt-4">
                   <button
-                    onClick={() => navigate('/subscription/upgrade')}
+                    onClick={() => navigate('/admin/subscription/upgrade')}
                     className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
                   >
-                    Upgrade Now
+                    Upgrade Sekarang
                   </button>
                 </div>
               )}
@@ -244,6 +244,4 @@ const SubscriptionStatusPage = () => {
       </div>
     </div>
   );
-};
-
-export default SubscriptionStatusPage;
+}

@@ -24,10 +24,10 @@ interface AgingBucket {
 
 interface OutstandingReportData {
   totalOutstanding: number;
-  totalCustomers: number;
+  totalPelanggan: number;
   overdueCount: number;
   agingBuckets: AgingBucket[];
-  outstandingInvoices: Array<{
+  outstandingTagihan: Array<{
     customerId: number;
     customerName: string;
     invoiceNumber: string;
@@ -68,7 +68,7 @@ const OutstandingReport: React.FC = () => {
     if (!reportData) return;
     const baseName = `outstanding_report_${filters.startDate}_${filters.endDate}`;
 
-    const invoiceRows = (reportData.outstandingInvoices || []).map((item) => ({
+    const invoiceRows = (reportData.outstandingTagihan || []).map((item) => ({
       'Customer': item.customerName,
       'Invoice #': item.invoiceNumber,
       'Invoice Date': item.invoiceDate,
@@ -90,7 +90,7 @@ const OutstandingReport: React.FC = () => {
     } else {
       exportToExcel(
         [
-          { sheetName: 'Outstanding Invoices', data: invoiceRows },
+          { sheetName: 'Outstanding Tagihan', data: invoiceRows },
           { sheetName: 'Aging Analysis', data: agingRows },
         ],
         `${baseName}.xlsx`
@@ -221,11 +221,11 @@ const OutstandingReport: React.FC = () => {
           </div>
         </div>
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow p-6 text-white">
-          <div className="text-sm font-medium mb-2">Customers with Outstanding</div>
-          <div className="text-3xl font-bold">{reportData.totalCustomers}</div>
+          <div className="text-sm font-medium mb-2">Pelanggan with Outstanding</div>
+          <div className="text-3xl font-bold">{reportData.totalPelanggan}</div>
         </div>
         <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg shadow p-6 text-white">
-          <div className="text-sm font-medium mb-2">Overdue Invoices</div>
+          <div className="text-sm font-medium mb-2">Overdue Tagihan</div>
           <div className="text-3xl font-bold">{reportData.overdueCount}</div>
         </div>
       </div>
@@ -294,10 +294,10 @@ const OutstandingReport: React.FC = () => {
         </div>
       </div>
 
-      {/* Outstanding Invoices Table */}
+      {/* Outstanding Tagihan Table */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Outstanding Invoices Details
+          Outstanding Tagihan Details
         </h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -324,7 +324,7 @@ const OutstandingReport: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.outstandingInvoices
+              {reportData.outstandingTagihan
                 .sort((a, b) => b.daysOverdue - a.daysOverdue)
                 .map((invoice, index) => (
                   <tr key={index} className={getAgingBgColor(invoice.daysOverdue)}>

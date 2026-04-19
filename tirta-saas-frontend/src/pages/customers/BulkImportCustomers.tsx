@@ -38,7 +38,7 @@ const TEMPLATE_ROWS = [
   { name: 'Jane Smith', meter_number: 'MTR-002', address: 'Jl. Sudirman No. 5', phone: '082345678901', email: '', is_active: 'true' },
 ];
 
-export default function BulkImportCustomers() {
+export default function BulkImportPelanggan() {
   const navigate = useNavigate();
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -110,7 +110,7 @@ export default function BulkImportCustomers() {
     }
     setLoading(true);
     try {
-      const res = await customerService.bulkImportCustomers(selectedFile);
+      const res = await customerService.bulkImportPelanggan(selectedFile);
       setResult(res);
       if (res.successCount > 0) {
         toast.success(`Berhasil import ${res.successCount} pelanggan`);

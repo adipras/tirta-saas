@@ -42,11 +42,11 @@ function mapProofToPayment(p: PaymentProof): PendingPayment {
   };
 }
 
-export default function TenantPaymentVerification() {
+function TenantPaymentVerification() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
-  const [payments, setPayments] = useState<PendingPayment[]>([]);
-  const [filteredPayments, setFilteredPayments] = useState<PendingPayment[]>([]);
+  const [payments, setPembayaran] = useState<PendingPayment[]>([]);
+  const [filteredPembayaran, setFilteredPembayaran] = useState<PendingPayment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPayment, setSelectedPayment] = useState<PendingPayment | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -55,7 +55,7 @@ export default function TenantPaymentVerification() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    loadPendingPayments();
+    loadPendingPembayaran();
   }, []);
 
   useEffect(() => {
@@ -65,19 +65,19 @@ export default function TenantPaymentVerification() {
           p.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredPayments(filtered);
+      setFilteredPembayaran(filtered);
     } else {
-      setFilteredPayments(payments);
+      setFilteredPembayaran(payments);
     }
   }, [searchTerm, payments]);
 
-  const loadPendingPayments = async () => {
+  const loadPendingPembayaran = async () => {
     try {
       setLoading(true);
       const result = await paymentProofService.getPaymentProofs();
       const mapped = result.payment_proofs.map(mapProofToPayment);
-      setPayments(mapped);
-      setFilteredPayments(mapped);
+      setPembayaran(mapped);
+      setFilteredPembayaran(mapped);
     } catch (error) {
       console.error('Failed to load payments:', error);
     } finally {
@@ -110,7 +110,7 @@ export default function TenantPaymentVerification() {
       }
 
       const newStatus = modalAction === 'verify' ? 'verified' : 'rejected';
-      setPayments((prev) =>
+      setPembayaran((prev) =>
         prev.map((p) =>
           p.id === selectedPayment.id ? { ...p, status: newStatus } : p
         )
@@ -153,7 +153,7 @@ export default function TenantPaymentVerification() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Payment Verification" subtitle="Verify customer payment confirmations" />
+      <PageHeader title="Verifikasi Pembayaran" subtitle="Verify customer payment confirmations" />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
@@ -200,13 +200,13 @@ export default function TenantPaymentVerification() {
         </div>
       </div>
 
-      {/* Payments List */}
+      {/* Pembayaran List */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           </div>
-        ) : filteredPayments.length === 0 ? (
+        ) : filteredPembayaran.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-gray-600">No payments found</p>
           </div>
@@ -223,37 +223,44 @@ export default function TenantPaymentVerification() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPayments.map((payment) => (
+              {filteredPembayaran.map((payment) => (
                 <tr key={payment.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">{payment.invoiceNumber}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">{payment.customerName}</td>
                   <td className="px-6 py-4 text-sm font-semibold text-gray-900">{formatCurrency(payment.amount)}</td>
                   <td className="px-6 py-4 text-sm text-gray-600">{formatDate(payment.paymentDate)}</td>
                   <td className="px-6 py-4">{getStatusBadge(payment.status)}</td>
-                  <td className="px-6 py-4 text-right text-sm space-x-2">
-                    <button
-                      onClick={() => openModal(payment, 'view')}
-                      className="text-blue-600 hover:text-blue-900 inline-flex items-center"
-                    >
-                      <EyeIcon className="h-4 w-4 mr-1" />
-                      View
-                    </button>
-                    {payment.status === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => openModal(payment, 'verify')}
-                          className="text-green-600 hover:text-green-900"
-                        >
-                          Verify
-                        </button>
-                        <button
-                          onClick={() => openModal(payment, 'reject')}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-end gap-2">
+                     <button
+                       onClick={() => openModal(payment, 'view')}
+                       className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
+                       title="Lihat detail"
+                       aria-label="Lihat detail"
+                     >
+                       <EyeIcon className="h-5 w-5" />
+                     </button>
+                     {payment.status === 'pending' && (
+                       <>
+                         <button
+                           onClick={() => openModal(payment, 'verify')}
+                           className="inline-flex items-center justify-center rounded-md p-2.5 text-green-600 hover:bg-green-50 hover:text-green-900"
+                           title="Verifikasi pembayaran"
+                           aria-label="Verifikasi pembayaran"
+                         >
+                           <CheckCircleIcon className="h-5 w-5" />
+                         </button>
+                         <button
+                           onClick={() => openModal(payment, 'reject')}
+                           className="inline-flex items-center justify-center rounded-md p-2.5 text-red-600 hover:bg-red-50 hover:text-red-900"
+                           title="Tolak pembayaran"
+                           aria-label="Tolak pembayaran"
+                         >
+                           <XCircleIcon className="h-5 w-5" />
+                         </button>
+                       </>
+                     )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -387,3 +394,5 @@ export default function TenantPaymentVerification() {
     </div>
   );
 }
+
+export default TenantPaymentVerification;

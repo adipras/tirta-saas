@@ -1,12 +1,12 @@
 import { apiClient } from './apiClient';
 import { API_ENDPOINTS } from '../constants/api';
 import type { 
-  WaterUsage,
-  CreateWaterUsageDto,
-  UpdateWaterUsageDto,
-  WaterUsageFilters,
-  UsageHistory,
-  UsageTrend,
+  WaterPemakaian,
+  CreateWaterPemakaianDto,
+  UpdateWaterPemakaianDto,
+  WaterPemakaianFilters,
+  PemakaianHistory,
+  PemakaianTrend,
   BulkImportRow
 } from '../types/usage';
 
@@ -18,12 +18,12 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-class UsageService {
-  async getWaterUsages(
+class PemakaianService {
+  async getWaterPemakaians(
     page: number = 1,
     limit: number = 10,
-    filters?: WaterUsageFilters
-  ): Promise<PaginatedResponse<WaterUsage>> {
+    filters?: WaterPemakaianFilters
+  ): Promise<PaginatedResponse<WaterPemakaian>> {
     const params: Record<string, string | number | boolean | undefined> = {
       page,
       limit,
@@ -46,7 +46,7 @@ class UsageService {
     const records: any[] = raw.usage_records || (Array.isArray(raw) ? raw : []);
     const total: number = raw.total || records.length;
 
-    const mapped: WaterUsage[] = records.map((u: any) => ({
+    const mapped: WaterPemakaian[] = records.map((u: any) => ({
       id: u.id,
       customerId: u.customer_id ?? u.customerId,
       customer: u.customer ? {
@@ -80,14 +80,14 @@ class UsageService {
     };
   }
 
-  async getWaterUsage(id: string): Promise<WaterUsage> {
+  async getWaterPemakaian(id: string): Promise<WaterPemakaian> {
     const response = await apiClient.get(
       API_ENDPOINTS.WATER_USAGE.DETAIL(id)
     );
     return response.data || response;
   }
 
-  async getCustomerUsageHistoryById(customerId: string): Promise<UsageHistory[]> {
+  async getCustomerPemakaianHistoryById(customerId: string): Promise<PemakaianHistory[]> {
     const response = await apiClient.get(API_ENDPOINTS.WATER_USAGE.LIST, {
       params: { customer_id: customerId, limit: 12 },
     });
@@ -96,7 +96,7 @@ class UsageService {
     // Backend returns { usage_records: [...], total: N }
     const usageArray: any[] = data.usage_records || (Array.isArray(data) ? data : []);
     
-    // Transform to UsageHistory format, already sorted DESC by usage_month from backend
+    // Transform to PemakaianHistory format, already sorted DESC by usage_month from backend
     return usageArray.map((usage: any) => ({
       month: usage.usage_month || usage.usageMonth,
       meterStart: usage.meter_start ?? usage.meterStart ?? 0,
@@ -106,24 +106,24 @@ class UsageService {
     }));
   }
 
-  async getUsageTrends(
+  async getPemakaianTrends(
     customerId?: string,
     months: number = 6
-  ): Promise<UsageTrend[]> {
-    const filters: WaterUsageFilters = {};
+  ): Promise<PemakaianTrend[]> {
+    const filters: WaterPemakaianFilters = {};
     if (customerId) {
       filters.customerId = customerId;
     }
 
-    const response = await this.getWaterUsages(1, months, filters);
+    const response = await this.getWaterPemakaians(1, months, filters);
     
-    return response.data.map((usage: WaterUsage) => ({
+    return response.data.map((usage: WaterPemakaian) => ({
       month: usage.usageMonth,
       usage: usage.usageM3,
     })).reverse();
   }
 
-  async createWaterUsage(data: CreateWaterUsageDto): Promise<WaterUsage> {
+  async createWaterPemakaian(data: CreateWaterPemakaianDto): Promise<WaterPemakaian> {
     const response = await apiClient.post(
       API_ENDPOINTS.WATER_USAGE.CREATE,
       {
@@ -136,10 +136,10 @@ class UsageService {
     return response.data || response;
   }
 
-  async updateWaterUsage(
+  async updateWaterPemakaian(
     id: string,
-    data: UpdateWaterUsageDto
-  ): Promise<WaterUsage> {
+    data: UpdateWaterPemakaianDto
+  ): Promise<WaterPemakaian> {
     const response = await apiClient.put(
       API_ENDPOINTS.WATER_USAGE.UPDATE(id),
       {
@@ -150,7 +150,7 @@ class UsageService {
     return response.data || response;
   }
 
-  async deleteWaterUsage(id: string): Promise<void> {
+  async deleteWaterPemakaian(id: string): Promise<void> {
     await apiClient.delete(API_ENDPOINTS.WATER_USAGE.DELETE(id));
   }
 
@@ -166,7 +166,7 @@ class UsageService {
     return response.data || response;
   }
 
-  async bulkImportWaterUsage(usageMonth: string, records: Array<{ meter_number?: string; customer_id?: string; meter_end: number; notes?: string }>): Promise<{
+  async bulkImportWaterPemakaian(usageMonth: string, records: Array<{ meter_number?: string; customer_id?: string; meter_end: number; notes?: string }>): Promise<{
     success: number;
     failed: number;
     total: number;
@@ -180,24 +180,24 @@ class UsageService {
   }
 
   // Legacy support
-  getUsageList() {
-    return this.getWaterUsages();
+  getPemakaianList() {
+    return this.getWaterPemakaians();
   }
 
   // Customer-specific usage methods
-  async getCustomerUsageHistory(period: '6months' | '12months' | 'all' = '6months'): Promise<WaterUsage[]> {
+  async getCustomerPemakaianHistory(period: '6months' | '12months' | 'all' = '6months'): Promise<WaterPemakaian[]> {
     const params: Record<string, string> = { period };
     const response = await apiClient.get('/customer/usage/history', { params });
     const data = response.data || response;
     return Array.isArray(data) ? data : [];
   }
 
-  async getCurrentUsage(): Promise<WaterUsage> {
+  async getCurrentPemakaian(): Promise<WaterPemakaian> {
     const response = await apiClient.get('/customer/usage/current');
     return response.data || response;
   }
 
-  async getUsageStats(): Promise<{
+  async getPemakaianStats(): Promise<{
     currentMonth: number;
     lastMonth: number;
     average: number;
@@ -209,5 +209,5 @@ class UsageService {
   }
 }
 
-export const usageService = new UsageService();
+export const usageService = new PemakaianService();
 export default usageService;

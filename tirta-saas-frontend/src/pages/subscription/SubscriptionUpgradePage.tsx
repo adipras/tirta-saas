@@ -385,13 +385,13 @@ export default function SubscriptionUpgradePage() {
 
           {/* Payment Instructions */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-900 mb-2">📋 Payment Instructions</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">📋 Petunjuk Pembayaran</h3>
             <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
-              <li>Transfer the exact amount to our bank account</li>
-              <li>Take a screenshot or photo of the transfer receipt</li>
-              <li>Fill in the payment details below</li>
-              <li>Upload your payment proof</li>
-              <li>Submit and wait for verification (usually within 24 hours)</li>
+              <li>Transfer sesuai nominal tagihan ke rekening kami</li>
+              <li>Ambil screenshot atau foto bukti transfer</li>
+              <li>Isi detail pembayaran pada form di bawah</li>
+              <li>Unggah bukti pembayaran Anda</li>
+              <li>Kirim dan tunggu proses verifikasi (biasanya dalam 24 jam)</li>
             </ol>
           </div>
 

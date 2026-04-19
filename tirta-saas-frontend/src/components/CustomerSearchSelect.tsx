@@ -19,7 +19,7 @@ export default function CustomerSearchSelect({
   onChange,
   disabled = false,
   error,
-  label = 'Customer',
+  label = 'Pelanggan',
   required = false,
 }: CustomerSearchSelectProps) {
   const [query, setQuery] = useState('');
@@ -36,7 +36,7 @@ export default function CustomerSearchSelect({
   }, [value, customers]);
 
   // Filter customers by name or meter_number
-  const filteredCustomers =
+  const filteredPelanggan =
     query === ''
       ? customers
       : customers.filter((customer) => {
@@ -66,7 +66,7 @@ export default function CustomerSearchSelect({
                 customer ? `${customer.name} (${customer.meter_number})` : ''
               }
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by name or meter number..."
+              placeholder="Cari berdasarkan nama atau nomor meter..."
               disabled={disabled}
             />
             <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
@@ -81,15 +81,15 @@ export default function CustomerSearchSelect({
             afterLeave={() => setQuery('')}
           >
             <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-              {filteredCustomers.length === 0 && query !== '' ? (
+              {filteredPelanggan.length === 0 && query !== '' ? (
                 <div className="relative cursor-default select-none px-4 py-2 text-gray-700">
                   <div className="flex items-center">
                     <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 mr-2" />
-                    <span>No customers found.</span>
+                    <span>Tidak ada pelanggan ditemukan.</span>
                   </div>
                 </div>
               ) : (
-                filteredCustomers.map((customer) => (
+                filteredPelanggan.map((customer) => (
                   <Combobox.Option
                     key={customer.id}
                     className={({ active }) =>
@@ -110,7 +110,7 @@ export default function CustomerSearchSelect({
                               <span className={`text-xs px-2 py-0.5 rounded-full ${
                                 active ? 'bg-yellow-200 text-yellow-900' : 'bg-yellow-100 text-yellow-800'
                               }`}>
-                                Inactive
+                                Nonaktif
                               </span>
                             )}
                           </div>
@@ -142,7 +142,7 @@ export default function CustomerSearchSelect({
         <div className="mt-2 p-3 bg-gray-50 rounded-md">
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <span className="text-gray-500">Name:</span>
+              <span className="text-gray-500">Nama:</span>
               <span className="ml-2 font-medium">{selectedCustomer.name}</span>
             </div>
             <div>
@@ -150,7 +150,7 @@ export default function CustomerSearchSelect({
               <span className="ml-2 font-medium">{selectedCustomer.meter_number || 'N/A'}</span>
             </div>
             <div>
-              <span className="text-gray-500">Address:</span>
+              <span className="text-gray-500">Alamat:</span>
               <span className="ml-2 font-medium">{selectedCustomer.address || 'N/A'}</span>
             </div>
             <div>
@@ -160,7 +160,7 @@ export default function CustomerSearchSelect({
                   selectedCustomer.is_active ? 'text-green-600' : 'text-red-600'
                 }`}
               >
-                {selectedCustomer.is_active ? 'Active' : 'Inactive'}
+                {selectedCustomer.is_active ? 'Aktif' : 'Nonaktif'}
               </span>
             </div>
           </div>

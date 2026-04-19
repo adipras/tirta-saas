@@ -237,7 +237,7 @@ const ComponentShowcase = () => {
             />
 
             <FormInput
-              label="Email Address"
+              label="Alamat Email"
               name="email"
               type="email"
               value={formData.email}

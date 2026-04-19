@@ -3,19 +3,19 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
-import type { UsageHistory } from '../../types/usage';
+import type { PemakaianHistory } from '../../types/usage';
 import type { Customer } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader } from '../../components';
 
-export default function UsageHistoryPage() {
+export default function PemakaianHistoryPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { customerId } = useParams<{ customerId: string }>();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [history, setHistory] = useState<UsageHistory[]>([]);
+  const [history, setHistory] = useState<PemakaianHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCustomer = useCallback(async () => {
@@ -38,7 +38,7 @@ export default function UsageHistoryPage() {
 
     try {
       setLoading(true);
-      const data = await usageService.getCustomerUsageHistoryById(customerId);
+      const data = await usageService.getCustomerPemakaianHistoryById(customerId);
       setHistory(data as any);
     } catch (error) {
       dispatch(addNotification({
@@ -73,9 +73,9 @@ export default function UsageHistoryPage() {
     });
   };
 
-  const totalUsage = history.reduce((sum, item) => sum + item.usageM3, 0);
+  const totalPemakaian = history.reduce((sum, item) => sum + item.usageM3, 0);
   const totalAmount = history.reduce((sum, item) => sum + item.amount, 0);
-  const averageUsage = history.length > 0 ? totalUsage / history.length : 0;
+  const averagePemakaian = history.length > 0 ? totalPemakaian / history.length : 0;
 
   return (
     <div className="p-6">
@@ -84,10 +84,10 @@ export default function UsageHistoryPage() {
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
-          Back to Water Usage
+          Back to Pemakaian Air
         </button>
       <PageHeader
-        title="Usage History"
+        title="Pemakaian History"
         subtitle={customer ? `${customer.name} (${customer.meter_number})` : undefined}
       />
 
@@ -96,10 +96,10 @@ export default function UsageHistoryPage() {
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <dt className="text-sm font-medium text-gray-500 truncate">
-              Total Usage
+              Total Pemakaian
             </dt>
             <dd className="mt-1 text-3xl font-semibold text-gray-900">
-              {totalUsage.toFixed(2)} m³
+              {totalPemakaian.toFixed(2)} m³
             </dd>
           </div>
         </div>
@@ -107,10 +107,10 @@ export default function UsageHistoryPage() {
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <dt className="text-sm font-medium text-gray-500 truncate">
-              Average Usage
+              Average Pemakaian
             </dt>
             <dd className="mt-1 text-3xl font-semibold text-gray-900">
-              {averageUsage.toFixed(2)} m³
+              {averagePemakaian.toFixed(2)} m³
             </dd>
           </div>
         </div>
@@ -146,7 +146,7 @@ export default function UsageHistoryPage() {
                   Current Reading
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Usage (m³)
+                  Pemakaian (m³)
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount
@@ -157,7 +157,7 @@ export default function UsageHistoryPage() {
               {loading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
-                    Loading...
+                    Memuat...
                   </td>
                 </tr>
               ) : history.length === 0 ? (

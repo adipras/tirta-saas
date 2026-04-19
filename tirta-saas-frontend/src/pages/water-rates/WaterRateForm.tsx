@@ -160,7 +160,7 @@ export default function WaterRateForm() {
           className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="h-4 w-4 mr-2" />
-          Back to Water Rates
+          Back to Tarif Air
         </button>
       <PageHeader
         title={isEditMode ? 'Edit Water Rate' : 'Create Water Rate'}

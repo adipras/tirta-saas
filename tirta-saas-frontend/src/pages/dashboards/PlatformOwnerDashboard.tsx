@@ -36,7 +36,7 @@ interface PendingTenant {
   subscription_plan?: string;
 }
 
-export default function PlatformOwnerDashboard() {
+function PlatformOwnerDashboard() {
   const navigate = useNavigate();
   const [overview, setOverview] = useState<PlatformAnalyticsOverview | null>(null);
   const [pendingTenants, setPendingTenants] = useState<PendingTenant[]>([]);
@@ -90,11 +90,6 @@ export default function PlatformOwnerDashboard() {
     });
   };
 
-  const getPendingCount = () => {
-    if (!overview) return 0;
-    return overview.total_tenants - overview.active_tenants - overview.suspended_tenants - overview.trial_tenants;
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -131,9 +126,9 @@ export default function PlatformOwnerDashboard() {
       color: 'bg-green-500',
     },
     {
-      name: 'Pending Approval',
-      value: getPendingCount().toString(),
-      change: `${overview.trial_tenants} trial`,
+      name: 'Pending Activation',
+      value: pendingTenants.length.toString(),
+      change: `${overview.trial_tenants} tenant trial aktif`,
       changeType: 'increase',
       icon: ClockIcon,
       color: 'bg-yellow-500',
@@ -219,7 +214,7 @@ export default function PlatformOwnerDashboard() {
               <span className="text-lg font-semibold text-gray-900">{overview.total_users}</span>
             </div>
             <div className="flex items-center justify-between pb-3 border-b">
-              <span className="text-sm text-gray-600">Total Customers</span>
+              <span className="text-sm text-gray-600">Total Pelanggan</span>
               <span className="text-lg font-semibold text-gray-900">{overview.total_customers}</span>
             </div>
             <div className="flex items-center justify-between pb-3 border-b">
@@ -244,7 +239,7 @@ export default function PlatformOwnerDashboard() {
         {/* Pending Tenants */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Tenant Pending Approval</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Tenant Pending</h2>
             <button
               onClick={() => navigate('/admin/platform/tenants')}
               className="text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -283,7 +278,7 @@ export default function PlatformOwnerDashboard() {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <ClockIcon className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p className="text-sm">Tidak ada tenant pending approval</p>
+              <p className="text-sm">Tidak ada tenant pending</p>
             </div>
           )}
         </div>
@@ -330,3 +325,5 @@ export default function PlatformOwnerDashboard() {
     </div>
   );
 }
+
+export default PlatformOwnerDashboard;

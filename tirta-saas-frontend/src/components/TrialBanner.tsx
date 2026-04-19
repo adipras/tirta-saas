@@ -38,7 +38,7 @@ const TrialBanner = () => {
   };
 
   const handleUpgradeClick = () => {
-    navigate('/subscription/upgrade');
+    navigate('/admin/subscription/upgrade');
   };
 
   // Don't show banner if not loading and (no status or not trial/pending)
@@ -65,14 +65,14 @@ const TrialBanner = () => {
           <div className="flex-1">
             {status.status === 'trial' && (
               <p className="text-sm font-medium">
-                <span className="font-bold">TRIAL MODE</span> - {daysRemaining} days remaining
-                {isUrgent && ' (Upgrade soon to avoid service interruption!)'}
+                <span className="font-bold">MODE TRIAL</span> - sisa {daysRemaining} hari
+                {isUrgent && ' (Segera upgrade agar layanan tidak terputus!)'}
               </p>
             )}
             {status.status === 'pending_verification' && (
               <p className="text-sm font-medium">
-                <span className="font-bold">PAYMENT PENDING</span> - Your subscription payment is
-                being verified by our team
+                <span className="font-bold">PEMBAYARAN MENUNGGU VERIFIKASI</span> - pembayaran
+                langganan Anda sedang diverifikasi oleh tim kami
               </p>
             )}
           </div>
@@ -84,21 +84,21 @@ const TrialBanner = () => {
               onClick={handleUpgradeClick}
               className={`${buttonColor} px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 flex-shrink-0`}
             >
-              Upgrade Now
+              Upgrade Sekarang
             </button>
           )}
           {status.status === 'pending_verification' && (
             <button
-              onClick={() => navigate('/subscription/status')}
+              onClick={() => navigate('/admin/subscription/status')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 flex-shrink-0"
             >
-              View Status
+              Lihat Status
             </button>
           )}
           <button
             onClick={handleDismiss}
             className={`${textColor} hover:bg-opacity-20 hover:bg-black rounded-md p-1 transition-colors duration-200 flex-shrink-0`}
-            aria-label="Dismiss"
+            aria-label="Tutup"
           >
             <XMarkIcon className="h-5 w-5" />
           </button>

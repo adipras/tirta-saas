@@ -21,7 +21,7 @@ import {
 } from 'recharts';
 import { usageService } from '../../services/usageService';
 
-interface CustomerUsageData {
+interface CustomerPemakaianData {
   id: string;
   readingDate: string;
   previousReading: number;
@@ -30,7 +30,7 @@ interface CustomerUsageData {
   usageM3?: number;
 }
 
-interface UsageStats {
+interface PemakaianStats {
   currentMonth: number;
   lastMonth: number;
   average: number;
@@ -39,31 +39,31 @@ interface UsageStats {
   percentageChange: number;
 }
 
-export default function CustomerUsageMonitor() {
-  const [usageHistory, setUsageHistory] = useState<CustomerUsageData[]>([]);
+export default function CustomerPemakaianMonitor() {
+  const [usageHistory, setPemakaianHistory] = useState<CustomerPemakaianData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<UsageStats | null>(null);
+  const [stats, setStats] = useState<PemakaianStats | null>(null);
   const [period, setPeriod] = useState<'6months' | '12months' | 'all'>('6months');
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    loadUsageData();
+    loadPemakaianData();
   }, [period]);
 
-  const loadUsageData = async () => {
+  const loadPemakaianData = async () => {
     try {
       setLoading(true);
-      const data = await usageService.getCustomerUsageHistory(period);
-      // Transform WaterUsage to CustomerUsageData
-      const transformed: CustomerUsageData[] = data.map((item: any) => ({
+      const data = await usageService.getCustomerPemakaianHistory(period);
+      // Transform WaterPemakaian to CustomerPemakaianData
+      const transformed: CustomerPemakaianData[] = data.map((item: any) => ({
         id: item.id,
         readingDate: item.usageMonth || item.createdAt,
         previousReading: item.meterStart,
         currentReading: item.meterEnd,
         usage: item.usageM3,
       }));
-      setUsageHistory(transformed);
+      setPemakaianHistory(transformed);
       calculateStats(transformed);
       setError(null);
     } catch (err: any) {
@@ -73,7 +73,7 @@ export default function CustomerUsageMonitor() {
     }
   };
 
-  const calculateStats = (data: CustomerUsageData[]) => {
+  const calculateStats = (data: CustomerPemakaianData[]) => {
     if (data.length === 0) {
       setStats(null);
       return;
@@ -178,7 +178,7 @@ export default function CustomerUsageMonitor() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Water Usage Monitor</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Pemakaian Air Monitor</h1>
           <p className="text-gray-600">Track your water consumption and trends</p>
         </div>
         <select
@@ -218,7 +218,7 @@ export default function CustomerUsageMonitor() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Average Usage</p>
+                <p className="text-sm font-medium text-gray-600">Average Pemakaian</p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">{stats.average.toFixed(1)} m³</p>
               </div>
               <div className="h-10 w-10 flex items-center justify-center text-gray-400">
@@ -247,7 +247,7 @@ export default function CustomerUsageMonitor() {
           <div className="flex">
             <div className="ml-3">
               <p className="text-sm text-yellow-700">
-                <strong>High Usage Alert!</strong> Your water consumption has increased by{' '}
+                <strong>High Pemakaian Alert!</strong> Your water consumption has increased by{' '}
                 <strong>{stats.percentageChange.toFixed(1)}%</strong> compared to last month. 
                 Consider checking for leaks or reducing usage.
               </p>
@@ -272,13 +272,13 @@ export default function CustomerUsageMonitor() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Usage Trend Line Chart */}
+        {/* Pemakaian Trend Line Chart */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Usage Trend</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Pemakaian Trend</h2>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={getChartData()}>
               <defs>
-                <linearGradient id="colorUsage" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="colorPemakaian" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
                   <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
                 </linearGradient>
@@ -292,7 +292,7 @@ export default function CustomerUsageMonitor() {
                 dataKey="usage"
                 stroke="#3B82F6"
                 fillOpacity={1}
-                fill="url(#colorUsage)"
+                fill="url(#colorPemakaian)"
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -300,7 +300,7 @@ export default function CustomerUsageMonitor() {
 
         {/* Monthly Comparison Bar Chart */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Usage vs Average</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Pemakaian vs Average</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={getComparisonData()}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -343,10 +343,10 @@ export default function CustomerUsageMonitor() {
         </ResponsiveContainer>
       </div>
 
-      {/* Usage History Table */}
+      {/* Pemakaian History Table */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Usage History</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Pemakaian History</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -362,7 +362,7 @@ export default function CustomerUsageMonitor() {
                   Current Reading
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Usage (m³)
+                  Pemakaian (m³)
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Change
@@ -380,8 +380,8 @@ export default function CustomerUsageMonitor() {
                 usageHistory
                   .sort((a, b) => new Date(b.readingDate).getTime() - new Date(a.readingDate).getTime())
                   .map((usage, index, array) => {
-                    const previousUsage = array[index + 1]?.usage;
-                    const change = previousUsage ? ((usage.usage - previousUsage) / previousUsage) * 100 : 0;
+                    const previousPemakaian = array[index + 1]?.usage;
+                    const change = previousPemakaian ? ((usage.usage - previousPemakaian) / previousPemakaian) * 100 : 0;
                     
                     return (
                       <tr key={usage.id} className="hover:bg-gray-50">

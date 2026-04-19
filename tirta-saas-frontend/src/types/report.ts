@@ -28,7 +28,7 @@ export interface PaymentReport {
   totalOutstanding: number;
   paymentMethodBreakdown: PaymentMethodStats[];
   dailyCollection: DailyCollection[];
-  outstandingPayments: OutstandingPayment[];
+  outstandingPembayaran: OutstandingPayment[];
 }
 
 export interface PaymentMethodStats {
@@ -55,20 +55,20 @@ export interface OutstandingPayment {
 
 // Customer Analytics Types
 export interface CustomerAnalytics {
-  totalCustomers: number;
-  activeCustomers: number;
-  inactiveCustomers: number;
-  suspendedCustomers: number;
+  totalPelanggan: number;
+  activePelanggan: number;
+  inactivePelanggan: number;
+  suspendedPelanggan: number;
   customerGrowth: CustomerGrowth[];
   statusDistribution: StatusDistribution[];
-  topCustomers: TopCustomer[];
+  topPelanggan: TopCustomer[];
 }
 
 export interface CustomerGrowth {
   month: string;
   year: number;
-  newCustomers: number;
-  totalCustomers: number;
+  newPelanggan: number;
+  totalPelanggan: number;
 }
 
 export interface StatusDistribution {
@@ -80,24 +80,24 @@ export interface StatusDistribution {
 export interface TopCustomer {
   customerId: number;
   customerName: string;
-  totalUsage: number;
+  totalPemakaian: number;
   totalRevenue: number;
   rank: number;
 }
 
-// Usage Report Types
-export interface UsageReport {
-  totalUsage: number;
-  averageUsage: number;
-  usageTrends: UsageTrend[];
+// Pemakaian Report Types
+export interface PemakaianReport {
+  totalPemakaian: number;
+  averagePemakaian: number;
+  usageTrends: PemakaianTrend[];
   highConsumers: HighConsumer[];
 }
 
-export interface UsageTrend {
+export interface PemakaianTrend {
   month: string;
   year: number;
-  totalUsage: number;
-  averageUsage: number;
+  totalPemakaian: number;
+  averagePemakaian: number;
   customerCount: number;
 }
 

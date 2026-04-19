@@ -51,18 +51,18 @@ const CustomerAnalytics: React.FC = () => {
     if (!reportData) return;
     const baseName = `customer_analytics_${filters.startDate}_${filters.endDate}`;
 
-    const topRows = (reportData.topCustomers || []).map((item) => ({
+    const topRows = (reportData.topPelanggan || []).map((item) => ({
       'Rank': item.rank,
       'Customer': item.customerName,
-      'Total Usage (m³)': item.totalUsage,
+      'Total Pemakaian (m³)': item.totalPemakaian,
       'Total Revenue (IDR)': item.totalRevenue,
       'Total Revenue': formatIDR(item.totalRevenue),
     }));
     const growthRows = (reportData.customerGrowth || []).map((item) => ({
       'Month': item.month,
       'Year': item.year,
-      'New Customers': item.newCustomers,
-      'Total Customers': item.totalCustomers,
+      'New Pelanggan': item.newPelanggan,
+      'Total Pelanggan': item.totalPelanggan,
     }));
     const statusRows = (reportData.statusDistribution || []).map((item) => ({
       'Status': item.status,
@@ -75,7 +75,7 @@ const CustomerAnalytics: React.FC = () => {
     } else {
       exportToExcel(
         [
-          { sheetName: 'Top Customers', data: topRows },
+          { sheetName: 'Top Pelanggan', data: topRows },
           { sheetName: 'Customer Growth', data: growthRows },
           { sheetName: 'Status Distribution', data: statusRows },
         ],
@@ -174,27 +174,27 @@ const CustomerAnalytics: React.FC = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm font-medium text-gray-600 mb-2">Total Customers</div>
+          <div className="text-sm font-medium text-gray-600 mb-2">Total Pelanggan</div>
           <div className="text-3xl font-bold text-gray-900">
-            {reportData.totalCustomers}
+            {reportData.totalPelanggan}
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm font-medium text-gray-600 mb-2">Active</div>
           <div className="text-3xl font-bold text-green-600">
-            {reportData.activeCustomers}
+            {reportData.activePelanggan}
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm font-medium text-gray-600 mb-2">Inactive</div>
           <div className="text-3xl font-bold text-yellow-600">
-            {reportData.inactiveCustomers}
+            {reportData.inactivePelanggan}
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm font-medium text-gray-600 mb-2">Suspended</div>
           <div className="text-3xl font-bold text-red-600">
-            {reportData.suspendedCustomers}
+            {reportData.suspendedPelanggan}
           </div>
         </div>
       </div>
@@ -211,23 +211,23 @@ const CustomerAnalytics: React.FC = () => {
             <Legend />
             <Line
               type="monotone"
-              dataKey="newCustomers"
+              dataKey="newPelanggan"
               stroke="#10B981"
-              name="New Customers"
+              name="New Pelanggan"
               strokeWidth={2}
             />
             <Line
               type="monotone"
-              dataKey="totalCustomers"
+              dataKey="totalPelanggan"
               stroke="#3B82F6"
-              name="Total Customers"
+              name="Total Pelanggan"
               strokeWidth={2}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Status Distribution & Top Customers */}
+      {/* Status Distribution & Top Pelanggan */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Status Distribution */}
         <div className="bg-white rounded-lg shadow p-6">
@@ -254,13 +254,13 @@ const CustomerAnalytics: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Top Customers by Revenue */}
+        {/* Top Pelanggan by Revenue */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Top Customers by Revenue
+            Top Pelanggan by Revenue
           </h2>
           <div className="space-y-3">
-            {reportData.topCustomers.slice(0, 5).map((customer) => (
+            {reportData.topPelanggan.slice(0, 5).map((customer) => (
               <div
                 key={customer.customerId}
                 className="flex justify-between items-center p-3 bg-gray-50 rounded-md"
@@ -270,7 +270,7 @@ const CustomerAnalytics: React.FC = () => {
                     #{customer.rank}. {customer.customerName}
                   </div>
                   <div className="text-sm text-gray-600">
-                    Usage: {customer.totalUsage.toLocaleString()} m³
+                    Pemakaian: {customer.totalPemakaian.toLocaleString()} m³
                   </div>
                 </div>
                 <div className="text-right">
@@ -297,10 +297,10 @@ const CustomerAnalytics: React.FC = () => {
                   Month
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  New Customers
+                  New Pelanggan
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Total Customers
+                  Total Pelanggan
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                   Growth Rate
@@ -310,10 +310,10 @@ const CustomerAnalytics: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {reportData.customerGrowth.map((item, index) => {
                 const prevTotal =
-                  index > 0 ? reportData.customerGrowth[index - 1].totalCustomers : 0;
+                  index > 0 ? reportData.customerGrowth[index - 1].totalPelanggan : 0;
                 const growthRate =
                   prevTotal > 0
-                    ? ((item.totalCustomers - prevTotal) / prevTotal) * 100
+                    ? ((item.totalPelanggan - prevTotal) / prevTotal) * 100
                     : 0;
                 return (
                   <tr key={index}>
@@ -321,10 +321,10 @@ const CustomerAnalytics: React.FC = () => {
                       {item.month} {item.year}
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                      {item.newCustomers}
+                      {item.newPelanggan}
                     </td>
                     <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                      {item.totalCustomers}
+                      {item.totalPelanggan}
                     </td>
                     <td className="px-4 py-2 text-sm text-right">
                       <span

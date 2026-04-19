@@ -43,8 +43,8 @@ export interface PaymentFormData {
 }
 
 export interface PaymentReceipt {
-  id: number;
-  paymentId: number;
+  id: string;
+  paymentId: string;
   receiptNumber: string;
   payment: Payment;
   invoiceDetails: {
@@ -75,16 +75,17 @@ export interface OutstandingInvoice {
 }
 
 export const PAYMENT_METHOD_LABELS = {
-  cash: 'Cash',
-  bank_transfer: 'Bank Transfer',
-  card: 'Card',
-  e_wallet: 'E-Wallet',
-  other: 'Other',
+  cash: 'Tunai',
+  bank_transfer: 'Transfer Bank',
+  card: 'Kartu',
+  e_wallet: 'Dompet Digital',
+  qris: 'QRIS',
+  other: 'Lainnya',
 } as const;
 
 export const PAYMENT_STATUS_LABELS = {
-  pending: 'Pending',
-  completed: 'Completed',
-  failed: 'Failed',
-  voided: 'Voided',
+  pending: 'Menunggu',
+  completed: 'Selesai',
+  failed: 'Gagal',
+  voided: 'Dibatalkan',
 } as const;

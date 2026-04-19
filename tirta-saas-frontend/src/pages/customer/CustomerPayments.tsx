@@ -4,9 +4,9 @@ import { ArrowLeftIcon, CreditCardIcon, CheckCircleIcon } from '@heroicons/react
 import customerAuthService from '../../services/customerAuthService';
 import customerPortalService, { type CustomerPayment } from '../../services/customerPortalService';
 
-const CustomerPayments: React.FC = () => {
+const CustomerPembayaran: React.FC = () => {
   const navigate = useNavigate();
-  const [payments, setPayments] = useState<CustomerPayment[]>([]);
+  const [payments, setPembayaran] = useState<CustomerPayment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,13 +14,13 @@ const CustomerPayments: React.FC = () => {
       navigate('/customer/login');
       return;
     }
-    loadPayments();
+    loadPembayaran();
   }, [navigate]);
 
-  const loadPayments = async () => {
+  const loadPembayaran = async () => {
     try {
-      const data = await customerPortalService.getPayments();
-      setPayments(data);
+      const data = await customerPortalService.getPembayaran();
+      setPembayaran(data);
     } catch (error) {
       console.error('Error loading payments:', error);
     } finally {
@@ -47,7 +47,7 @@ const CustomerPayments: React.FC = () => {
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center h-screen">Memuat...</div>;
   }
 
   return (
@@ -79,7 +79,7 @@ const CustomerPayments: React.FC = () => {
           </div>
         </div>
 
-        {/* Payments List */}
+        {/* Pembayaran List */}
         {payments.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <CreditCardIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -141,4 +141,4 @@ const CustomerPayments: React.FC = () => {
   );
 };
 
-export default CustomerPayments;
+export default CustomerPembayaran;

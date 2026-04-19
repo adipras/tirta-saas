@@ -37,8 +37,8 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/invoices/${id}`,
     UPDATE: (id: string) => `/invoices/${id}`,
     DELETE: (id: string) => `/invoices/${id}`,
-    GENERATE: '/invoices/generate',
-    GENERATE_BULK: '/invoices/generate-bulk',
+    GENERATE: '/invoices/generate-monthly',
+    GENERATE_BULK: '/invoices/bulk-generate',
     SEND: (id: string) => `/invoices/${id}/send`,
     VOID: (id: string) => `/invoices/${id}/void`,
     PDF: (id: string) => `/invoices/${id}/pdf`,
@@ -83,6 +83,7 @@ export const API_ENDPOINTS = {
   },
   PLATFORM: {
     TENANTS: '/platform/tenants',
+    TENANT_STATS: '/platform/tenants/stats',
     PENDING_TENANTS: '/platform/tenants/pending',
     TENANT_DETAIL: (id: string) => `/platform/tenants/${id}`,
     APPROVE_TENANT: (id: string) => `/platform/tenants/${id}/approve`,

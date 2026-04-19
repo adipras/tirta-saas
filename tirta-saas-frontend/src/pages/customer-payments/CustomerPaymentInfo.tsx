@@ -129,12 +129,12 @@ export default function CustomerPaymentInfo() {
         <div className="flex">
           <ClipboardDocumentCheckIcon className="h-5 w-5 text-yellow-400 mt-0.5 flex-shrink-0" />
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">Payment Instructions</h3>
+            <h3 className="text-sm font-medium text-yellow-800">Petunjuk Pembayaran</h3>
             <ol className="mt-2 text-sm text-yellow-700 list-decimal list-inside space-y-1">
-              <li>Transfer the exact amount to one of the accounts below</li>
-              <li>Save your transfer receipt</li>
-              <li>Click "Confirm Payment" to upload your proof</li>
-              <li>Payment verified within 1-2 business days</li>
+              <li>Transfer sesuai nominal tagihan ke salah satu rekening di bawah</li>
+              <li>Simpan bukti transfer Anda</li>
+              <li>Klik "Konfirmasi Pembayaran" untuk mengunggah bukti pembayaran</li>
+              <li>Pembayaran akan diverifikasi dalam 1-2 hari kerja</li>
             </ol>
           </div>
         </div>
@@ -233,7 +233,7 @@ export default function CustomerPaymentInfo() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Already paid?</h3>
-            <p className="text-sm text-gray-600 mt-1">Upload your payment proof</p>
+            <p className="text-sm text-gray-600 mt-1">Unggah bukti pembayaran Anda</p>
           </div>
           <button
             onClick={handleConfirmPayment}
