@@ -127,11 +127,9 @@ func (s *InvoiceGenerationService) GenerateInvoices(req InvoiceGenerationRequest
 		abonemen := subType.MonthlyFee + subType.MaintenanceFee
 		subTotal := waterCharge + abonemen
 
-		// Calculate late payment penalty from previous unpaid invoices
-		penaltyAmount := s.calculatePenalty(req.TenantID, usage.CustomerID, subType, tenantSettings, location)
-
-		// Calculate total
-		totalAmount := subTotal + penaltyAmount
+		// Penalty now stays attached to the source overdue invoice and is calculated dynamically on read/pay.
+		penaltyAmount := 0.0
+		totalAmount := subTotal
 
 		// Validate total
 		if totalAmount <= 0 || totalAmount > 999999999 {
@@ -186,48 +184,6 @@ func (s *InvoiceGenerationService) GenerateInvoices(req InvoiceGenerationRequest
 	}
 
 	return result, nil
-}
-
-// calculatePenalty calculates late payment penalty for a customer based on subscription settings
-func (s *InvoiceGenerationService) calculatePenalty(tenantID, customerID uuid.UUID, subType models.SubscriptionType, settings models.TenantSettings, location *time.Location) float64 {
-	if subType.LateFeePerDay <= 0 {
-		return 0
-	}
-
-	// Find unpaid invoices past due date
-	var unpaidInvoices []models.Invoice
-	now := time.Now().In(location)
-
-	config.DB.Where("tenant_id = ? AND customer_id = ? AND payment_status != ? AND due_date < ?",
-		tenantID, customerID, models.PaymentStatusPaid, now).
-		Find(&unpaidInvoices)
-
-	if len(unpaidInvoices) == 0 {
-		return 0
-	}
-
-	totalPenalty := 0.0
-	for _, invoice := range unpaidInvoices {
-		if invoice.DueDate == nil {
-			continue
-		}
-
-		overdueDays := utils.PenaltyDaysSinceDueDate(*invoice.DueDate, now, location)
-		if overdueDays <= 0 {
-			continue
-		}
-
-		penalty := float64(overdueDays) * subType.LateFeePerDay
-
-		// Apply max cap from subscription type if configured
-		if subType.MaxLateFee > 0 && penalty > subType.MaxLateFee {
-			penalty = subType.MaxLateFee
-		}
-
-		totalPenalty += penalty
-	}
-
-	return totalPenalty
 }
 
 // UpdateOverdueInvoices updates payment status of overdue invoices

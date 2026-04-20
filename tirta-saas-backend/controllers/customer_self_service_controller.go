@@ -2,14 +2,101 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/adipras/tirta-saas-backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+type customerInvoiceResponse struct {
+	ID                  uuid.UUID  `json:"id"`
+	InvoiceNumber       string     `json:"invoice_number"`
+	CustomerID          uuid.UUID  `json:"customer_id"`
+	UsageMonth          string     `json:"usage_month"`
+	UsageYear           int        `json:"usage_year"`
+	PreviousReading     float64    `json:"previous_reading"`
+	CurrentReading      float64    `json:"current_reading"`
+	UsageAmount         float64    `json:"usage_amount"`
+	WaterCharge         float64    `json:"water_charge"`
+	SubscriptionFee     float64    `json:"subscription_fee"`
+	PenaltyAmount       float64    `json:"penalty_amount"`
+	SubTotal            float64    `json:"sub_total"`
+	TotalAmount         float64    `json:"total_amount"`
+	TotalPaid           float64    `json:"total_paid"`
+	RemainingAmount     float64    `json:"remaining_amount"`
+	StoredPenaltyAmount float64    `json:"stored_penalty_amount"`
+	StoredTotalAmount   float64    `json:"stored_total_amount"`
+	PenaltyDays         int        `json:"penalty_days"`
+	PaymentStatus       string     `json:"payment_status"`
+	IsPaid              bool       `json:"is_paid"`
+	DueDate             *time.Time `json:"due_date,omitempty"`
+	PaidDate            *time.Time `json:"paid_date,omitempty"`
+	CreatedAt           time.Time  `json:"created_at"`
+}
+
+func customerInvoiceStatus(invoice models.Invoice, snapshot services.InvoiceAmountSnapshot) string {
+	status := strings.ToLower(string(invoice.PaymentStatus))
+	if status != "" {
+		if snapshot.RemainingAmount > 0 && status == "paid" {
+			return "partial"
+		}
+		return status
+	}
+
+	switch {
+	case snapshot.RemainingAmount == 0 && invoice.TotalPaid >= snapshot.TotalAmount:
+		return "paid"
+	case invoice.TotalPaid > 0:
+		return "partial"
+	case invoice.DueDate != nil && snapshot.PenaltyDays > 0:
+		return "overdue"
+	default:
+		return "unpaid"
+	}
+}
+
+func buildCustomerInvoiceResponse(invoice models.Invoice, subscription *models.SubscriptionType, tenantSettings models.TenantSettings) customerInvoiceResponse {
+	snapshot := services.CalculateInvoiceAmountSnapshot(invoice, subscription, tenantSettings, time.Time{})
+	usageYear := 0
+	if len(invoice.UsageMonth) >= 4 {
+		parsedYear, err := time.Parse("2006", invoice.UsageMonth[:4])
+		if err == nil {
+			usageYear = parsedYear.Year()
+		}
+	}
+
+	return customerInvoiceResponse{
+		ID:                  invoice.ID,
+		InvoiceNumber:       invoice.InvoiceNumber,
+		CustomerID:          invoice.CustomerID,
+		UsageMonth:          invoice.UsageMonth,
+		UsageYear:           usageYear,
+		PreviousReading:     0,
+		CurrentReading:      0,
+		UsageAmount:         invoice.UsageM3,
+		WaterCharge:         invoice.WaterCharge,
+		SubscriptionFee:     invoice.Abonemen,
+		PenaltyAmount:       snapshot.PenaltyAmount,
+		SubTotal:            snapshot.SubTotal,
+		TotalAmount:         snapshot.TotalAmount,
+		TotalPaid:           invoice.TotalPaid,
+		RemainingAmount:     snapshot.RemainingAmount,
+		StoredPenaltyAmount: snapshot.StoredPenaltyAmount,
+		StoredTotalAmount:   snapshot.StoredTotalAmount,
+		PenaltyDays:         snapshot.PenaltyDays,
+		PaymentStatus:       customerInvoiceStatus(invoice, snapshot),
+		IsPaid:              snapshot.RemainingAmount == 0 && invoice.TotalPaid >= snapshot.TotalAmount,
+		DueDate:             invoice.DueDate,
+		PaidDate:            invoice.PaidDate,
+		CreatedAt:           invoice.CreatedAt,
+	}
+}
 
 func GetCustomerProfile(c *gin.Context) {
 	customerID := c.MustGet("customer_id").(uuid.UUID)
@@ -25,15 +112,15 @@ func GetCustomerProfile(c *gin.Context) {
 
 	// Return customer data without password
 	response := gin.H{
-		"id":            customer.ID,
-		"meter_number":  customer.MeterNumber,
-		"name":          customer.Name,
-		"email":         customer.Email,
-		"address":       customer.Address,
-		"phone":         customer.Phone,
-		"subscription":  customer.Subscription,
-		"is_active":     customer.IsActive,
-		"created_at":    customer.CreatedAt,
+		"id":           customer.ID,
+		"meter_number": customer.MeterNumber,
+		"name":         customer.Name,
+		"email":        customer.Email,
+		"address":      customer.Address,
+		"phone":        customer.Phone,
+		"subscription": customer.Subscription,
+		"is_active":    customer.IsActive,
+		"created_at":   customer.CreatedAt,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -93,7 +180,21 @@ func GetCustomerInvoices(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, invoices)
+	var customer models.Customer
+	if err := config.DB.Preload("Subscription").
+		Where("id = ? AND tenant_id = ?", customerID, tenantID).
+		First(&customer).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil profil pelanggan"})
+		return
+	}
+
+	tenantSettings := services.LoadTenantSettings(tenantID)
+	responses := make([]customerInvoiceResponse, len(invoices))
+	for i, invoice := range invoices {
+		responses[i] = buildCustomerInvoiceResponse(invoice, &customer.Subscription, tenantSettings)
+	}
+
+	c.JSON(http.StatusOK, responses)
 }
 
 func GetCustomerPayments(c *gin.Context) {
@@ -144,7 +245,7 @@ func CustomerMakePayment(c *gin.Context) {
 
 	// Verify invoice belongs to this customer
 	var invoice models.Invoice
-	if err := config.DB.Where("id = ? AND customer_id = ? AND tenant_id = ?", 
+	if err := config.DB.Where("id = ? AND customer_id = ? AND tenant_id = ?",
 		input.InvoiceID, customerID, tenantID).First(&invoice).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Tagihan tidak ditemukan"})
 		return
@@ -155,10 +256,19 @@ func CustomerMakePayment(c *gin.Context) {
 		return
 	}
 
-	if invoice.TotalPaid+input.Amount > invoice.TotalAmount {
+	var customer models.Customer
+	if err := config.DB.Preload("Subscription").
+		Where("id = ? AND tenant_id = ?", customerID, tenantID).
+		First(&customer).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data pelanggan"})
+		return
+	}
+
+	snapshot := services.CalculateInvoiceAmountSnapshot(invoice, &customer.Subscription, services.LoadTenantSettings(tenantID), time.Now())
+	if invoice.TotalPaid+input.Amount > snapshot.TotalAmount {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Pembayaran melebihi total tagihan",
-			"remaining_amount": invoice.TotalAmount - invoice.TotalPaid,
+			"error":            "Pembayaran melebihi total tagihan",
+			"remaining_amount": snapshot.RemainingAmount,
 		})
 		return
 	}
@@ -178,12 +288,32 @@ func CustomerMakePayment(c *gin.Context) {
 	// Update invoice
 	var totalPaid float64
 	config.DB.Model(&models.Payment{}).
-		Where("invoice_id = ?", input.InvoiceID).
-		Select("SUM(amount)").Scan(&totalPaid)
+		Where("invoice_id = ? AND status != ?", input.InvoiceID, "voided").
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalPaid)
 
 	invoice.TotalPaid = totalPaid
-	invoice.IsPaid = totalPaid >= invoice.TotalAmount
-	config.DB.Model(&invoice).Updates(map[string]interface{}{"total_paid": invoice.TotalPaid, "is_paid": invoice.IsPaid})
+	services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
+	invoice.IsPaid = totalPaid >= snapshot.TotalAmount
+	if invoice.IsPaid {
+		now := time.Now()
+		invoice.PaidDate = &now
+		invoice.PaymentStatus = models.PaymentStatusPaid
+	} else if totalPaid > 0 {
+		invoice.PaymentStatus = models.PaymentStatusPartial
+		invoice.PaidDate = nil
+	} else {
+		invoice.PaymentStatus = models.PaymentStatusUnpaid
+		invoice.PaidDate = nil
+	}
+	config.DB.Model(&invoice).Updates(map[string]interface{}{
+		"sub_total":      invoice.SubTotal,
+		"penalty_amount": invoice.PenaltyAmount,
+		"total_amount":   invoice.TotalAmount,
+		"total_paid":     invoice.TotalPaid,
+		"is_paid":        invoice.IsPaid,
+		"payment_status": invoice.PaymentStatus,
+		"paid_date":      invoice.PaidDate,
+	})
 
 	// If registration invoice is now paid, activate customer
 	if invoice.Type == "registration" && invoice.IsPaid {
@@ -193,10 +323,10 @@ func CustomerMakePayment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":     "Pembayaran berhasil dicatat",
-		"payment_id":  payment.ID,
-		"total_paid":  invoice.TotalPaid,
-		"is_paid":     invoice.IsPaid,
+		"message":    "Pembayaran berhasil dicatat",
+		"payment_id": payment.ID,
+		"total_paid": invoice.TotalPaid,
+		"is_paid":    invoice.IsPaid,
 	})
 }
 

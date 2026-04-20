@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/helpers"
@@ -15,6 +16,69 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func getInvoiceSubscription(invoice models.Invoice) *models.SubscriptionType {
+	if invoice.Customer.Subscription.ID == uuid.Nil {
+		return nil
+	}
+
+	subscription := invoice.Customer.Subscription
+	return &subscription
+}
+
+func buildInvoiceResponse(invoice models.Invoice, tenantSettings models.TenantSettings, referenceTime time.Time) responses.InvoiceResponse {
+	snapshot := services.CalculateInvoiceAmountSnapshot(invoice, getInvoiceSubscription(invoice), tenantSettings, referenceTime)
+	paymentStatus := strings.ToLower(string(invoice.PaymentStatus))
+	if paymentStatus == "" {
+		switch {
+		case invoice.IsPaid || snapshot.RemainingAmount == 0:
+			paymentStatus = "paid"
+		case invoice.TotalPaid > 0:
+			paymentStatus = "partial"
+		case invoice.DueDate != nil && snapshot.PenaltyDays > 0:
+			paymentStatus = "overdue"
+		default:
+			paymentStatus = "unpaid"
+		}
+	}
+
+	response := responses.InvoiceResponse{
+		ID:                  invoice.ID,
+		InvoiceNumber:       invoice.InvoiceNumber,
+		CustomerID:          invoice.CustomerID,
+		UsageMonth:          invoice.UsageMonth,
+		UsageM3:             invoice.UsageM3,
+		WaterCharge:         invoice.WaterCharge,
+		Abonemen:            invoice.Abonemen,
+		PricePerM3:          invoice.PricePerM3,
+		SubTotal:            snapshot.SubTotal,
+		PenaltyAmount:       snapshot.PenaltyAmount,
+		TotalAmount:         snapshot.TotalAmount,
+		TotalPaid:           invoice.TotalPaid,
+		RemainingAmount:     snapshot.RemainingAmount,
+		StoredPenaltyAmount: snapshot.StoredPenaltyAmount,
+		StoredTotalAmount:   snapshot.StoredTotalAmount,
+		PenaltyDays:         snapshot.PenaltyDays,
+		IsPaid:              snapshot.RemainingAmount == 0 && invoice.TotalPaid >= snapshot.TotalAmount,
+		PaymentStatus:       paymentStatus,
+		Type:                invoice.Type,
+		DueDate:             invoice.DueDate,
+		PaidDate:            invoice.PaidDate,
+		CreatedAt:           invoice.CreatedAt,
+	}
+
+	if invoice.Customer.ID != uuid.Nil {
+		response.CustomerName = invoice.Customer.Name
+		response.Customer = &responses.CustomerSummary{
+			ID:          invoice.Customer.ID,
+			Name:        invoice.Customer.Name,
+			MeterNumber: invoice.Customer.MeterNumber,
+			Email:       invoice.Customer.Email,
+		}
+	}
+
+	return response
+}
 
 // GenerateMonthlyInvoiceRequest represents the request body for generating monthly invoice
 type GenerateMonthlyInvoiceRequest struct {
@@ -45,15 +109,11 @@ func GenerateMonthlyInvoice(c *gin.Context) {
 
 	tenantID, err := helpers.RequireTenantID(c)
 
-
 	if err != nil {
-
 
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
-
 		return
-
 
 	}
 
@@ -173,7 +233,7 @@ func GetOutstandingInvoices(c *gin.Context) {
 	}
 
 	var invoices []models.Invoice
-	if err := config.DB.Preload("Customer").
+	if err := config.DB.Preload("Customer").Preload("Customer.Subscription").
 		Where("customer_id = ? AND tenant_id = ? AND is_paid = ?", customerID, tenantID, false).
 		Order("created_at ASC").
 		Find(&invoices).Error; err != nil {
@@ -181,26 +241,10 @@ func GetOutstandingInvoices(c *gin.Context) {
 		return
 	}
 
+	tenantSettings := services.LoadTenantSettings(tenantID)
 	invoiceResponses := make([]responses.InvoiceResponse, len(invoices))
 	for i, invoice := range invoices {
-		invoiceResponses[i] = responses.InvoiceResponse{
-			ID:            invoice.ID,
-			InvoiceNumber: invoice.InvoiceNumber,
-			CustomerID:    invoice.CustomerID,
-			UsageMonth:    invoice.UsageMonth,
-			UsageM3:       invoice.UsageM3,
-			Abonemen:      invoice.Abonemen,
-			PricePerM3:    invoice.PricePerM3,
-			TotalAmount:   invoice.TotalAmount,
-			TotalPaid:     invoice.TotalPaid,
-			IsPaid:        invoice.IsPaid,
-			Type:          invoice.Type,
-			DueDate:       invoice.DueDate,
-			CreatedAt:     invoice.CreatedAt,
-		}
-		if invoice.Customer.ID != uuid.Nil {
-			invoiceResponses[i].CustomerName = invoice.Customer.Name
-		}
+		invoiceResponses[i] = buildInvoiceResponse(invoice, tenantSettings, time.Time{})
 	}
 
 	c.JSON(http.StatusOK, invoiceResponses)
@@ -226,8 +270,8 @@ func GetInvoices(c *gin.Context) {
 	}
 
 	var invoices []models.Invoice
-	query := config.DB.Preload("Customer")
-	
+	query := config.DB.Preload("Customer").Preload("Customer.Subscription")
+
 	if hasSpecificTenant {
 		query = query.Where("invoices.tenant_id = ?", tenantID)
 	}
@@ -246,7 +290,7 @@ func GetInvoices(c *gin.Context) {
 		query = query.Joins("LEFT JOIN customers ON customers.id = invoices.customer_id").
 			Where("invoices.invoice_number LIKE ? OR customers.name LIKE ?", "%"+search+"%", "%"+search+"%")
 	}
-	
+
 	if err := query.Find(&invoices).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
 		return
@@ -255,35 +299,11 @@ func GetInvoices(c *gin.Context) {
 	// Convert to response format
 	invoiceResponses := make([]responses.InvoiceResponse, len(invoices))
 	for i, invoice := range invoices {
-		response := responses.InvoiceResponse{
-			ID:            invoice.ID,
-			InvoiceNumber: invoice.InvoiceNumber,
-			CustomerID:    invoice.CustomerID,
-			UsageMonth:    invoice.UsageMonth,
-			UsageM3:       invoice.UsageM3,
-			Abonemen:      invoice.Abonemen,
-			PricePerM3:    invoice.PricePerM3,
-			TotalAmount:   invoice.TotalAmount,
-			TotalPaid:     invoice.TotalPaid,
-			IsPaid:        invoice.IsPaid,
-			PaymentStatus: strings.ToLower(string(invoice.PaymentStatus)),
-			Type:          invoice.Type,
-			DueDate:       invoice.DueDate,
-			CreatedAt:     invoice.CreatedAt,
+		invoiceTenantSettings := services.LoadTenantSettings(invoice.TenantID)
+		if hasSpecificTenant {
+			invoiceTenantSettings = services.LoadTenantSettings(tenantID)
 		}
-		
-		// Include customer data if loaded
-		if invoice.Customer.ID != uuid.Nil {
-			response.CustomerName = invoice.Customer.Name
-			response.Customer = &responses.CustomerSummary{
-				ID:          invoice.Customer.ID,
-				Name:        invoice.Customer.Name,
-				MeterNumber: invoice.Customer.MeterNumber,
-				Email:       invoice.Customer.Email,
-			}
-		}
-		
-		invoiceResponses[i] = response
+		invoiceResponses[i] = buildInvoiceResponse(invoice, invoiceTenantSettings, time.Time{})
 	}
 
 	response := responses.InvoiceListResponse{
@@ -324,40 +344,14 @@ func GetInvoice(c *gin.Context) {
 	}
 
 	var invoice models.Invoice
-	if err := config.DB.Preload("Customer").
+	if err := config.DB.Preload("Customer").Preload("Customer.Subscription").
 		Where("id = ? AND tenant_id = ?", invoiceID, tenantID).
 		First(&invoice).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice tidak ditemukan"})
 		return
 	}
 
-	response := responses.InvoiceResponse{
-		ID:            invoice.ID,
-		InvoiceNumber: invoice.InvoiceNumber,
-		CustomerID:    invoice.CustomerID,
-		UsageMonth:    invoice.UsageMonth,
-		UsageM3:       invoice.UsageM3,
-		Abonemen:      invoice.Abonemen,
-		PricePerM3:    invoice.PricePerM3,
-		TotalAmount:   invoice.TotalAmount,
-		TotalPaid:     invoice.TotalPaid,
-		IsPaid:        invoice.IsPaid,
-		Type:          invoice.Type,
-		DueDate:       invoice.DueDate,
-		CreatedAt:     invoice.CreatedAt,
-	}
-	
-	// Include customer data if loaded
-	if invoice.Customer.ID != uuid.Nil {
-		response.CustomerName = invoice.Customer.Name
-		response.Customer = &responses.CustomerSummary{
-			ID:          invoice.Customer.ID,
-			Name:        invoice.Customer.Name,
-			MeterNumber: invoice.Customer.MeterNumber,
-			Email:       invoice.Customer.Email,
-		}
-	}
-	
+	response := buildInvoiceResponse(invoice, services.LoadTenantSettings(tenantID), time.Time{})
 	helpers.RespondSuccess(c, "Invoice retrieved successfully", response)
 }
 
@@ -521,21 +515,21 @@ func BulkGenerateInvoices(c *gin.Context) {
 		totalAmount := subTotal + inv.PenaltyAmount
 
 		invoiceItems[i] = responses.InvoicePreviewItem{
-			InvoiceNumber: inv.InvoiceNumber,
-			CustomerID:    inv.CustomerID,
-			CustomerName:  customer.Name,
-			CustomerCode:  customer.MeterNumber,
-			UsageMonth:    inv.UsageMonth,
-			UsageM3:       inv.UsageM3,
-			PricePerM3:    inv.PricePerM3,
-			WaterCharge:   inv.WaterCharge,
-			Abonemen:      subType.MonthlyFee,
+			InvoiceNumber:  inv.InvoiceNumber,
+			CustomerID:     inv.CustomerID,
+			CustomerName:   customer.Name,
+			CustomerCode:   customer.MeterNumber,
+			UsageMonth:     inv.UsageMonth,
+			UsageM3:        inv.UsageM3,
+			PricePerM3:     inv.PricePerM3,
+			WaterCharge:    inv.WaterCharge,
+			Abonemen:       subType.MonthlyFee,
 			MaintenanceFee: subType.MaintenanceFee,
-			PenaltyAmount: inv.PenaltyAmount,
-			SubTotal:      subTotal,
-			TotalAmount:   totalAmount,
-			DueDate:       inv.DueDate,
-			Notes:         inv.Notes,
+			PenaltyAmount:  inv.PenaltyAmount,
+			SubTotal:       subTotal,
+			TotalAmount:    totalAmount,
+			DueDate:        inv.DueDate,
+			Notes:          inv.Notes,
 		}
 	}
 
@@ -618,21 +612,21 @@ func PreviewInvoiceGeneration(c *gin.Context) {
 		totalAmount := subTotal + inv.PenaltyAmount
 
 		invoiceItems[i] = responses.InvoicePreviewItem{
-			InvoiceNumber: inv.InvoiceNumber,
-			CustomerID:    inv.CustomerID,
-			CustomerName:  customer.Name,
-			CustomerCode:  customer.MeterNumber,
-			UsageMonth:    inv.UsageMonth,
-			UsageM3:       inv.UsageM3,
-			PricePerM3:    inv.PricePerM3,
-			WaterCharge:   inv.WaterCharge,
-			Abonemen:      subType.MonthlyFee,
+			InvoiceNumber:  inv.InvoiceNumber,
+			CustomerID:     inv.CustomerID,
+			CustomerName:   customer.Name,
+			CustomerCode:   customer.MeterNumber,
+			UsageMonth:     inv.UsageMonth,
+			UsageM3:        inv.UsageM3,
+			PricePerM3:     inv.PricePerM3,
+			WaterCharge:    inv.WaterCharge,
+			Abonemen:       subType.MonthlyFee,
 			MaintenanceFee: subType.MaintenanceFee,
-			PenaltyAmount: inv.PenaltyAmount,
-			SubTotal:      subTotal,
-			TotalAmount:   totalAmount,
-			DueDate:       inv.DueDate,
-			Notes:         inv.Notes,
+			PenaltyAmount:  inv.PenaltyAmount,
+			SubTotal:       subTotal,
+			TotalAmount:    totalAmount,
+			DueDate:        inv.DueDate,
+			Notes:          inv.Notes,
 		}
 	}
 
@@ -656,6 +650,6 @@ func getMessage(preview bool, result *services.InvoiceGenerationResult) string {
 	if preview {
 		return fmt.Sprintf("Preview: %d invoices ready to be generated", result.Success)
 	}
-	return fmt.Sprintf("Successfully generated %d invoices, skipped %d, failed %d", 
+	return fmt.Sprintf("Successfully generated %d invoices, skipped %d, failed %d",
 		result.Success, result.Skipped, result.Failed)
 }

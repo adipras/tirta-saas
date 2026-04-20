@@ -175,7 +175,7 @@ const CustomerTagihan: React.FC = () => {
                         </div>
                         <div className="flex justify-between font-bold text-indigo-600">
                           <span>Sisa</span>
-                          <span>{formatCurrency(invoice.total_amount - invoice.total_paid)}</span>
+                          <span>{formatCurrency(invoice.remaining_amount)}</span>
                         </div>
                       </>
                     )}

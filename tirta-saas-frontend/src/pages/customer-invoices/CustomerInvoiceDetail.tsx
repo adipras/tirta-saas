@@ -233,6 +233,12 @@ export default function CustomerInvoiceDetail() {
                 <span className="text-gray-600">Subtotal</span>
                 <span className="text-gray-900 font-medium">{formatCurrency(invoice.subtotal || invoice.totalAmount)}</span>
               </div>
+              {(invoice.penaltyAmount || 0) > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Denda</span>
+                  <span className="text-red-600 font-medium">{formatCurrency(invoice.penaltyAmount || 0)}</span>
+                </div>
+              )}
               {(invoice.taxAmount || 0) > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Tax ({invoice.taxPercentage || 0}%)</span>

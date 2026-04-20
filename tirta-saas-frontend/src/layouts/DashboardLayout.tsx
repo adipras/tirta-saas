@@ -26,6 +26,10 @@ const DashboardLayout = () => {
 
     // Quick check using stored tenant_status (available since last login)
     const status = user.tenant_status?.toUpperCase();
+    if (status === 'PENDING_APPROVAL') {
+      navigate('/admin/subscription/status', { replace: true });
+      return;
+    }
     if (status === 'PENDING_PAYMENT') {
       navigate('/admin/subscription/upgrade', { replace: true });
       return;
@@ -37,7 +41,7 @@ const DashboardLayout = () => {
 
     // Fallback: API call to get fresh status (covers cases where status changed while logged in)
     subscriptionPaymentService.getSubscriptionStatus().then((subStatus) => {
-      if (subStatus.status === 'pending_verification') {
+      if (subStatus.status === 'pending_approval' || subStatus.status === 'pending_verification') {
         navigate('/admin/subscription/status', { replace: true });
       } else if (subStatus.status === 'pending_payment') {
         navigate('/admin/subscription/upgrade', { replace: true });

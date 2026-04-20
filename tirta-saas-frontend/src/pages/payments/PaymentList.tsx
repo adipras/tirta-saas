@@ -21,7 +21,7 @@ import {
 
 const PaymentList: React.FC = () => {
   const navigate = useNavigate();
-  const toast = useToast();
+  const { error: showErrorToast, success: showSuccessToast } = useToast();
   const [payments, setPembayaran] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
@@ -42,11 +42,11 @@ const PaymentList: React.FC = () => {
       setCurrentPage(response.pagination.currentPage);
     } catch (error) {
       console.error('Failed to fetch payments:', error);
-      toast.error('Gagal memuat data pembayaran');
+      showErrorToast('Gagal memuat data pembayaran');
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [showErrorToast]);
 
   useEffect(() => {
     fetchPembayaran(1, searchTerm, filters);
@@ -83,12 +83,12 @@ const PaymentList: React.FC = () => {
     if (!voidTarget) return;
     try {
       await paymentService.voidPayment(voidTarget.id);
-      toast.success('Pembayaran berhasil dibatalkan');
+      showSuccessToast('Pembayaran berhasil dibatalkan');
       setVoidTarget(null);
       fetchPembayaran(currentPage, searchTerm, filters);
     } catch (error) {
       console.error('Failed to void payment:', error);
-      toast.error('Gagal membatalkan pembayaran');
+      showErrorToast('Gagal membatalkan pembayaran');
     }
   };
 
@@ -105,7 +105,7 @@ const PaymentList: React.FC = () => {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Failed to export payments:', error);
-      toast.error('Gagal mengekspor data pembayaran');
+      showErrorToast('Gagal mengekspor data pembayaran');
     }
   };
 

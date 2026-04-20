@@ -51,7 +51,14 @@ export interface PaymentReceipt {
     invoiceNumber: string;
     invoiceDate: string;
     dueDate: string;
+    subTotal?: number;
+    penaltyAmount?: number;
     totalAmount: number;
+    totalPaidBefore?: number;
+    totalPaidAfter?: number;
+    remainingAmount?: number;
+    paymentCoverageType?: 'full' | 'partial';
+    invoicePaymentStatus?: 'paid' | 'partial' | 'unpaid';
   };
   customerDetails: {
     name: string;

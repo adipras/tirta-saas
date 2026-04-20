@@ -16,11 +16,12 @@ export interface InvoiceFilters {
 const normalizeInvoiceStatus = (inv: any): Invoice['status'] => {
   const totalAmount = Number(inv.total_amount || 0);
   const totalPaid = Number(inv.total_paid || 0);
+  const remainingAmount = Number(inv.remaining_amount ?? (totalAmount - totalPaid));
   const rawStatus = typeof inv.payment_status === 'string'
     ? inv.payment_status.toLowerCase()
     : '';
 
-  if (inv.is_paid === true || (totalAmount > 0 && totalPaid >= totalAmount)) {
+  if (inv.is_paid === true || (totalAmount > 0 && totalPaid >= totalAmount) || remainingAmount <= 0) {
     return 'paid';
   }
 
@@ -33,6 +34,49 @@ const normalizeInvoiceStatus = (inv: any): Invoice['status'] => {
   }
 
   return 'unpaid';
+};
+
+const mapInvoice = (inv: any): Invoice => {
+  const totalAmount = Number(inv.total_amount || 0);
+  const totalPaid = Number(inv.total_paid || 0);
+  const remainingAmount = Number(inv.remaining_amount ?? (totalAmount - totalPaid));
+
+  return {
+    id: inv.id,
+    invoiceNumber: inv.invoice_number || `INV-${inv.id?.substring(0, 8)}`,
+    customerId: inv.customer_id,
+    customerName: inv.customer_name || inv.customer?.name || 'N/A',
+    periodStartDate: inv.period_start_date || '',
+    periodEndDate: inv.period_end_date || '',
+    billingPeriod: inv.usage_month || '',
+    usage: inv.usage_m3 ?? inv.usage_amount ?? 0,
+    amount: inv.water_charge ?? inv.amount ?? inv.total_amount ?? 0,
+    totalAmount,
+    amountPaid: totalPaid,
+    amountDue: remainingAmount,
+    penaltyAmount: Number(inv.penalty_amount || 0),
+    penaltyDays: Number(inv.penalty_days || 0),
+    storedPenaltyAmount: Number(inv.stored_penalty_amount || 0),
+    storedTotalAmount: Number(inv.stored_total_amount || 0),
+    status: normalizeInvoiceStatus(inv),
+    issueDate: inv.created_at || '',
+    dueDate: inv.due_date || '',
+    createdAt: inv.created_at || '',
+    customer: inv.customer
+      ? {
+          customerId: inv.customer.id || inv.customer.customer_id || inv.customer_id,
+          name: inv.customer.name || inv.customer_name || 'N/A',
+          email: inv.customer.email || '',
+          phone: inv.customer.phone || '',
+          address: inv.customer.address || '',
+          meterNumber: inv.customer.meter_number,
+        }
+      : undefined,
+    subtotal: Number(inv.sub_total ?? inv.subtotal ?? 0),
+    notes: inv.notes || undefined,
+    items: inv.items || [],
+    payments: inv.payment_history || inv.payments || [],
+  };
 };
 
 class InvoiceService {
@@ -62,25 +106,7 @@ class InvoiceService {
     const invoicesArray = responseData.invoices || responseData.data || [];
     
     // Map backend fields to frontend format
-    const mappedTagihan = invoicesArray.map((inv: any) => ({
-      id: inv.id,
-      invoiceNumber: inv.invoice_number || `INV-${inv.id?.substring(0, 8)}`,
-      customerId: inv.customer_id,
-      customerName: inv.customer_name || inv.customer?.name || 'N/A',
-      periodStartDate: inv.period_start_date || '',
-      periodEndDate: inv.period_end_date || '',
-      billingPeriod: inv.usage_month || '',
-      usage: inv.usage_m3 || 0,
-      amount: inv.total_amount || 0,
-      totalAmount: inv.total_amount || 0,
-      amountPaid: inv.total_paid || 0,
-      amountDue: (inv.total_amount || 0) - (inv.total_paid || 0),
-      status: normalizeInvoiceStatus(inv),
-      issueDate: inv.created_at || '',
-      dueDate: inv.due_date || '',
-      createdAt: inv.created_at || '',
-      customer: inv.customer,
-    }));
+    const mappedTagihan = invoicesArray.map(mapInvoice);
     
     return {
       data: mappedTagihan,
@@ -99,25 +125,10 @@ class InvoiceService {
     const inv = response.data || response;
     
     // Map backend fields to frontend format
+    const mapped = mapInvoice(inv);
     return {
-      id: inv.id,
-      invoiceNumber: inv.invoice_number || `INV-${inv.id?.substring(0, 8)}`,
-      customerId: inv.customer_id,
-      customerName: inv.customer_name || inv.customer?.name || 'N/A',
-      periodStartDate: inv.period_start_date || '',
-      periodEndDate: inv.period_end_date || '',
-      billingPeriod: inv.usage_month || '',
-      usage: inv.usage_m3 || 0,
-      amount: inv.total_amount || 0,
-      totalAmount: inv.total_amount || 0,
-      amountPaid: inv.total_paid || 0,
-      amountDue: (inv.total_amount || 0) - (inv.total_paid || 0),
-      status: normalizeInvoiceStatus(inv),
-      issueDate: inv.created_at || '',
-      dueDate: inv.due_date || '',
-      createdAt: inv.created_at || '',
-      customer: inv.customer,
-      items: inv.items || [],
+      ...mapped,
+      items: inv.items || mapped.items || [],
       paymentHistory: inv.payment_history || [],
     };
   }
@@ -151,7 +162,7 @@ class InvoiceService {
   async getCustomerTagihan(): Promise<Invoice[]> {
     const response = await apiClient.get<any>('/customer/invoices');
     const data = response.data || response;
-    return Array.isArray(data) ? data : [];
+    return (Array.isArray(data) ? data : []).map(mapInvoice);
   }
 
   async downloadInvoicePDF(invoiceId: string): Promise<void> {

@@ -37,25 +37,35 @@ export default function SubscriptionStatusPage() {
         icon: <ClockIcon className="w-4 h-4" />,
         text: 'Trial',
       },
+      pending_approval: {
+        color: 'bg-indigo-100 text-indigo-800',
+        icon: <ClockIcon className="w-4 h-4" />,
+        text: 'Menunggu Persetujuan',
+      },
+      pending_payment: {
+        color: 'bg-amber-100 text-amber-800',
+        icon: <CreditCardIcon className="w-4 h-4" />,
+        text: 'Menunggu Pembayaran',
+      },
       pending_verification: {
         color: 'bg-blue-100 text-blue-800',
         icon: <ClockIcon className="w-4 h-4" />,
-        text: 'Pending Verification',
+        text: 'Menunggu Verifikasi',
       },
       active: {
         color: 'bg-green-100 text-green-800',
         icon: <CheckCircleIcon className="w-4 h-4" />,
-        text: 'Active',
+        text: 'Aktif',
       },
       expired: {
         color: 'bg-red-100 text-red-800',
         icon: <ExclamationCircleIcon className="w-4 h-4" />,
-        text: 'Expired',
+        text: 'Berakhir',
       },
       suspended: {
         color: 'bg-gray-100 text-gray-800',
         icon: <ExclamationCircleIcon className="w-4 h-4" />,
-        text: 'Suspended',
+        text: 'Ditangguhkan',
       },
     };
 
@@ -135,6 +145,35 @@ export default function SubscriptionStatusPage() {
                 </button>
               </div>
             </>
+          )}
+
+          {status.status === 'pending_approval' && (
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900">
+              Tenant Anda sudah terdaftar dan saat ini sedang menunggu persetujuan dari platform owner.
+              Setelah disetujui, Anda dapat melanjutkan proses langganan dan mengakses modul operasional.
+            </div>
+          )}
+
+          {status.status === 'pending_payment' && (
+            <>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                Tenant Anda sudah disetujui. Silakan lanjutkan pembayaran langganan agar akun dapat diaktifkan.
+              </div>
+              <div className="mt-6">
+                <button
+                  onClick={() => navigate('/admin/subscription/upgrade')}
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                  Lanjutkan Pembayaran
+                </button>
+              </div>
+            </>
+          )}
+
+          {status.status === 'pending_verification' && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+              Bukti pembayaran Anda sudah diterima dan sedang menunggu verifikasi dari tim platform.
+            </div>
           )}
 
           {status.status === 'active' && (

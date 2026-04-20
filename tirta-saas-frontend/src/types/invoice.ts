@@ -11,6 +11,10 @@ export interface Invoice {
   totalAmount: number;
   amountPaid: number;
   amountDue: number;
+  penaltyAmount?: number;
+  penaltyDays?: number;
+  storedPenaltyAmount?: number;
+  storedTotalAmount?: number;
   status: 'paid' | 'unpaid' | 'overdue' | 'partial';
   issueDate: string;
   dueDate: string;

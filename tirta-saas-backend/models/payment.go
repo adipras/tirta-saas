@@ -15,7 +15,7 @@ type Payment struct {
 	Amount    float64   `gorm:"not null" json:"amount"`
 	Penalty   float64   `gorm:"default:0" json:"penalty"`
 	PaidAt    time.Time `gorm:"not null" json:"paid_at"`
-	
+
 	// Additional fields for Phase 6
 	PaymentMethodID *uuid.UUID     `gorm:"type:char(36);index" json:"payment_method_id"`
 	PaymentMethod   *PaymentMethod `gorm:"foreignKey:PaymentMethodID" json:"payment_method,omitempty"`
@@ -35,6 +35,8 @@ func (p *Payment) BeforeCreate(tx *gorm.DB) (err error) {
 	if err = p.BaseModel.BeforeCreate(tx); err != nil {
 		return
 	}
-	p.PaidAt = time.Now()
+	if p.PaidAt.IsZero() {
+		p.PaidAt = time.Now()
+	}
 	return
 }

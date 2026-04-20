@@ -241,34 +241,46 @@ export default function InvoiceDetails() {
                 </div>
               )}
               
-              <div className="divide-y divide-gray-200">
-                {invoice.usage > 0 && (
-                  <div className="flex justify-between py-3">
-                    <span className="text-gray-600">Water Charge ({invoice.usage} m³)</span>
+                <div className="divide-y divide-gray-200">
+                  {invoice.usage > 0 && (
+                    <div className="flex justify-between py-3">
+                      <span className="text-gray-600">Water Charge ({invoice.usage} m³)</span>
                     <span className="font-medium text-gray-900">
                       {new Intl.NumberFormat('id-ID', {
                         style: 'currency',
                         currency: 'IDR',
                         minimumFractionDigits: 0,
                       }).format(invoice.amount)}
-                    </span>
-                  </div>
-                )}
-                {invoice.totalAmount > invoice.amount && (
-                  <div className="flex justify-between py-3">
-                    <span className="text-gray-600">Monthly Subscription Fee</span>
-                    <span className="font-medium text-gray-900">
-                      {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                      }).format(invoice.totalAmount - invoice.amount)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+                      </span>
+                    </div>
+                  )}
+                 {((invoice.subtotal || 0) - invoice.amount) > 0 && (
+                   <div className="flex justify-between py-3">
+                     <span className="text-gray-600">Monthly Subscription Fee</span>
+                     <span className="font-medium text-gray-900">
+                       {new Intl.NumberFormat('id-ID', {
+                         style: 'currency',
+                         currency: 'IDR',
+                         minimumFractionDigits: 0,
+                       }).format((invoice.subtotal || 0) - invoice.amount)}
+                     </span>
+                   </div>
+                 )}
+                 {(invoice.penaltyAmount || 0) > 0 && (
+                   <div className="flex justify-between py-3 text-red-600">
+                     <span>Denda Keterlambatan</span>
+                     <span className="font-medium">
+                       {new Intl.NumberFormat('id-ID', {
+                         style: 'currency',
+                         currency: 'IDR',
+                         minimumFractionDigits: 0,
+                       }).format(invoice.penaltyAmount || 0)}
+                     </span>
+                   </div>
+                 )}
+               </div>
+             </div>
+           )}
         </div>
       </div>
 
@@ -278,10 +290,34 @@ export default function InvoiceDetails() {
           <h2 className="text-lg font-medium text-gray-900">Payment Summary</h2>
         </div>
         <div className="px-6 py-5">
-          <div className="space-y-3">
-            <div className="flex justify-between text-base">
-              <span className="text-gray-600">Total Amount</span>
-              <span className="font-medium text-gray-900">
+            <div className="space-y-3">
+              {(invoice.subtotal || 0) > 0 && (
+                <div className="flex justify-between text-base">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span className="font-medium text-gray-900">
+                    {new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      minimumFractionDigits: 0,
+                    }).format(invoice.subtotal || 0)}
+                  </span>
+                </div>
+              )}
+              {(invoice.penaltyAmount || 0) > 0 && (
+                <div className="flex justify-between text-base">
+                  <span className="text-gray-600">Denda</span>
+                  <span className="font-medium text-red-600">
+                    {new Intl.NumberFormat('id-ID', {
+                      style: 'currency',
+                      currency: 'IDR',
+                      minimumFractionDigits: 0,
+                    }).format(invoice.penaltyAmount || 0)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between text-base">
+                <span className="text-gray-600">Total Amount</span>
+                <span className="font-medium text-gray-900">
                 {new Intl.NumberFormat('id-ID', {
                   style: 'currency',
                   currency: 'IDR',

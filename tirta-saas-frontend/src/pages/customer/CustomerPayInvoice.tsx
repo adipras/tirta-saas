@@ -43,7 +43,7 @@ const CustomerPayInvoice: React.FC = () => {
         setInvoice(found);
         setFormData((prev) => ({
           ...prev,
-          amount: (found.total_amount - found.total_paid).toString(),
+          amount: found.remaining_amount.toString(),
         }));
       } else {
         setError('Invoice tidak ditemukan');
@@ -98,9 +98,9 @@ const CustomerPayInvoice: React.FC = () => {
     setSubmitting(true);
 
     try {
-      await paymentProofService.submitPaymentProof({
-        invoice_id: invoice.id,
-        amount: invoice.total_amount - invoice.total_paid,
+        await paymentProofService.submitPaymentProof({
+          invoice_id: invoice.id,
+          amount: invoice.remaining_amount,
         payment_date: formData.payment_date,
         payment_method: formData.payment_method,
         account_name: formData.account_name,
@@ -197,7 +197,7 @@ const CustomerPayInvoice: React.FC = () => {
             <div className="flex justify-between text-lg font-bold pt-2 border-t">
               <span>Total yang Harus Dibayar</span>
               <span className="text-indigo-600">
-                {formatCurrency(invoice.total_amount - invoice.total_paid)}
+                {formatCurrency(invoice.remaining_amount)}
               </span>
             </div>
           </div>

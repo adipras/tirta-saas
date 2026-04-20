@@ -1,8 +1,8 @@
 package controllers
 
 import (
-	"github.com/adipras/tirta-saas-backend/helpers"
 	"fmt"
+	"github.com/adipras/tirta-saas-backend/helpers"
 	"net/http"
 	"time"
 
@@ -10,12 +10,13 @@ import (
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
-func recalculateInvoicePaymentStatus(invoice *models.Invoice) {
+func recalculateInvoicePaymentStatus(invoice *models.Invoice, paidAt time.Time) {
 	switch {
 	case invoice.TotalPaid <= 0:
 		invoice.PaymentStatus = models.PaymentStatusUnpaid
@@ -24,8 +25,10 @@ func recalculateInvoicePaymentStatus(invoice *models.Invoice) {
 	case invoice.TotalPaid >= invoice.TotalAmount:
 		invoice.PaymentStatus = models.PaymentStatusPaid
 		invoice.IsPaid = true
-		now := time.Now()
-		invoice.PaidDate = &now
+		if paidAt.IsZero() {
+			paidAt = time.Now()
+		}
+		invoice.PaidDate = &paidAt
 	default:
 		invoice.PaymentStatus = models.PaymentStatusPartial
 		invoice.IsPaid = false
@@ -33,10 +36,40 @@ func recalculateInvoicePaymentStatus(invoice *models.Invoice) {
 	}
 }
 
+func parsePaymentTimestamp(paymentDate string) (time.Time, error) {
+	if paymentDate == "" {
+		return time.Now(), nil
+	}
+
+	parsed, err := time.Parse("2006-01-02", paymentDate)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return parsed, nil
+}
+
+func resolveInvoiceSnapshot(invoice models.Invoice, referenceTime time.Time) (services.InvoiceAmountSnapshot, error) {
+	var customer models.Customer
+	if err := config.DB.Preload("Subscription").
+		Where("id = ? AND tenant_id = ?", invoice.CustomerID, invoice.TenantID).
+		First(&customer).Error; err != nil {
+		return services.InvoiceAmountSnapshot{}, err
+	}
+
+	return services.CalculateInvoiceAmountSnapshot(
+		invoice,
+		&customer.Subscription,
+		services.LoadTenantSettings(invoice.TenantID),
+		referenceTime,
+	), nil
+}
+
 func loadPaymentWithRelations(paymentID uuid.UUID, tenantID uuid.UUID) (*models.Payment, error) {
 	var payment models.Payment
 	if err := config.DB.
 		Preload("Invoice.Customer").
+		Preload("Invoice.Customer.Subscription").
 		Preload("PaymentMethod").
 		Where("id = ? AND tenant_id = ?", paymentID, tenantID).
 		First(&payment).Error; err != nil {
@@ -55,6 +88,51 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 	paymentMethod := "cash"
 	if payment.PaymentMethod != nil && payment.PaymentMethod.Type != "" {
 		paymentMethod = payment.PaymentMethod.Type
+	}
+
+	snapshot, err := resolveInvoiceSnapshot(payment.Invoice, payment.PaidAt)
+	if err != nil {
+		snapshot = services.InvoiceAmountSnapshot{
+			SubTotal:        payment.Invoice.SubTotal,
+			PenaltyAmount:   payment.Invoice.PenaltyAmount,
+			TotalAmount:     payment.Invoice.TotalAmount,
+			TotalPaid:       payment.Invoice.TotalPaid,
+			RemainingAmount: maxFloat(payment.Invoice.TotalAmount-payment.Invoice.TotalPaid, 0),
+		}
+	}
+
+	var totalPaidBefore float64
+	config.DB.Model(&models.Payment{}).
+		Where(
+			"invoice_id = ? AND status != ? AND (paid_at < ? OR (paid_at = ? AND created_at < ?))",
+			payment.InvoiceID,
+			"voided",
+			payment.PaidAt,
+			payment.PaidAt,
+			payment.CreatedAt,
+		).
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalPaidBefore)
+
+	totalPaidAfter := totalPaidBefore
+	if payment.Status != "voided" {
+		totalPaidAfter += payment.Amount
+	}
+	if totalPaidAfter > snapshot.TotalAmount {
+		totalPaidAfter = snapshot.TotalAmount
+	}
+
+	remainingAfter := snapshot.TotalAmount - totalPaidAfter
+	if remainingAfter < 0 {
+		remainingAfter = 0
+	}
+
+	paymentCoverageType := "partial"
+	invoicePaymentStatus := "partial"
+	if remainingAfter == 0 {
+		paymentCoverageType = "full"
+		invoicePaymentStatus = "paid"
+	} else if totalPaidAfter <= 0 {
+		invoicePaymentStatus = "unpaid"
 	}
 
 	return gin.H{
@@ -76,10 +154,17 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 			"updatedAt":       payment.UpdatedAt,
 		},
 		"invoiceDetails": gin.H{
-			"invoiceNumber": payment.Invoice.InvoiceNumber,
-			"invoiceDate":   payment.Invoice.CreatedAt,
-			"dueDate":       dueDate,
-			"totalAmount":   payment.Invoice.TotalAmount,
+			"invoiceNumber":        payment.Invoice.InvoiceNumber,
+			"invoiceDate":          payment.Invoice.CreatedAt,
+			"dueDate":              dueDate,
+			"subTotal":             snapshot.SubTotal,
+			"penaltyAmount":        snapshot.PenaltyAmount,
+			"totalAmount":          snapshot.TotalAmount,
+			"totalPaidBefore":      totalPaidBefore,
+			"totalPaidAfter":       totalPaidAfter,
+			"remainingAmount":      remainingAfter,
+			"paymentCoverageType":  paymentCoverageType,
+			"invoicePaymentStatus": invoicePaymentStatus,
 		},
 		"customerDetails": gin.H{
 			"name":        payment.Invoice.Customer.Name,
@@ -89,6 +174,14 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 		},
 		"generatedAt": time.Now(),
 	}
+}
+
+func maxFloat(value, min float64) float64 {
+	if value < min {
+		return min
+	}
+
+	return value
 }
 
 // CreatePayment godoc
@@ -112,15 +205,11 @@ func CreatePayment(c *gin.Context) {
 
 	tenantID, err := helpers.RequireTenantID(c)
 
-
 	if err != nil {
-
 
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 
-
 		return
-
 
 	}
 
@@ -137,6 +226,18 @@ func CreatePayment(c *gin.Context) {
 		return
 	}
 
+	paidAt, err := parsePaymentTimestamp(req.PaymentDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format tanggal pembayaran tidak valid"})
+		return
+	}
+
+	snapshot, err := resolveInvoiceSnapshot(invoice, paidAt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung total tagihan terkini"})
+		return
+	}
+
 	// Business rule validations
 	if req.Amount <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Payment amount must be greater than zero"})
@@ -148,9 +249,9 @@ func CreatePayment(c *gin.Context) {
 		return
 	}
 
-	if invoice.TotalPaid+req.Amount > invoice.TotalAmount {
+	if invoice.TotalPaid+req.Amount > snapshot.TotalAmount {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("Pembayaran melebihi total tagihan. Sisa tagihan: %.2f", invoice.TotalAmount-invoice.TotalPaid),
+			"error": fmt.Sprintf("Pembayaran melebihi total tagihan. Sisa tagihan: %.2f", snapshot.RemainingAmount),
 		})
 		return
 	}
@@ -160,6 +261,7 @@ func CreatePayment(c *gin.Context) {
 		InvoiceID: req.InvoiceID,
 		Amount:    req.Amount,
 		TenantID:  tenantID,
+		PaidAt:    paidAt,
 	}
 	if err := config.DB.Create(&payment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mencatat pembayaran"})
@@ -169,17 +271,21 @@ func CreatePayment(c *gin.Context) {
 	// Hitung total bayar baru
 	var totalPaid float64
 	config.DB.Model(&models.Payment{}).
-		Where("invoice_id = ?", req.InvoiceID).
-		Select("SUM(amount)").Scan(&totalPaid)
+		Where("invoice_id = ? AND status != ?", req.InvoiceID, "voided").
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalPaid)
 
 	// Update invoice
 	invoice.TotalPaid = totalPaid
-	recalculateInvoicePaymentStatus(&invoice)
+	services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
+	recalculateInvoicePaymentStatus(&invoice, paidAt)
 	if err := config.DB.Model(&invoice).Updates(map[string]interface{}{
-		"total_paid":      invoice.TotalPaid,
-		"is_paid":         invoice.IsPaid,
-		"payment_status":  invoice.PaymentStatus,
-		"paid_date":       invoice.PaidDate,
+		"sub_total":      invoice.SubTotal,
+		"penalty_amount": invoice.PenaltyAmount,
+		"total_amount":   invoice.TotalAmount,
+		"total_paid":     invoice.TotalPaid,
+		"is_paid":        invoice.IsPaid,
+		"payment_status": invoice.PaymentStatus,
+		"paid_date":      invoice.PaidDate,
 	}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui status invoice"})
 		return
@@ -265,11 +371,11 @@ func GetAllPayments(c *gin.Context) {
 
 	var payments []models.Payment
 	query := config.DB.Preload("Invoice.Customer")
-	
+
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	
+
 	if err := query.Order("created_at desc").Find(&payments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data pembayaran"})
 		return
@@ -367,9 +473,15 @@ func UpdatePayment(c *gin.Context) {
 	}
 
 	// Validate new amount
-	if totalPaidExcludingCurrent+input.Amount > invoice.TotalAmount {
+	snapshot, err := resolveInvoiceSnapshot(invoice, payment.PaidAt)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung total tagihan terkini"})
+		return
+	}
+
+	if totalPaidExcludingCurrent+input.Amount > snapshot.TotalAmount {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("Pembayaran melebihi total tagihan. Maksimal: %.2f", invoice.TotalAmount-totalPaidExcludingCurrent),
+			"error": fmt.Sprintf("Pembayaran melebihi total tagihan. Maksimal: %.2f", snapshot.TotalAmount-totalPaidExcludingCurrent),
 		})
 		return
 	}
@@ -385,11 +497,15 @@ func UpdatePayment(c *gin.Context) {
 	var newTotalPaid float64
 	config.DB.Model(&models.Payment{}).
 		Where("invoice_id = ? AND status != ?", payment.InvoiceID, "voided").
-		Select("SUM(amount)").Scan(&newTotalPaid)
+		Select("COALESCE(SUM(amount), 0)").Scan(&newTotalPaid)
 
 	invoice.TotalPaid = newTotalPaid
-	recalculateInvoicePaymentStatus(&invoice)
+	services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
+	recalculateInvoicePaymentStatus(&invoice, payment.PaidAt)
 	config.DB.Model(&invoice).Updates(map[string]interface{}{
+		"sub_total":      invoice.SubTotal,
+		"penalty_amount": invoice.PenaltyAmount,
+		"total_amount":   invoice.TotalAmount,
 		"total_paid":     invoice.TotalPaid,
 		"is_paid":        invoice.IsPaid,
 		"payment_status": invoice.PaymentStatus,
@@ -442,8 +558,14 @@ func DeletePayment(c *gin.Context) {
 			Select("COALESCE(SUM(amount), 0)").Scan(&newTotalPaid)
 
 		invoice.TotalPaid = newTotalPaid
-		recalculateInvoicePaymentStatus(&invoice)
+		if snapshot, snapErr := resolveInvoiceSnapshot(invoice, time.Now()); snapErr == nil {
+			services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
+		}
+		recalculateInvoicePaymentStatus(&invoice, time.Time{})
 		config.DB.Model(&invoice).Updates(map[string]interface{}{
+			"sub_total":      invoice.SubTotal,
+			"penalty_amount": invoice.PenaltyAmount,
+			"total_amount":   invoice.TotalAmount,
 			"total_paid":     invoice.TotalPaid,
 			"is_paid":        invoice.IsPaid,
 			"payment_status": invoice.PaymentStatus,
@@ -503,8 +625,14 @@ func VoidPayment(c *gin.Context) {
 		Select("COALESCE(SUM(amount), 0)").Scan(&totalPaid)
 
 	invoice.TotalPaid = totalPaid
-	recalculateInvoicePaymentStatus(&invoice)
+	if snapshot, snapErr := resolveInvoiceSnapshot(invoice, time.Now()); snapErr == nil {
+		services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
+	}
+	recalculateInvoicePaymentStatus(&invoice, time.Time{})
 	if err := config.DB.Model(&invoice).Updates(map[string]interface{}{
+		"sub_total":      invoice.SubTotal,
+		"penalty_amount": invoice.PenaltyAmount,
+		"total_amount":   invoice.TotalAmount,
 		"total_paid":     invoice.TotalPaid,
 		"is_paid":        invoice.IsPaid,
 		"payment_status": invoice.PaymentStatus,

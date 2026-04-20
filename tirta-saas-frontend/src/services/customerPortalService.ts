@@ -43,6 +43,10 @@ export interface CustomerInvoice {
   sub_total: number;
   total_amount: number;
   total_paid: number;
+  remaining_amount: number;
+  stored_penalty_amount: number;
+  stored_total_amount: number;
+  penalty_days: number;
   payment_status: string;
   is_paid: boolean;
   due_date: string;

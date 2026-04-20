@@ -1,5 +1,108 @@
 # Development Progress - Tirta SaaS
 
+## Latest Session: April 20, 2026
+
+**Date:** April 20, 2026  
+**Focus:** Refactor denda dinamis invoice lama, perbaikan struk kasir keliling partial payment, perencanaan mobile printing kasir keliling, dan fix akses tenant pending approval  
+**Status:** ✅ Refactor billing + receipt selesai, 📋 plan Android thermal printer siap, ✅ fix tenant status `/admin/payments` selesai
+
+---
+
+## ✅ Completed (April 20, 2026)
+
+### 1. Refactor denda overdue agar melekat dinamis ke invoice lama
+
+- Denda overdue tidak lagi menunggu invoice bulan berikutnya untuk ikut tertagih
+- Backend sekarang menghitung **snapshot tagihan aktual per invoice** saat invoice dibuka/dibayar berdasarkan:
+  - `due_date`
+  - timezone tenant
+  - `subscription_type.late_fee_per_day`
+  - `subscription_type.max_late_fee`
+  - tanggal referensi transaksi
+- Read path invoice admin + customer sekarang mengembalikan nominal aktual, termasuk:
+  - `sub_total`
+  - `penalty_amount`
+  - `remaining_amount`
+  - `penalty_days`
+- Write path pembayaran utama sekarang memvalidasi terhadap total tagihan aktual, bukan snapshot stale di invoice
+- Generate invoice bulanan **tidak lagi menggulung denda invoice lama** ke invoice bulan berikutnya
+
+### 2. Struk kasir keliling sekarang jelas untuk pembayaran parsial
+
+- Struk pembayaran di menu kasir keliling tidak lagi terkesan selalu pelunasan penuh
+- Backend receipt sekarang mengirim konteks transaksi:
+  - subtotal saat dibayar
+  - denda saat transaksi
+  - total dibayar sebelumnya
+  - total dibayar setelah transaksi
+  - sisa tagihan
+  - penanda **full** vs **partial**
+- UI struk sekarang menampilkan:
+  - label **Pelunasan Tagihan** atau **Pembayaran Parsial**
+  - nominal dibayar pada transaksi ini
+  - total yang sudah dibayar sebelum/sesudah transaksi
+  - status tagihan setelah transaksi
+  - sisa tagihan yang masih harus dilunasi
+
+### 3. Plan awal untuk kasir keliling + printer termal Bluetooth portable
+
+- Rekomendasi arsitektur: **WebView wrapper + Android native print bridge**
+- Alasan utama:
+  - codebase saat ini masih web-only, jadi flow kasir bisa direuse
+  - Bluetooth thermal printer lebih stabil ditangani native daripada browser print
+  - native layer bisa menangani permission, pairing, reconnect, dan status printer
+- Scope awal yang disepakati:
+  - **Android only**
+  - **generic Bluetooth thermal printer berbasis ESC/POS**
+  - fokus use case: **struk kasir keliling**
+- Prinsip implementasi:
+  - web layer tetap menjadi UI/flow kasir
+  - native bridge menangani scan/connect/print
+  - struk dikirim sebagai **payload terstruktur**, bukan HTML print mentah
+  - payload harus tetap membawa konteks full vs partial payment
+- Fondasi web-side sudah mulai diterapkan:
+  - kontrak payload struk thermal sudah dipisah ke bentuk terstruktur
+  - halaman struk kasir keliling sekarang bisa mendeteksi **Android native printer bridge**
+  - jika bridge tersedia, tombol cetak akan memprioritaskan printer thermal native
+  - jika bridge tidak tersedia, sistem fallback ke browser print seperti sebelumnya
+
+### 4. Catatan implementasi berikutnya
+
+- Sebelum implementasi mobile dimulai, receipt payload untuk kasir keliling perlu dianggap sebagai kontrak tetap
+- Browser print existing tetap bisa dipakai sebagai fallback desktop/admin
+- Langkah lanjut yang paling aman:
+  1. stabilkan payload struk
+  2. buat Android wrapper
+  3. tambah native print bridge ESC/POS
+  4. baru evaluasi offline queue / auto reconnect / favorite printer
+
+### 5. Fix akses `/admin/payments` untuk tenant admin berstatus `PENDING_APPROVAL`
+
+- Ditemukan bug saat tenant admin membuka `/admin/payments`:
+  - backend mengembalikan error:
+    - `"error": "Invalid tenant status"`
+    - `"message": "Your account status is not recognized. Please contact support."`
+  - frontend terlihat seperti loop/refetch terus-menerus
+- Root cause yang ditemukan:
+  - middleware backend `CheckTenantStatus()` belum menangani status tenant `PENDING_APPROVAL`
+  - frontend `DashboardLayout` belum mengarahkan tenant dengan status ini ke halaman subscription yang sesuai
+  - `PaymentList.tsx` memakai dependency callback yang ikut berubah saat toast context berubah, sehingga request gagal bisa memicu fetch/toast berulang
+- Backend fix:
+  - update `middleware/tenant_status.go`
+  - tambah handling khusus untuk `PENDING_APPROVAL`
+  - response diubah menjadi `403` yang benar dengan status `PENDING_APPROVAL` dan pesan yang sesuai konteks approval tenant
+- Frontend fix:
+  - `DashboardLayout.tsx` sekarang redirect tenant admin `PENDING_APPROVAL` ke `/admin/subscription/status`
+  - fallback subscription status check juga sudah mengenali `pending_approval`
+  - `PaymentList.tsx` distabilkan agar tidak memicu loop fetch/toast saat request gagal
+  - `SubscriptionStatusPage.tsx` ditambah tampilan yang benar untuk status `pending_approval` dan `pending_payment`
+- Result:
+  - tenant admin dengan status `PENDING_APPROVAL` tidak lagi kena error `"Invalid tenant status"`
+  - akses ke modul operasional tidak lagi looping
+  - user diarahkan ke halaman status subscription sampai proses approval/pembayaran selesai
+
+---
+
 ## Latest Session: April 19, 2026
 
 **Date:** April 19, 2026  
@@ -65,21 +168,28 @@
 - Halaman `/admin/settings` sekarang punya blok **Siklus Tagihan Bulanan** untuk mengatur tanggal generate dan tanggal jatuh tempo
 - `TenantSettings.BeforeCreate()` diperbaiki agar tetap menghasilkan UUID valid saat membuat settings baru
 
-## ⚠️ Open Gap / Follow-up
+## ℹ️ Historical Gap (Resolved April 20, 2026)
 
 ### Penagihan denda untuk invoice yang sudah terlanjur terbentuk
 
-Gap bisnis yang ditemukan:
+Gap ini sebelumnya ditemukan pada sesi April 19, 2026:
 
 - Saat invoice dibuat otomatis, `penalty_amount` masih **0** bila saat itu belum overdue
-- Jika pelanggan telat bayar invoice tersebut, invoice lama saat ini hanya berubah status menjadi `OVERDUE`
-- Denda **belum otomatis ditambahkan** ke invoice lama saat invoice dibuka atau saat pembayaran dicatat
-- Denda baru ikut terhitung saat generate invoice bulan berikutnya, dengan menarik penalti dari invoice lama yang belum lunas
+- Invoice lama hanya berubah status menjadi `OVERDUE` tanpa membawa denda aktual ke total tagihan
+- Denda baru ikut terhitung saat generate invoice bulan berikutnya
 
-Kesimpulan:
+Update April 20, 2026:
 
-- Mekanisme penagihan denda overdue **belum lengkap**
-- Next step yang direkomendasikan: denda harus **melekat dinamis ke invoice lama** saat invoice dibuka/dibayar, sehingga total tagihan yang dibayar mencerminkan denda aktual sampai tanggal pembayaran
+- Gap ini sudah **ditutup**
+- Denda sekarang dihitung **dinamis pada invoice asal** saat invoice dibuka/dibayar
+- Total pembayaran dan sisa tagihan sekarang mengikuti denda aktual sampai tanggal transaksi
+- Generate invoice bulan berikutnya tidak lagi dipakai untuk “menarik” denda invoice lama
+
+### Follow-up baru: kasir keliling + printer termal Bluetooth
+
+- Kebutuhan baru yang diidentifikasi: dukungan cetak struk lapangan via printer termal portable
+- Arah yang direkomendasikan: **Android WebView wrapper + native Bluetooth print bridge**
+- Scope awal: **ESC/POS generic Bluetooth thermal printer**
 
 ---
 

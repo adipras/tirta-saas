@@ -50,6 +50,16 @@ func CheckTenantStatus() gin.HandlerFunc {
 
 		// Check if tenant is allowed to access
 		switch tenant.Status {
+		case models.TenantStatusPendingApproval:
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":   "Tenant approval pending",
+				"message": "Tenant Anda sedang menunggu persetujuan dari platform owner. Silakan tunggu hingga proses persetujuan selesai.",
+				"status":  "PENDING_APPROVAL",
+				"action":  "Pantau status langganan Anda di halaman subscription status",
+			})
+			c.Abort()
+			return
+
 		case models.TenantStatusExpired:
 			c.JSON(http.StatusForbidden, gin.H{
 				"error":   "Trial period has expired",

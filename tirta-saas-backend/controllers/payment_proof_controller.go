@@ -11,6 +11,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -113,13 +114,22 @@ func SubmitPaymentProof(c *gin.Context) {
 
 	// Get invoice and validate
 	var invoice models.Invoice
-	if err := config.DB.Preload("Customer").Where("id = ? AND tenant_id = ?", invoiceID, tenantID).First(&invoice).Error; err != nil {
+	if err := config.DB.Preload("Customer").Preload("Customer.Subscription").Where("id = ? AND tenant_id = ?", invoiceID, tenantID).First(&invoice).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
 		return
 	}
 
 	if invoice.PaymentStatus == models.PaymentStatusPaid {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invoice already paid"})
+		return
+	}
+
+	snapshot := services.CalculateInvoiceAmountSnapshot(invoice, &invoice.Customer.Subscription, services.LoadTenantSettings(tenantID), paymentDate)
+	if invoice.TotalPaid+amount > snapshot.TotalAmount {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":            "Payment amount exceeds the current invoice balance",
+			"remaining_amount": snapshot.RemainingAmount,
+		})
 		return
 	}
 
@@ -277,7 +287,8 @@ func GetPaymentProof(c *gin.Context) {
 
 	var paymentProof models.PaymentProof
 	if err := config.DB.
-		Preload("Invoice").
+		Preload("Invoice.Customer").
+		Preload("Invoice.Customer.Subscription").
 		Preload("Customer").
 		Where("id = ? AND tenant_id = ?", id, tenantID).
 		First(&paymentProof).Error; err != nil {
@@ -334,6 +345,20 @@ func VerifyPaymentProof(c *gin.Context) {
 		return
 	}
 
+	snapshot := services.CalculateInvoiceAmountSnapshot(
+		paymentProof.Invoice,
+		&paymentProof.Invoice.Customer.Subscription,
+		services.LoadTenantSettings(tenantID),
+		paymentProof.PaymentDate,
+	)
+	if paymentProof.Invoice.TotalPaid+paymentProof.Amount > snapshot.TotalAmount {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":            "Payment proof amount exceeds the current invoice balance",
+			"remaining_amount": snapshot.RemainingAmount,
+		})
+		return
+	}
+
 	// Begin transaction
 	tx := config.DB.Begin()
 	defer func() {
@@ -380,14 +405,26 @@ func VerifyPaymentProof(c *gin.Context) {
 
 	// Update invoice payment status
 	invoice := paymentProof.Invoice
-	invoice.TotalPaid += paymentProof.Amount
+	var totalPaid float64
+	tx.Model(&models.Payment{}).
+		Where("invoice_id = ? AND status != ?", paymentProof.InvoiceID, "voided").
+		Select("COALESCE(SUM(amount), 0)").Scan(&totalPaid)
 
+	invoice.TotalPaid = totalPaid
+	services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
 	if invoice.TotalPaid >= invoice.TotalAmount {
 		invoice.PaymentStatus = models.PaymentStatusPaid
 		invoice.IsPaid = true
-		invoice.PaidDate = &now
-	} else {
+		paidDate := paymentProof.PaymentDate
+		invoice.PaidDate = &paidDate
+	} else if invoice.TotalPaid > 0 {
 		invoice.PaymentStatus = models.PaymentStatusPartial
+		invoice.IsPaid = false
+		invoice.PaidDate = nil
+	} else {
+		invoice.PaymentStatus = models.PaymentStatusUnpaid
+		invoice.IsPaid = false
+		invoice.PaidDate = nil
 	}
 
 	if err := tx.Save(&invoice).Error; err != nil {

@@ -101,8 +101,8 @@ class PaymentService {
       dueDate: inv.due_date || '',
       totalAmount: inv.total_amount || 0,
       paidAmount: inv.total_paid || 0,
-      remainingAmount: (inv.total_amount || 0) - (inv.total_paid || 0),
-      status: inv.is_paid ? 'paid' : 'unpaid',
+      remainingAmount: inv.remaining_amount ?? ((inv.total_amount || 0) - (inv.total_paid || 0)),
+      status: inv.payment_status || (inv.is_paid ? 'paid' : 'unpaid'),
       usageMonth: inv.usage_month,
     }));
   }
