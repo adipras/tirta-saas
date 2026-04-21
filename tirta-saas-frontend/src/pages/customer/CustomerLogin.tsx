@@ -27,15 +27,15 @@ const CustomerLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-indigo-600 mb-2">Portal Pelanggan</h1>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <h1 className="mb-2 text-3xl font-bold text-indigo-600 sm:text-4xl">Portal Pelanggan</h1>
           <p className="text-gray-600">Sistem Manajemen Air Bersih</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6">Login Pelanggan</h2>
+        <div className="rounded-2xl bg-white p-6 shadow-xl sm:p-8">
+          <h2 className="mb-6 text-2xl font-semibold text-gray-800">Login Pelanggan</h2>
 
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">

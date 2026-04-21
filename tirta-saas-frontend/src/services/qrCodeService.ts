@@ -1,6 +1,7 @@
+import { API_ORIGIN } from '../constants/api';
 import { apiClient } from './apiClient';
 
-const STATIC_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api').replace('/api', '');
+const STATIC_BASE = API_ORIGIN;
 
 export interface QRCode {
   id: string;

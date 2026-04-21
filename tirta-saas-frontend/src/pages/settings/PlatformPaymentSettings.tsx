@@ -268,14 +268,14 @@ export default function PlatformPaymentSettings() {
       {/* Bank Accounts Section */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center">
               <BuildingLibraryIcon className="h-6 w-6 text-blue-600 mr-2" />
               <h2 className="text-lg font-semibold text-gray-900">Bank Accounts</h2>
             </div>
             <button
               onClick={() => openBankModal()}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
             >
               <PlusIcon className="h-5 w-5 mr-2" />
               Add Bank Account
@@ -304,8 +304,8 @@ export default function PlatformPaymentSettings() {
                     bank.isActive ? 'border-gray-200' : 'border-gray-100 bg-gray-50'
                   }`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                     <div className="flex items-start space-x-4">
                       <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                         <BuildingLibraryIcon className="h-6 w-6 text-blue-600" />
                       </div>
@@ -332,7 +332,7 @@ export default function PlatformPaymentSettings() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                     <div className="flex items-center space-x-2 self-end sm:self-auto">
                       <button
                         onClick={() => openBankModal(bank)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
@@ -359,14 +359,14 @@ export default function PlatformPaymentSettings() {
       {/* QR Codes Section */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center">
               <QrCodeIcon className="h-6 w-6 text-green-600 mr-2" />
               <h2 className="text-lg font-semibold text-gray-900">QR Codes</h2>
             </div>
             <button
               onClick={() => openQRModal()}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 sm:w-auto"
             >
               <PlusIcon className="h-5 w-5 mr-2" />
               Add QR Code
@@ -387,7 +387,7 @@ export default function PlatformPaymentSettings() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {qrCodes.map((qr) => (
                 <div
                   key={qr.id}
@@ -395,7 +395,7 @@ export default function PlatformPaymentSettings() {
                     qr.is_active ? 'border-gray-200' : 'border-gray-100 bg-gray-50'
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-3">
+                    <div className="mb-3 flex items-start justify-between gap-3">
                     <div>
                       <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-medium">
                         {qr.type}
@@ -454,8 +454,8 @@ export default function PlatformPaymentSettings() {
 
       {/* Bank Account Modal - Similar to Tenant version but with description */}
       {showBankModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-600 bg-opacity-50 p-4 sm:items-center">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl">
             <form onSubmit={handleBankSubmit}>
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -532,7 +532,7 @@ export default function PlatformPaymentSettings() {
                     />
                   </div>
 
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:space-x-4">
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -555,17 +555,17 @@ export default function PlatformPaymentSettings() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3 rounded-b-lg">
+              <div className="flex flex-col-reverse gap-3 rounded-b-lg bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closeBankModal}
-                  className="px-4 py-2 border text-gray-700 rounded-lg hover:bg-gray-100"
+                  className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
                 >
                   {editingBank ? 'Update' : 'Add'} Bank Account
                 </button>
@@ -577,8 +577,8 @@ export default function PlatformPaymentSettings() {
 
       {/* QR Code Modal - Similar structure with description field */}
       {showQRModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-600 bg-opacity-50 p-4 sm:items-center">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl">
             <form onSubmit={handleQRSubmit}>
               <div className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -688,17 +688,17 @@ export default function PlatformPaymentSettings() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3 rounded-b-lg">
+              <div className="flex flex-col-reverse gap-3 rounded-b-lg bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closeQRModal}
-                  className="px-4 py-2 border text-gray-700 rounded-lg hover:bg-gray-100"
+                  className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  className="w-full rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 sm:w-auto"
                 >
                   {editingQR ? 'Update' : 'Add'} QR Code
                 </button>

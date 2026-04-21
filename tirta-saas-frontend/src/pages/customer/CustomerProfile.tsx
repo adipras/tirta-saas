@@ -117,7 +117,7 @@ const CustomerProfil: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Message */}
         {message.text && (
           <div
@@ -132,8 +132,8 @@ const CustomerProfil: React.FC = () => {
         )}
 
         {/* Profil Info Card */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center gap-4 mb-6">
+        <div className="mb-6 rounded-lg bg-white p-6 shadow-md">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
             <UserCircleIcon className="h-16 w-16 text-indigo-600" />
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{profile?.name}</h2>
@@ -142,7 +142,7 @@ const CustomerProfil: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+          <div className="grid grid-cols-1 gap-4 border-t pt-4 md:grid-cols-2">
             <div>
               <p className="text-sm text-gray-600">Status</p>
               <p className="font-medium">

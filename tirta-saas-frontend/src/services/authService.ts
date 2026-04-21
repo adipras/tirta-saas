@@ -18,6 +18,8 @@ export interface User {
   name: string;
   role: 'admin' | 'customer' | 'platform_owner' | 'tenant_admin' | 'meter_reader' | 'finance' | 'service';
   tenant_id?: string;
+  tenant_name?: string | null;
+  tenant_logo_url?: string | null;
   trial_ends_at?: string | null;
   tenant_status?: string | null;
 }
@@ -42,6 +44,8 @@ class AuthService {
           name: response.name || response.username || 'Admin User',
           role: response.role || 'admin',
           tenant_id: response.tenant_id || response.tenantId,
+          tenant_name: response.tenant_name || null,
+          tenant_logo_url: response.tenant_logo_url || null,
           trial_ends_at: response.trial_ends_at || null,
           tenant_status: response.tenant_status || null,
         }
@@ -164,6 +168,17 @@ class AuthService {
   updateAuth(token: string, user: User): void {
     localStorage.setItem(this.TOKEN_KEY, token);
     localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+  }
+
+  updateStoredUser(updates: Partial<User>): User | null {
+    const currentUser = this.getUser();
+    if (!currentUser) {
+      return null;
+    }
+
+    const updatedUser = { ...currentUser, ...updates };
+    localStorage.setItem(this.USER_KEY, JSON.stringify(updatedUser));
+    return updatedUser;
   }
 
   private clearAuth(): void {

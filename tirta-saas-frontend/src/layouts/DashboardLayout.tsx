@@ -3,8 +3,8 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import TrialBanner from '../components/TrialBanner';
-import { authService } from '../services/authService';
 import { subscriptionPaymentService } from '../services/subscriptionPaymentService';
+import { useAppSelector } from '../hooks/redux';
 
 // Routes that are accessible even when subscription is PENDING_PAYMENT / PENDING_VERIFICATION
 const PAYMENT_ALLOWED_PATHS = [
@@ -15,7 +15,7 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const user = authService.getCurrentUser();
+  const user = useAppSelector((state) => state.auth.user);
   const showTrialBanner = user?.role === 'tenant_admin';
 
   useEffect(() => {
@@ -49,19 +49,19 @@ const DashboardLayout = () => {
     }).catch(() => {
       // Subscription status check failed — allow normal navigation
     });
-  }, [location.pathname]);
+  }, [location.pathname, navigate, user]);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex min-h-screen min-h-[100dvh] bg-gray-50">
       <div className="print:hidden">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       </div>
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {showTrialBanner && <div className="print:hidden"><TrialBanner /></div>}
         <div className="print:hidden">
           <Header onMenuClick={() => setSidebarOpen(true)} />
         </div>
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 sm:p-6">
+        <main className="safe-bottom flex-1 overflow-x-clip overflow-y-auto bg-gray-50 px-4 py-4 sm:px-6 sm:py-6">
           <Outlet />
         </main>
       </div>

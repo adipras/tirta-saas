@@ -175,11 +175,23 @@ export default function SubscriptionTypeList() {
   ];
 
   return (
-    <div className="p-6">
-      <PageHeader title="Golongan Langganan" subtitle="Manage subscription types and their fee structures" />
+    <div className="space-y-6">
+      <PageHeader
+        title="Golongan Langganan"
+        subtitle="Manage subscription types and their fee structures"
+        actions={
+          <button
+            onClick={() => navigate('/admin/subscriptions/create')}
+            className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+          >
+            <PlusIcon className="mr-2 h-5 w-5" />
+            Add Subscription Type
+          </button>
+        }
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
@@ -224,23 +236,21 @@ export default function SubscriptionTypeList() {
       </div>
 
       {/* Search and Actions */}
-      <div className="mb-4 flex justify-between items-center">
-        <div className="flex-1 max-w-lg">
+      <div className="rounded-lg bg-white p-4 shadow">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="w-full lg:max-w-lg">
           <input
             type="text"
             placeholder="Search subscription types..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
           />
         </div>
-        <button
-          onClick={() => navigate('/admin/subscriptions/create')}
-          className="ml-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Add Subscription Type
-        </button>
+        <p className="text-sm text-gray-500">
+          Menampilkan {subscriptionTypes.length} golongan langganan
+        </p>
+        </div>
       </div>
 
       {/* Table */}
@@ -249,6 +259,7 @@ export default function SubscriptionTypeList() {
           columns={columns}
           data={subscriptionTypes}
           loading={loading}
+          searchable={false}
         />
       </div>
 

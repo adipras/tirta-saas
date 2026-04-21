@@ -20,40 +20,40 @@ const LaporanDashboard: React.FC = () => {
   const reports = [
     {
       id: 'revenue',
-      title: 'Revenue Report',
-      description: 'View revenue trends, monthly breakdown, and subscription type analysis',
+      title: 'Laporan Pendapatan',
+      description: 'Lihat tren pendapatan, rincian bulanan, dan analisis tipe langganan',
       icon: CurrencyDollarIcon,
       color: 'bg-green-500',
       path: '/admin/reports/revenue',
     },
     {
       id: 'payments',
-      title: 'Payment Report',
-      description: 'Track payment collections, methods, and outstanding balances',
+      title: 'Laporan Pembayaran',
+      description: 'Pantau penerimaan pembayaran, metode pembayaran, dan saldo tertunggak',
       icon: ChartBarIcon,
       color: 'bg-blue-500',
       path: '/admin/reports/payments',
     },
     {
       id: 'customers',
-      title: 'Customer Analytics',
-      description: 'Analyze customer growth, status distribution, and top customers',
+      title: 'Analitik Pelanggan',
+      description: 'Analisis pertumbuhan pelanggan, distribusi status, dan pelanggan teratas',
       icon: UserGroupIcon,
       color: 'bg-purple-500',
       path: '/admin/reports/customers',
     },
     {
       id: 'usage',
-      title: 'Pemakaian Report',
-      description: 'Monitor water usage trends and identify high consumers',
+      title: 'Laporan Pemakaian',
+      description: 'Pantau tren pemakaian air dan identifikasi pelanggan dengan konsumsi tinggi',
       icon: BeakerIcon,
       color: 'bg-cyan-500',
       path: '/admin/reports/usage',
     },
     {
       id: 'outstanding',
-      title: 'Outstanding Report',
-      description: 'View overdue invoices and aging analysis',
+      title: 'Laporan Tunggakan',
+      description: 'Lihat tagihan terlambat dan analisis umur piutang',
       icon: DocumentTextIcon,
       color: 'bg-orange-500',
       path: '/admin/reports/outstanding',
@@ -65,16 +65,16 @@ const LaporanDashboard: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <PageHeader title="Laporan & Analytics" subtitle="Comprehensive reports and analytics for your water supply management" />
+    <div className="space-y-6">
+      <PageHeader title="Laporan & Analitik" subtitle="Kumpulan laporan dan analitik untuk pengelolaan layanan air Anda" />
 
       {/* Date Range Filter */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Default Date Range</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Rentang Tanggal Default</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
+              Tanggal Mulai
             </label>
             <input
               type="date"
@@ -87,7 +87,7 @@ const LaporanDashboard: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Date
+              Tanggal Selesai
             </label>
             <input
               type="date"
@@ -99,7 +99,7 @@ const LaporanDashboard: React.FC = () => {
             />
           </div>
         </div>
-        <div className="mt-4 flex space-x-2">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <button
             onClick={() =>
               setDateRange({
@@ -109,9 +109,9 @@ const LaporanDashboard: React.FC = () => {
                 endDate: new Date().toISOString().split('T')[0],
               })
             }
-            className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            className="rounded-md bg-gray-100 px-4 py-2 text-sm text-gray-700 hover:bg-gray-200"
           >
-            This Month
+            Bulan Ini
           </button>
           <button
             onClick={() =>
@@ -122,9 +122,9 @@ const LaporanDashboard: React.FC = () => {
                 endDate: new Date().toISOString().split('T')[0],
               })
             }
-            className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            className="rounded-md bg-gray-100 px-4 py-2 text-sm text-gray-700 hover:bg-gray-200"
           >
-            This Year
+            Tahun Ini
           </button>
           <button
             onClick={() =>
@@ -137,15 +137,15 @@ const LaporanDashboard: React.FC = () => {
                   .split('T')[0],
               })
             }
-            className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            className="rounded-md bg-gray-100 px-4 py-2 text-sm text-gray-700 hover:bg-gray-200"
           >
-            Last Year
+            Tahun Lalu
           </button>
         </div>
       </div>
 
       {/* Report Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         {reports.map((report) => (
           <div
             key={report.id}
@@ -164,7 +164,7 @@ const LaporanDashboard: React.FC = () => {
               <p className="text-gray-600 text-sm">{report.description}</p>
               <div className="mt-4">
                 <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                  View Report →
+                  Lihat Laporan -&gt;
                 </button>
               </div>
             </div>
@@ -173,29 +173,29 @@ const LaporanDashboard: React.FC = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="mt-6 bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Aksi Cepat</h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <button
             onClick={() => navigate('/admin/invoices')}
-            className="p-4 border border-gray-300 rounded-md hover:bg-gray-50 text-left"
+            className="rounded-md border border-gray-300 p-4 text-left hover:bg-gray-50"
           >
             <div className="text-sm font-medium text-gray-900">Generate Tagihan</div>
-            <div className="text-xs text-gray-600 mt-1">Create monthly invoices</div>
+            <div className="text-xs text-gray-600 mt-1">Buat tagihan bulanan</div>
           </button>
           <button
             onClick={() => navigate('/admin/payments/new')}
-            className="p-4 border border-gray-300 rounded-md hover:bg-gray-50 text-left"
+            className="rounded-md border border-gray-300 p-4 text-left hover:bg-gray-50"
           >
-            <div className="text-sm font-medium text-gray-900">Record Payment</div>
-            <div className="text-xs text-gray-600 mt-1">Add new payment record</div>
+            <div className="text-sm font-medium text-gray-900">Catat Pembayaran</div>
+            <div className="text-xs text-gray-600 mt-1">Tambahkan catatan pembayaran baru</div>
           </button>
           <button
             onClick={() => navigate('/admin/usage/create')}
-            className="p-4 border border-gray-300 rounded-md hover:bg-gray-50 text-left"
+            className="rounded-md border border-gray-300 p-4 text-left hover:bg-gray-50"
           >
-            <div className="text-sm font-medium text-gray-900">Enter Pemakaian</div>
-            <div className="text-xs text-gray-600 mt-1">Record meter readings</div>
+            <div className="text-sm font-medium text-gray-900">Input Pemakaian</div>
+            <div className="text-xs text-gray-600 mt-1">Catat hasil pembacaan meter</div>
           </button>
         </div>
       </div>

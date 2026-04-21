@@ -49,20 +49,20 @@ const RevenueReport: React.FC = () => {
 
   const handleExport = (format: 'csv' | 'excel') => {
     if (!reportData) return;
-    const baseName = `revenue_report_${filters.startDate}_${filters.endDate}`;
+    const baseName = `laporan_pendapatan_${filters.startDate}_${filters.endDate}`;
 
     const monthlyRows = (reportData.monthlyRevenue || []).map((item) => ({
-      'Month': item.month,
-      'Year': item.year,
-      'Revenue (IDR)': item.revenue,
-      'Revenue': formatIDR(item.revenue),
+      'Bulan': item.month,
+      'Tahun': item.year,
+      'Pendapatan (IDR)': item.revenue,
+      'Pendapatan': formatIDR(item.revenue),
       'Tagihan': item.invoices,
     }));
     const byTypeRows = (reportData.revenueBySubscriptionType || []).map((item) => ({
-      'Subscription Type': item.subscriptionType,
-      'Revenue (IDR)': item.revenue,
-      'Revenue': formatIDR(item.revenue),
-      'Percentage': `${item.percentage.toFixed(1)}%`,
+      'Tipe Langganan': item.subscriptionType,
+      'Pendapatan (IDR)': item.revenue,
+      'Pendapatan': formatIDR(item.revenue),
+      'Persentase': `${item.percentage.toFixed(1)}%`,
     }));
 
     if (format === 'csv') {
@@ -70,8 +70,8 @@ const RevenueReport: React.FC = () => {
     } else {
       exportToExcel(
         [
-          { sheetName: 'Monthly Revenue', data: monthlyRows },
-          { sheetName: 'By Subscription Type', data: byTypeRows },
+          { sheetName: 'Pendapatan Bulanan', data: monthlyRows },
+          { sheetName: 'Per Tipe Langganan', data: byTypeRows },
         ],
         `${baseName}.xlsx`
       );
@@ -83,7 +83,7 @@ const RevenueReport: React.FC = () => {
       <div className="p-6">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading report...</p>
+          <p className="mt-4 text-gray-600">Memuat laporan...</p>
         </div>
       </div>
     );
@@ -93,7 +93,7 @@ const RevenueReport: React.FC = () => {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <p className="text-gray-600">No data available</p>
+          <p className="text-gray-600">Data belum tersedia</p>
         </div>
       </div>
     );
@@ -103,29 +103,29 @@ const RevenueReport: React.FC = () => {
     <div className="p-6">
       {/* Header */}
       <PageHeader
-        title="Revenue Report"
-        subtitle={reportData ? `Period: ${new Date(reportData.period.startDate).toLocaleDateString()} - ${new Date(reportData.period.endDate).toLocaleDateString()}` : undefined}
+        title="Laporan Pendapatan"
+        subtitle={reportData ? `Periode: ${new Date(reportData.period.startDate).toLocaleDateString('id-ID')} - ${new Date(reportData.period.endDate).toLocaleDateString('id-ID')}` : undefined}
         actions={
           <div className="flex space-x-2">
             <button
               onClick={() => navigate('/admin/reports')}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
             >
-              Back
+              Kembali
             </button>
             <button
               onClick={() => handleExport('csv')}
               className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center"
             >
               <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-              Export CSV
+              Ekspor CSV
             </button>
             <button
               onClick={() => handleExport('excel')}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
             >
               <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-              Export Excel
+              Ekspor Excel
             </button>
           </div>
         }
@@ -136,7 +136,7 @@ const RevenueReport: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
+              Tanggal Mulai
             </label>
             <input
               type="date"
@@ -149,7 +149,7 @@ const RevenueReport: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Date
+              Tanggal Selesai
             </label>
             <input
               type="date"
@@ -165,7 +165,7 @@ const RevenueReport: React.FC = () => {
 
       {/* Summary Card */}
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow p-8 mb-6 text-white">
-        <h2 className="text-lg font-medium mb-2">Total Revenue</h2>
+        <h2 className="text-lg font-medium mb-2">Total Pendapatan</h2>
         <div className="text-4xl font-bold">
           Rp {reportData.totalRevenue.toLocaleString('id-ID')}
         </div>
@@ -173,7 +173,7 @@ const RevenueReport: React.FC = () => {
 
       {/* Monthly Revenue Chart */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Monthly Revenue</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Pendapatan Bulanan</h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={reportData.monthlyRevenue}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -183,7 +183,7 @@ const RevenueReport: React.FC = () => {
               formatter={(value: number) => `Rp ${value.toLocaleString('id-ID')}`}
             />
             <Legend />
-            <Bar dataKey="revenue" fill="#3B82F6" name="Revenue" />
+            <Bar dataKey="revenue" fill="#3B82F6" name="Pendapatan" />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -192,7 +192,7 @@ const RevenueReport: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Revenue by Subscription Type
+            Pendapatan per Tipe Langganan
           </h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -219,20 +219,20 @@ const RevenueReport: React.FC = () => {
         {/* Revenue Breakdown Table */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Subscription Type Breakdown
+            Rincian per Tipe Langganan
           </h2>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Type
+                    Tipe
                   </th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                    Revenue
+                    Pendapatan
                   </th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                    %
+                    Persentase
                   </th>
                 </tr>
               </thead>
@@ -258,16 +258,16 @@ const RevenueReport: React.FC = () => {
 
       {/* Monthly Details Table */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Monthly Details</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Rincian Bulanan</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Month
+                  Bulan
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Revenue
+                  Pendapatan
                 </th>
                 <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
                   Tagihan

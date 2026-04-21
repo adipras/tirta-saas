@@ -64,6 +64,16 @@ const CustomerSidebar = ({ open, onClose }: CustomerSidebarProps) => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
+  useEffect(() => {
+    if (!open) {
+      document.body.style.removeProperty('overflow');
+      return;
+    }
+
+    document.body.style.overflow = 'hidden';
+    return () => document.body.style.removeProperty('overflow');
+  }, [open]);
+
   return (
     <>
       {/* Desktop sidebar */}
@@ -78,7 +88,7 @@ const CustomerSidebar = ({ open, onClose }: CustomerSidebarProps) => {
             className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity"
             onClick={onClose}
           />
-          <div className="relative flex w-64 flex-col flex-shrink-0 shadow-xl">
+          <div className="safe-y relative flex w-[min(18rem,85vw)] flex-col flex-shrink-0 shadow-xl">
             <SidebarContent onClose={onClose} />
           </div>
         </div>

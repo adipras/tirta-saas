@@ -105,6 +105,25 @@ export function DataTable<T extends Record<string, any>>({
     return path.split('.').reduce((current, key) => current?.[key], obj as any);
   };
 
+  const getColumnValue = (item: T, column: Column<T>) => {
+    if (column.key.toString().includes('.')) {
+      return getNestedValue(item, column.key as string);
+    }
+
+    return item[column.key as keyof T];
+  };
+
+  const renderCellValue = (item: T, column: Column<T>) => {
+    const value = getColumnValue(item, column);
+    const renderedValue = column.render ? column.render(value, item) : value;
+
+    if (renderedValue === null || renderedValue === undefined || renderedValue === '') {
+      return '-';
+    }
+
+    return renderedValue;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -133,7 +152,42 @@ export function DataTable<T extends Record<string, any>>({
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="sm:hidden">
+        {paginatedData.length === 0 ? (
+          <div className="px-4 py-8 text-center text-sm text-gray-500">{emptyMessage}</div>
+        ) : (
+          <div className="divide-y divide-gray-200">
+            {paginatedData.map((item, index) => (
+              <div
+                key={index}
+                className={`space-y-3 p-4 ${onRowClick ? 'cursor-pointer active:bg-gray-50' : ''}`}
+                onClick={() => onRowClick?.(item)}
+              >
+                {columns.map((column) => (
+                  <div key={column.key as string} className="flex items-start justify-between gap-3">
+                    <dt className="max-w-[45%] text-xs font-medium uppercase tracking-wide text-gray-500">
+                      {column.label}
+                    </dt>
+                    <dd className="min-w-0 flex-1 text-right text-sm text-gray-900 break-words">
+                      {renderCellValue(item, column)}
+                    </dd>
+                  </div>
+                ))}
+                {actions && (
+                  <div
+                    className="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {actions(item)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto sm:block">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -198,16 +252,7 @@ export function DataTable<T extends Record<string, any>>({
                         'text-left'
                       } ${column.className || ''}`}
                     >
-                      {column.render
-                        ? column.render(
-                            column.key.toString().includes('.')
-                              ? getNestedValue(item, column.key as string)
-                              : item[column.key],
-                            item
-                          )
-                        : column.key.toString().includes('.')
-                        ? getNestedValue(item, column.key as string)
-                        : item[column.key]}
+                      {renderCellValue(item, column)}
                     </td>
                   ))}
                   {actions && (

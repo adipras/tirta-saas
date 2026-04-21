@@ -82,10 +82,10 @@ const CustomerTagihan: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Filter */}
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             <button
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-lg transition-colors ${
@@ -123,8 +123,8 @@ const CustomerTagihan: React.FC = () => {
           <div className="space-y-4">
             {filteredTagihan.map((invoice) => (
               <div key={invoice.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
                     <h3 className="text-lg font-semibold text-gray-900">{invoice.invoice_number}</h3>
                     <p className="text-sm text-gray-600">
                       Periode: {invoice.usage_month} {invoice.usage_year}
@@ -133,7 +133,7 @@ const CustomerTagihan: React.FC = () => {
                   {getStatusBadge(invoice)}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
                     <p className="text-sm text-gray-600">Pemakaian Air</p>
                     <p className="font-medium">{invoice.usage_amount} m³</p>
@@ -149,31 +149,31 @@ const CustomerTagihan: React.FC = () => {
 
                 <div className="border-t pt-4">
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                      <div className="flex items-start justify-between gap-3 text-sm">
                       <span className="text-gray-600">Biaya Air</span>
                       <span>{formatCurrency(invoice.water_charge)}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
+                      <div className="flex items-start justify-between gap-3 text-sm">
                       <span className="text-gray-600">Biaya Langganan</span>
                       <span>{formatCurrency(invoice.subscription_fee)}</span>
                     </div>
                     {invoice.penalty_amount > 0 && (
-                      <div className="flex justify-between text-sm text-red-600">
+                        <div className="flex items-start justify-between gap-3 text-sm text-red-600">
                         <span>Denda Keterlambatan</span>
                         <span>{formatCurrency(invoice.penalty_amount)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                      <div className="flex items-start justify-between gap-3 border-t pt-2 text-lg font-bold">
                       <span>Total</span>
                       <span>{formatCurrency(invoice.total_amount)}</span>
                     </div>
                     {invoice.total_paid > 0 && (
                       <>
-                        <div className="flex justify-between text-sm text-green-600">
+                          <div className="flex items-start justify-between gap-3 text-sm text-green-600">
                           <span>Sudah Dibayar</span>
                           <span>-{formatCurrency(invoice.total_paid)}</span>
                         </div>
-                        <div className="flex justify-between font-bold text-indigo-600">
+                          <div className="flex items-start justify-between gap-3 font-bold text-indigo-600">
                           <span>Sisa</span>
                           <span>{formatCurrency(invoice.remaining_amount)}</span>
                         </div>

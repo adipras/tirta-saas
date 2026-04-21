@@ -49,28 +49,28 @@ const PaymentReport: React.FC = () => {
 
   const handleExport = (format: 'csv' | 'excel') => {
     if (!reportData) return;
-    const baseName = `payment_report_${filters.startDate}_${filters.endDate}`;
+    const baseName = `laporan_pembayaran_${filters.startDate}_${filters.endDate}`;
 
     const dailyRows = (reportData.dailyCollection || []).map((item) => ({
-      'Date': item.date,
-      'Amount (IDR)': item.amount,
-      'Amount': formatIDR(item.amount),
-      'Transactions': item.count,
+      'Tanggal': item.date,
+      'Jumlah (IDR)': item.amount,
+      'Jumlah': formatIDR(item.amount),
+      'Transaksi': item.count,
     }));
     const methodRows = (reportData.paymentMethodBreakdown || []).map((item) => ({
-      'Payment Method': item.method,
-      'Amount (IDR)': item.amount,
-      'Amount': formatIDR(item.amount),
-      'Transactions': item.count,
-      'Percentage': `${item.percentage.toFixed(1)}%`,
+      'Metode Pembayaran': item.method,
+      'Jumlah (IDR)': item.amount,
+      'Jumlah': formatIDR(item.amount),
+      'Transaksi': item.count,
+      'Persentase': `${item.percentage.toFixed(1)}%`,
     }));
     const outstandingRows = (reportData.outstandingPembayaran || []).map((item) => ({
-      'Customer': item.customerName,
-      'Invoice #': item.invoiceNumber,
-      'Amount (IDR)': item.amount,
-      'Amount': formatIDR(item.amount),
-      'Due Date': item.dueDate,
-      'Days Overdue': item.daysOverdue,
+      'Pelanggan': item.customerName,
+      'No. Invoice': item.invoiceNumber,
+      'Jumlah (IDR)': item.amount,
+      'Jumlah': formatIDR(item.amount),
+      'Jatuh Tempo': item.dueDate,
+      'Hari Terlambat': item.daysOverdue,
     }));
 
     if (format === 'csv') {
@@ -78,9 +78,9 @@ const PaymentReport: React.FC = () => {
     } else {
       exportToExcel(
         [
-          { sheetName: 'Daily Collection', data: dailyRows },
-          { sheetName: 'By Payment Method', data: methodRows },
-          { sheetName: 'Outstanding', data: outstandingRows },
+          { sheetName: 'Penerimaan Harian', data: dailyRows },
+          { sheetName: 'Per Metode Pembayaran', data: methodRows },
+          { sheetName: 'Tunggakan', data: outstandingRows },
         ],
         `${baseName}.xlsx`
       );
@@ -92,7 +92,7 @@ const PaymentReport: React.FC = () => {
       <div className="p-6">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading report...</p>
+          <p className="mt-4 text-gray-600">Memuat laporan...</p>
         </div>
       </div>
     );
@@ -102,7 +102,7 @@ const PaymentReport: React.FC = () => {
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <p className="text-gray-600">No data available</p>
+          <p className="text-gray-600">Data belum tersedia</p>
         </div>
       </div>
     );
@@ -116,29 +116,29 @@ const PaymentReport: React.FC = () => {
     <div className="p-6">
       {/* Header */}
       <PageHeader
-        title="Payment Report"
-        subtitle="Payment collection analysis and outstanding balances"
+        title="Laporan Pembayaran"
+        subtitle="Analisis penerimaan pembayaran dan saldo tertunggak"
         actions={
           <div className="flex space-x-2">
             <button
               onClick={() => navigate('/admin/reports')}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
             >
-              Back
+              Kembali
             </button>
             <button
               onClick={() => handleExport('csv')}
               className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center"
             >
               <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-              Export CSV
+              Ekspor CSV
             </button>
             <button
               onClick={() => handleExport('excel')}
               className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
             >
               <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-              Export Excel
+              Ekspor Excel
             </button>
           </div>
         }
@@ -149,7 +149,7 @@ const PaymentReport: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
+              Tanggal Mulai
             </label>
             <input
               type="date"
@@ -162,7 +162,7 @@ const PaymentReport: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Date
+              Tanggal Selesai
             </label>
             <input
               type="date"
@@ -179,19 +179,19 @@ const PaymentReport: React.FC = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow p-6 text-white">
-          <div className="text-sm font-medium mb-2">Total Collected</div>
+          <div className="text-sm font-medium mb-2">Total Tertagih</div>
           <div className="text-3xl font-bold">
             Rp {reportData.totalCollected.toLocaleString('id-ID')}
           </div>
         </div>
         <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg shadow p-6 text-white">
-          <div className="text-sm font-medium mb-2">Outstanding</div>
+          <div className="text-sm font-medium mb-2">Total Tunggakan</div>
           <div className="text-3xl font-bold">
             Rp {reportData.totalOutstanding.toLocaleString('id-ID')}
           </div>
         </div>
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow p-6 text-white">
-          <div className="text-sm font-medium mb-2">Collection Rate</div>
+          <div className="text-sm font-medium mb-2">Rasio Penagihan</div>
           <div className="text-3xl font-bold">{collectionRate.toFixed(1)}%</div>
         </div>
       </div>
@@ -201,7 +201,7 @@ const PaymentReport: React.FC = () => {
         {/* Payment Method Pie Chart */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Payment Methods Breakdown
+            Rincian Metode Pembayaran
           </h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -228,23 +228,23 @@ const PaymentReport: React.FC = () => {
         {/* Payment Method Table */}
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Payment Method Details
+            Detail Metode Pembayaran
           </h2>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Method
+                    Metode
                   </th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                    Amount
+                    Jumlah
                   </th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                    Count
+                    Transaksi
                   </th>
                   <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                    %
+                    Persentase
                   </th>
                 </tr>
               </thead>
@@ -274,7 +274,7 @@ const PaymentReport: React.FC = () => {
       {/* Daily Collection Trend */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Daily Collection Trend
+          Tren Penerimaan Harian
         </h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={reportData.dailyCollection}>
@@ -294,7 +294,7 @@ const PaymentReport: React.FC = () => {
               dataKey="amount"
               stroke="#10B981"
               strokeWidth={2}
-              name="Collection Amount"
+              name="Jumlah Penerimaan"
             />
           </LineChart>
         </ResponsiveContainer>
@@ -303,28 +303,28 @@ const PaymentReport: React.FC = () => {
       {/* Outstanding Pembayaran Table */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Outstanding Pembayaran
+          Daftar Tunggakan
         </h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Customer
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Invoice
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Amount
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Due Date
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Days Overdue
-                </th>
-              </tr>
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Pelanggan
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Invoice
+                  </th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                    Jumlah
+                  </th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Jatuh Tempo
+                  </th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
+                    Hari Terlambat
+                  </th>
+                </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {reportData.outstandingPembayaran.map((payment, index) => (

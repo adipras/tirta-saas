@@ -135,8 +135,8 @@ const CustomerPayInvoice: React.FC = () => {
 
   if (!invoice) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
+        <div className="rounded-lg bg-white p-8 text-center shadow-md">
           <p className="text-red-600 mb-4">{error || 'Invoice tidak ditemukan'}</p>
           <Link to="/customer/invoices" className="text-indigo-600 hover:text-indigo-700">
             Kembali ke Tagihan
@@ -148,8 +148,8 @@ const CustomerPayInvoice: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-md p-8 text-center max-w-md">
+      <div className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
+        <div className="max-w-md rounded-lg bg-white p-8 text-center shadow-md">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CloudArrowUpIcon className="h-8 w-8 text-green-600" />
           </div>
@@ -179,22 +179,22 @@ const CustomerPayInvoice: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Invoice Details */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Detail Tagihan</h3>
           <div className="space-y-2">
-            <div className="flex justify-between">
+            <div className="flex items-start justify-between gap-3">
               <span className="text-gray-600">No. Invoice</span>
               <span className="font-medium">{invoice.invoice_number}</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex items-start justify-between gap-3">
               <span className="text-gray-600">Periode</span>
               <span className="font-medium">
                 {invoice.usage_month} {invoice.usage_year}
               </span>
             </div>
-            <div className="flex justify-between text-lg font-bold pt-2 border-t">
+            <div className="flex items-start justify-between gap-3 border-t pt-2 text-lg font-bold">
               <span>Total yang Harus Dibayar</span>
               <span className="text-indigo-600">
                 {formatCurrency(invoice.remaining_amount)}
@@ -298,7 +298,7 @@ const CustomerPayInvoice: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Bukti Pembayaran *
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <div className="rounded-lg border-2 border-dashed border-gray-300 p-6 text-center">
                 <input
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,application/pdf"
@@ -308,7 +308,7 @@ const CustomerPayInvoice: React.FC = () => {
                 />
                 <label
                   htmlFor="proof-upload"
-                  className="cursor-pointer flex flex-col items-center"
+                  className="flex cursor-pointer flex-col items-center"
                 >
                   <CloudArrowUpIcon className="h-12 w-12 text-gray-400 mb-2" />
                   <span className="text-sm text-gray-600">
@@ -323,7 +323,7 @@ const CustomerPayInvoice: React.FC = () => {
                     <img
                       src={imagePreview}
                       alt="Preview"
-                      className="max-h-48 mx-auto rounded-lg"
+                      className="mx-auto max-h-48 rounded-lg"
                     />
                   </div>
                 )}

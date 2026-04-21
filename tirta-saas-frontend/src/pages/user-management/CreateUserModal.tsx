@@ -68,8 +68,8 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-600 bg-opacity-50 p-4 sm:items-center">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-semibold text-gray-900">Create New User</h3>
           <button
@@ -174,7 +174,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Password *
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <div className="relative flex-1">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -199,7 +199,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
               <button
                 type="button"
                 onClick={handleGeneratePassword}
-                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg inline-flex items-center transition-colors"
+                className="inline-flex items-center justify-center rounded-lg bg-gray-100 px-3 py-2 text-gray-700 transition-colors hover:bg-gray-200"
                 title="Generate Password"
               >
                 <KeyIcon className="h-5 w-5" />
@@ -216,15 +216,15 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
             </p>
           </div>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50"
-            >
-              Cancel
-            </button>
+            <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
             <button
               type="submit"
               disabled={loading}

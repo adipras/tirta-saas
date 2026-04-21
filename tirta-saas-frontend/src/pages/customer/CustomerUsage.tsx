@@ -62,7 +62,7 @@ const CustomerPemakaian: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -112,55 +112,36 @@ const CustomerPemakaian: React.FC = () => {
             <p className="text-gray-600">Belum ada data pemakaian air</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="overflow-hidden rounded-lg bg-white shadow-md">
+            <div className="border-b border-gray-200 px-6 py-4">
               <h3 className="text-lg font-semibold text-gray-900">Riwayat Pemakaian</h3>
             </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Periode
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tanggal Catat
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Meteran Awal
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Meteran Akhir
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Pemakaian
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {usageData.map((usage) => (
-                    <tr key={usage.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+            <div className="space-y-3 p-4 sm:p-6">
+              {usageData.map((usage) => (
+                <div key={usage.id} className="rounded-lg border border-gray-200 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">
                         {usage.usage_month} {usage.usage_year}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {formatDate(usage.reading_date)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {usage.previous_reading} m³
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-900">
-                        {usage.current_reading} m³
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                          {usage.usage_amount} m³
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </p>
+                      <p className="text-xs text-gray-500">{formatDate(usage.reading_date)}</p>
+                    </div>
+                    <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+                      {usage.usage_amount} m³
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-1 gap-2 border-t border-gray-100 pt-3 sm:grid-cols-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Meteran Awal</span>
+                      <span className="font-medium text-gray-900">{usage.previous_reading} m³</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Meteran Akhir</span>
+                      <span className="font-medium text-gray-900">{usage.current_reading} m³</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

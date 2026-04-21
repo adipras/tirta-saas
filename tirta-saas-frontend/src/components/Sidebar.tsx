@@ -18,7 +18,8 @@ import {
   UsersIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import { authService } from '../services/authService';
+import { useAppSelector } from '../hooks/redux';
+import { resolveTenantAssetUrl } from '../services/tenantSettingsService';
 
 const allNavigation = [
   // Platform Owner Menu
@@ -42,7 +43,7 @@ const settingsNavigation = [
   { name: 'Golongan Langganan', href: '/admin/subscriptions', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Tarif Air', href: '/admin/water-rates', icon: CurrencyDollarIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Manajemen Pengguna', href: '/admin/users', icon: UsersIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
-  { name: 'Pengaturan Pembayaran', href: '/admin/settings', icon: CogIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Pengaturan Tenant', href: '/admin/settings', icon: CogIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
 ];
 
 interface SidebarProps {
@@ -51,9 +52,12 @@ interface SidebarProps {
 }
 
 const SidebarContent = ({ onClose }: { onClose: () => void }) => {
-  const user = authService.getUser();
+  const user = useAppSelector((state) => state.auth.user);
   const location = useLocation();
   const userRole = user?.role?.toUpperCase() || 'ADMIN';
+  const isPlatformOwner = userRole === 'PLATFORM_OWNER';
+  const isTenantUser = !isPlatformOwner && Boolean(user?.tenant_id);
+  const platformName = import.meta.env.VITE_APP_NAME || 'Tirta SaaS';
   const navigation = allNavigation.filter(item => item.roles.includes(userRole));
   const visibleSettingsNavigation = useMemo(
     () => settingsNavigation.filter(item => item.roles.includes(userRole)),
@@ -71,16 +75,47 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
     }
   }, [hasActiveSettingsItem]);
 
+  const tenantLogoUrl = useMemo(() => {
+    const resolvedUrl = resolveTenantAssetUrl(user?.tenant_logo_url);
+    return resolvedUrl || null;
+  }, [user?.tenant_logo_url]);
+
   return (
     <div className="flex flex-col h-full bg-white border-r border-gray-200">
       {/* Logo */}
       <div className="flex items-center justify-between flex-shrink-0 px-4 py-5">
-        <div className="flex items-center">
-          <h1 className="text-xl font-semibold text-gray-900">Tirta SaaS</h1>
-          {userRole === 'PLATFORM_OWNER' && (
-            <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 text-purple-800 rounded">
-              Platform
-            </span>
+        <div className="flex min-w-0 items-center">
+          {isTenantUser ? (
+            <>
+              {tenantLogoUrl ? (
+                <img
+                  src={tenantLogoUrl}
+                  alt={`Logo ${user?.tenant_name || 'tenant'}`}
+                  className="mr-3 h-10 w-10 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-sm font-semibold text-blue-700">
+                  {(user?.tenant_name || 'T').charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <h1 className="truncate text-base font-semibold text-gray-900">
+                  {user?.tenant_name || 'Tenant'}
+                </h1>
+                <p className="truncate text-xs text-gray-500">
+                  Supported by {platformName}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-xl font-semibold text-gray-900">{platformName}</h1>
+              {isPlatformOwner && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 text-purple-800 rounded">
+                  Platform
+                </span>
+              )}
+            </>
           )}
         </div>
         {/* Close button — only visible on mobile */}
@@ -183,6 +218,16 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
+  useEffect(() => {
+    if (!open) {
+      document.body.style.removeProperty('overflow');
+      return;
+    }
+
+    document.body.style.overflow = 'hidden';
+    return () => document.body.style.removeProperty('overflow');
+  }, [open]);
+
   return (
     <>
       {/* Desktop sidebar — always visible on md+ */}
@@ -199,7 +244,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
             onClick={onClose}
           />
           {/* Drawer */}
-          <div className="relative flex w-64 flex-col flex-shrink-0 shadow-xl">
+          <div className="safe-y relative flex w-[min(18rem,85vw)] flex-col flex-shrink-0 shadow-xl">
             <SidebarContent onClose={onClose} />
           </div>
         </div>

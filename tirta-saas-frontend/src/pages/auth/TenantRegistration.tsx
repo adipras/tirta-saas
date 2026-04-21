@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Link, useNavigate } from 'react-router-dom';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { API_BASE_URL } from '../../constants/api';
+import { CloudArrowUpIcon, EyeIcon, EyeSlashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { tenantRegistrationService } from '../../services/tenantRegistrationService';
 
 const schema = yup.object({
   organization_name: yup
@@ -54,25 +54,14 @@ interface RegistrationForm {
   confirm_password: string;
 }
 
-async function parseJsonSafely(response: Response): Promise<any> {
-  const raw = await response.text();
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
-
 const TenantRegistration = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const {
@@ -83,6 +72,48 @@ const TenantRegistration = () => {
     resolver: yupResolver(schema),
   });
 
+  useEffect(() => {
+    return () => {
+      if (logoPreviewUrl) {
+        URL.revokeObjectURL(logoPreviewUrl);
+      }
+    };
+  }, [logoPreviewUrl]);
+
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+
+    if (!file) {
+      if (logoPreviewUrl) {
+        URL.revokeObjectURL(logoPreviewUrl);
+      }
+      setLogoFile(null);
+      setLogoPreviewUrl(null);
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Logo tenant harus berupa file gambar.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage('Ukuran logo tenant maksimal 5MB.');
+      event.target.value = '';
+      return;
+    }
+
+    setErrorMessage('');
+
+    if (logoPreviewUrl) {
+      URL.revokeObjectURL(logoPreviewUrl);
+    }
+
+    setLogoFile(file);
+    setLogoPreviewUrl(URL.createObjectURL(file));
+  };
+
   const onSubmit = async (data: RegistrationForm) => {
     setIsLoading(true);
     setErrorMessage('');
@@ -91,31 +122,14 @@ const TenantRegistration = () => {
     try {
       // Remove confirm_password before sending
       const { confirm_password: _confirm, ...registrationData } = data;
-
-      const response = await fetch(`${API_BASE_URL}/public/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(registrationData),
+      const result = await tenantRegistrationService.register({
+        ...registrationData,
+        logo: logoFile,
       });
 
-      const result = await parseJsonSafely(response);
-
-      if (!response.ok) {
-        throw new Error(
-          result?.message ||
-            result?.error ||
-            `Registration failed (${response.status}${response.statusText ? ` ${response.statusText}` : ''})`
-        );
-      }
-
-      if (!result) {
-        throw new Error('Registration failed: server returned an empty response.');
-      }
-
       setSuccessMessage(
-        'Registration successful! Your trial period has started. You can now login with your admin credentials.'
+        result.message ||
+          'Registration successful! Your trial period has started. You can now login with your admin credentials.'
       );
 
       // Redirect to login after 3 seconds
@@ -276,6 +290,55 @@ const TenantRegistration = () => {
                     {errors.address && (
                       <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>
                     )}
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tenant Logo
+                    </label>
+                    <div className="rounded-lg border-2 border-dashed border-gray-300 p-4">
+                      {logoPreviewUrl ? (
+                        <div className="relative inline-block">
+                          <img
+                            src={logoPreviewUrl}
+                            alt="Logo preview"
+                            className="h-24 w-24 rounded-lg object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (logoPreviewUrl) {
+                                URL.revokeObjectURL(logoPreviewUrl);
+                              }
+                              setLogoFile(null);
+                              setLogoPreviewUrl(null);
+                            }}
+                            className="absolute -right-2 -top-2 rounded-full bg-red-500 p-1 text-white"
+                          >
+                            <XMarkIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <CloudArrowUpIcon className="mx-auto h-10 w-10 text-gray-400" />
+                          <label htmlFor="tenant-logo-upload" className="mt-2 inline-block cursor-pointer">
+                            <span className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+                              Upload Logo
+                            </span>
+                            <input
+                              id="tenant-logo-upload"
+                              type="file"
+                              className="sr-only"
+                              accept="image/jpeg,image/png,image/gif,image/webp"
+                              onChange={handleLogoChange}
+                            />
+                          </label>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Opsional. Format JPG, PNG, GIF, atau WEBP, maksimal 5MB.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

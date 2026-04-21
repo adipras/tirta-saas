@@ -30,7 +30,7 @@ const PaymentProofManagement: React.FC = () => {
         actions={
           <button
             onClick={() => navigate('/admin/payment-proofs/submit')}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+            className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
           >
             + Submit Payment Proof
           </button>

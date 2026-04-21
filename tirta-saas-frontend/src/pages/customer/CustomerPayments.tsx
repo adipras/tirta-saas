@@ -68,8 +68,8 @@ const CustomerPembayaran: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Summary Card */}
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-lg p-6 mb-6 text-white">
-          <div className="flex items-center justify-between">
+        <div className="mb-6 rounded-lg bg-gradient-to-r from-green-500 to-green-600 p-6 text-white shadow-lg">
+          <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-green-100 text-sm mb-1">Total Pembayaran</p>
               <p className="text-3xl font-bold">{formatCurrency(totalPaid)}</p>
@@ -86,54 +86,30 @@ const CustomerPembayaran: React.FC = () => {
             <p className="text-gray-600">Belum ada riwayat pembayaran</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tanggal
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      No. Invoice
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Periode
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Jumlah
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {payments.map((payment) => (
-                    <tr key={payment.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatDate(payment.payment_date)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {payment.invoice?.invoice_number || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {payment.invoice ? `${payment.invoice.usage_month} ${payment.invoice.usage_year}` : '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-green-600">
-                        {formatCurrency(payment.amount)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                          <CheckCircleIcon className="h-4 w-4" />
-                          Berhasil
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="space-y-3 rounded-lg bg-white p-4 shadow-md sm:p-6">
+            {payments.map((payment) => (
+              <div key={payment.id} className="rounded-lg border border-gray-200 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {payment.invoice?.invoice_number || '-'}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {payment.invoice ? `${payment.invoice.usage_month} ${payment.invoice.usage_year}` : '-'}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">{formatDate(payment.payment_date)}</p>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                    <CheckCircleIcon className="h-4 w-4" />
+                    Berhasil
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+                  <span className="text-sm text-gray-600">Jumlah</span>
+                  <span className="text-sm font-semibold text-green-600">{formatCurrency(payment.amount)}</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

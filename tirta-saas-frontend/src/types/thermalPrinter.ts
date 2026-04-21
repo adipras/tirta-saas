@@ -60,20 +60,11 @@ export interface ThermalPrinterStatus {
   printerAddress?: string;
   batteryLevel?: number;
   message?: string;
-}
-
-export interface AndroidThermalPrinterBridge {
-  isAvailable?: () => boolean;
-  printReceipt?: (payloadJson: string) => void | string | Promise<string | void>;
-  scanPrinters?: () => string | ThermalPrinterDevice[] | Promise<string | ThermalPrinterDevice[]>;
-  connectPrinter?: (deviceId: string) => string | void | Promise<string | void>;
-  getStatus?: () => string | ThermalPrinterStatus | Promise<string | ThermalPrinterStatus>;
-}
-
-declare global {
-  interface Window {
-    AndroidPrinterBridge?: AndroidThermalPrinterBridge;
-  }
+  bridgeAvailable?: boolean;
+  bridgeRunning?: boolean;
+  preferredPrinterId?: string;
+  preferredPrinterName?: string;
+  serverUrl?: string;
 }
 
 export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalReceiptPayload => {

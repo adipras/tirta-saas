@@ -74,11 +74,11 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
   const isPending = proof.status === 'PENDING';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black bg-opacity-50 p-4 sm:items-center">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white shadow-xl">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold">Payment Proof Details</h2>
+        <div className="sticky top-0 flex items-center justify-between border-b bg-white px-4 py-4 sm:px-6">
+          <h2 className="text-lg font-bold sm:text-xl">Payment Proof Details</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-2xl"
@@ -88,7 +88,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="space-y-6 p-4 sm:p-6">
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded">
               {error}
@@ -106,7 +106,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
           {/* Invoice Info */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="font-semibold mb-3">Invoice Information</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div className="text-gray-600">Invoice Number:</div>
               <div className="font-medium">{proof.invoice_number}</div>
               <div className="text-gray-600">Customer:</div>
@@ -117,7 +117,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
           {/* Payment Details */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="font-semibold mb-3">Payment Details</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div className="text-gray-600">Amount:</div>
               <div className="font-bold text-green-600">Rp {proof.amount.toLocaleString()}</div>
               <div className="text-gray-600">Payment Date:</div>
@@ -204,16 +204,16 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
 
           {/* Verify/Reject Actions (only for PENDING) */}
           {isPending && !action && (
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={() => setAction('verify')}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="flex-1 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
               >
                 ✓ Verify Payment
               </button>
               <button
                 onClick={() => setAction('reject')}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
               >
                 ✗ Reject Payment
               </button>
@@ -236,17 +236,17 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
                   placeholder="Add any notes about this verification..."
                 />
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row">
                 <button
                   onClick={() => setAction(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="w-full rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50 sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleVerify}
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
+                  className="flex-1 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:bg-gray-400"
                 >
                   {loading ? 'Processing...' : 'Confirm Verification'}
                 </button>
@@ -271,17 +271,17 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
                   required
                 />
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row">
                 <button
                   onClick={() => setAction(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="w-full rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50 sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleReject}
                   disabled={loading || !rejectionReason.trim()}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400"
+                  className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:bg-gray-400"
                 >
                   {loading ? 'Processing...' : 'Confirm Rejection'}
                 </button>
@@ -291,7 +291,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t px-6 py-4 bg-gray-50">
+        <div className="border-t bg-gray-50 px-4 py-4 sm:px-6">
           <button
             onClick={onClose}
             className="w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-white"

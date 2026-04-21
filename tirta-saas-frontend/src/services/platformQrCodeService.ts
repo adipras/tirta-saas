@@ -1,7 +1,8 @@
+import { API_ORIGIN } from '../constants/api';
 import { apiClient } from './apiClient';
 import type { QRCode } from './qrCodeService';
 
-const STATIC_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api').replace('/api', '');
+const STATIC_BASE = API_ORIGIN;
 
 function withImageUrl(qr: any): QRCode {
   return {

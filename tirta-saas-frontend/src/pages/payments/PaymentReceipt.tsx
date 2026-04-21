@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useReactToPrint } from 'react-to-print';
+import { PageHeader, useToast } from '../../components';
 import { paymentService } from '../../services/paymentService';
 import { thermalPrinterService } from '../../services/thermalPrinterService';
 import type { PaymentReceipt as PaymentReceiptType } from '../../types/payment';
-import type { ThermalPrinterDevice, ThermalPrinterStatus } from '../../types/thermalPrinter';
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '../../types/payment';
-import { useReactToPrint } from 'react-to-print';
-import { PageHeader, useToast } from '../../components';
+import type { ThermalPrinterDevice, ThermalPrinterStatus } from '../../types/thermalPrinter';
 
 const PaymentReceipt: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +22,8 @@ const PaymentReceipt: React.FC = () => {
   });
   const [availablePrinters, setAvailablePrinters] = useState<ThermalPrinterDevice[]>([]);
   const [preferredPrinter, setPreferredPrinter] = useState<ThermalPrinterDevice | null>(null);
+  const [bridgeChecked, setBridgeChecked] = useState(false);
+  const [bridgeAvailable, setBridgeAvailable] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const formatTanggal = (value?: string) => {
@@ -33,17 +35,13 @@ const PaymentReceipt: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      fetchReceipt(id);
+      void fetchReceipt(id);
     }
   }, [id]);
 
   useEffect(() => {
-    if (!thermalPrinterService.hasBridge()) {
-      return;
-    }
-
     setPreferredPrinter(thermalPrinterService.getPreferredPrinter());
-    void refreshPrinterStatus();
+    void probeThermalBridge();
   }, []);
 
   const fetchReceipt = async (paymentId: string) => {
@@ -53,7 +51,7 @@ const PaymentReceipt: React.FC = () => {
       setReceipt(data);
     } catch (error) {
       console.error('Failed to fetch receipt:', error);
-      // Try to generate receipt if not found
+
       try {
         const generated = await paymentService.generateReceipt(paymentId);
         setReceipt(generated);
@@ -71,23 +69,56 @@ const PaymentReceipt: React.FC = () => {
     documentTitle: receipt ? `Struk_${receipt.receiptNumber}` : 'Struk',
   });
 
+  const probeThermalBridge = async () => {
+    const available = await thermalPrinterService.isAvailable();
+    setBridgeAvailable(available);
+    setBridgeChecked(true);
+
+    if (available) {
+      await refreshPrinterStatus();
+      return;
+    }
+
+    setPrinterStatus({
+      connected: false,
+      bridgeAvailable: false,
+      bridgeRunning: false,
+      message: 'Bridge printer thermal tidak aktif di perangkat ini',
+    });
+  };
+
   const refreshPrinterStatus = async () => {
     try {
       setPrinterBusy(true);
       const status = await thermalPrinterService.getStatus();
       setPrinterStatus(status);
+      setBridgeAvailable(status.bridgeAvailable !== false && status.bridgeRunning !== false);
+      setBridgeChecked(true);
     } catch (error) {
       console.error('Failed to get thermal printer status:', error);
       setPrinterStatus({
         connected: false,
+        bridgeAvailable: false,
+        bridgeRunning: false,
         message: 'Gagal membaca status printer',
       });
+      setBridgeAvailable(false);
+      setBridgeChecked(true);
     } finally {
       setPrinterBusy(false);
     }
   };
 
   const handleScanPrinters = async () => {
+    const available = await thermalPrinterService.isAvailable();
+    setBridgeAvailable(available);
+    setBridgeChecked(true);
+
+    if (!available) {
+      toast.warning('Bridge printer thermal belum aktif. Buka aplikasi Bridge Printer Thermal lalu coba lagi.');
+      return;
+    }
+
     try {
       setPrinterBusy(true);
       const devices = await thermalPrinterService.scanPrinters();
@@ -106,6 +137,15 @@ const PaymentReceipt: React.FC = () => {
   };
 
   const handleConnectPrinter = async (device: ThermalPrinterDevice) => {
+    const available = await thermalPrinterService.isAvailable();
+    setBridgeAvailable(available);
+    setBridgeChecked(true);
+
+    if (!available) {
+      toast.warning('Bridge printer thermal belum aktif. Koneksi printer tidak dapat dilakukan.');
+      return;
+    }
+
     try {
       setPrinterBusy(true);
       await thermalPrinterService.connectPrinter(device.id);
@@ -126,7 +166,11 @@ const PaymentReceipt: React.FC = () => {
       return;
     }
 
-    if (thermalPrinterService.isAvailable()) {
+    const thermalModeActive = await thermalPrinterService.isAvailable();
+    setBridgeAvailable(thermalModeActive);
+    setBridgeChecked(true);
+
+    if (thermalModeActive) {
       try {
         setPrinting(true);
         await thermalPrinterService.printReceipt(receipt);
@@ -141,6 +185,7 @@ const PaymentReceipt: React.FC = () => {
       }
     }
 
+    toast.info('Bridge printer thermal tidak aktif. Menggunakan cetak browser sebagai fallback.');
     handlePrint();
   };
 
@@ -174,8 +219,8 @@ const PaymentReceipt: React.FC = () => {
   const isPartialPayment = receipt.invoiceDetails.paymentCoverageType === 'partial';
   const paymentStatusLabel = isPartialPayment ? 'Pembayaran Parsial' : 'Pelunasan Tagihan';
   const paymentStatusColor = isPartialPayment ? 'text-amber-600' : 'text-green-600';
-  const thermalBridgeDetected = thermalPrinterService.hasBridge();
-  const thermalModeActive = thermalPrinterService.isAvailable();
+  const thermalBridgeDetected = bridgeAvailable;
+  const thermalModeActive = bridgeAvailable;
 
   return (
     <div className="p-6">
@@ -201,9 +246,9 @@ const PaymentReceipt: React.FC = () => {
                   ? 'Cetak ke Printer Thermal'
                   : 'Cetak Struk'}
             </button>
-             {thermalModeActive && (
-               <button
-                  onClick={handlePrint}
+            {thermalModeActive && (
+              <button
+                onClick={handlePrint}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
               >
                 Fallback Cetak Browser
@@ -212,6 +257,16 @@ const PaymentReceipt: React.FC = () => {
           </>
         }
       />
+
+      {bridgeChecked && !thermalBridgeDetected && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 max-w-4xl mx-auto mb-6">
+          <p className="font-semibold">Bridge printer thermal belum aktif</p>
+          <p className="mt-1 text-sm">
+            Jalankan aplikasi <span className="font-medium">Bridge Printer Thermal</span> di Android agar frontend dapat
+            mengakses <span className="font-medium">127.0.0.1:3000</span>. Sementara itu, cetak browser tetap tersedia.
+          </p>
+        </div>
+      )}
 
       {thermalBridgeDetected && (
         <div className="bg-white rounded-lg shadow p-6 max-w-4xl mx-auto mb-6">
@@ -230,6 +285,9 @@ const PaymentReceipt: React.FC = () => {
                 )}
                 {preferredPrinter && (
                   <p><span className="font-medium text-gray-700">Printer favorit:</span> {preferredPrinter.name}</p>
+                )}
+                {printerStatus.serverUrl && (
+                  <p><span className="font-medium text-gray-700">Bridge:</span> {printerStatus.serverUrl}</p>
                 )}
                 {printerStatus.message && (
                   <p><span className="font-medium text-gray-700">Info:</span> {printerStatus.message}</p>
@@ -289,9 +347,7 @@ const PaymentReceipt: React.FC = () => {
         </div>
       )}
 
-      {/* Receipt Content */}
       <div ref={receiptRef} className="bg-white rounded-lg shadow p-8 max-w-4xl mx-auto">
-        {/* Header */}
         <div className="border-b-2 border-gray-300 pb-6 mb-6">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900">TIRTA SAAS</h2>
@@ -306,12 +362,11 @@ const PaymentReceipt: React.FC = () => {
             <p className="text-sm text-gray-600 mt-1">No. Struk: {receipt.receiptNumber}</p>
             <p className={`text-sm font-semibold mt-2 ${paymentStatusColor}`}>{paymentStatusLabel}</p>
             {thermalBridgeDetected && (
-              <p className="text-xs text-blue-600 mt-2">Mode kasir keliling: printer thermal native aktif</p>
+              <p className="text-xs text-blue-600 mt-2">Mode kasir keliling: bridge printer thermal aktif</p>
             )}
           </div>
         </div>
 
-        {/* Customer & Payment Info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
           <div>
             <h4 className="font-semibold text-gray-900 mb-2">Informasi Pelanggan</h4>
@@ -346,7 +401,6 @@ const PaymentReceipt: React.FC = () => {
           </div>
         </div>
 
-        {/* Invoice Details */}
         <div className="mb-6">
           <h4 className="font-semibold text-gray-900 mb-2">Detail Tagihan</h4>
           <div className="border border-gray-200 rounded-md overflow-hidden">
@@ -371,7 +425,6 @@ const PaymentReceipt: React.FC = () => {
           </div>
         </div>
 
-        {/* Payment Summary */}
         <div className="border-t-2 border-gray-300 pt-4">
           <div className="flex justify-end">
             <div className="w-64">
@@ -411,11 +464,10 @@ const PaymentReceipt: React.FC = () => {
                   {formatCurrency(receipt.invoiceDetails.remainingAmount)}
                 </span>
               </div>
-             </div>
-           </div>
+            </div>
+          </div>
         </div>
 
-        {/* Notes */}
         {receipt.payment.notes && (
           <div className="mt-6 pt-6 border-t border-gray-200">
             <h4 className="font-semibold text-gray-900 mb-2">Catatan</h4>
@@ -423,7 +475,6 @@ const PaymentReceipt: React.FC = () => {
           </div>
         )}
 
-        {/* Footer */}
         <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
           <p>Terima kasih atas pembayaran Anda.</p>
           {isPartialPayment && (

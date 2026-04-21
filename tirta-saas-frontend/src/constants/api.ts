@@ -1,4 +1,17 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api';
+const DEFAULT_API_ORIGIN = 'http://localhost:8081';
+
+function normalizeApiUrl(value?: string): string {
+  return value?.trim().replace(/\/+$/, '') || '';
+}
+
+function resolveApiOrigin(apiBaseUrl: string): string {
+  return apiBaseUrl.replace(/\/api$/, '');
+}
+
+export const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_BASE_URL) || `${DEFAULT_API_ORIGIN}/api`;
+export const API_ORIGIN = resolveApiOrigin(API_BASE_URL);
+export const PRINTER_BRIDGE_BASE_URL =
+  normalizeApiUrl(import.meta.env.VITE_PRINTER_BRIDGE_URL) || 'http://127.0.0.1:3000';
 
 export const API_ENDPOINTS = {
   AUTH: {

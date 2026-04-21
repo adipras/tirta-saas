@@ -1,17 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  PlusIcon,
+  BuildingLibraryIcon,
+  CloudArrowUpIcon,
   PencilIcon,
+  PlusIcon,
+  QrCodeIcon,
   TrashIcon,
   XMarkIcon,
-  BuildingLibraryIcon,
-  QrCodeIcon,
-  CloudArrowUpIcon,
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../services/apiClient';
 import { qrCodeService } from '../../services/qrCodeService';
 import type { QRCode } from '../../services/qrCodeService';
-import { PageHeader, ConfirmModal, useToast } from '../../components';
+import {
+  tenantSettingsService,
+  type TenantSettings,
+} from '../../services/tenantSettingsService';
+import { authService } from '../../services/authService';
+import { useAppDispatch } from '../../hooks/redux';
+import { setUser } from '../../store/slices/authSlice';
+import { ConfirmModal, PageHeader, useToast } from '../../components';
 
 interface BankAccount {
   id: string;
@@ -23,6 +30,16 @@ interface BankAccount {
   isPrimary: boolean;
 }
 
+interface TenantProfileForm {
+  companyName: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
+  operatingHours: string;
+  serviceArea: string;
+}
+
 interface BillingSettingsForm {
   invoiceGenerationDay: string;
   invoiceDueDay: string;
@@ -30,33 +47,49 @@ interface BillingSettingsForm {
 
 type QRCodeType = 'QRIS' | 'DANA' | 'GOPAY' | 'OVO' | 'SHOPEEPAY';
 
-function mapBank(b: any): BankAccount {
+function mapBank(bank: any): BankAccount {
   return {
-    id: b.id,
-    bankName: b.bank_name,
-    accountNumber: b.account_number,
-    accountName: b.account_name,
-    bankCode: b.swift_code || b.bank_branch || '',
-    isActive: b.is_active,
-    isPrimary: b.is_primary,
+    id: bank.id,
+    bankName: bank.bank_name,
+    accountNumber: bank.account_number,
+    accountName: bank.account_name,
+    bankCode: bank.swift_code || bank.bank_branch || '',
+    isActive: bank.is_active,
+    isPrimary: bank.is_primary,
   };
 }
 
+const emptyProfileForm: TenantProfileForm = {
+  companyName: '',
+  address: '',
+  phone: '',
+  email: '',
+  website: '',
+  operatingHours: '',
+  serviceArea: '',
+};
+
 export default function TenantPaymentSettings() {
+  const dispatch = useAppDispatch();
   const toast = useToast();
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [qrCodes, setQRCodes] = useState<QRCode[]>([]);
+  const [profileForm, setProfileForm] = useState<TenantProfileForm>(emptyProfileForm);
   const [billingForm, setBillingForm] = useState<BillingSettingsForm>({
     invoiceGenerationDay: '5',
     invoiceDueDay: '25',
   });
+  const [profileSaving, setProfileSaving] = useState(false);
   const [billingSaving, setBillingSaving] = useState(false);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [qrCodes, setQRCodes] = useState<QRCode[]>([]);
   const [showBankModal, setShowBankModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [editingBank, setEditingBank] = useState<BankAccount | null>(null);
   const [editingQR, setEditingQR] = useState<QRCode | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'bank' | 'qr'; id: string } | null>(null);
+  const [currentTenantLogoUrl, setCurrentTenantLogoUrl] = useState<string | null>(null);
+  const [tenantLogoFile, setTenantLogoFile] = useState<File | null>(null);
+  const [tenantLogoPreviewUrl, setTenantLogoPreviewUrl] = useState<string | null>(null);
+  const [qrPreviewUrl, setQrPreviewUrl] = useState<string | null>(null);
 
   const [bankForm, setBankForm] = useState({
     bankName: '',
@@ -82,37 +115,152 @@ export default function TenantPaymentSettings() {
   });
 
   useEffect(() => {
-    loadSettings();
+    void loadSettings();
   }, []);
 
-  const loadSettings = async () => {
+  useEffect(() => {
+    return () => {
+      if (tenantLogoPreviewUrl) {
+        URL.revokeObjectURL(tenantLogoPreviewUrl);
+      }
+    };
+  }, [tenantLogoPreviewUrl]);
+
+  const syncTenantIdentity = (settings: TenantSettings, logoUrl?: string) => {
+    const updatedUser = authService.updateStoredUser({
+      tenant_name: settings.company_name || undefined,
+      tenant_logo_url: logoUrl ?? settings.logo_url ?? null,
+    });
+
+    if (updatedUser) {
+      dispatch(setUser(updatedUser));
+    }
+  };
+
+  const loadSettings = async (): Promise<void> => {
     try {
       const [settingsRes, bankRes, qrRes] = await Promise.allSettled([
-        apiClient.get('/platform/settings'),
+        tenantSettingsService.getTenantSettings(),
         apiClient.get('/payment-methods/bank-accounts'),
         qrCodeService.getQRCodes(),
       ]);
+
       if (settingsRes.status === 'fulfilled') {
-        const settings = (settingsRes.value as any)?.data || {};
-        setBillingForm({
-          invoiceGenerationDay: String(settings.invoice_generation_day ?? 5),
-          invoiceDueDay: String(settings.invoice_due_day ?? 25),
+        const settings = settingsRes.value;
+        setProfileForm({
+          companyName: settings.company_name,
+          address: settings.address,
+          phone: settings.phone,
+          email: settings.email,
+          website: settings.website,
+          operatingHours: settings.operating_hours,
+          serviceArea: settings.service_area,
         });
+        setBillingForm({
+          invoiceGenerationDay: String(settings.invoice_generation_day),
+          invoiceDueDay: String(settings.invoice_due_day),
+        });
+        setCurrentTenantLogoUrl(settings.logo_display_url || null);
       }
+
       if (bankRes.status === 'fulfilled') {
         const list = (bankRes.value as any)?.data || [];
         setBankAccounts(list.map(mapBank));
       }
+
       if (qrRes.status === 'fulfilled') {
         setQRCodes(qrRes.value);
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      console.error('Failed to load tenant settings:', error);
+      toast.error('Gagal memuat pengaturan tenant.');
     }
   };
 
-  const handleBillingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleProfileChange = (
+    field: keyof TenantProfileForm,
+    value: string
+  ) => {
+    setProfileForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const resetTenantLogoSelection = () => {
+    if (tenantLogoPreviewUrl) {
+      URL.revokeObjectURL(tenantLogoPreviewUrl);
+    }
+    setTenantLogoFile(null);
+    setTenantLogoPreviewUrl(null);
+  };
+
+  const handleTenantLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+
+    if (!file) {
+      resetTenantLogoSelection();
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.warning('Logo tenant harus berupa file gambar.');
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.warning('Ukuran logo tenant maksimal 5MB.');
+      event.target.value = '';
+      return;
+    }
+
+    resetTenantLogoSelection();
+    setTenantLogoFile(file);
+    setTenantLogoPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleProfileSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setProfileSaving(true);
+
+    try {
+      let updatedSettings = await tenantSettingsService.updateTenantSettings({
+        company_name: profileForm.companyName,
+        address: profileForm.address,
+        phone: profileForm.phone,
+        email: profileForm.email,
+        website: profileForm.website,
+        operating_hours: profileForm.operatingHours,
+        service_area: profileForm.serviceArea,
+      });
+
+      let uploadedLogoUrl: string | undefined;
+
+      if (tenantLogoFile) {
+        const uploadedLogo = await tenantSettingsService.uploadTenantLogo(tenantLogoFile);
+        uploadedLogoUrl = uploadedLogo.logo_url;
+        updatedSettings = {
+          ...updatedSettings,
+          logo_url: uploadedLogo.logo_url,
+          logo_display_url: uploadedLogo.logo_display_url,
+        };
+        setCurrentTenantLogoUrl(uploadedLogo.logo_display_url);
+        resetTenantLogoSelection();
+      } else {
+        setCurrentTenantLogoUrl(updatedSettings.logo_display_url || null);
+      }
+
+      syncTenantIdentity(updatedSettings, uploadedLogoUrl);
+      await loadSettings();
+      toast.success('Profil tenant berhasil diperbarui.');
+    } catch (error) {
+      console.error('Failed to save tenant profile:', error);
+      toast.error('Gagal menyimpan profil tenant.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleBillingSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
     const invoiceGenerationDay = Number(billingForm.invoiceGenerationDay);
     const invoiceDueDay = Number(billingForm.invoiceDueDay);
@@ -136,15 +284,14 @@ export default function TenantPaymentSettings() {
 
     setBillingSaving(true);
     try {
-      await apiClient.put('/platform/settings', {
+      await tenantSettingsService.updateTenantSettings({
         invoice_generation_day: invoiceGenerationDay,
         invoice_due_day: invoiceDueDay,
         invoice_due_days: Math.max(invoiceDueDay - invoiceGenerationDay, 1),
         grace_period_days: 0,
       });
-
-      toast.success('Siklus tagihan berhasil diperbarui.');
       await loadSettings();
+      toast.success('Siklus tagihan berhasil diperbarui.');
     } catch (error) {
       console.error('Failed to save billing settings:', error);
       toast.error('Gagal menyimpan siklus tagihan.');
@@ -175,6 +322,7 @@ export default function TenantPaymentSettings() {
         isPrimary: false,
       });
     }
+
     setShowBankModal(true);
   };
 
@@ -183,8 +331,9 @@ export default function TenantPaymentSettings() {
     setEditingBank(null);
   };
 
-  const handleBankSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleBankSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     try {
       const payload = {
         bank_name: bankForm.bankName,
@@ -194,21 +343,20 @@ export default function TenantPaymentSettings() {
         is_primary: bankForm.isPrimary,
         is_active: bankForm.isActive,
       };
+
       if (editingBank) {
         await apiClient.put(`/payment-methods/bank-accounts/${editingBank.id}`, payload);
       } else {
         await apiClient.post('/payment-methods/bank-accounts', payload);
       }
+
       await loadSettings();
       closeBankModal();
+      toast.success('Rekening bank berhasil disimpan.');
     } catch (error) {
       console.error('Failed to save bank account:', error);
       toast.error('Gagal menyimpan rekening bank.');
     }
-  };
-
-  const handleDeleteBank = (id: string) => {
-    setDeleteTarget({ type: 'bank', id });
   };
 
   const openQRModal = (qr?: QRCode) => {
@@ -221,7 +369,7 @@ export default function TenantPaymentSettings() {
         isPrimary: qr.is_primary,
         notes: qr.notes || '',
       });
-      setPreviewUrl(qr.imageDisplayUrl || '');
+      setQrPreviewUrl(qr.imageDisplayUrl || '');
     } else {
       setEditingQR(null);
       setQRForm({
@@ -231,37 +379,44 @@ export default function TenantPaymentSettings() {
         isPrimary: false,
         notes: '',
       });
-      setPreviewUrl(null);
+      setQrPreviewUrl(null);
     }
+
     setShowQRModal(true);
   };
 
   const closeQRModal = () => {
     setShowQRModal(false);
     setEditingQR(null);
-    setPreviewUrl(null);
+    setQrPreviewUrl(null);
   };
 
-  const handleQRFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.warning('Harap pilih file gambar');
-        return;
-      }
-      if (file.size > 2 * 1024 * 1024) {
-        toast.warning('Ukuran file tidak boleh lebih dari 2MB');
-        return;
-      }
-      setQRForm((prev) => ({ ...prev, imageFile: file }));
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviewUrl(reader.result as string);
-      reader.readAsDataURL(file);
+  const handleQRFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
     }
+
+    if (!file.type.startsWith('image/')) {
+      toast.warning('Harap pilih file gambar.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.warning('Ukuran file QR code tidak boleh lebih dari 2MB.');
+      return;
+    }
+
+    setQRForm((prev) => ({ ...prev, imageFile: file }));
+    const reader = new FileReader();
+    reader.onloadend = () => setQrPreviewUrl(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
-  const handleQRSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleQRSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     try {
       if (editingQR) {
         await qrCodeService.updateQRCode(editingQR.id, {
@@ -280,55 +435,215 @@ export default function TenantPaymentSettings() {
           image: qrForm.imageFile || undefined,
         });
       }
+
       await loadSettings();
       closeQRModal();
+      toast.success('QR code berhasil disimpan.');
     } catch (error) {
       console.error('Failed to save QR code:', error);
       toast.error('Gagal menyimpan QR code.');
     }
   };
 
-  const handleDeleteQR = (id: string) => {
-    setDeleteTarget({ type: 'qr', id });
-  };
-
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget) {
+      return;
+    }
+
     try {
       if (deleteTarget.type === 'bank') {
         await apiClient.delete(`/payment-methods/bank-accounts/${deleteTarget.id}`);
-        setBankAccounts((prev) => prev.filter((b) => b.id !== deleteTarget.id));
       } else {
         await qrCodeService.deleteQRCode(deleteTarget.id);
-        setQRCodes((prev) => prev.filter((q) => q.id !== deleteTarget.id));
       }
+
       setDeleteTarget(null);
+      await loadSettings();
+      toast.success(deleteTarget.type === 'bank' ? 'Rekening bank dihapus.' : 'QR code dihapus.');
     } catch (error) {
       console.error('Failed to delete:', error);
+      toast.error('Gagal menghapus data.');
     }
   };
+
+  const displayedTenantLogo = tenantLogoPreviewUrl || currentTenantLogoUrl;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Pengaturan Pembayaran"
-        subtitle="Kelola siklus tagihan, rekening bank, dan QR code untuk pembayaran pelanggan"
+        title="Pengaturan Tenant"
+        subtitle="Kelola profil tenant, logo, siklus tagihan, rekening bank, dan QR code pembayaran"
       />
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Siklus Tagihan Bulanan</h2>
+      <div className="rounded-lg bg-white shadow">
+        <div className="border-b border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900">Profil Tenant</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Atur tanggal generate tagihan dan batas akhir pembayaran. Denda mulai berlaku
-            sehari setelah tanggal jatuh tempo.
+            Perbarui identitas tenant yang tampil di sidebar dan informasi kontak utama.
           </p>
         </div>
 
-        <form onSubmit={handleBillingSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleProfileSubmit} className="space-y-6 p-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+            <div className="space-y-3">
+              <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-gray-300 bg-gray-50">
+                {displayedTenantLogo ? (
+                  <img
+                    src={displayedTenantLogo}
+                    alt="Logo tenant"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center text-gray-500">
+                    <CloudArrowUpIcon className="mx-auto h-10 w-10" />
+                    <p className="mt-2 text-sm">Belum ada logo tenant</p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="tenant-logo-input" className="inline-flex cursor-pointer items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                  <CloudArrowUpIcon className="mr-2 h-5 w-5" />
+                  Upload Logo
+                </label>
+                <input
+                  id="tenant-logo-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="sr-only"
+                  onChange={handleTenantLogoChange}
+                />
+                <p className="mt-2 text-xs text-gray-500">
+                  Format JPG, PNG, GIF, atau WEBP. Maksimal 5MB.
+                </p>
+                {tenantLogoPreviewUrl && (
+                  <button
+                    type="button"
+                    onClick={resetTenantLogoSelection}
+                    className="mt-2 text-sm font-medium text-red-600 hover:text-red-700"
+                  >
+                    Batalkan logo baru
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Nama Tenant
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.companyName}
+                  onChange={(e) => handleProfileChange('companyName', e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Telepon
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.phone}
+                  onChange={(e) => handleProfileChange('phone', e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={profileForm.email}
+                  onChange={(e) => handleProfileChange('email', e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Website
+                </label>
+                <input
+                  type="url"
+                  value={profileForm.website}
+                  onChange={(e) => handleProfileChange('website', e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  placeholder="https://contoh-domain.com"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Alamat
+                </label>
+                <textarea
+                  value={profileForm.address}
+                  onChange={(e) => handleProfileChange('address', e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Jam Operasional
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.operatingHours}
+                  onChange={(e) => handleProfileChange('operatingHours', e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  placeholder="Senin - Jumat, 08.00 - 16.00"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Area Layanan
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.serviceArea}
+                  onChange={(e) => handleProfileChange('serviceArea', e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                  placeholder="Kelurahan Sejahtera dan sekitarnya"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={profileSaving}
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400 sm:w-auto"
+            >
+              {profileSaving ? 'Menyimpan...' : 'Simpan Profil Tenant'}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="rounded-lg bg-white shadow">
+        <div className="border-b border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900">Siklus Tagihan Bulanan</h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Atur tanggal generate tagihan dan batas akhir pembayaran pelanggan.
+          </p>
+        </div>
+
+        <form onSubmit={handleBillingSubmit} className="space-y-6 p-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tanggal generate tagihan
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Tanggal Generate Tagihan
               </label>
               <input
                 type="number"
@@ -338,16 +653,13 @@ export default function TenantPaymentSettings() {
                 onChange={(e) =>
                   setBillingForm((prev) => ({ ...prev, invoiceGenerationDay: e.target.value }))
                 }
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Tagihan bulanan dijadwalkan dibuat setiap tanggal ini.
-              </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tanggal jatuh tempo
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Tanggal Jatuh Tempo
               </label>
               <input
                 type="number"
@@ -357,32 +669,21 @@ export default function TenantPaymentSettings() {
                 onChange={(e) =>
                   setBillingForm((prev) => ({ ...prev, invoiceDueDay: e.target.value }))
                 }
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Pelanggan harus melunasi tagihan paling lambat pada tanggal ini.
-              </p>
             </div>
           </div>
 
           <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
-            <p>
-              <span className="font-medium">Aturan aktif:</span> tagihan digenerate tanggal{' '}
-              <strong>{billingForm.invoiceGenerationDay}</strong>, pelanggan membayar paling lambat
-              tanggal <strong>{billingForm.invoiceDueDay}</strong>, dan denda mulai berlaku pada
-              hari berikutnya.
-            </p>
-            <p className="mt-2 text-blue-800">
-              Nilai denda per hari tetap diatur per golongan langganan pada menu{' '}
-              <strong>Golongan Langganan</strong>.
-            </p>
+            Tagihan akan digenerate tanggal <strong>{billingForm.invoiceGenerationDay}</strong> dan
+            jatuh tempo pada tanggal <strong>{billingForm.invoiceDueDay}</strong>.
           </div>
 
           <div className="flex justify-end">
             <button
               type="submit"
               disabled={billingSaving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400 sm:w-auto"
             >
               {billingSaving ? 'Menyimpan...' : 'Simpan Siklus Tagihan'}
             </button>
@@ -390,82 +691,76 @@ export default function TenantPaymentSettings() {
         </form>
       </div>
 
-      {/* Bank Accounts Section */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+      <div className="rounded-lg bg-white shadow">
+        <div className="border-b border-gray-200 p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center">
-              <BuildingLibraryIcon className="h-6 w-6 text-blue-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">Bank Accounts</h2>
+              <BuildingLibraryIcon className="mr-2 h-6 w-6 text-blue-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Rekening Bank</h2>
             </div>
             <button
               onClick={() => openBankModal()}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
             >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Add Bank Account
+              <PlusIcon className="mr-2 h-5 w-5" />
+              Tambah Rekening
             </button>
           </div>
         </div>
 
         <div className="p-6">
           {bankAccounts.length === 0 ? (
-            <div className="text-center py-8">
-              <BuildingLibraryIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">No bank accounts configured</p>
-              <button
-                onClick={() => openBankModal()}
-                className="mt-3 text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Add your first bank account
-              </button>
+            <div className="py-8 text-center">
+              <BuildingLibraryIcon className="mx-auto mb-3 h-12 w-12 text-gray-400" />
+              <p className="text-gray-600">Belum ada rekening bank yang dikonfigurasi.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {bankAccounts.map((bank) => (
                 <div
                   key={bank.id}
-                  className={`border rounded-lg p-4 ${
+                  className={`rounded-lg border p-4 ${
                     bank.isActive ? 'border-gray-200' : 'border-gray-100 bg-gray-50'
                   }`}
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start space-x-4">
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100">
                         <BuildingLibraryIcon className="h-6 w-6 text-blue-600" />
                       </div>
                       <div>
-                        <div className="flex items-center space-x-2 mb-1">
+                        <div className="mb-1 flex items-center space-x-2">
                           <h3 className="font-semibold text-gray-900">{bank.bankName}</h3>
                           {bank.isPrimary && (
-                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
-                              Primary
+                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                              Utama
                             </span>
                           )}
                           {!bank.isActive && (
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
-                              Inactive
+                            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                              Nonaktif
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600">Account Name: {bank.accountName}</p>
-                        <p className="text-base font-mono font-semibold text-gray-900 mt-1">
+                        <p className="text-sm text-gray-600">Nama akun: {bank.accountName}</p>
+                        <p className="mt-1 font-mono text-base font-semibold text-gray-900">
                           {bank.accountNumber}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+
+                    <div className="flex items-center space-x-2 self-end sm:self-auto">
                       <button
                         onClick={() => openBankModal(bank)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                        className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
                         title="Edit"
                       >
                         <PencilIcon className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteBank(bank.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                        title="Delete"
+                        onClick={() => setDeleteTarget({ type: 'bank', id: bank.id })}
+                        className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                        title="Hapus"
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
@@ -478,87 +773,73 @@ export default function TenantPaymentSettings() {
         </div>
       </div>
 
-      {/* QR Codes Section */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
+      <div className="rounded-lg bg-white shadow">
+        <div className="border-b border-gray-200 p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center">
-              <QrCodeIcon className="h-6 w-6 text-green-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">QR Codes</h2>
+              <QrCodeIcon className="mr-2 h-6 w-6 text-green-600" />
+              <h2 className="text-lg font-semibold text-gray-900">QR Code</h2>
             </div>
             <button
               onClick={() => openQRModal()}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 sm:w-auto"
             >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Add QR Code
+              <PlusIcon className="mr-2 h-5 w-5" />
+              Tambah QR Code
             </button>
           </div>
         </div>
 
         <div className="p-6">
           {qrCodes.length === 0 ? (
-            <div className="text-center py-8">
-              <QrCodeIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">No QR codes configured</p>
-              <button
-                onClick={() => openQRModal()}
-                className="mt-3 text-green-600 hover:text-green-700 font-medium"
-              >
-                Add your first QR code
-              </button>
+            <div className="py-8 text-center">
+              <QrCodeIcon className="mx-auto mb-3 h-12 w-12 text-gray-400" />
+              <p className="text-gray-600">Belum ada QR code pembayaran.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {qrCodes.map((qr) => (
                 <div
                   key={qr.id}
-                  className={`border rounded-lg p-4 ${
+                  className={`rounded-lg border p-4 ${
                     qr.is_active ? 'border-gray-200' : 'border-gray-100 bg-gray-50'
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="mb-3 flex items-start justify-between">
                     <div className="flex items-center">
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-medium">
+                      <span className="rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
                         {qr.type}
                       </span>
                       {qr.is_primary && (
-                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded font-medium">
-                          Primary
-                        </span>
-                      )}
-                      {!qr.is_active && (
-                        <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded font-medium">
-                          Inactive
+                        <span className="ml-2 rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700">
+                          Utama
                         </span>
                       )}
                     </div>
                     <div className="flex items-center space-x-1">
                       <button
                         onClick={() => openQRModal(qr)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                        className="rounded p-1.5 text-blue-600 hover:bg-blue-50"
                         title="Edit"
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteQR(qr.id)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                        title="Delete"
+                        onClick={() => setDeleteTarget({ type: 'qr', id: qr.id })}
+                        className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                        title="Hapus"
                       >
                         <TrashIcon className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
-                  <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+
+                  <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-gray-100">
                     {qr.imageDisplayUrl ? (
                       <img
                         src={qr.imageDisplayUrl}
                         alt={`${qr.type} QR Code`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = 'none';
-                        }}
+                        className="h-full w-full object-cover"
                       />
                     ) : (
                       <QrCodeIcon className="h-20 w-20 text-gray-400" />
@@ -571,74 +852,69 @@ export default function TenantPaymentSettings() {
         </div>
       </div>
 
-      {/* Bank Account Modal */}
       {showBankModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-600 bg-opacity-50 p-4 sm:items-center">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl">
             <form onSubmit={handleBankSubmit}>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  {editingBank ? 'Edit Bank Account' : 'Add Bank Account'}
+                <h3 className="mb-4 text-lg font-semibold text-gray-900">
+                  {editingBank ? 'Edit Rekening Bank' : 'Tambah Rekening Bank'}
                 </h3>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Bank Name <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Nama Bank
                     </label>
                     <input
                       type="text"
                       value={bankForm.bankName}
                       onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., Bank BCA"
+                      className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Account Number <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Nomor Rekening
                     </label>
                     <input
                       type="text"
                       value={bankForm.accountNumber}
                       onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., 1234567890"
+                      className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Account Name <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Nama Pemilik Rekening
                     </label>
                     <input
                       type="text"
                       value={bankForm.accountName}
                       onChange={(e) => setBankForm({ ...bankForm, accountName: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., RT 01 RW 05"
+                      className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Bank Code <span className="text-red-500">*</span>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Kode / Cabang Bank
                     </label>
                     <input
                       type="text"
                       value={bankForm.bankCode}
                       onChange={(e) => setBankForm({ ...bankForm, bankCode: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., BCA, MANDIRI"
+                      className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
 
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:space-x-4">
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -646,8 +922,9 @@ export default function TenantPaymentSettings() {
                         onChange={(e) => setBankForm({ ...bankForm, isActive: e.target.checked })}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Active</span>
+                      <span className="ml-2 text-sm text-gray-700">Aktif</span>
                     </label>
+
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -655,25 +932,25 @@ export default function TenantPaymentSettings() {
                         onChange={(e) => setBankForm({ ...bankForm, isPrimary: e.target.checked })}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Primary</span>
+                      <span className="ml-2 text-sm text-gray-700">Jadikan utama</span>
                     </label>
                   </div>
                 </div>
               </div>
 
-              <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3 rounded-b-lg">
+              <div className="flex flex-col-reverse gap-3 rounded-b-lg bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closeBankModal}
-                  className="px-4 py-2 border text-gray-700 rounded-lg hover:bg-gray-100"
+                  className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
                 >
-                  {editingBank ? 'Update' : 'Add'} Bank Account
+                  {editingBank ? 'Simpan Perubahan' : 'Tambah Rekening'}
                 </button>
               </div>
             </form>
@@ -681,28 +958,25 @@ export default function TenantPaymentSettings() {
         </div>
       )}
 
-      {/* QR Code Modal */}
       {showQRModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-600 bg-opacity-50 p-4 sm:items-center">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl">
             <form onSubmit={handleQRSubmit}>
               <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  {editingQR ? 'Edit QR Code' : 'Add QR Code'}
+                <h3 className="mb-4 text-lg font-semibold text-gray-900">
+                  {editingQR ? 'Edit QR Code' : 'Tambah QR Code'}
                 </h3>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Type <span className="text-red-500">*</span>
-                    </label>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Tipe</label>
                     <select
                       value={qrForm.type}
                       onChange={(e) => setQRForm({ ...qrForm, type: e.target.value as QRCodeType })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                      className="w-full rounded-lg border px-3 py-2 focus:ring-2 focus:ring-green-500"
                       required
                     >
-                      <option value="QRIS">QRIS (All E-Wallets)</option>
+                      <option value="QRIS">QRIS</option>
                       <option value="GOPAY">GoPay</option>
                       <option value="OVO">OVO</option>
                       <option value="DANA">DANA</option>
@@ -711,24 +985,20 @@ export default function TenantPaymentSettings() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      QR Code Image <span className="text-red-500">*</span>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Gambar QR Code
                     </label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                      {previewUrl ? (
+                    <div className="rounded-lg border-2 border-dashed border-gray-300 p-4">
+                      {qrPreviewUrl ? (
                         <div className="relative">
-                          <img
-                            src={previewUrl}
-                            alt="QR Preview"
-                            className="w-full rounded-lg"
-                          />
+                          <img src={qrPreviewUrl} alt="QR Preview" className="w-full rounded-lg" />
                           <button
                             type="button"
                             onClick={() => {
-                              setPreviewUrl(null);
+                              setQrPreviewUrl(null);
                               setQRForm({ ...qrForm, imageFile: null });
                             }}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
+                            className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white"
                           >
                             <XMarkIcon className="h-4 w-4" />
                           </button>
@@ -737,8 +1007,8 @@ export default function TenantPaymentSettings() {
                         <div className="text-center">
                           <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
                           <label htmlFor="qr-upload" className="mt-2 inline-block cursor-pointer">
-                            <span className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 inline-block">
-                              Upload Image
+                            <span className="inline-block rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700">
+                              Upload Gambar
                             </span>
                             <input
                               id="qr-upload"
@@ -749,7 +1019,7 @@ export default function TenantPaymentSettings() {
                               required={!editingQR}
                             />
                           </label>
-                          <p className="mt-1 text-xs text-gray-500">PNG or JPG, max 2MB</p>
+                          <p className="mt-1 text-xs text-gray-500">PNG atau JPG, maksimal 2MB.</p>
                         </div>
                       )}
                     </div>
@@ -763,7 +1033,7 @@ export default function TenantPaymentSettings() {
                         onChange={(e) => setQRForm({ ...qrForm, isActive: e.target.checked })}
                         className="rounded border-gray-300 text-green-600 focus:ring-green-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Active</span>
+                      <span className="ml-2 text-sm text-gray-700">Aktif</span>
                     </label>
                   </div>
 
@@ -775,36 +1045,36 @@ export default function TenantPaymentSettings() {
                         onChange={(e) => setQRForm({ ...qrForm, isPrimary: e.target.checked })}
                         className="rounded border-gray-300 text-green-600 focus:ring-green-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">Set as Primary</span>
+                      <span className="ml-2 text-sm text-gray-700">Jadikan utama</span>
                     </label>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Catatan</label>
                     <input
                       type="text"
                       value={qrForm.notes}
                       onChange={(e) => setQRForm({ ...qrForm, notes: e.target.value })}
-                      placeholder="Optional notes"
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+                      className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-green-500"
+                      placeholder="Catatan opsional"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3 rounded-b-lg">
+              <div className="flex flex-col-reverse gap-3 rounded-b-lg bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end">
                 <button
                   type="button"
                   onClick={closeQRModal}
-                  className="px-4 py-2 border text-gray-700 rounded-lg hover:bg-gray-100"
+                  className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  className="w-full rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 sm:w-auto"
                 >
-                  {editingQR ? 'Update' : 'Add'} QR Code
+                  {editingQR ? 'Simpan Perubahan' : 'Tambah QR Code'}
                 </button>
               </div>
             </form>
@@ -819,8 +1089,8 @@ export default function TenantPaymentSettings() {
         title={deleteTarget?.type === 'bank' ? 'Hapus Rekening Bank' : 'Hapus QR Code'}
         message={
           deleteTarget?.type === 'bank'
-            ? 'Apakah kamu yakin ingin menghapus rekening bank ini? Tindakan ini tidak dapat dibatalkan.'
-            : 'Apakah kamu yakin ingin menghapus QR code ini? Tindakan ini tidak dapat dibatalkan.'
+            ? 'Apakah Anda yakin ingin menghapus rekening bank ini?'
+            : 'Apakah Anda yakin ingin menghapus QR code ini?'
         }
         confirmText="Hapus"
         cancelText="Batal"

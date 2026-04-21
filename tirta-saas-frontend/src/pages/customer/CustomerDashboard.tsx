@@ -61,14 +61,14 @@ const CustomerDashboard: React.FC = () => {
       {/* Header */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h1 className="text-2xl font-bold text-gray-900">Portal Pelanggan</h1>
-              <p className="text-sm text-gray-600">Selamat datang, {profile?.name}</p>
+              <p className="truncate text-sm text-gray-600">Selamat datang, {profile?.name}</p>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-red-600 transition-colors hover:bg-red-50 sm:w-auto"
             >
               <ArrowRightOnRectangleIcon className="h-5 w-5" />
               Keluar
@@ -80,10 +80,10 @@ const CustomerDashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Profil Card */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex gap-4">
               <UserCircleIcon className="h-16 w-16 text-indigo-600" />
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-xl font-semibold text-gray-900">{profile?.name}</h2>
                 <p className="text-gray-600">No. Meteran: {profile?.meter_number}</p>
                 <p className="text-gray-600">{profile?.address}</p>
@@ -108,7 +108,7 @@ const CustomerDashboard: React.FC = () => {
         </div>
 
         {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -156,7 +156,7 @@ const CustomerDashboard: React.FC = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Link
             to="/customer/invoices"
             className="flex items-center gap-3 bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-shadow"
@@ -208,50 +208,40 @@ const CustomerDashboard: React.FC = () => {
           {unpaidTagihan.length === 0 ? (
             <p className="text-gray-600 text-center py-8">Tidak ada tagihan yang belum dibayar</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Invoice</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Periode</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jatuh Tempo</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {unpaidTagihan.slice(0, 5).map((invoice) => {
-                    const isOverdue = new Date(invoice.due_date) < new Date();
-                    return (
-                      <tr key={invoice.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {invoice.invoice_number}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+            <div className="space-y-3">
+              {unpaidTagihan.slice(0, 5).map((invoice) => {
+                const isOverdue = new Date(invoice.due_date) < new Date();
+                return (
+                  <div key={invoice.id} className="rounded-lg border border-gray-200 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900">{invoice.invoice_number}</p>
+                        <p className="text-sm text-gray-600">
                           {invoice.usage_month} {invoice.usage_year}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {new Date(invoice.due_date).toLocaleDateString('id-ID')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">
-                          Rp {(invoice.total_amount - invoice.total_paid).toLocaleString('id-ID')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          {isOverdue ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                              Terlambat
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                              Belum Dibayar
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Jatuh tempo {new Date(invoice.due_date).toLocaleDateString('id-ID')}
+                        </p>
+                      </div>
+                      {isOverdue ? (
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                          Terlambat
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                          Belum Dibayar
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+                      <span className="text-sm text-gray-600">Sisa tagihan</span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        Rp {(invoice.total_amount - invoice.total_paid).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
           {unpaidTagihan.length > 5 && (

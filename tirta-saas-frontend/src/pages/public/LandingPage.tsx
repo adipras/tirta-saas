@@ -108,20 +108,20 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 py-3">
             <div className="flex items-center">
               <h1 className="text-2xl font-bold text-blue-600">TirtaSaaS</h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:space-x-4 sm:gap-4">
               <button
                 onClick={() => navigate('/admin/login')}
-                className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
+                className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
               >
                 Login
               </button>
               <button
                 onClick={() => navigate('/register')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
                 Daftar Gratis
               </button>
@@ -131,14 +131,14 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="text-center">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-6">
+          <h1 className="mb-6 text-3xl font-extrabold text-gray-900 sm:text-5xl">
             Sistem Manajemen Air Bersih
             <br />
             <span className="text-blue-600">untuk RT/RW & Kelurahan</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="mx-auto mb-8 max-w-3xl text-base text-gray-600 sm:text-xl">
             Kelola tagihan air, pelanggan, dan pembayaran dengan mudah. 
             Tingkatkan efisiensi pengelolaan air bersih di lingkungan Anda.
           </p>
@@ -158,24 +158,24 @@ export default function LandingPage() {
               Lihat Harga
             </button>
           </div>
-          <p className="mt-4 text-sm text-gray-500">
+          <p className="mt-4 text-sm leading-6 text-gray-500">
             ✓ Tidak perlu kartu kredit  ✓ Setup 5 menit  ✓ Support 24/7
           </p>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+       <section className="bg-white py-16 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
+           <div className="mb-12 text-center sm:mb-16">
+             <h2 className="mb-4 text-3xl font-extrabold text-gray-900">
               Fitur Lengkap untuk Pengelolaan Air
             </h2>
-            <p className="text-xl text-gray-600">
-              Semua yang Anda butuhkan dalam satu platform
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+             <p className="text-base text-gray-600 sm:text-xl">
+               Semua yang Anda butuhkan dalam satu platform
+             </p>
+           </div>
+           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
               <div
                 key={index}
@@ -193,17 +193,17 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-gray-50">
+       <section className="bg-gray-50 py-16 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
+           <div className="mb-12 text-center sm:mb-16">
+             <h2 className="mb-4 text-3xl font-extrabold text-gray-900">
               Cara Memulai
             </h2>
-            <p className="text-xl text-gray-600">
+             <p className="text-base text-gray-600 sm:text-xl">
               Mulai kelola air bersih dalam 3 langkah mudah
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
                 1
@@ -236,13 +236,13 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-white">
+       <section id="pricing" className="bg-white py-16 sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
+           <div className="mb-12 text-center sm:mb-16">
+             <h2 className="mb-4 text-3xl font-extrabold text-gray-900">
               Harga Transparan
             </h2>
-            <p className="text-xl text-gray-600">
+             <p className="text-base text-gray-600 sm:text-xl">
               Pilih paket sesuai kebutuhan Anda
             </p>
           </div>
@@ -252,15 +252,15 @@ export default function LandingPage() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : pricingPlans.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {pricingPlans.map((plan) => {
-                const popular = isPopularPlan(plan);
-                return (
+             <div className="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-8">
+               {pricingPlans.map((plan) => {
+                 const popular = isPopularPlan(plan);
+                 return (
                   <div
                     key={plan.id}
                     className={`rounded-lg ${
                       popular
-                        ? 'bg-blue-600 text-white shadow-xl scale-105'
+                        ? 'bg-blue-600 text-white shadow-xl md:scale-105'
                         : 'bg-white border-2 border-gray-200'
                     } p-8 relative`}
                   >
@@ -375,14 +375,14 @@ export default function LandingPage() {
       </section>
 
       {/* Trust Section */}
-      <section className="py-20 bg-blue-600 text-white">
+       <section className="bg-blue-600 py-16 text-white sm:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <ShieldCheckIcon className="h-16 w-16 mx-auto mb-4" />
             <h2 className="text-3xl font-extrabold mb-4">
               Aman & Terpercaya
             </h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+             <p className="mx-auto mb-8 max-w-2xl text-base text-blue-100 sm:text-xl">
               Data Anda tersimpan aman dengan enkripsi tingkat bank. 
               Backup otomatis dan uptime 99.9%.
             </p>
@@ -391,12 +391,12 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gray-50">
+       <section className="bg-gray-50 py-16 sm:py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
             Siap Tingkatkan Pengelolaan Air di RT/RW Anda?
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
+           <p className="mb-8 text-base text-gray-600 sm:text-xl">
             Bergabung dengan puluhan RT/RW yang sudah menggunakan TirtaSaaS
           </p>
           <button
@@ -420,7 +420,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
             <div>
               <h3 className="text-white text-lg font-semibold mb-4">TirtaSaaS</h3>
               <p className="text-sm">

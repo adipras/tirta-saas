@@ -231,14 +231,14 @@ export default function MeterReadingForm() {
   };
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       <button
-          onClick={() => navigate('/admin/usage')}
-          className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-2" />
-          Kembali ke Pemakaian Air
-        </button>
+        onClick={() => navigate('/admin/usage')}
+        className="flex items-center text-sm text-gray-500 hover:text-gray-700"
+      >
+        <ArrowLeftIcon className="mr-2 h-4 w-4" />
+        Kembali ke Pemakaian Air
+      </button>
       <PageHeader
         title={isEditMode ? 'Ubah Pembacaan Meter' : 'Catat Pembacaan Meter'}
         subtitle={isEditMode ? 'Perbarui pembacaan meter dan pemakaian akan dihitung ulang' : 'Masukkan meter akhir untuk menghitung pemakaian air'}
@@ -249,7 +249,7 @@ export default function MeterReadingForm() {
           {/* Customer Selection */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Pelanggan</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div>
                 <CustomerSearchSelect
                   customers={customers}
@@ -294,7 +294,7 @@ export default function MeterReadingForm() {
                   ? 'border-green-200 bg-green-50'
                   : 'border-yellow-200 bg-yellow-50'
               }`}>
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-900">
                       {isCheckingRate ? 'Memeriksa tarif air aktif...' : 'Status Tarif Air'}
@@ -330,7 +330,7 @@ export default function MeterReadingForm() {
           {/* Meter Reading */}
           <div className="pt-6 border-t border-gray-200">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Pembacaan Meter</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   Meter Sebelumnya
@@ -385,7 +385,7 @@ export default function MeterReadingForm() {
                 </p>
               </div>
 
-              <div className="md:col-span-3">
+              <div className="xl:col-span-3">
                 <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
                   Catatan
                 </label>
@@ -431,18 +431,18 @@ export default function MeterReadingForm() {
           )}
 
           {/* Form Actions */}
-          <div className="pt-6 border-t border-gray-200 flex justify-end space-x-3">
+          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={() => navigate('/admin/usage')}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={loading || (!isEditMode && !activeRate) || isCheckingRate}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               {loading ? 'Menyimpan...' : isEditMode ? 'Perbarui Pembacaan' : 'Catat Pembacaan'}
             </button>

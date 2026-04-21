@@ -216,12 +216,12 @@ const PaymentList: React.FC = () => {
   ];
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       <PageHeader title="Pembayaran" subtitle="Kelola transaksi pembayaran dan struk pembayaran" />
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                Metode Pembayaran
@@ -286,7 +286,7 @@ const PaymentList: React.FC = () => {
         <div className="mt-4 flex justify-end">
           <button
             onClick={() => setFilters({})}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            className="w-full rounded-md bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200 sm:w-auto"
           >
             Reset Filter
           </button>
@@ -294,25 +294,25 @@ const PaymentList: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b flex justify-between items-center">
+        <div className="flex flex-col gap-3 border-b p-4 lg:flex-row lg:items-center lg:justify-between">
           <input
             type="text"
             placeholder="Cari pembayaran..."
-            className="border border-gray-300 rounded-md px-4 py-2 w-96"
+            className="w-full rounded-md border border-gray-300 px-4 py-2 lg:max-w-md"
             value={searchTerm}
             onChange={(e) => handleSearch(e.target.value)}
           />
-          <div className="flex space-x-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
               onClick={handleExport}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700 sm:w-auto"
             >
               <ArrowPathIcon className="h-4 w-4" />
               Ekspor
             </button>
             <button
               onClick={() => navigate('/admin/payments/new')}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
             >
               <PlusIcon className="h-4 w-4" />
               Catat Pembayaran
@@ -328,22 +328,22 @@ const PaymentList: React.FC = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-4 py-3 border-t flex justify-between items-center">
+          <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-gray-600">
               Halaman {currentPage} dari {totalPages}
             </div>
-            <div className="flex space-x-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-3 py-1 border rounded disabled:opacity-50"
+                className="rounded border px-3 py-1 disabled:opacity-50"
               >
                 Sebelumnya
               </button>
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}
-                className="px-3 py-1 border rounded disabled:opacity-50"
+                className="rounded border px-3 py-1 disabled:opacity-50"
               >
                 Berikutnya
               </button>

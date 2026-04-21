@@ -128,7 +128,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
         actions={
           <button
             onClick={() => navigate('/admin/customers')}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50"
+            className="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
           >
             <ArrowLeftIcon className="mr-2 h-4 w-4" />
             Back to Pelanggan
@@ -136,13 +136,13 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
         }
       />
 
-        <div className="mt-5 md:mt-0">
+        <div className="md:mt-0">
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="shadow sm:rounded-md sm:overflow-hidden">
               <div className="px-4 py-5 bg-white space-y-6 sm:p-6">
-                <div className="grid grid-cols-6 gap-6">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   {/* Meter Number */}
-                  <div className="col-span-6 sm:col-span-3">
+                  <div>
                     <label htmlFor="meter_number" className="block text-sm font-medium text-gray-700">
                       Meter Number *
                     </label>
@@ -160,7 +160,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   </div>
 
                   {/* Name */}
-                  <div className="col-span-6 sm:col-span-3">
+                  <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                       Full Name *
                     </label>
@@ -177,7 +177,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   </div>
 
                   {/* Email */}
-                  <div className="col-span-6 sm:col-span-3">
+                  <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                       Alamat Email *
                     </label>
@@ -202,7 +202,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
 
                   {/* Password (Create mode only) */}
                   {mode === 'create' && (
-                    <div className="col-span-6 sm:col-span-3">
+                    <div>
                       <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                         Password *
                       </label>
@@ -229,7 +229,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   )}
 
                   {/* Phone */}
-                  <div className="col-span-6 sm:col-span-3">
+                  <div>
                     <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                       Phone Number
                     </label>
@@ -243,7 +243,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   </div>
 
                   {/* Subscription Type */}
-                  <div className="col-span-6 sm:col-span-3">
+                  <div>
                     <label htmlFor="subscription_id" className="block text-sm font-medium text-gray-700">
                       Subscription Type *
                     </label>
@@ -265,7 +265,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   </div>
 
                   {/* Address */}
-                  <div className="col-span-6">
+                  <div className="sm:col-span-2">
                     <label htmlFor="address" className="block text-sm font-medium text-gray-700">
                       Address
                     </label>
@@ -280,18 +280,18 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                 </div>
               </div>
 
-              <div className="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-3">
+              <div className="flex flex-col-reverse gap-3 bg-gray-50 px-4 py-3 sm:flex-row sm:justify-end sm:px-6">
                 <button
                   type="button"
                   onClick={() => navigate('/admin/customers')}
-                  className="bg-white border border-gray-300 rounded-md py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="bg-blue-600 border border-transparent rounded-md py-2 px-4 inline-flex justify-center text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
                   {saving ? 'Saving...' : mode === 'create' ? 'Create Customer' : 'Update Customer'}
                 </button>

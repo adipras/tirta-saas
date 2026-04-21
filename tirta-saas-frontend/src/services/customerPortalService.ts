@@ -1,7 +1,6 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../constants/api';
 import customerAuthService from './customerAuthService';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081';
 
 const getAuthHeaders = () => {
   const token = customerAuthService.getToken();
@@ -81,30 +80,30 @@ export interface CustomerWaterPemakaian {
 
 class CustomerPortalService {
   async getProfil(): Promise<CustomerProfil> {
-    const response = await axios.get(`${API_URL}/api/customer/profile`, getAuthHeaders());
+    const response = await axios.get(`${API_BASE_URL}/customer/profile`, getAuthHeaders());
     return response.data;
   }
 
   async updateProfil(data: { name: string; address: string; phone: string }): Promise<void> {
-    await axios.put(`${API_URL}/api/customer/profile`, data, getAuthHeaders());
+    await axios.put(`${API_BASE_URL}/customer/profile`, data, getAuthHeaders());
   }
 
   async changePassword(data: { current_password: string; new_password: string }): Promise<void> {
-    await axios.put(`${API_URL}/api/customer/password`, data, getAuthHeaders());
+    await axios.put(`${API_BASE_URL}/customer/password`, data, getAuthHeaders());
   }
 
   async getTagihan(): Promise<CustomerInvoice[]> {
-    const response = await axios.get(`${API_URL}/api/customer/invoices`, getAuthHeaders());
+    const response = await axios.get(`${API_BASE_URL}/customer/invoices`, getAuthHeaders());
     return response.data;
   }
 
   async getPembayaran(): Promise<CustomerPayment[]> {
-    const response = await axios.get(`${API_URL}/api/customer/payments`, getAuthHeaders());
+    const response = await axios.get(`${API_BASE_URL}/customer/payments`, getAuthHeaders());
     return response.data;
   }
 
   async getWaterPemakaian(): Promise<CustomerWaterPemakaian[]> {
-    const response = await axios.get(`${API_URL}/api/customer/water-usage`, getAuthHeaders());
+    const response = await axios.get(`${API_BASE_URL}/customer/water-usage`, getAuthHeaders());
     return response.data;
   }
 }

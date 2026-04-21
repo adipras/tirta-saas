@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+import { API_BASE_URL } from '../constants/api';
 
 export interface CustomerLoginData {
   email: string;
@@ -15,7 +14,7 @@ export interface CustomerAuthResponse {
 
 class CustomerAuthService {
   async login(data: CustomerLoginData): Promise<CustomerAuthResponse> {
-    const response = await axios.post(`${API_URL}/api/auth/customer/login`, data);
+    const response = await axios.post(`${API_BASE_URL}/auth/customer/login`, data);
     
     if (response.data.token) {
       localStorage.setItem('customer_token', response.data.token);

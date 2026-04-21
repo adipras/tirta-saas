@@ -167,38 +167,38 @@ export default function InvoiceList() {
       <PageHeader
         title="Tagihan"
         actions={
-          <div className="flex items-center space-x-3">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
             <button
               onClick={() => navigate('/admin/invoices/bulk-generate')}
-              className="inline-flex items-center px-4 py-2 border border-blue-600 rounded-md shadow-sm text-sm font-medium text-blue-600 bg-white hover:bg-blue-50 print:hidden"
+              className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-600 shadow-sm hover:bg-blue-50 sm:w-auto"
             >
               <DocumentTextIcon className="mr-2 h-4 w-4" />
               Bulk Generate
             </button>
             <button
               onClick={() => handleExport('csv')}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 print:hidden"
+              className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
             >
               <ArrowDownTrayIcon className="mr-1 h-4 w-4" />
               CSV
             </button>
             <button
               onClick={() => handleExport('excel')}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 print:hidden"
+              className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
             >
               <ArrowDownTrayIcon className="mr-1 h-4 w-4" />
               Excel
             </button>
             <button
               onClick={() => window.print()}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 print:hidden"
+              className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
             >
               <PrinterIcon className="mr-1 h-4 w-4" />
               Print
             </button>
             <button
               onClick={() => navigate('/admin/invoices/new')}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 print:hidden"
+              className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:w-auto"
             >
               <PlusIcon className="mr-2 h-4 w-4" />
               Create Invoice
@@ -209,7 +209,7 @@ export default function InvoiceList() {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow print:hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -233,7 +233,7 @@ export default function InvoiceList() {
               <option value="partial">Partial</option>
             </select>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as InvoiceFilters['type'] | '')}
@@ -246,7 +246,7 @@ export default function InvoiceList() {
             {hasActiveFilters && (
               <button
                 onClick={handleClearFilters}
-                className="flex-shrink-0 inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50"
+                className="inline-flex items-center justify-center rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 sm:flex-shrink-0"
                 title="Clear filters"
               >
                 <XMarkIcon className="h-4 w-4" />

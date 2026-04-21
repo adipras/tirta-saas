@@ -7,6 +7,7 @@ import {
   EyeIcon,
   DocumentIcon,
 } from '@heroicons/react/24/outline';
+import { DataTable, type Column } from '../../components/DataTable';
 import paymentProofService, { type PaymentProof } from '../../services/paymentProofService';
 import { PageHeader, useToast } from '../../components';
 
@@ -151,12 +152,76 @@ function TenantPaymentVerification() {
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>{label}</span>;
   };
 
+  const columns: Column<PendingPayment>[] = [
+    {
+      key: 'invoiceNumber',
+      label: 'Invoice',
+      sortable: true,
+    },
+    {
+      key: 'customerName',
+      label: 'Customer',
+      sortable: true,
+    },
+    {
+      key: 'amount',
+      label: 'Amount',
+      sortable: true,
+      render: (_value, payment) => formatCurrency(payment.amount),
+    },
+    {
+      key: 'paymentDate',
+      label: 'Payment Date',
+      sortable: true,
+      render: (_value, payment) => formatDate(payment.paymentDate),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      sortable: true,
+      render: (_value, payment) => getStatusBadge(payment.status),
+    },
+  ];
+
+  const actions = (payment: PendingPayment) => (
+    <>
+      <button
+        onClick={() => openModal(payment, 'view')}
+        className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
+        title="Lihat detail"
+        aria-label="Lihat detail"
+      >
+        <EyeIcon className="h-5 w-5" />
+      </button>
+      {payment.status === 'pending' && (
+        <>
+          <button
+            onClick={() => openModal(payment, 'verify')}
+            className="inline-flex items-center justify-center rounded-md p-2.5 text-green-600 hover:bg-green-50 hover:text-green-900"
+            title="Verifikasi pembayaran"
+            aria-label="Verifikasi pembayaran"
+          >
+            <CheckCircleIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => openModal(payment, 'reject')}
+            className="inline-flex items-center justify-center rounded-md p-2.5 text-red-600 hover:bg-red-50 hover:text-red-900"
+            title="Tolak pembayaran"
+            aria-label="Tolak pembayaran"
+          >
+            <XCircleIcon className="h-5 w-5" />
+          </button>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader title="Verifikasi Pembayaran" subtitle="Verify customer payment confirmations" />
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <ClockIcon className="h-8 w-8 text-yellow-500" />
@@ -211,68 +276,20 @@ function TenantPaymentVerification() {
             <p className="text-gray-600">No payments found</p>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPembayaran.map((payment) => (
-                <tr key={payment.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{payment.invoiceNumber}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{payment.customerName}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900">{formatCurrency(payment.amount)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{formatDate(payment.paymentDate)}</td>
-                  <td className="px-6 py-4">{getStatusBadge(payment.status)}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                     <button
-                       onClick={() => openModal(payment, 'view')}
-                       className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
-                       title="Lihat detail"
-                       aria-label="Lihat detail"
-                     >
-                       <EyeIcon className="h-5 w-5" />
-                     </button>
-                     {payment.status === 'pending' && (
-                       <>
-                         <button
-                           onClick={() => openModal(payment, 'verify')}
-                           className="inline-flex items-center justify-center rounded-md p-2.5 text-green-600 hover:bg-green-50 hover:text-green-900"
-                           title="Verifikasi pembayaran"
-                           aria-label="Verifikasi pembayaran"
-                         >
-                           <CheckCircleIcon className="h-5 w-5" />
-                         </button>
-                         <button
-                           onClick={() => openModal(payment, 'reject')}
-                           className="inline-flex items-center justify-center rounded-md p-2.5 text-red-600 hover:bg-red-50 hover:text-red-900"
-                           title="Tolak pembayaran"
-                           aria-label="Tolak pembayaran"
-                         >
-                           <XCircleIcon className="h-5 w-5" />
-                         </button>
-                       </>
-                     )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            data={filteredPembayaran}
+            columns={columns}
+            actions={actions}
+            searchable={false}
+            emptyMessage="No payments found"
+          />
         )}
       </div>
 
       {/* Modal */}
       {showModal && selectedPayment && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-600 bg-opacity-50 p-4 sm:items-center">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white shadow-xl">
             <div className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 {modalAction === 'view' && 'Payment Details'}
@@ -365,11 +382,11 @@ function TenantPaymentVerification() {
               </div>
 
               {/* Actions */}
-              <div className="mt-6 flex justify-end space-x-3">
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   onClick={closeModal}
                   disabled={isSubmitting}
-                  className="px-4 py-2 border text-gray-700 rounded-lg hover:bg-gray-50"
+                  className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-50 sm:w-auto"
                 >
                   Cancel
                 </button>
@@ -377,7 +394,7 @@ function TenantPaymentVerification() {
                   <button
                     onClick={handleAction}
                     disabled={isSubmitting || (modalAction === 'reject' && !notes.trim())}
-                    className={`px-4 py-2 text-white rounded-lg disabled:opacity-50 ${
+                    className={`w-full rounded-lg px-4 py-2 text-white disabled:opacity-50 sm:w-auto ${
                       modalAction === 'verify'
                         ? 'bg-green-600 hover:bg-green-700'
                         : 'bg-red-600 hover:bg-red-700'

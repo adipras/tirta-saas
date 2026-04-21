@@ -11,7 +11,7 @@ import { tenantUserService } from '../../services/tenantUserService';
 import type { TenantUser } from '../../services/tenantUserService';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
-import { PageHeader, ConfirmModal } from '../../components';
+import { PageHeader, ConfirmModal, DataTable, type Column } from '../../components';
 
 export default function UserManagementList() {
   const [users, setUsers] = useState<TenantUser[]>([]);
@@ -116,6 +116,52 @@ export default function UserManagementList() {
     );
   };
 
+  const columns: Column<TenantUser>[] = [
+    {
+      key: 'name',
+      label: 'Name',
+      sortable: true,
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      sortable: true,
+    },
+    {
+      key: 'role',
+      label: 'Role',
+      sortable: true,
+      render: (_value, user) => getRoleBadge(user.role),
+    },
+    {
+      key: 'created_at',
+      label: 'Created',
+      sortable: true,
+      render: (_value, user) => user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID') : '-',
+    },
+  ];
+
+  const actions = (user: TenantUser) => (
+    <>
+      <button
+        onClick={() => handleEdit(user)}
+        className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
+        title="Edit user"
+        aria-label="Edit user"
+      >
+        <PencilIcon className="h-5 w-5" />
+      </button>
+      <button
+        onClick={() => handleDelete(user.id)}
+        className="inline-flex items-center justify-center rounded-md p-2.5 text-red-600 hover:bg-red-50 hover:text-red-900"
+        title="Delete user"
+        aria-label="Delete user"
+      >
+        <TrashIcon className="h-5 w-5" />
+      </button>
+    </>
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -124,7 +170,7 @@ export default function UserManagementList() {
         actions={
           <button
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+            className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 sm:w-auto"
           >
             <PlusIcon className="h-5 w-5 mr-2" />
             Add User
@@ -133,7 +179,7 @@ export default function UserManagementList() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center">
             <UserGroupIcon className="h-8 w-8 text-blue-500" />
@@ -180,7 +226,7 @@ export default function UserManagementList() {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-end">
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -207,7 +253,7 @@ export default function UserManagementList() {
             <div>
               <button
                 onClick={handleClearFilters}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-600 hover:bg-gray-50"
+                className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 sm:w-auto"
               >
                 <XMarkIcon className="h-4 w-4 mr-1" />
                 Clear Filters
@@ -225,64 +271,14 @@ export default function UserManagementList() {
 
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="p-8 text-center">
-            <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-600">No users found</p>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600">{user.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{getRoleBadge(user.role)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID') : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => handleEdit(user)}
-                      className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
-                      title="Edit user"
-                      aria-label="Edit user"
-                    >
-                      <PencilIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(user.id)}
-                      className="inline-flex items-center justify-center rounded-md p-2.5 text-red-600 hover:bg-red-50 hover:text-red-900"
-                      title="Delete user"
-                      aria-label="Delete user"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        <DataTable
+          data={filteredUsers}
+          columns={columns}
+          actions={actions}
+          searchable={false}
+          loading={loading}
+          emptyMessage="No users found"
+        />
       </div>
 
       {/* Modals */}

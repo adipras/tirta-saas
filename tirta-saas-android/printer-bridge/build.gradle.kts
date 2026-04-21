@@ -4,19 +4,17 @@ plugins {
 }
 
 android {
-    namespace = "com.adipras.tirtasaas.kasirkeliling"
+    namespace = "com.adipras.tirtasaas.printerbridge"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.adipras.tirtasaas.kasirkeliling"
+        applicationId = "com.adipras.tirtasaas.printerbridge"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        val webAppUrl = project.findProperty("TIRTA_WEB_APP_URL") as String? ?: "http://10.0.2.2:5174"
-        buildConfigField("String", "WEB_APP_URL", "\"$webAppUrl\"")
     }
 
     buildTypes {
@@ -47,4 +45,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.activity:activity-ktx:1.9.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("org.nanohttpd:nanohttpd:2.3.1")
 }

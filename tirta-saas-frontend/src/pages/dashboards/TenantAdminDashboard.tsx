@@ -58,9 +58,9 @@ export default function TenantAdminDashboard() {
       <PageHeader title="Dashboard Pengelola" subtitle="Ringkasan pengelolaan air RT/RW Anda" />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-lg bg-white p-5 shadow">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-gray-600">Total Pelanggan</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -68,12 +68,12 @@ export default function TenantAdminDashboard() {
               </p>
               <p className="text-xs text-gray-500 mt-1">Aktif: {loading ? '-' : data?.activePelanggan ?? 0}</p>
             </div>
-            <div className="bg-blue-500 p-3 rounded-lg"><UserGroupIcon className="h-6 w-6 text-white" /></div>
+            <div className="rounded-lg bg-blue-500 p-3"><UserGroupIcon className="h-6 w-6 text-white" /></div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
+        <div className="rounded-lg bg-white p-5 shadow">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-gray-600">Total Tagihan Belum Bayar</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -81,31 +81,31 @@ export default function TenantAdminDashboard() {
               </p>
               <p className="text-xs text-gray-500 mt-1">{loading ? '-' : data?.unpaidCount ?? 0} invoice</p>
             </div>
-            <div className="bg-yellow-500 p-3 rounded-lg"><ExclamationCircleIcon className="h-6 w-6 text-white" /></div>
+            <div className="rounded-lg bg-yellow-500 p-3"><ExclamationCircleIcon className="h-6 w-6 text-white" /></div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
+        <div className="rounded-lg bg-white p-5 shadow">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-gray-600">Pemakaian Air Bulan Ini</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {loading ? '...' : `${(data?.totalPemakaianM3 ?? 0).toLocaleString('id-ID')} m³`}
               </p>
             </div>
-            <div className="bg-cyan-500 p-3 rounded-lg"><ChartBarIcon className="h-6 w-6 text-white" /></div>
+            <div className="rounded-lg bg-cyan-500 p-3"><ChartBarIcon className="h-6 w-6 text-white" /></div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
+        <div className="rounded-lg bg-white p-5 shadow">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-gray-600">Pendapatan Bulan Ini</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
                 {loading ? '...' : data ? fmt(data.totalRevenue) : '-'}
               </p>
             </div>
-            <div className="bg-green-500 p-3 rounded-lg"><BanknotesIcon className="h-6 w-6 text-white" /></div>
+            <div className="rounded-lg bg-green-500 p-3"><BanknotesIcon className="h-6 w-6 text-white" /></div>
           </div>
         </div>
       </div>
@@ -113,31 +113,31 @@ export default function TenantAdminDashboard() {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Aksi Cepat</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <button
             onClick={() => navigate('/admin/customers/new')}
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+            className="flex min-h-28 flex-col items-center justify-center rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-blue-500 hover:bg-blue-50"
           >
             <UserGroupIcon className="h-8 w-8 text-blue-600 mb-2" />
             <span className="text-sm font-medium text-gray-900">Tambah Pelanggan</span>
           </button>
           <button
             onClick={() => navigate('/admin/usage/create')}
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-cyan-500 hover:bg-cyan-50 transition-colors"
+            className="flex min-h-28 flex-col items-center justify-center rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-cyan-500 hover:bg-cyan-50"
           >
             <PencilSquareIcon className="h-8 w-8 text-cyan-600 mb-2" />
             <span className="text-sm font-medium text-gray-900">Catat Pemakaian</span>
           </button>
           <button
             onClick={() => navigate('/admin/invoices')}
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
+            className="flex min-h-28 flex-col items-center justify-center rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-green-500 hover:bg-green-50"
           >
             <DocumentTextIcon className="h-8 w-8 text-green-600 mb-2" />
             <span className="text-sm font-medium text-gray-900">Lihat Tagihan</span>
           </button>
           <button
             onClick={() => navigate('/admin/payments')}
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-colors"
+            className="flex min-h-28 flex-col items-center justify-center rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-yellow-500 hover:bg-yellow-50"
           >
             <BanknotesIcon className="h-8 w-8 text-yellow-600 mb-2" />
             <span className="text-sm font-medium text-gray-900">Pembayaran</span>
@@ -147,11 +147,11 @@ export default function TenantAdminDashboard() {
 
       {/* Outstanding Tagihan */}
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Tagihan Belum Dibayar (Terlama)</h2>
           <button
             onClick={() => navigate('/admin/invoices')}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            className="text-left text-sm font-medium text-blue-600 hover:text-blue-700"
           >
             Lihat Semua →
           </button>
@@ -163,12 +163,12 @@ export default function TenantAdminDashboard() {
         ) : (
           <div className="space-y-3">
             {data?.oldestTagihan.map((inv) => (
-              <div key={inv.invoice_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
+              <div key={inv.invoice_id} className="flex flex-col gap-3 rounded-lg bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-xs text-gray-400 font-mono">{inv.invoice_id.slice(0, 8)}...</p>
                   <p className="text-xs text-gray-500 mt-0.5">Sejak {new Date(inv.created_at).toLocaleDateString('id-ID')}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <p className="text-sm font-semibold text-red-600">{fmt(inv.outstanding)}</p>
                   <p className="text-xs text-gray-500">dari {fmt(inv.total_amount)}</p>
                 </div>

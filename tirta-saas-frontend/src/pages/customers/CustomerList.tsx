@@ -230,42 +230,42 @@ export default function CustomerList() {
       <PageHeader
         title="Pelanggan"
         actions={
-          <div className="flex items-center space-x-3">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
             <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <FunnelIcon className="mr-2 h-4 w-4" />
-            Filters
-          </button>
-          <button
-            onClick={handleExport}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
-            Export
-          </button>
-          <button
-            onClick={() => navigate('/admin/customers/bulk-import')}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <ArrowUpTrayIcon className="mr-2 h-4 w-4" />
-            Bulk Import
-          </button>
-          <button
-            onClick={() => navigate('/admin/customers/new')}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-          >
-            <PlusIcon className="mr-2 h-4 w-4" />
-            Add Customer
-          </button>
+              onClick={() => setShowFilters(!showFilters)}
+              className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
+            >
+              <FunnelIcon className="mr-2 h-4 w-4" />
+              Filters
+            </button>
+            <button
+              onClick={handleExport}
+              className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
+            >
+              <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
+              Export
+            </button>
+            <button
+              onClick={() => navigate('/admin/customers/bulk-import')}
+              className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
+            >
+              <ArrowUpTrayIcon className="mr-2 h-4 w-4" />
+              Bulk Import
+            </button>
+            <button
+              onClick={() => navigate('/admin/customers/new')}
+              className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:w-auto"
+            >
+              <PlusIcon className="mr-2 h-4 w-4" />
+              Add Customer
+            </button>
           </div>
         }
       />
 
       {showFilters && (
         <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Status</label>
               <select
@@ -320,7 +320,7 @@ export default function CustomerList() {
             </div>
           </div>
           
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end">
             <button
               onClick={() => setFilters({
                 isActive: '' as boolean | '',
@@ -328,7 +328,7 @@ export default function CustomerList() {
                 hasOutstandingBalance: '',
                 search: '',
               })}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
             >
               Clear Filters
             </button>

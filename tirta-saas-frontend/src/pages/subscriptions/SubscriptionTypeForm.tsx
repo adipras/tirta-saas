@@ -167,14 +167,14 @@ export default function SubscriptionTypeForm() {
   };
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       <button
-          onClick={() => navigate('/admin/subscriptions')}
-          className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-2" />
-          Back to Golongan Langganan
-        </button>
+        onClick={() => navigate('/admin/subscriptions')}
+        className="flex items-center text-sm text-gray-500 hover:text-gray-700"
+      >
+        <ArrowLeftIcon className="mr-2 h-4 w-4" />
+        Back to Golongan Langganan
+      </button>
       <PageHeader
         title={isEditMode ? 'Edit Subscription Type' : 'Create Subscription Type'}
         subtitle={isEditMode ? 'Update the subscription type details and fee structure' : 'Create a new subscription type with fee structure'}
@@ -228,7 +228,7 @@ export default function SubscriptionTypeForm() {
           {/* Fee Structure */}
           <div className="pt-6 border-t border-gray-200">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Fee Structure</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div>
                 <label htmlFor="registration_fee" className="block text-sm font-medium text-gray-700">
                   Registration Fee (IDR) <span className="text-red-500">*</span>
@@ -358,18 +358,18 @@ export default function SubscriptionTypeForm() {
           </div>
 
           {/* Form Actions */}
-          <div className="pt-6 border-t border-gray-200 flex justify-end space-x-3">
+          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={() => navigate('/admin/subscriptions')}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               {loading ? 'Saving...' : isEditMode ? 'Update' : 'Create'}
             </button>
