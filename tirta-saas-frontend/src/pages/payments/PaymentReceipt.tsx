@@ -32,7 +32,27 @@ const PaymentReceipt: React.FC = () => {
     return new Date(value).toLocaleDateString('id-ID');
   };
 
+  const formatTanggalWaktu = (value?: string) => {
+    if (!value) return '-';
+    return new Date(value).toLocaleString('id-ID');
+  };
+
   const formatCurrency = (value?: number) => `Rp ${(value || 0).toLocaleString('id-ID')}`;
+
+  const truncateText = (value?: string, maxLength: number = 120) => {
+    if (!value) {
+      return undefined;
+    }
+
+    const normalized = value.replace(/\s+/g, ' ').trim();
+    if (!normalized) {
+      return undefined;
+    }
+
+    return normalized.length > maxLength
+      ? `${normalized.slice(0, maxLength - 1).trimEnd()}…`
+      : normalized;
+  };
 
   const fetchReceipt = useCallback(async (paymentId: string) => {
     try {
@@ -222,7 +242,15 @@ const PaymentReceipt: React.FC = () => {
   const paymentStatusColor = isPartialPayment ? 'text-amber-600' : 'text-green-600';
   const thermalBridgeDetected = bridgeAvailable;
   const thermalModeActive = bridgeAvailable;
-  const compactAddress = receipt.customerDetails.address?.replace(/\s+/g, ' ').trim();
+  const compactAddress = truncateText(receipt.customerDetails.address, 90);
+  const compactNotes = truncateText(receipt.payment.notes, 120);
+  const paymentMethodLabel = PAYMENT_METHOD_LABELS[receipt.payment.paymentMethod] || receipt.payment.paymentMethod;
+  const paymentStateLabel = PAYMENT_STATUS_LABELS[receipt.payment.status] || receipt.payment.status;
+  const invoiceStatusLabel = receipt.invoiceDetails.invoicePaymentStatus === 'paid'
+    ? 'Lunas'
+    : receipt.invoiceDetails.invoicePaymentStatus === 'partial'
+      ? 'Parsial'
+      : 'Belum Lunas';
 
   return (
     <div className="p-6">
@@ -349,115 +377,135 @@ const PaymentReceipt: React.FC = () => {
         </div>
       )}
 
-      <div ref={receiptRef} className="bg-white rounded-lg shadow p-8 max-w-4xl mx-auto">
-        <div className="border-b-2 border-gray-300 pb-6 mb-6">
+      <div ref={receiptRef} className="bg-white rounded-lg shadow p-6 md:p-8 max-w-2xl mx-auto">
+        <div className="border-b border-dashed border-gray-300 pb-4 mb-4">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900">TIRTA SAAS</h2>
-            <p className="text-gray-600 mt-1">Tagihan Air</p>
+            <h2 className="text-2xl font-bold text-gray-900">TIRTA SAAS</h2>
+            <p className="text-sm text-gray-600 mt-1">Struk Pembayaran Air</p>
           </div>
-          <div className="mt-4 text-center">
-            <h3 className="text-xl font-bold text-gray-900">STRUK PEMBAYARAN</h3>
-            <p className="text-sm text-gray-600 mt-1">No. Struk: {receipt.receiptNumber}</p>
-            <p className={`text-sm font-semibold mt-2 ${paymentStatusColor}`}>{paymentStatusLabel}</p>
-            {thermalBridgeDetected && (
-              <p className="text-xs text-blue-600 mt-2">Mode kasir keliling: bridge printer thermal aktif</p>
-            )}
+          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-gray-500">No. Struk</p>
+              <p className="font-semibold text-gray-900">{receipt.receiptNumber}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-gray-500">Dicetak</p>
+              <p className="font-semibold text-gray-900">{formatTanggalWaktu(receipt.generatedAt)}</p>
+            </div>
+            <div>
+              <p className="text-gray-500">No. Tagihan</p>
+              <p className="font-semibold text-gray-900">{receipt.invoiceDetails.invoiceNumber}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-gray-500">Jenis</p>
+              <p className={`font-semibold ${paymentStatusColor}`}>{paymentStatusLabel}</p>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-          <div>
-            <h4 className="font-semibold text-gray-900 mb-2">Informasi Pelanggan</h4>
-            <div className="text-sm space-y-1">
-              <p><span className="text-gray-600">Nama:</span> <span className="font-medium">{receipt.customerDetails.name}</span></p>
-              {compactAddress && (
-                <p><span className="text-gray-600">Alamat:</span> {compactAddress}</p>
-              )}
-              {receipt.customerDetails.phone && (
-                <p><span className="text-gray-600">Telepon:</span> {receipt.customerDetails.phone}</p>
-              )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <section className="rounded-lg border border-gray-200 p-4">
+            <h4 className="font-semibold text-gray-900 mb-3">Pelanggan</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-gray-500">Nama</span>
+                <span className="text-right font-medium text-gray-900">{receipt.customerDetails.name}</span>
+              </div>
               {receipt.customerDetails.meterNumber && (
-                <p><span className="text-gray-600">No. Meter:</span> {receipt.customerDetails.meterNumber}</p>
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500">No. Meter</span>
+                  <span className="text-right text-gray-900">{receipt.customerDetails.meterNumber}</span>
+                </div>
+              )}
+              {compactAddress && (
+                <div className="space-y-1">
+                  <p className="text-gray-500">Alamat</p>
+                  <p className="text-gray-900">{compactAddress}</p>
+                </div>
               )}
             </div>
-          </div>
+          </section>
 
-          <div>
-            <h4 className="font-semibold text-gray-900 mb-2">Informasi Pembayaran</h4>
-            <div className="text-sm space-y-1">
-              <p><span className="text-gray-600">Tanggal Bayar:</span> <span className="font-medium">{formatTanggal(receipt.payment.paymentDate)}</span></p>
-              <p><span className="text-gray-600">Metode Pembayaran:</span> {PAYMENT_METHOD_LABELS[receipt.payment.paymentMethod] || receipt.payment.paymentMethod}</p>
+          <section className="rounded-lg border border-gray-200 p-4">
+            <h4 className="font-semibold text-gray-900 mb-3">Pembayaran</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-gray-500">Tanggal</span>
+                <span className="text-right font-medium text-gray-900">{formatTanggal(receipt.payment.paymentDate)}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-gray-500">Metode</span>
+                <span className="text-right text-gray-900">{paymentMethodLabel}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-gray-500">Status</span>
+                <span className="text-right font-medium text-green-600">{paymentStateLabel}</span>
+              </div>
               {receipt.payment.referenceNumber && (
-                <p><span className="text-gray-600">Referensi:</span> {receipt.payment.referenceNumber}</p>
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-500">Ref.</span>
+                  <span className="text-right text-gray-900">{receipt.payment.referenceNumber}</span>
+                </div>
               )}
-              <p><span className="text-gray-600">Status:</span> <span className="font-medium text-green-600">{PAYMENT_STATUS_LABELS[receipt.payment.status]}</span></p>
-              <p>
-                <span className="text-gray-600">Jenis Pembayaran:</span>{' '}
-                <span className={`font-medium ${paymentStatusColor}`}>{paymentStatusLabel}</span>
-              </p>
+            </div>
+          </section>
+        </div>
+
+        <section className="rounded-lg border border-gray-200 p-4 mb-4">
+          <h4 className="font-semibold text-gray-900 mb-3">Tagihan</h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-500">Tgl Tagihan</span>
+              <span className="text-right text-gray-900">{formatTanggal(receipt.invoiceDetails.invoiceDate)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-500">Jatuh Tempo</span>
+              <span className="text-right text-gray-900">{formatTanggal(receipt.invoiceDetails.dueDate)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-500">Status Tagihan</span>
+              <span className={`text-right font-medium ${isPartialPayment ? 'text-amber-600' : 'text-green-600'}`}>
+                {invoiceStatusLabel}
+              </span>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="mb-6">
-          <h4 className="font-semibold text-gray-900 mb-2">Detail Tagihan</h4>
-          <div className="border border-gray-200 rounded-md overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-left">No. Tagihan</th>
-                  <th className="px-4 py-2 text-left">Tanggal Tagihan</th>
-                  <th className="px-4 py-2 text-left">Jatuh Tempo</th>
-                  <th className="px-4 py-2 text-right">Tagihan Saat Dibayar</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="px-4 py-2 border-t">{receipt.invoiceDetails.invoiceNumber}</td>
-                  <td className="px-4 py-2 border-t">{formatTanggal(receipt.invoiceDetails.invoiceDate)}</td>
-                  <td className="px-4 py-2 border-t">{formatTanggal(receipt.invoiceDetails.dueDate)}</td>
-                  <td className="px-4 py-2 border-t text-right">{formatCurrency(receipt.invoiceDetails.totalAmount)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="border-t-2 border-gray-300 pt-4">
+        <div className="border-t border-dashed border-gray-300 pt-4">
           <div className="flex justify-end">
-            <div className="w-64">
+            <div className="w-full sm:w-72">
               {(receipt.invoiceDetails.subTotal || 0) > 0 && (
                 <div className="flex justify-between py-1 text-sm">
-                  <span>Subtotal:</span>
-                  <span>{formatCurrency(receipt.invoiceDetails.subTotal)}</span>
+                  <span className="text-gray-500">Subtotal</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.subTotal)}</span>
                 </div>
               )}
               {(receipt.invoiceDetails.penaltyAmount || 0) > 0 && (
                 <div className="flex justify-between py-1 text-sm text-red-600">
-                  <span>Denda:</span>
-                  <span>{formatCurrency(receipt.invoiceDetails.penaltyAmount)}</span>
+                  <span>Denda</span>
+                  <span className="font-medium">{formatCurrency(receipt.invoiceDetails.penaltyAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between py-1 text-sm">
-                <span>Terbayar:</span>
-                <span>{formatCurrency(receipt.invoiceDetails.totalPaidBefore)}</span>
+                <span className="text-gray-500">Tagihan</span>
+                <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.totalAmount)}</span>
               </div>
+              {(receipt.invoiceDetails.totalPaidBefore || 0) > 0 && (
+                <div className="flex justify-between py-1 text-sm">
+                  <span className="text-gray-500">Terbayar</span>
+                  <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.totalPaidBefore)}</span>
+                </div>
+              )}
               <div className="flex justify-between py-2 text-lg font-bold">
-                <span>Bayar:</span>
+                <span>Bayar</span>
                 <span className="text-green-600">{formatCurrency(receipt.payment.amount)}</span>
               </div>
               <div className="flex justify-between py-1 text-sm">
-                <span>Total Bayar:</span>
-                <span>{formatCurrency(receipt.invoiceDetails.totalPaidAfter)}</span>
+                <span className="text-gray-500">Total Bayar</span>
+                <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.totalPaidAfter)}</span>
               </div>
-              <div className="flex justify-between py-1 text-sm font-semibold">
-                <span>Status Tagihan:</span>
-                <span className={isPartialPayment ? 'text-amber-600' : 'text-green-600'}>
-                  {receipt.invoiceDetails.invoicePaymentStatus === 'paid' ? 'Lunas' : 'Belum Lunas'}
-                </span>
-              </div>
-              <div className="flex justify-between py-2 mt-2 border-t text-base font-bold">
-                <span>Sisa:</span>
+              <div className="flex justify-between py-2 mt-2 border-t border-gray-200 text-base font-bold">
+                <span>Sisa</span>
                 <span className={isPartialPayment ? 'text-red-600' : 'text-green-600'}>
                   {formatCurrency(receipt.invoiceDetails.remainingAmount)}
                 </span>
@@ -466,21 +514,21 @@ const PaymentReceipt: React.FC = () => {
           </div>
         </div>
 
-        {receipt.payment.notes && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
+        {compactNotes && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
             <h4 className="font-semibold text-gray-900 mb-2">Catatan</h4>
-            <p className="text-sm text-gray-600">{receipt.payment.notes}</p>
+            <p className="text-sm text-gray-600">{compactNotes}</p>
           </div>
         )}
 
-        <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
+        <div className="mt-6 pt-4 border-t border-dashed border-gray-300 text-center text-sm text-gray-600">
           <p>Terima kasih.</p>
           {isPartialPayment && (
-            <p className="mt-2 text-amber-700">
+            <p className="mt-1 text-amber-700">
               Pembayaran parsial, masih ada sisa tagihan.
             </p>
           )}
-          <p className="mt-1">Dibuat pada: {new Date(receipt.generatedAt).toLocaleString('id-ID')}</p>
+          <p className="mt-1">Cetak: {formatTanggalWaktu(receipt.generatedAt)}</p>
         </div>
       </div>
     </div>

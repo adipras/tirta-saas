@@ -7,6 +7,17 @@ import { buildThermalReceiptPayload } from '../types/thermalPrinter';
 import { printerBridgeHttpService } from './printerBridgeHttpService';
 
 const PREFERRED_PRINTER_KEY = 'thermal_printer_preferred_device';
+const normalizeBridgeMode = (value?: string): 'auto' | 'mobile' | 'always' | 'off' => {
+  const normalized = value?.trim().toLowerCase();
+
+  if (normalized === 'mobile' || normalized === 'always' || normalized === 'off') {
+    return normalized;
+  }
+
+  return 'auto';
+};
+
+const PRINTER_BRIDGE_MODE = normalizeBridgeMode(import.meta.env.VITE_PRINTER_BRIDGE_MODE);
 let cachedBridgeAvailability = false;
 let cachedBridgeStatus: ThermalPrinterStatus = {
   connected: false,
@@ -23,6 +34,18 @@ const shouldUseBridge = (): boolean => {
   const userAgent = window.navigator.userAgent || '';
   const isMobileDevice = /android|iphone|ipad|ipod|mobile/i.test(userAgent);
   const hasWebViewBridge = typeof (window as Window & { ReactNativeWebView?: unknown }).ReactNativeWebView !== 'undefined';
+
+  if (PRINTER_BRIDGE_MODE === 'off') {
+    return false;
+  }
+
+  if (PRINTER_BRIDGE_MODE === 'always') {
+    return true;
+  }
+
+  if (PRINTER_BRIDGE_MODE === 'mobile') {
+    return isMobileDevice || hasWebViewBridge;
+  }
 
   return isMobileDevice || hasWebViewBridge;
 };
@@ -68,7 +91,9 @@ const getStatus = async (): Promise<ThermalPrinterStatus> => {
       connected: false,
       bridgeAvailable: false,
       bridgeRunning: false,
-      message: 'Mode desktop: gunakan cetak browser',
+      message: PRINTER_BRIDGE_MODE === 'off'
+        ? 'Bridge printer dimatikan: gunakan cetak browser'
+        : 'Mode desktop: gunakan cetak browser',
     };
     return cachedBridgeStatus;
   }

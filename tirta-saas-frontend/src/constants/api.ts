@@ -1,14 +1,45 @@
-const DEFAULT_API_ORIGIN = 'http://localhost:8081';
+const DEFAULT_API_HOST = 'localhost';
+const DEFAULT_API_PORT = '8081';
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
 function normalizeApiUrl(value?: string): string {
   return value?.trim().replace(/\/+$/, '') || '';
+}
+
+function normalizeOrigin(value?: string): string {
+  return normalizeApiUrl(value);
+}
+
+function isLocalHostname(hostname?: string): boolean {
+  return !!hostname && LOCAL_HOSTNAMES.has(hostname.toLowerCase());
+}
+
+function resolveDefaultApiOrigin(): string {
+  const configuredLocalOrigin = normalizeOrigin(import.meta.env.VITE_API_LOCAL_ORIGIN);
+  const configuredPublicOrigin = normalizeOrigin(import.meta.env.VITE_API_PUBLIC_ORIGIN);
+
+  if (typeof window === 'undefined') {
+    return configuredLocalOrigin || `http://${DEFAULT_API_HOST}:${DEFAULT_API_PORT}`;
+  }
+
+  const hostname = window.location.hostname || DEFAULT_API_HOST;
+  if (isLocalHostname(hostname)) {
+    return configuredLocalOrigin || `http://${DEFAULT_API_HOST}:${DEFAULT_API_PORT}`;
+  }
+
+  return configuredPublicOrigin || `http://${hostname}:${DEFAULT_API_PORT}`;
 }
 
 function resolveApiOrigin(apiBaseUrl: string): string {
   return apiBaseUrl.replace(/\/api$/, '');
 }
 
-export const API_BASE_URL = normalizeApiUrl(import.meta.env.VITE_API_BASE_URL) || `${DEFAULT_API_ORIGIN}/api`;
+const configuredApiBaseUrl = normalizeApiUrl(import.meta.env.VITE_API_BASE_URL);
+const shouldUseAutoApiBaseUrl = !configuredApiBaseUrl || configuredApiBaseUrl.toLowerCase() === 'auto';
+
+export const API_BASE_URL = shouldUseAutoApiBaseUrl
+  ? `${resolveDefaultApiOrigin()}/api`
+  : configuredApiBaseUrl;
 export const API_ORIGIN = resolveApiOrigin(API_BASE_URL);
 export const PRINTER_BRIDGE_BASE_URL =
   normalizeApiUrl(import.meta.env.VITE_PRINTER_BRIDGE_URL) || 'http://127.0.0.1:3000';

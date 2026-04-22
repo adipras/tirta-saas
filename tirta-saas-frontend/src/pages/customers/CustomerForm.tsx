@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
@@ -38,15 +38,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
     reset,
   } = useForm<CustomerFormData>();
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    fetchSubscriptionTypes();
-    if (mode === 'edit' && id) {
-      fetchCustomer(id);
-    }
-  }, [mode, id]);
-
-  const fetchSubscriptionTypes = async () => {
+  const fetchSubscriptionTypes = useCallback(async () => {
     try {
       const types = await customerService.getSubscriptionTypes();
       setSubscriptionTypes(types);
@@ -56,9 +48,9 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
         message: 'Failed to fetch subscription types',
       }));
     }
-  };
+  }, [dispatch]);
 
-  const fetchCustomer = async (customerId: string) => {
+  const fetchCustomer = useCallback(async (customerId: string) => {
     try {
       setLoading(true);
       const customer = await customerService.getCustomerById(customerId);
@@ -81,7 +73,14 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dispatch, navigate, reset]);
+
+  useEffect(() => {
+    void fetchSubscriptionTypes();
+    if (mode === 'edit' && id) {
+      void fetchCustomer(id);
+    }
+  }, [fetchCustomer, fetchSubscriptionTypes, id, mode]);
 
   const onSubmit = async (data: CustomerFormData) => {
     try {

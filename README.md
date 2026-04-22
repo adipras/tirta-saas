@@ -22,6 +22,23 @@ npm run dev
 # Running di http://localhost:5174
 ```
 
+Contoh konfigurasi frontend:
+```env
+VITE_API_BASE_URL=auto
+VITE_API_LOCAL_ORIGIN=http://localhost:8081
+VITE_API_PUBLIC_ORIGIN=
+VITE_DEV_HOST=localhost
+VITE_DEV_PORT=5174
+VITE_PRINTER_BRIDGE_URL=http://127.0.0.1:3000
+VITE_PRINTER_BRIDGE_MODE=auto
+```
+
+Catatan:
+- `VITE_API_BASE_URL=auto` akan memakai `localhost` saat browser dibuka dari PC lokal, dan memakai hostname/IP browser saat dibuka dari LAN.
+- Untuk akses HP/LAN atau saat frontend dijalankan dari WSL, ubah `VITE_DEV_HOST=0.0.0.0`.
+- Jika backend diakses device lain melalui alamat yang berbeda dari hostname browser, isi `VITE_API_PUBLIC_ORIGIN` secara eksplisit, misalnya `http://192.168.1.10:8081`.
+- `VITE_PRINTER_BRIDGE_MODE=auto` menjaga bridge printer hanya dipakai pada device mobile/webview; desktop browser tetap fallback ke browser print.
+
 ### Seeder (pertama kali)
 ```bash
 cd tirta-saas-backend/scripts
@@ -90,4 +107,3 @@ tirta-saas/
 
 **Last Updated:** February 22, 2026  
 **Status:** 🟢 Production Ready (MVP)
-
