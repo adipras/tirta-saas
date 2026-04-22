@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
 import { PageHeader, useToast } from '../../components';
@@ -7,6 +7,7 @@ import { thermalPrinterService } from '../../services/thermalPrinterService';
 import type { PaymentReceipt as PaymentReceiptType } from '../../types/payment';
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '../../types/payment';
 import type { ThermalPrinterDevice, ThermalPrinterStatus } from '../../types/thermalPrinter';
+import { PRINTER_BRIDGE_BASE_URL } from '../../constants/api';
 
 const PaymentReceipt: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,18 +34,7 @@ const PaymentReceipt: React.FC = () => {
 
   const formatCurrency = (value?: number) => `Rp ${(value || 0).toLocaleString('id-ID')}`;
 
-  useEffect(() => {
-    if (id) {
-      void fetchReceipt(id);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    setPreferredPrinter(thermalPrinterService.getPreferredPrinter());
-    void probeThermalBridge();
-  }, []);
-
-  const fetchReceipt = async (paymentId: string) => {
+  const fetchReceipt = useCallback(async (paymentId: string) => {
     try {
       setLoading(true);
       const data = await paymentService.getReceipt(paymentId);
@@ -62,32 +52,14 @@ const PaymentReceipt: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const handlePrint = useReactToPrint({
     contentRef: receiptRef,
     documentTitle: receipt ? `Struk_${receipt.receiptNumber}` : 'Struk',
   });
 
-  const probeThermalBridge = async () => {
-    const available = await thermalPrinterService.isAvailable();
-    setBridgeAvailable(available);
-    setBridgeChecked(true);
-
-    if (available) {
-      await refreshPrinterStatus();
-      return;
-    }
-
-    setPrinterStatus({
-      connected: false,
-      bridgeAvailable: false,
-      bridgeRunning: false,
-      message: 'Bridge printer thermal tidak aktif di perangkat ini',
-    });
-  };
-
-  const refreshPrinterStatus = async () => {
+  const refreshPrinterStatus = useCallback(async () => {
     try {
       setPrinterBusy(true);
       const status = await thermalPrinterService.getStatus();
@@ -107,7 +79,36 @@ const PaymentReceipt: React.FC = () => {
     } finally {
       setPrinterBusy(false);
     }
-  };
+  }, []);
+
+  const probeThermalBridge = useCallback(async () => {
+    const available = await thermalPrinterService.isAvailable();
+    setBridgeAvailable(available);
+    setBridgeChecked(true);
+
+    if (available) {
+      await refreshPrinterStatus();
+      return;
+    }
+
+    setPrinterStatus({
+      connected: false,
+      bridgeAvailable: false,
+      bridgeRunning: false,
+      message: 'Bridge printer thermal tidak aktif di perangkat ini',
+    });
+  }, [refreshPrinterStatus]);
+
+  useEffect(() => {
+    if (id) {
+      void fetchReceipt(id);
+    }
+  }, [fetchReceipt, id]);
+
+  useEffect(() => {
+    setPreferredPrinter(thermalPrinterService.getPreferredPrinter());
+    void probeThermalBridge();
+  }, [probeThermalBridge]);
 
   const handleScanPrinters = async () => {
     const available = await thermalPrinterService.isAvailable();
@@ -221,6 +222,7 @@ const PaymentReceipt: React.FC = () => {
   const paymentStatusColor = isPartialPayment ? 'text-amber-600' : 'text-green-600';
   const thermalBridgeDetected = bridgeAvailable;
   const thermalModeActive = bridgeAvailable;
+  const compactAddress = receipt.customerDetails.address?.replace(/\s+/g, ' ').trim();
 
   return (
     <div className="p-6">
@@ -263,7 +265,7 @@ const PaymentReceipt: React.FC = () => {
           <p className="font-semibold">Bridge printer thermal belum aktif</p>
           <p className="mt-1 text-sm">
             Jalankan aplikasi <span className="font-medium">Bridge Printer Thermal</span> di Android agar frontend dapat
-            mengakses <span className="font-medium">127.0.0.1:3000</span>. Sementara itu, cetak browser tetap tersedia.
+            mengakses <span className="font-medium">{PRINTER_BRIDGE_BASE_URL}</span>. Sementara itu, cetak browser tetap tersedia.
           </p>
         </div>
       )}
@@ -351,11 +353,7 @@ const PaymentReceipt: React.FC = () => {
         <div className="border-b-2 border-gray-300 pb-6 mb-6">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900">TIRTA SAAS</h2>
-            <p className="text-gray-600 mt-1">Sistem Manajemen Tagihan Air</p>
-            <p className="text-sm text-gray-500 mt-2">
-              Jl. Contoh No. 123, Kota ABC 12345<br />
-              Telepon: (021) 1234-5678 | Email: info@tirtasaas.com
-            </p>
+            <p className="text-gray-600 mt-1">Tagihan Air</p>
           </div>
           <div className="mt-4 text-center">
             <h3 className="text-xl font-bold text-gray-900">STRUK PEMBAYARAN</h3>
@@ -372,8 +370,8 @@ const PaymentReceipt: React.FC = () => {
             <h4 className="font-semibold text-gray-900 mb-2">Informasi Pelanggan</h4>
             <div className="text-sm space-y-1">
               <p><span className="text-gray-600">Nama:</span> <span className="font-medium">{receipt.customerDetails.name}</span></p>
-              {receipt.customerDetails.address && (
-                <p><span className="text-gray-600">Alamat:</span> {receipt.customerDetails.address}</p>
+              {compactAddress && (
+                <p><span className="text-gray-600">Alamat:</span> {compactAddress}</p>
               )}
               {receipt.customerDetails.phone && (
                 <p><span className="text-gray-600">Telepon:</span> {receipt.customerDetails.phone}</p>
@@ -430,26 +428,26 @@ const PaymentReceipt: React.FC = () => {
             <div className="w-64">
               {(receipt.invoiceDetails.subTotal || 0) > 0 && (
                 <div className="flex justify-between py-1 text-sm">
-                  <span>Subtotal Tagihan:</span>
+                  <span>Subtotal:</span>
                   <span>{formatCurrency(receipt.invoiceDetails.subTotal)}</span>
                 </div>
               )}
               {(receipt.invoiceDetails.penaltyAmount || 0) > 0 && (
                 <div className="flex justify-between py-1 text-sm text-red-600">
-                  <span>Denda Saat Dibayar:</span>
+                  <span>Denda:</span>
                   <span>{formatCurrency(receipt.invoiceDetails.penaltyAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between py-1 text-sm">
-                <span>Sudah Dibayar Sebelumnya:</span>
+                <span>Terbayar:</span>
                 <span>{formatCurrency(receipt.invoiceDetails.totalPaidBefore)}</span>
               </div>
               <div className="flex justify-between py-2 text-lg font-bold">
-                <span>Nominal Dibayar:</span>
+                <span>Bayar:</span>
                 <span className="text-green-600">{formatCurrency(receipt.payment.amount)}</span>
               </div>
               <div className="flex justify-between py-1 text-sm">
-                <span>Total Dibayar Setelah Transaksi:</span>
+                <span>Total Bayar:</span>
                 <span>{formatCurrency(receipt.invoiceDetails.totalPaidAfter)}</span>
               </div>
               <div className="flex justify-between py-1 text-sm font-semibold">
@@ -459,7 +457,7 @@ const PaymentReceipt: React.FC = () => {
                 </span>
               </div>
               <div className="flex justify-between py-2 mt-2 border-t text-base font-bold">
-                <span>Sisa Tagihan:</span>
+                <span>Sisa:</span>
                 <span className={isPartialPayment ? 'text-red-600' : 'text-green-600'}>
                   {formatCurrency(receipt.invoiceDetails.remainingAmount)}
                 </span>
@@ -476,13 +474,12 @@ const PaymentReceipt: React.FC = () => {
         )}
 
         <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
-          <p>Terima kasih atas pembayaran Anda.</p>
+          <p>Terima kasih.</p>
           {isPartialPayment && (
             <p className="mt-2 text-amber-700">
-              Pembayaran ini bersifat parsial. Sisa tagihan masih harus dilunasi sesuai nominal yang tercantum.
+              Pembayaran parsial, masih ada sisa tagihan.
             </p>
           )}
-          <p className="mt-2">Struk ini dibuat secara otomatis dan tidak memerlukan tanda tangan.</p>
           <p className="mt-1">Dibuat pada: {new Date(receipt.generatedAt).toLocaleString('id-ID')}</p>
         </div>
       </div>

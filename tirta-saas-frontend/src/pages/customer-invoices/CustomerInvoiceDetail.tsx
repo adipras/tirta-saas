@@ -7,6 +7,7 @@ import {
   CreditCardIcon 
 } from '@heroicons/react/24/outline';
 import { invoiceService } from '../../services/invoiceService';
+import { thermalPrinterService } from '../../services/thermalPrinterService';
 import type { Invoice } from '../../types/invoice';
 import { useToast } from '../../components';
 
@@ -51,7 +52,7 @@ export default function CustomerInvoiceDetail() {
   };
 
   const handlePrint = () => {
-    window.print();
+    thermalPrinterService.printPage();
   };
 
   const getStatusBadge = (status: string) => {

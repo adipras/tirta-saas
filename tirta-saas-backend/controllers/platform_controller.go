@@ -647,6 +647,16 @@ func GetPlatformAnalyticsOverview(c *gin.Context) {
 func GetTenantSettings(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
 
+	var tenant models.Tenant
+	if err := config.DB.Select("name, address, phone, email").First(&tenant, "id = ?", tenantID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to fetch tenant",
+			Error:   err.Error(),
+		})
+		return
+	}
+
 	var settings models.TenantSettings
 	if err := config.DB.Where("tenant_id = ?", tenantID).First(&settings).Error; err != nil {
 		// If not found, return default settings
@@ -663,6 +673,18 @@ func GetTenantSettings(c *gin.Context) {
 		}
 	}
 	settings.ApplyBillingDefaults()
+	if settings.CompanyName == "" {
+		settings.CompanyName = tenant.Name
+	}
+	if settings.Address == "" {
+		settings.Address = tenant.Address
+	}
+	if settings.Phone == "" {
+		settings.Phone = tenant.Phone
+	}
+	if settings.Email == "" {
+		settings.Email = tenant.Email
+	}
 
 	// Parse payment methods JSON
 	var paymentMethods []string
@@ -725,6 +747,16 @@ func UpdateTenantSettings(c *gin.Context) {
 		return
 	}
 
+	var tenant models.Tenant
+	if err := config.DB.First(&tenant, "id = ?", tenantID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to fetch tenant",
+			Error:   err.Error(),
+		})
+		return
+	}
+
 	var settings models.TenantSettings
 	err := config.DB.Where("tenant_id = ?", tenantID).First(&settings).Error
 
@@ -755,18 +787,28 @@ func UpdateTenantSettings(c *gin.Context) {
 		return
 	}
 
+	tenantUpdated := false
+
 	// Update fields
 	if req.CompanyName != "" {
 		settings.CompanyName = req.CompanyName
+		tenant.Name = req.CompanyName
+		tenantUpdated = true
 	}
 	if req.Address != "" {
 		settings.Address = req.Address
+		tenant.Address = req.Address
+		tenantUpdated = true
 	}
 	if req.Phone != "" {
 		settings.Phone = req.Phone
+		tenant.Phone = req.Phone
+		tenantUpdated = true
 	}
 	if req.Email != "" {
 		settings.Email = req.Email
+		tenant.Email = req.Email
+		tenantUpdated = true
 	}
 	if req.Website != "" {
 		settings.Website = req.Website
@@ -826,10 +868,34 @@ func UpdateTenantSettings(c *gin.Context) {
 		settings.Language = req.Language
 	}
 
-	if err := config.DB.Save(&settings).Error; err != nil {
+	tx := config.DB.Begin()
+
+	if err := tx.Save(&settings).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to update settings",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	if tenantUpdated {
+		if err := tx.Save(&tenant).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+				Status:  "error",
+				Message: "Failed to update tenant profile",
+				Error:   err.Error(),
+			})
+			return
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to commit settings update",
 			Error:   err.Error(),
 		})
 		return

@@ -2,6 +2,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import { DocumentTextIcon, HomeIcon } from '@heroicons/react/24/outline';
 import { useEffect } from 'react';
+import { thermalPrinterService } from '../../services/thermalPrinterService';
 
 export default function PaymentSuccess() {
   const location = useLocation();
@@ -139,7 +140,7 @@ export default function PaymentSuccess() {
       {/* Print Receipt Button */}
       <div className="mt-6 text-center">
         <button
-          onClick={() => window.print()}
+          onClick={() => thermalPrinterService.printPage()}
           className="inline-flex items-center px-6 py-2 text-sm text-gray-700 hover:text-gray-900"
         >
           <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">

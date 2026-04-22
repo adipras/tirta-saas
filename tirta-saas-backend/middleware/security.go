@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"net/http"
 	"os"
 	"regexp"
@@ -40,10 +42,17 @@ func DefaultSecurityConfig() SecurityConfig {
 		EnableCORS: true,
 		AllowedOrigins: []string{
 			"http://localhost:3000",
-			"http://localhost:3001", 
+			"http://localhost:3001",
+			"http://localhost:5173",
+			"http://localhost:5174",
+			"http://127.0.0.1:3000",
+			"http://127.0.0.1:3001",
+			"http://127.0.0.1:5173",
+			"http://127.0.0.1:5174",
 			"https://localhost:3000",
 			"https://localhost:3001",
-			// Add your frontend domains here
+			"https://localhost:5173",
+			"https://localhost:5174",
 		},
 		AllowedMethods: []string{
 			"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD",
@@ -73,34 +82,78 @@ func DefaultSecurityConfig() SecurityConfig {
 
 // CORSMiddleware sets up CORS with security considerations
 func CORSMiddleware() gin.HandlerFunc {
-	// For development, use a simple configuration that allows all origins
-	if gin.Mode() != gin.ReleaseMode {
-		return cors.New(cors.Config{
-			AllowAllOrigins:  true,
-			AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
-			AllowHeaders:     []string{"*"},
-			ExposeHeaders:    []string{"Content-Length", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"},
-			AllowCredentials: false,
-			MaxAge:           12 * time.Hour,
-		})
-	}
-	
-	// Production configuration
 	config := DefaultSecurityConfig()
-	
-	// Add frontend URL from environment if available
-	if frontendURL := os.Getenv("FRONTEND_URL"); frontendURL != "" {
-		config.AllowedOrigins = append(config.AllowedOrigins, frontendURL)
-	}
-	
+
+	config.AllowedOrigins = append(config.AllowedOrigins, loadAllowedOriginsFromEnv()...)
+
 	return cors.New(cors.Config{
-		AllowOrigins:     config.AllowedOrigins,
-		AllowMethods:     config.AllowedMethods,
-		AllowHeaders:     config.AllowedHeaders,
+		AllowOriginFunc: func(origin string) bool {
+			return isAllowedOrigin(origin, config.AllowedOrigins)
+		},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-Requested-With", "Accept", "Accept-Encoding", "X-CSRF-Token", "X-Tenant-ID"},
 		ExposeHeaders:    config.ExposeHeaders,
 		AllowCredentials: config.AllowCredentials,
 		MaxAge:           config.MaxAge,
 	})
+}
+
+func loadAllowedOriginsFromEnv() []string {
+	values := []string{os.Getenv("FRONTEND_URL"), os.Getenv("FRONTEND_URLS")}
+	origins := make([]string, 0)
+
+	for _, value := range values {
+		for _, origin := range strings.Split(value, ",") {
+			normalized := strings.TrimSpace(origin)
+			if normalized != "" {
+				origins = append(origins, normalized)
+			}
+		}
+	}
+
+	return origins
+}
+
+func isAllowedOrigin(origin string, allowedOrigins []string) bool {
+	normalizedOrigin := strings.TrimSpace(origin)
+	if normalizedOrigin == "" {
+		return false
+	}
+
+	for _, allowedOrigin := range allowedOrigins {
+		if normalizedOrigin == allowedOrigin {
+			return true
+		}
+	}
+
+	parsedOrigin, err := url.Parse(normalizedOrigin)
+	if err != nil {
+		return false
+	}
+
+	host := parsedOrigin.Hostname()
+	if host == "" {
+		return false
+	}
+
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return true
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return false
+	}
+
+	privateNetworks := []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}
+	for _, cidr := range privateNetworks {
+		_, network, parseErr := net.ParseCIDR(cidr)
+		if parseErr == nil && network.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // SecurityHeadersMiddleware adds security headers to all responses
@@ -370,4 +423,3 @@ func GeolocationSecurityMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-

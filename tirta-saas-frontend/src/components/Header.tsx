@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Bars3Icon, BellIcon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../hooks/redux';
 import { logoutAsync } from '../store/slices/authSlice';
+import PrinterBridgeIndicator from './PrinterBridgeIndicator';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -62,6 +63,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
+          <PrinterBridgeIndicator />
           <button className="rounded-full p-2 text-gray-400 hover:text-gray-500">
             <BellIcon className="h-6 w-6" aria-hidden="true" />
           </button>

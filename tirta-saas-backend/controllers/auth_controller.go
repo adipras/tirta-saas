@@ -114,27 +114,38 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Include tenant_id, trial info, and tenant status so frontend knows state
+	// Include tenant_id, tenant branding info, trial info, and tenant status so frontend knows state
 	var tenantIDStr *string
+	var tenantName interface{}
+	var tenantLogoURL interface{}
 	var trialEndsAt interface{}
 	var tenantStatus interface{}
 	if user.TenantID != nil {
 		s := user.TenantID.String()
 		tenantIDStr = &s
+
 		// Load tenant info
 		var tenant models.Tenant
-		if err := config.DB.Select("trial_ends_at, status").First(&tenant, "id = ?", user.TenantID).Error; err == nil {
+		if err := config.DB.Select("name, trial_ends_at, status").First(&tenant, "id = ?", user.TenantID).Error; err == nil {
+			tenantName = tenant.Name
 			trialEndsAt = tenant.TrialEndsAt
 			tenantStatus = string(tenant.Status)
+		}
+
+		var settings models.TenantSettings
+		if err := config.DB.Select("logo_url").First(&settings, "tenant_id = ?", user.TenantID).Error; err == nil && settings.LogoURL != "" {
+			tenantLogoURL = settings.LogoURL
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"token":         token,
-		"role":          user.Role,
-		"tenant_id":     tenantIDStr,
-		"trial_ends_at": trialEndsAt,
-		"tenant_status": tenantStatus,
+		"token":           token,
+		"role":            user.Role,
+		"tenant_id":       tenantIDStr,
+		"tenant_name":     tenantName,
+		"tenant_logo_url": tenantLogoURL,
+		"trial_ends_at":   trialEndsAt,
+		"tenant_status":   tenantStatus,
 	})
 }
 

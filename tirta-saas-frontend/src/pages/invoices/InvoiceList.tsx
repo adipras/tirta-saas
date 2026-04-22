@@ -16,6 +16,7 @@ import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader } from '../../components';
 import { exportToCSV, exportToExcel, formatIDR } from '../../utils/exportUtils';
+import { thermalPrinterService } from '../../services/thermalPrinterService';
 
 export default function InvoiceList() {
   const navigate = useNavigate();
@@ -190,7 +191,7 @@ export default function InvoiceList() {
               Excel
             </button>
             <button
-              onClick={() => window.print()}
+              onClick={() => thermalPrinterService.printPage()}
               className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
             >
               <PrinterIcon className="mr-1 h-4 w-4" />

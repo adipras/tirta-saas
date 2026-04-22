@@ -8,40 +8,94 @@ import { printerBridgeHttpService } from './printerBridgeHttpService';
 
 const PREFERRED_PRINTER_KEY = 'thermal_printer_preferred_device';
 let cachedBridgeAvailability = false;
+let cachedBridgeStatus: ThermalPrinterStatus = {
+  connected: false,
+  bridgeAvailable: false,
+  bridgeRunning: false,
+  message: 'Bridge printer thermal belum diperiksa',
+};
+
+const shouldUseBridge = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const userAgent = window.navigator.userAgent || '';
+  const isMobileDevice = /android|iphone|ipad|ipod|mobile/i.test(userAgent);
+  const hasWebViewBridge = typeof (window as Window & { ReactNativeWebView?: unknown }).ReactNativeWebView !== 'undefined';
+
+  return isMobileDevice || hasWebViewBridge;
+};
+
+const printPage = (): void => {
+  window.print();
+};
 
 const printReceipt = async (receipt: PaymentReceipt): Promise<void> => {
   await printerBridgeHttpService.printReceipt(buildThermalReceiptPayload(receipt));
   cachedBridgeAvailability = true;
+  cachedBridgeStatus = {
+    ...cachedBridgeStatus,
+    bridgeAvailable: true,
+    bridgeRunning: true,
+    message: 'Perintah cetak berhasil dikirim',
+  };
 };
 
 const scanPrinters = async (): Promise<ThermalPrinterDevice[]> => {
+  if (!shouldUseBridge()) {
+    return [];
+  }
+
   const printers = await printerBridgeHttpService.scanPrinters();
   cachedBridgeAvailability = true;
   return printers;
 };
 
 const connectPrinter = async (deviceId: string): Promise<void> => {
+  if (!shouldUseBridge()) {
+    return;
+  }
+
   await printerBridgeHttpService.connectPrinter(deviceId);
   cachedBridgeAvailability = true;
 };
 
 const getStatus = async (): Promise<ThermalPrinterStatus> => {
+  if (!shouldUseBridge()) {
+    cachedBridgeAvailability = false;
+    cachedBridgeStatus = {
+      connected: false,
+      bridgeAvailable: false,
+      bridgeRunning: false,
+      message: 'Mode desktop: gunakan cetak browser',
+    };
+    return cachedBridgeStatus;
+  }
+
   try {
     const status = await printerBridgeHttpService.getStatus();
     cachedBridgeAvailability = true;
+    cachedBridgeStatus = status;
     return status;
   } catch (error) {
     cachedBridgeAvailability = false;
-    return {
+    cachedBridgeStatus = {
       connected: false,
       bridgeAvailable: false,
       bridgeRunning: false,
       message: error instanceof Error ? error.message : 'Bridge printer thermal tidak tersedia',
     };
+    return cachedBridgeStatus;
   }
 };
 
 const isAvailable = async (): Promise<boolean> => {
+  if (!shouldUseBridge()) {
+    cachedBridgeAvailability = false;
+    return false;
+  }
+
   const available = await printerBridgeHttpService.ping();
   cachedBridgeAvailability = available;
   return available;
@@ -66,8 +120,11 @@ const getPreferredPrinter = (): ThermalPrinterDevice | null => {
 
 export const thermalPrinterService = {
   hasBridge: () => cachedBridgeAvailability,
+  shouldUseBridge,
+  getCachedStatus: () => cachedBridgeStatus,
   isAvailable,
   printReceipt,
+  printPage,
   scanPrinters,
   connectPrinter,
   getStatus,

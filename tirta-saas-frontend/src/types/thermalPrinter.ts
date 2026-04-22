@@ -1,6 +1,6 @@
 import type { PaymentReceipt } from './payment';
 
-export type ThermalPrintJobType = 'payment_receipt';
+export type ThermalPrintJobType = 'receipt' | 'payment_receipt';
 
 export interface ThermalReceiptLineItem {
   label: string;
@@ -48,6 +48,10 @@ export interface ThermalReceiptPayload {
   footerLines: string[];
 }
 
+export interface ThermalReceiptPayloadInput extends Omit<ThermalReceiptPayload, 'type'> {
+  type?: ThermalPrintJobType;
+}
+
 export interface ThermalPrinterDevice {
   id: string;
   name: string;
@@ -67,26 +71,43 @@ export interface ThermalPrinterStatus {
   serverUrl?: string;
 }
 
+const truncateLine = (value?: string, maxLength: number = 32) => {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  return normalized.length > maxLength
+    ? `${normalized.slice(0, maxLength - 1).trimEnd()}…`
+    : normalized;
+};
+
+const buildReceiptPayload = (payload: ThermalReceiptPayloadInput): ThermalReceiptPayload => ({
+  ...payload,
+  type: payload.type ?? 'receipt',
+});
+
 export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalReceiptPayload => {
   const isPartialPayment = receipt.invoiceDetails.paymentCoverageType === 'partial';
+  const compactAddress = truncateLine(receipt.customerDetails.address, 40);
+  const compactNotes = truncateLine(receipt.payment.notes, 40);
 
-  return {
-    type: 'payment_receipt',
+  return buildReceiptPayload({
     receiptNumber: receipt.receiptNumber,
     printedAt: receipt.generatedAt,
     settlementType: isPartialPayment ? 'partial' : 'full',
     merchant: {
       name: 'TIRTA SAAS',
-      subtitle: 'Sistem Manajemen Tagihan Air',
-      addressLines: [
-        'Jl. Contoh No. 123, Kota ABC 12345',
-        'Telepon: (021) 1234-5678',
-        'Email: info@tirtasaas.com',
-      ],
+      subtitle: 'Tagihan Air',
+      addressLines: [],
     },
     customer: {
       name: receipt.customerDetails.name,
-      address: receipt.customerDetails.address,
+      address: compactAddress,
       phone: receipt.customerDetails.phone,
       meterNumber: receipt.customerDetails.meterNumber,
     },
@@ -96,7 +117,7 @@ export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalRece
       referenceNumber: receipt.payment.referenceNumber,
       status: receipt.payment.status,
       amount: receipt.payment.amount,
-      notes: receipt.payment.notes,
+      notes: compactNotes,
     },
     invoice: {
       invoiceNumber: receipt.invoiceDetails.invoiceNumber,
@@ -112,26 +133,26 @@ export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalRece
     },
     summaryLines: [
       ...(receipt.invoiceDetails.subTotal
-        ? [{ label: 'Subtotal Tagihan', value: String(receipt.invoiceDetails.subTotal) }]
+        ? [{ label: 'Subtotal', value: String(receipt.invoiceDetails.subTotal) }]
         : []),
       ...(receipt.invoiceDetails.penaltyAmount
-        ? [{ label: 'Denda Saat Dibayar', value: String(receipt.invoiceDetails.penaltyAmount), emphasis: 'warning' as const }]
+        ? [{ label: 'Denda', value: String(receipt.invoiceDetails.penaltyAmount), emphasis: 'warning' as const }]
         : []),
-      { label: 'Sudah Dibayar Sebelumnya', value: String(receipt.invoiceDetails.totalPaidBefore || 0) },
-      { label: 'Nominal Dibayar', value: String(receipt.payment.amount), emphasis: 'success' },
-      { label: 'Total Dibayar Setelah Transaksi', value: String(receipt.invoiceDetails.totalPaidAfter || 0) },
+      { label: 'Terbayar', value: String(receipt.invoiceDetails.totalPaidBefore || 0) },
+      { label: 'Bayar', value: String(receipt.payment.amount), emphasis: 'success' },
+      { label: 'Total Bayar', value: String(receipt.invoiceDetails.totalPaidAfter || 0) },
       {
-        label: 'Sisa Tagihan',
+        label: 'Sisa',
         value: String(receipt.invoiceDetails.remainingAmount || 0),
         emphasis: isPartialPayment ? 'warning' : 'success',
       },
     ],
     footerLines: [
-      'Terima kasih atas pembayaran Anda.',
+      'Terima kasih.',
       ...(isPartialPayment
-        ? ['Pembayaran ini bersifat parsial. Sisa tagihan masih harus dilunasi.']
-        : ['Tagihan telah lunas sesuai transaksi ini.']),
-      'Struk ini dibuat secara otomatis dan tidak memerlukan tanda tangan.',
+        ? ['Pembayaran parsial, masih ada sisa tagihan.']
+        : ['Tagihan lunas.']),
+      `Cetak: ${new Date(receipt.generatedAt).toLocaleString('id-ID')}`,
     ],
-  };
+  });
 };

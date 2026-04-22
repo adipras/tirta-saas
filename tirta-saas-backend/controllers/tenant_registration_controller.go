@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -20,18 +21,37 @@ import (
 // @Summary Public tenant registration
 // @Description Register a new tenant organization with admin user
 // @Tags Public
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param request body requests.PublicTenantRegistrationRequest true "Registration data"
+// @Param organization_name formData string true "Organization name"
+// @Param village_code formData string true "Village code"
+// @Param address formData string true "Address"
+// @Param phone formData string true "Phone"
+// @Param email formData string true "Organization email"
+// @Param admin_name formData string true "Admin name"
+// @Param admin_email formData string true "Admin email"
+// @Param admin_phone formData string true "Admin phone"
+// @Param admin_password formData string true "Admin password"
+// @Param logo formData file false "Tenant logo image (max 5MB)"
 // @Success 201 {object} responses.TenantRegistrationResponse
 // @Failure 400 {object} responses.ErrorResponse
 // @Router /api/public/register [post]
 func PublicTenantRegistration(c *gin.Context) {
 	var req requests.PublicTenantRegistrationRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
 			Status:  "error",
 			Message: "Invalid request data",
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	logoFile, err := c.FormFile("logo")
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid logo upload",
 			Error:   err.Error(),
 		})
 		return
@@ -126,6 +146,23 @@ func PublicTenantRegistration(c *gin.Context) {
 		return
 	}
 
+	savedLogoPath := ""
+	if logoFile != nil {
+		uploadConfig := utils.DefaultImageUploadConfig()
+		uploadConfig.UploadDir = fmt.Sprintf("uploads/tenants/%s/logos", tenant.ID.String())
+
+		savedLogoPath, err = utils.SaveUploadedFile(logoFile, uploadConfig)
+		if err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+				Status:  "error",
+				Message: "Failed to upload tenant logo",
+				Error:   err.Error(),
+			})
+			return
+		}
+	}
+
 	// Create default tenant settings
 	tenantSettings := models.TenantSettings{
 		BaseModel:            models.BaseModel{ID: uuid.New()}, // Explicitly generate UUID
@@ -144,9 +181,15 @@ func PublicTenantRegistration(c *gin.Context) {
 		Language:             "id",
 		Currency:             "IDR",
 	}
+	if savedLogoPath != "" {
+		tenantSettings.LogoURL = savedLogoPath
+	}
 
 	if err := tx.Create(&tenantSettings).Error; err != nil {
 		tx.Rollback()
+		if savedLogoPath != "" {
+			utils.DeleteFile(savedLogoPath)
+		}
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to create tenant settings",
@@ -157,6 +200,9 @@ func PublicTenantRegistration(c *gin.Context) {
 
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
+		if savedLogoPath != "" {
+			utils.DeleteFile(savedLogoPath)
+		}
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
 			Message: "Failed to complete registration",

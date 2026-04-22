@@ -6,6 +6,7 @@ import {
   EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import invoiceService from '../../services/invoiceService';
+import { thermalPrinterService } from '../../services/thermalPrinterService';
 import type { InvoiceDetails as InvoiceDetailsType } from '../../types/invoice';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
@@ -89,7 +90,7 @@ export default function InvoiceDetails() {
         </button>
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => window.print()}
+            onClick={() => thermalPrinterService.printPage()}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
             <PrinterIcon className="mr-2 h-4 w-4" />
             Print
