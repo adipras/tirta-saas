@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
 import { PageHeader, useToast } from '../../components';
 import { paymentService } from '../../services/paymentService';
+import { resolveTenantAssetUrl } from '../../services/tenantSettingsService';
 import { thermalPrinterService } from '../../services/thermalPrinterService';
 import type { PaymentReceipt as PaymentReceiptType } from '../../types/payment';
 import { PAYMENT_METHOD_LABELS } from '../../types/payment';
@@ -252,12 +253,12 @@ const PaymentReceipt: React.FC = () => {
 
   const tenantName = receipt.tenantInfo?.companyName || 'TIRTA SAAS';
   const tenantPhone = receipt.tenantInfo?.phone;
-  const tenantLogo = receipt.tenantInfo?.logoUrl;
+  const tenantLogo = resolveTenantAssetUrl(receipt.tenantInfo?.logoUrl);
   const footerText = receipt.tenantInfo?.footerText || 'Terima kasih telah membayar tagihan air Anda.';
   const bankName = receipt.tenantInfo?.bankName;
   const bankAccountName = receipt.tenantInfo?.bankAccountName;
   const bankAccountNo = receipt.tenantInfo?.bankAccountNo;
-  const qrisImageUrl = receipt.tenantInfo?.qrisImageUrl;
+  const qrisImageUrl = resolveTenantAssetUrl(receipt.tenantInfo?.qrisImageUrl);
   const hasBankInfo = bankName || bankAccountNo;
 
   const usageMonth = receipt.usageDetails?.usageMonth;
