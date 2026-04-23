@@ -15,7 +15,7 @@ function resolveDevHost(value?: string): string | true {
   return value!.trim();
 }
 
-function resolvePort(value?: string, fallback: number): number {
+function resolvePort(fallback: number, value?: string): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
@@ -24,7 +24,7 @@ function resolvePort(value?: string, fallback: number): number {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const host = resolveDevHost(env.VITE_DEV_HOST);
-  const port = resolvePort(env.VITE_DEV_PORT, 5174);
+  const port = resolvePort(5174, env.VITE_DEV_PORT);
 
   return {
     plugins: [react()],

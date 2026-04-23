@@ -11,9 +11,10 @@ export interface Column<T> {
   key: keyof T | string;
   label: string;
   sortable?: boolean;
-  render?: (value: any, item: T) => React.ReactNode;
+  render?: (value: unknown, item: T) => React.ReactNode;
   className?: string;
   align?: 'left' | 'center' | 'right';
+  hideOnMobile?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -31,7 +32,7 @@ interface DataTableProps<T> {
 
 type SortDirection = 'asc' | 'desc' | null;
 
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T extends object>({
   data,
   columns,
   searchable = true,
@@ -63,16 +64,24 @@ export function DataTable<T extends Record<string, any>>({
     if (sortColumn && sortDirection) {
       filtered.sort((a, b) => {
         const sortKey = sortColumn.toString();
-        const aValue = sortKey.includes('.') 
-          ? sortKey.split('.').reduce((obj: any, key: string) => obj?.[key], a)
-          : a[sortColumn];
-        const bValue = sortKey.includes('.') 
-          ? sortKey.split('.').reduce((obj: any, key: string) => obj?.[key], b)
-          : b[sortColumn];
+        const aValue = sortKey.includes('.')
+          ? getNestedValue(a, sortKey)
+          : (a as Record<string, unknown>)[sortColumn as string];
+        const bValue = sortKey.includes('.')
+          ? getNestedValue(b, sortKey)
+          : (b as Record<string, unknown>)[sortColumn as string];
 
         if (aValue === bValue) return 0;
-        
-        const comparison = aValue > bValue ? 1 : -1;
+
+        const normalizedA = normalizeSortValue(aValue);
+        const normalizedB = normalizeSortValue(bValue);
+
+        if (typeof normalizedA === 'number' && typeof normalizedB === 'number') {
+          const comparison = normalizedA > normalizedB ? 1 : -1;
+          return sortDirection === 'asc' ? comparison : -comparison;
+        }
+
+        const comparison = String(normalizedA).localeCompare(String(normalizedB), 'id');
         return sortDirection === 'asc' ? comparison : -comparison;
       });
     }
@@ -101,8 +110,39 @@ export function DataTable<T extends Record<string, any>>({
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
-  const getNestedValue = (obj: T, path: string) => {
-    return path.split('.').reduce((current, key) => current?.[key], obj as any);
+  const getNestedValue = (obj: unknown, path: string): unknown => {
+    return path.split('.').reduce<unknown>((current, key) => {
+      if (!current || typeof current !== 'object') {
+        return undefined;
+      }
+
+      return (current as Record<string, unknown>)[key];
+    }, obj);
+  };
+
+  const normalizeSortValue = (value: unknown): string | number => {
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const numericValue = Number(value);
+      if (!Number.isNaN(numericValue) && value.trim() !== '') {
+        return numericValue;
+      }
+
+      return value.toLowerCase();
+    }
+
+    if (typeof value === 'boolean') {
+      return value ? 1 : 0;
+    }
+
+    if (value instanceof Date) {
+      return value.getTime();
+    }
+
+    return '';
   };
 
   const getColumnValue = (item: T, column: Column<T>) => {
@@ -110,10 +150,10 @@ export function DataTable<T extends Record<string, any>>({
       return getNestedValue(item, column.key as string);
     }
 
-    return item[column.key as keyof T];
+    return (item as Record<string, unknown>)[column.key as string];
   };
 
-  const renderCellValue = (item: T, column: Column<T>) => {
+  const renderCellValue = (item: T, column: Column<T>): React.ReactNode => {
     const value = getColumnValue(item, column);
     const renderedValue = column.render ? column.render(value, item) : value;
 
@@ -121,7 +161,23 @@ export function DataTable<T extends Record<string, any>>({
       return '-';
     }
 
-    return renderedValue;
+    if (
+      typeof renderedValue === 'string' ||
+      typeof renderedValue === 'number' ||
+      typeof renderedValue === 'boolean'
+    ) {
+      return renderedValue;
+    }
+
+    if (Array.isArray(renderedValue)) {
+      return renderedValue as React.ReactNode;
+    }
+
+    if (React.isValidElement(renderedValue)) {
+      return renderedValue;
+    }
+
+    return String(renderedValue);
   };
 
   if (loading) {
@@ -163,7 +219,7 @@ export function DataTable<T extends Record<string, any>>({
                 className={`space-y-3 p-4 ${onRowClick ? 'cursor-pointer active:bg-gray-50' : ''}`}
                 onClick={() => onRowClick?.(item)}
               >
-                {columns.map((column) => (
+                {columns.filter((column) => !column.hideOnMobile).map((column) => (
                   <div key={column.key as string} className="flex items-start justify-between gap-3">
                     <dt className="max-w-[45%] text-xs font-medium uppercase tracking-wide text-gray-500">
                       {column.label}

@@ -23,7 +23,7 @@ const PaymentReceipt: React.FC = () => {
     message: 'Belum terhubung',
   });
   const [availablePrinters, setAvailablePrinters] = useState<ThermalPrinterDevice[]>([]);
-  const [preferredPrinter, setPreferredPrinter] = useState<ThermalPrinterDevice | null>(null);
+  const [, setPreferredPrinter] = useState<ThermalPrinterDevice | null>(null);
   const [bridgeChecked, setBridgeChecked] = useState(false);
   const [bridgeAvailable, setBridgeAvailable] = useState(false);
   const [bridgeWarnDismissed, setBridgeWarnDismissed] = useState(false);

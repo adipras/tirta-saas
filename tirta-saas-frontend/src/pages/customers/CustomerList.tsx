@@ -10,12 +10,12 @@ import {
   CheckCircleIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
-import { DataTable } from '../../components/DataTable';
+import { DataTable, type Column } from '../../components/DataTable';
 import customerService from '../../services/customerService';
 import type { Customer, CustomerFilters, SubscriptionType } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
-import { PageHeader } from '../../components';
+import { DashboardStatCard, PageHeader } from '../../components';
 
 export default function CustomerList() {
   const navigate = useNavigate();
@@ -33,6 +33,11 @@ export default function CustomerList() {
     hasOutstandingBalance: '',
     search: '',
   });
+  const hasActiveFilters =
+    filters.isActive !== '' ||
+    filters.subscriptionTypeId !== '' ||
+    filters.hasOutstandingBalance !== '' ||
+    filters.search !== '';
 
   const fetchPelanggan = useCallback(async () => {
     try {
@@ -144,51 +149,52 @@ export default function CustomerList() {
     );
   };
 
-  const columns = [
+  const columns: Column<Customer>[] = [
     {
       key: 'meter_number',
-      label: 'Meter Number',
+      label: 'No. Meter',
       sortable: true,
     },
     {
       key: 'name',
-      label: 'Name',
+      label: 'Nama',
       sortable: true,
     },
     {
       key: 'email',
       label: 'Email',
       sortable: true,
+      hideOnMobile: true,
     },
     {
       key: 'phone',
-      label: 'Phone',
+      label: 'Telepon',
+      hideOnMobile: true,
     },
     {
       key: 'subscription',
-      label: 'Subscription',
+      label: 'Golongan',
       sortable: true,
-      render: (_value: any, item: Customer) => item.subscription?.name || '-',
+      render: (_value: unknown, item: Customer) => item.subscription?.name || '-',
     },
     {
       key: 'is_active',
       label: 'Status',
       sortable: true,
-      render: (isActive: boolean) => getStatusBadge(isActive),
+      render: (isActive: unknown) => getStatusBadge(Boolean(isActive)),
     },
   ];
 
   const actions = (customer: Customer) => (
-    <div className="flex items-center space-x-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       <button
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.log('View customer:', customer.id);
           navigate(`/admin/customers/${customer.id}`);
         }}
-        className="text-blue-600 hover:text-blue-900"
-        title="View Details"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 text-blue-600 transition hover:bg-blue-50"
+        title="Lihat detail"
       >
         <EyeIcon className="h-5 w-5" />
       </button>
@@ -196,15 +202,13 @@ export default function CustomerList() {
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          console.log('Edit customer:', customer.id);
           navigate(`/admin/customers/${customer.id}/edit`);
         }}
-        className="text-gray-600 hover:text-gray-900"
-        title="Edit"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:bg-gray-50"
+        title="Ubah pelanggan"
       >
         <PencilIcon className="h-5 w-5" />
       </button>
-      {/* Toggle Switch */}
       <button
         onClick={(e) => {
           e.preventDefault();
@@ -214,7 +218,7 @@ export default function CustomerList() {
         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
           customer.is_active ? 'bg-green-600' : 'bg-gray-300'
         }`}
-        title={customer.is_active ? 'Active - Click to deactivate' : 'Inactive - Click to activate'}
+        title={customer.is_active ? 'Aktif - klik untuk nonaktifkan' : 'Nonaktif - klik untuk aktifkan'}
       >
         <span
           className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -225,10 +229,15 @@ export default function CustomerList() {
     </div>
   );
 
+  const activeCustomers = customers.filter((customer) => customer.is_active).length;
+  const inactiveCustomers = customers.length - activeCustomers;
+  const usedSubscriptions = new Set(customers.map((customer) => customer.subscription?.id).filter(Boolean)).size;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Pelanggan"
+        subtitle="Kelola pelanggan dari daftar yang lebih mudah dibaca di layar kecil, lengkap dengan filter dan aksi cepat."
         actions={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
             <button
@@ -236,35 +245,80 @@ export default function CustomerList() {
               className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
             >
               <FunnelIcon className="mr-2 h-4 w-4" />
-              Filters
+              {showFilters ? 'Tutup Filter' : 'Filter'}
             </button>
             <button
               onClick={handleExport}
               className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
             >
               <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
-              Export
+              Ekspor
             </button>
             <button
               onClick={() => navigate('/admin/customers/bulk-import')}
               className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
             >
               <ArrowUpTrayIcon className="mr-2 h-4 w-4" />
-              Bulk Import
+              Import Massal
             </button>
             <button
               onClick={() => navigate('/admin/customers/new')}
               className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:w-auto"
             >
               <PlusIcon className="mr-2 h-4 w-4" />
-              Add Customer
+              Tambah Pelanggan
             </button>
           </div>
         }
       />
 
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <DashboardStatCard
+          title="Pelanggan tampil"
+          value={loading ? '...' : customers.length.toLocaleString('id-ID')}
+          helper={hasActiveFilters ? 'Daftar sedang difilter' : 'Semua data pada halaman'}
+          subtitle="Jumlah pelanggan yang sedang tampil pada daftar aktif saat ini."
+          icon={CheckCircleIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Pelanggan aktif"
+          value={loading ? '...' : activeCustomers.toLocaleString('id-ID')}
+          subtitle="Memudahkan pemantauan pelanggan yang masih aktif menerima layanan."
+          icon={CheckCircleIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Pelanggan nonaktif"
+          value={loading ? '...' : inactiveCustomers.toLocaleString('id-ID')}
+          subtitle="Cocok untuk meninjau akun yang perlu diaktifkan kembali atau diverifikasi."
+          icon={XCircleIcon}
+          tone="yellow"
+        />
+        <DashboardStatCard
+          title="Golongan terpakai"
+          value={loading ? '...' : usedSubscriptions.toLocaleString('id-ID')}
+          subtitle="Menunjukkan berapa golongan langganan yang sedang dipakai pada hasil daftar."
+          icon={FunnelIcon}
+          tone="cyan"
+        />
+      </div>
+
       {showFilters && (
-        <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Filter pelanggan</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Saring data berdasarkan status, golongan, saldo, atau kata kunci pencarian.
+              </p>
+            </div>
+            {hasActiveFilters && (
+              <span className="inline-flex w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                Filter aktif
+              </span>
+            )}
+          </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Status</label>
@@ -314,7 +368,7 @@ export default function CustomerList() {
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                placeholder="Name, email, phone..."
+                placeholder="Nama, email, telepon..."
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
               />
             </div>
@@ -330,7 +384,7 @@ export default function CustomerList() {
               })}
               className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
             >
-              Clear Filters
+              Reset Filter
             </button>
           </div>
         </div>
@@ -344,7 +398,8 @@ export default function CustomerList() {
           loading={loading}
           searchable={false}
           pageSize={10}
-          emptyMessage="No customers found"
+          emptyMessage="Belum ada pelanggan yang sesuai dengan filter"
+          onRowClick={(customer) => navigate(`/admin/customers/${customer.id}`)}
         />
       </div>
     </div>

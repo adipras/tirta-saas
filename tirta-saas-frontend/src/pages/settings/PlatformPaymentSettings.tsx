@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   PlusIcon,
   PencilIcon,
@@ -11,7 +11,7 @@ import {
 import { apiClient } from '../../services/apiClient';
 import { platformQrCodeService } from '../../services/platformQrCodeService';
 import type { QRCode } from '../../services/qrCodeService';
-import { PageHeader, ConfirmModal, ImageCropModal, useToast } from '../../components';
+import { PageHeader, Modal, ConfirmModal, ImageCropModal, useToast } from '../../components';
 
 interface PlatformBankAccount {
   id: string;
@@ -24,9 +24,33 @@ interface PlatformBankAccount {
   description?: string;
 }
 
+interface RawBankAccount {
+  id: string;
+  bank_name: string;
+  account_number: string;
+  account_name: string;
+  swift_code?: string;
+  bank_branch?: string;
+  is_active: boolean;
+  is_primary: boolean;
+  notes?: string;
+}
+
+function extractBankList(payload: unknown): RawBankAccount[] {
+  if (Array.isArray(payload)) {
+    return payload as RawBankAccount[];
+  }
+
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { data?: unknown }).data)) {
+    return (payload as { data: RawBankAccount[] }).data;
+  }
+
+  return [];
+}
+
 type QRCodeType = 'QRIS' | 'DANA' | 'GOPAY' | 'OVO' | 'SHOPEEPAY';
 
-function mapBank(b: any): PlatformBankAccount {
+function mapBank(b: RawBankAccount): PlatformBankAccount {
   return {
     id: b.id,
     bankName: b.bank_name,
@@ -75,18 +99,14 @@ export default function PlatformPaymentSettings() {
     isPrimary: false,
   });
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const [bankRes, qrRes] = await Promise.allSettled([
-        apiClient.get('/platform/payment-methods/bank-accounts'),
+        apiClient.get<unknown>('/platform/payment-methods/bank-accounts'),
         platformQrCodeService.getQRCodes(),
       ]);
       if (bankRes.status === 'fulfilled') {
-        const list = (bankRes.value as any)?.data || [];
+        const list = extractBankList(bankRes.value);
         setBankAccounts(list.map(mapBank));
       }
       if (qrRes.status === 'fulfilled') {
@@ -95,7 +115,11 @@ export default function PlatformPaymentSettings() {
     } catch (error) {
       console.error('Failed to load settings:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   const openBankModal = (bank?: PlatformBankAccount) => {
     if (bank) {
@@ -453,16 +477,16 @@ export default function PlatformPaymentSettings() {
       </div>
 
       {/* Bank Account Modal - Similar to Tenant version but with description */}
-      {showBankModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-600 bg-opacity-50 p-4 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl">
-            <form onSubmit={handleBankSubmit}>
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  {editingBank ? 'Edit Bank Account' : 'Add Bank Account'}
-                </h3>
-
-                <div className="space-y-4">
+      <Modal
+        isOpen={showBankModal}
+        onClose={closeBankModal}
+        title={editingBank ? 'Edit Bank Account' : 'Add Bank Account'}
+        size="md"
+        mobileFullscreen
+        bodyClassName="p-0"
+      >
+        <form onSubmit={handleBankSubmit} className="flex min-h-full flex-col">
+          <div className="flex-1 space-y-4 p-4 sm:p-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Bank Name <span className="text-red-500">*</span>
@@ -552,40 +576,39 @@ export default function PlatformPaymentSettings() {
                       <span className="ml-2 text-sm text-gray-700">Primary</span>
                     </label>
                   </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col-reverse gap-3 rounded-b-lg bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeBankModal}
-                  className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
-                >
-                  {editingBank ? 'Update' : 'Add'} Bank Account
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+
+          <div className="border-t border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeBankModal}
+                className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
+              >
+                {editingBank ? 'Update' : 'Add'} Bank Account
+              </button>
+            </div>
+          </div>
+        </form>
+      </Modal>
 
       {/* QR Code Modal - Similar structure with description field */}
-      {showQRModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-600 bg-opacity-50 p-4 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl">
-            <form onSubmit={handleQRSubmit}>
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  {editingQR ? 'Edit QR Code' : 'Add QR Code'}
-                </h3>
-
-                <div className="space-y-4">
+      <Modal
+        isOpen={showQRModal}
+        onClose={closeQRModal}
+        title={editingQR ? 'Edit QR Code' : 'Add QR Code'}
+        size="md"
+        mobileFullscreen
+        bodyClassName="p-0"
+      >
+        <form onSubmit={handleQRSubmit} className="flex min-h-full flex-col">
+          <div className="flex-1 space-y-4 p-4 sm:p-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Type <span className="text-red-500">*</span>
@@ -685,28 +708,27 @@ export default function PlatformPaymentSettings() {
                       <span className="ml-2 text-sm text-gray-700">Set as Primary</span>
                     </label>
                   </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col-reverse gap-3 rounded-b-lg bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeQRModal}
-                  className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="w-full rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 sm:w-auto"
-                >
-                  {editingQR ? 'Update' : 'Add'} QR Code
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+
+          <div className="border-t border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeQRModal}
+                className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 sm:w-auto"
+              >
+                {editingQR ? 'Update' : 'Add'} QR Code
+              </button>
+            </div>
+          </div>
+        </form>
+      </Modal>
 
       <ConfirmModal
         isOpen={deleteTarget !== null}

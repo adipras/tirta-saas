@@ -1,5 +1,95 @@
 # Development Progress - Tirta SaaS
 
+## Latest Session: April 23, 2026
+
+**Date:** April 23, 2026  
+**Focus:** Menyiapkan plan dan progress tracking untuk refactor frontend ke arah **Mobile-First**  
+**Status:** 🚧 Eksekusi berlanjut ke batch ketiga: shell/header/sidebar + toolbar shared
+
+---
+
+## 📋 Planned (April 23, 2026)
+
+### Inisiatif Baru: Frontend Mobile-First Refactor
+
+- Disepakati kebutuhan baru untuk mengarahkan refactor frontend ke pendekatan **Mobile-First**
+- Tujuan utamanya:
+  - menjadikan mobile sebagai baseline layout
+  - merapikan pengalaman halaman admin tenant, platform owner, dan data-dense pages di layar kecil
+  - mempertahankan desktop sebagai enhancement layer, bukan baseline utama
+
+### Temuan awal
+
+- Fondasi mobile pada shell utama sudah cukup baik:
+  - `DashboardLayout` sudah mendukung drawer mobile
+  - `Header` dan `Sidebar` sudah punya perilaku mobile yang sehat
+- Gap terbesar ada pada halaman domain:
+  - list/table padat
+  - form panjang
+  - dashboard multi-card
+  - modal/detail panel
+  - reporting pages
+
+### Area prioritas awal
+
+1. **Shared patterns & shell**
+   - page section wrapper
+   - responsive toolbar
+   - table-to-card/list pattern
+   - modal mobile-safe pattern
+
+2. **Tenant admin high-traffic pages**
+   - dashboard
+   - customers
+   - invoices
+   - payments
+   - usage
+
+3. **Platform & settings**
+   - tenant management
+   - subscription verification
+   - analytics
+   - settings / subscription flow
+
+4. **Reports**
+   - summary-first mobile layout
+   - filter collapse
+   - dense data redesign
+
+### Arah implementasi
+
+- Refactor akan dilakukan **bertahap**, bukan big-bang
+- Pendekatan yang dipilih:
+  - audit hotspot
+  - rapikan shared components/pattern
+  - refactor domain per domain
+  - validasi visual & interaksi pada viewport mobile
+
+### Progress batch berjalan
+
+- ✅ Audit awal hotspot mobile selesai untuk menentukan area start
+- ✅ Batch 1 selesai pada:
+  - shared dashboard/stat card pattern
+  - quick action card pattern
+  - refactor `TenantAdminDashboard` sebagai halaman high-traffic pertama
+- ✅ Batch 2 selesai pada:
+  - `CustomerList`
+  - `InvoiceList`
+  - `PaymentList`
+  - `UsageList`
+  - checklist plan di `plan.md` sudah diperbarui agar progress per batch lebih mudah dipantau
+- ✅ Shared `DataTable` sekarang mendukung penyederhanaan kartu mobile lewat kolom yang bisa disembunyikan pada viewport kecil
+- ✅ Batch 3 sudah berjalan dan menghasilkan:
+  - header admin yang lebih kontekstual per halaman
+  - sidebar admin/customer yang lebih rapi di mobile
+  - `PageHeader` yang lebih konsisten sebagai toolbar responsif lintas halaman
+  - perbaikan blocker TypeScript terkait `Sidebar`, `CustomerSidebar`, `PaymentReceipt`, `RateHistory`, dan `vite.config.ts`
+- ✅ Shared modal sekarang mendukung mode mobile fullscreen dan sudah dipakai pada modal pengaturan pembayaran tenant/platform
+- ✅ Build frontend penuh sekarang berhasil lagi
+- ⏳ Batch berikutnya paling logis: form/settings lanjutan atau halaman platform
+
+---
+
 ## Latest Session: April 20, 2026
 
 **Date:** April 20, 2026  

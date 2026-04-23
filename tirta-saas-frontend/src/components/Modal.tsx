@@ -10,6 +10,9 @@ export interface ModalProps {
   showCloseButton?: boolean;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
+  mobileFullscreen?: boolean;
+  panelClassName?: string;
+  bodyClassName?: string;
 }
 
 const sizeClasses = {
@@ -29,6 +32,9 @@ export const Modal: React.FC<ModalProps> = ({
   showCloseButton = true,
   closeOnOverlayClick = true,
   closeOnEscape = true,
+  mobileFullscreen = false,
+  panelClassName = '',
+  bodyClassName = '',
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -60,18 +66,24 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 transition-opacity"
+      className={`fixed inset-0 z-50 flex bg-black bg-opacity-50 transition-opacity ${
+        mobileFullscreen ? 'items-end justify-center p-0 sm:items-center sm:p-4' : 'items-center justify-center p-4'
+      }`}
       onClick={handleOverlayClick}
     >
       <div
         ref={modalRef}
-        className={`bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} transform transition-all`}
+        className={`w-full transform bg-white shadow-xl transition-all ${
+          mobileFullscreen
+            ? `max-h-[100dvh] min-h-[100dvh] rounded-none sm:min-h-0 sm:max-h-[90vh] sm:rounded-2xl ${sizeClasses[size]}`
+            : `rounded-lg ${sizeClasses[size]}`
+        } ${panelClassName}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'modal-title' : undefined}
       >
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 sm:px-6">
             {title && (
               <h3 id="modal-title" className="text-lg font-semibold text-gray-900">
                 {title}
@@ -89,7 +101,9 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
 
-        <div className="px-6 py-4">{children}</div>
+        <div className={`px-4 py-4 sm:px-6 ${mobileFullscreen ? 'max-h-[calc(100dvh-73px)] overflow-y-auto sm:max-h-[calc(90vh-73px)]' : ''} ${bodyClassName}`}>
+          {children}
+        </div>
       </div>
     </div>
   );

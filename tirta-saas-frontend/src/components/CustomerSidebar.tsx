@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   HomeIcon,
   UserIcon,
@@ -56,6 +56,8 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => (
 );
 
 const CustomerSidebar = ({ open, onClose }: CustomerSidebarProps) => {
+  const location = useLocation();
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -65,13 +67,21 @@ const CustomerSidebar = ({ open, onClose }: CustomerSidebarProps) => {
   }, [onClose]);
 
   useEffect(() => {
+    if (open) {
+      onClose();
+    }
+  }, [location.pathname, open, onClose]);
+
+  useEffect(() => {
     if (!open) {
       document.body.style.removeProperty('overflow');
       return;
     }
 
     document.body.style.overflow = 'hidden';
-    return () => document.body.style.removeProperty('overflow');
+    return () => {
+      document.body.style.removeProperty('overflow');
+    };
   }, [open]);
 
   return (
@@ -88,7 +98,7 @@ const CustomerSidebar = ({ open, onClose }: CustomerSidebarProps) => {
             className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity"
             onClick={onClose}
           />
-          <div className="safe-y relative flex w-[min(18rem,85vw)] flex-col flex-shrink-0 shadow-xl">
+          <div className="safe-y relative flex w-[min(20rem,88vw)] flex-col flex-shrink-0 shadow-xl">
             <SidebarContent onClose={onClose} />
           </div>
         </div>

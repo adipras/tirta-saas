@@ -88,11 +88,12 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
     const resolvedUrl = resolveTenantAssetUrl(user?.tenant_logo_url);
     return resolvedUrl || null;
   }, [user?.tenant_logo_url]);
+  const roleLabel = user?.role?.replace('_', ' ') || 'admin';
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-gray-200">
+    <div className="flex h-full flex-col border-r border-gray-200 bg-white">
       {/* Logo */}
-      <div className="flex items-center justify-between flex-shrink-0 px-4 py-5">
+      <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-4 py-5">
         <div className="flex min-w-0 items-center">
           {isTenantUser ? (
             <>
@@ -103,7 +104,7 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
                   className="mr-3 h-10 w-10 rounded-lg object-cover"
                 />
               ) : (
-                <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-sm font-semibold text-blue-700">
+                <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-blue-700">
                   {(user?.tenant_name || 'T').charAt(0).toUpperCase()}
                 </div>
               )}
@@ -137,32 +138,42 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 pb-4 space-y-0.5 overflow-y-auto">
-        {navigation.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.href}
-            end={item.href === '/admin'}
-            onClick={onClose}
-            className={({ isActive }) =>
-              `group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                isActive
-                  ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700 pl-2'
-                  : 'border-l-4 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`
-            }
-          >
-            <item.icon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
-            {item.name}
-          </NavLink>
-        ))}
+      <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4 pt-4">
+        <div>
+          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+            Menu utama
+          </p>
+          <div className="space-y-0.5">
+            {navigation.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                end={item.href === '/admin'}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `group flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'border-l-4 border-blue-500 bg-blue-50 pl-2 text-blue-700'
+                      : 'border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`
+                }
+              >
+                <item.icon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                {item.name}
+              </NavLink>
+            ))}
+          </div>
+        </div>
 
         {hasSettingsMenu && (
-          <div className="pt-2">
+          <div>
+            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+              Pengaturan
+            </p>
             <button
               type="button"
               onClick={() => setSettingsOpen((prev) => !prev)}
-              className={`group flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              className={`group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                 hasActiveSettingsItem
                   ? 'bg-blue-50 text-blue-700'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -170,7 +181,7 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
             >
               <span className="flex items-center">
                 <CogIcon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                Pengaturan
+                Semua pengaturan
               </span>
               {settingsOpen ? (
                 <ChevronDownIcon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
@@ -187,7 +198,7 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
                     to={item.href}
                     onClick={onClose}
                     className={({ isActive }) =>
-                      `group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      `group flex items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
                         (isActive || matchesSettingsItem(item.href))
                           ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700 pl-2'
                           : 'border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -206,10 +217,12 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
 
       {/* User info footer */}
       <div className="flex-shrink-0 border-t border-gray-200 p-4">
-        <div className="flex items-center">
+        <div className="rounded-2xl bg-gray-50 p-3">
           <div className="min-w-0">
-            <div className="text-sm font-medium text-gray-700 truncate">{user?.name}</div>
-            <div className="text-xs text-gray-500 capitalize">{user?.role}</div>
+            <div className="truncate text-sm font-medium text-gray-700">{user?.name}</div>
+            <div className="mt-1 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700">
+              {roleLabel}
+            </div>
           </div>
         </div>
       </div>
@@ -218,6 +231,8 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
 };
 
 const Sidebar = ({ open, onClose }: SidebarProps) => {
+  const location = useLocation();
+
   // Close sidebar on Escape key
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -228,13 +243,21 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
   }, [onClose]);
 
   useEffect(() => {
+    if (open) {
+      onClose();
+    }
+  }, [location.pathname, open, onClose]);
+
+  useEffect(() => {
     if (!open) {
       document.body.style.removeProperty('overflow');
       return;
     }
 
     document.body.style.overflow = 'hidden';
-    return () => document.body.style.removeProperty('overflow');
+    return () => {
+      document.body.style.removeProperty('overflow');
+    };
   }, [open]);
 
   return (
@@ -253,7 +276,7 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
             onClick={onClose}
           />
           {/* Drawer */}
-          <div className="safe-y relative flex w-[min(18rem,85vw)] flex-col flex-shrink-0 shadow-xl">
+          <div className="safe-y relative flex w-[min(20rem,88vw)] flex-col flex-shrink-0 shadow-xl">
             <SidebarContent onClose={onClose} />
           </div>
         </div>

@@ -4,12 +4,13 @@ import {
   ArrowPathIcon,
   DocumentTextIcon,
   EyeIcon,
+  FunnelIcon,
   NoSymbolIcon,
   PlusIcon,
 } from '@heroicons/react/24/outline';
 import { DataTable, type Column } from '../../components/DataTable';
 import { paymentService, type PaymentFilters } from '../../services/paymentService';
-import { PageHeader, ConfirmModal, useToast } from '../../components';
+import { DashboardStatCard, PageHeader, ConfirmModal, useToast } from '../../components';
 import type {
   Payment,
   PaymentStatus,
@@ -129,19 +130,19 @@ const PaymentList: React.FC = () => {
       key: 'paymentDate',
       label: 'Tanggal',
       sortable: true,
-      render: (_: any, payment: Payment) => new Date(payment.paymentDate).toLocaleDateString('id-ID'),
+      render: (_value: unknown, payment: Payment) => new Date(payment.paymentDate).toLocaleDateString('id-ID'),
     },
     {
       key: 'customerName',
       label: 'Pelanggan',
       sortable: true,
-      render: (_: any, payment: Payment) => payment.customerName || '-',
+      render: (_value: unknown, payment: Payment) => payment.customerName || '-',
     },
     {
       key: 'invoiceNumber',
       label: 'Tagihan',
       sortable: true,
-      render: (_: any, payment: Payment) => (
+      render: (_value: unknown, payment: Payment) => (
         <button
           onClick={() => handleViewInvoice(payment)}
           className="text-blue-600 hover:text-blue-800 hover:underline"
@@ -154,24 +155,25 @@ const PaymentList: React.FC = () => {
       key: 'amount',
       label: 'Nominal',
       sortable: true,
-      render: (_: any, payment: Payment) => `Rp ${payment.amount.toLocaleString('id-ID')}`,
+      render: (_value: unknown, payment: Payment) => `Rp ${payment.amount.toLocaleString('id-ID')}`,
     },
     {
       key: 'paymentMethod',
       label: 'Metode',
       sortable: true,
-      render: (_: any, payment: Payment) => PAYMENT_METHOD_LABELS[payment.paymentMethod] || payment.paymentMethod,
+      render: (_value: unknown, payment: Payment) => PAYMENT_METHOD_LABELS[payment.paymentMethod] || payment.paymentMethod,
     },
     {
       key: 'referenceNumber',
       label: 'Referensi',
-      render: (_: any, payment: Payment) => payment.referenceNumber || '-',
+      hideOnMobile: true,
+      render: (_value: unknown, payment: Payment) => payment.referenceNumber || '-',
     },
     {
       key: 'status',
       label: 'Status',
       sortable: true,
-      render: (_: any, payment: Payment) => (
+      render: (_value: unknown, payment: Payment) => (
         <span
           className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(payment.status)}`}
         >
@@ -182,7 +184,7 @@ const PaymentList: React.FC = () => {
     {
       key: 'actions',
       label: 'Aksi',
-      render: (_: any, payment: Payment) => (
+      render: (_value: unknown, payment: Payment) => (
         <div className="flex items-center gap-2">
           <button
             onClick={() => handleViewReceipt(payment)}
@@ -215,17 +217,74 @@ const PaymentList: React.FC = () => {
     },
   ];
 
+  const completedCount = payments.filter((payment) => payment.status === 'completed').length;
+  const pendingCount = payments.filter((payment) => payment.status === 'pending').length;
+  const totalNominal = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const hasActiveFilters =
+    Boolean(filters.paymentMethod) ||
+    Boolean(filters.status) ||
+    Boolean(filters.dateFrom) ||
+    Boolean(filters.dateTo) ||
+    searchTerm !== '';
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Pembayaran" subtitle="Kelola transaksi pembayaran dan struk pembayaran" />
+      <PageHeader
+        title="Pembayaran"
+        subtitle="Kelola transaksi pembayaran dengan ringkasan singkat, filter yang rapi, dan aksi yang mudah dijangkau di mobile."
+      />
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <DashboardStatCard
+          title="Transaksi tampil"
+          value={loading ? '...' : payments.length.toLocaleString('id-ID')}
+          helper={hasActiveFilters ? 'Daftar sedang difilter' : 'Semua item pada halaman'}
+          subtitle="Jumlah pembayaran yang sedang tampil pada daftar saat ini."
+          icon={DocumentTextIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Pembayaran selesai"
+          value={loading ? '...' : completedCount.toLocaleString('id-ID')}
+          subtitle="Transaksi yang sudah berhasil diselesaikan dan tercatat."
+          icon={EyeIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Menunggu proses"
+          value={loading ? '...' : pendingCount.toLocaleString('id-ID')}
+          subtitle="Membantu memantau pembayaran yang masih perlu tindakan lanjutan."
+          icon={FunnelIcon}
+          tone="yellow"
+        />
+        <DashboardStatCard
+          title="Nominal pada daftar"
+          value={loading ? '...' : `Rp ${totalNominal.toLocaleString('id-ID')}`}
+          subtitle="Akumulasi nominal pembayaran yang tampil pada daftar aktif."
+          icon={PlusIcon}
+          tone="purple"
+        />
+      </div>
+
+      <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Filter pembayaran</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Saring transaksi berdasarkan metode, status, tanggal, atau kata kunci pencarian.
+            </p>
+          </div>
+          {hasActiveFilters && (
+            <span className="inline-flex w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+              Filter aktif
+            </span>
+          )}
+        </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-               Metode Pembayaran
-              </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Metode Pembayaran
+            </label>
             <select
               className="w-full border border-gray-300 rounded-md px-3 py-2"
               value={filters.paymentMethod || ''}
@@ -241,9 +300,9 @@ const PaymentList: React.FC = () => {
           </div>
 
           <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-               Status
-              </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
             <select
               className="w-full border border-gray-300 rounded-md px-3 py-2"
               value={filters.status || ''}
@@ -259,9 +318,9 @@ const PaymentList: React.FC = () => {
           </div>
 
           <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-               Tanggal Mulai
-              </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tanggal Mulai
+            </label>
             <input
               type="date"
               className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -271,9 +330,9 @@ const PaymentList: React.FC = () => {
           </div>
 
           <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-               Tanggal Selesai
-              </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tanggal Selesai
+            </label>
             <input
               type="date"
               className="w-full border border-gray-300 rounded-md px-3 py-2"
@@ -324,6 +383,8 @@ const PaymentList: React.FC = () => {
           columns={columns}
           data={payments}
           loading={loading}
+          searchable={false}
+          emptyMessage="Belum ada pembayaran yang sesuai dengan filter"
         />
 
         {/* Pagination */}

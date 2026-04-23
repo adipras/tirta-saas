@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bars3Icon, BellIcon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../hooks/redux';
 import { logoutAsync } from '../store/slices/authSlice';
 import PrinterBridgeIndicator from './PrinterBridgeIndicator';
@@ -11,8 +12,87 @@ interface HeaderProps {
 const Header = ({ onMenuClick }: HeaderProps) => {
   const { user } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const pageMeta = useMemo(() => {
+    const pageMap: Array<{ match: (pathname: string) => boolean; title: string; subtitle: string }> = [
+      {
+        match: (pathname) => pathname === '/admin',
+        title: 'Dashboard',
+        subtitle: 'Ringkasan cepat untuk operasional hari ini.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/customers'),
+        title: 'Pelanggan',
+        subtitle: 'Kelola data pelanggan dan status layanan.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/invoices'),
+        title: 'Tagihan',
+        subtitle: 'Pantau invoice, jatuh tempo, dan outstanding.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/payments'),
+        title: 'Pembayaran',
+        subtitle: 'Monitor transaksi dan bukti pembayaran.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/usage'),
+        title: 'Pemakaian Air',
+        subtitle: 'Tinjau pencatatan meter dan anomali pemakaian.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/reports'),
+        title: 'Laporan',
+        subtitle: 'Ringkasan data dan insight operasional.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/subscription'),
+        title: 'Langganan & Pembayaran',
+        subtitle: 'Status paket, invoice, dan pembayaran tenant.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/platform/tenants'),
+        title: 'Tenant',
+        subtitle: 'Kelola tenant dan status organisasi.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/platform/subscription-payments'),
+        title: 'Verifikasi Langganan Tenant',
+        subtitle: 'Tinjau pembayaran langganan tenant.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/platform/subscription-plans'),
+        title: 'Paket Langganan',
+        subtitle: 'Atur paket dan harga langganan platform.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/platform/analytics'),
+        title: 'Analitik Platform',
+        subtitle: 'Pantau performa tenant dan subscription.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/platform/settings'),
+        title: 'Pengaturan Platform',
+        subtitle: 'Kelola konfigurasi utama platform.',
+      },
+    ];
+
+    return pageMap.find((item) => item.match(location.pathname)) ?? {
+      title: user?.tenant_name || import.meta.env.VITE_APP_NAME || 'Tirta SaaS',
+      subtitle: 'Kelola aplikasi dari navigasi utama.',
+    };
+  }, [location.pathname, user?.tenant_name]);
+
+  const accountLabel = useMemo(() => {
+    if (user?.tenant_name) {
+      return user.tenant_name;
+    }
+
+    return import.meta.env.VITE_APP_NAME || 'Tirta SaaS';
+  }, [user?.tenant_name]);
 
   const handleLogout = () => {
     setMenuOpen(false);
@@ -42,28 +122,40 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   }, []);
 
   return (
-    <header className="safe-top bg-white shadow-sm border-b border-gray-200">
-      <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 items-center">
+    <header className="safe-top sticky top-0 z-30 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/85">
+      <div className="flex min-h-16 items-start justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-start">
           {/* Hamburger — only shown on mobile */}
           <button
             onClick={onMenuClick}
-            className="mr-3 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 md:hidden"
+            className="mr-3 mt-0.5 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 md:hidden"
             aria-label="Buka sidebar"
           >
             <Bars3Icon className="h-6 w-6" />
           </button>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-gray-900">
-              {user?.tenant_name || import.meta.env.VITE_APP_NAME || 'Tirta SaaS'}
+            <p className="truncate text-lg font-semibold text-gray-900">
+              {pageMeta.title}
             </p>
-            <p className="truncate text-xs text-gray-500">
-              {user?.role?.replace('_', ' ') || 'admin'}
-            </p>
+            <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+              <p className="truncate text-xs text-gray-500">
+                {pageMeta.subtitle}
+              </p>
+              <span className="hidden text-gray-300 sm:inline">•</span>
+              <p className="truncate text-xs font-medium text-blue-700">
+                {accountLabel}
+              </p>
+              <span className="hidden text-gray-300 sm:inline">•</span>
+              <p className="truncate text-xs text-gray-500 uppercase tracking-wide">
+                {user?.role?.replace('_', ' ') || 'admin'}
+              </p>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <PrinterBridgeIndicator />
+        <div className="flex items-center gap-2 self-center sm:gap-4">
+          <div className="hidden sm:block">
+            <PrinterBridgeIndicator />
+          </div>
           <button className="rounded-full p-2 text-gray-400 hover:text-gray-500">
             <BellIcon className="h-6 w-6" aria-hidden="true" />
           </button>
@@ -79,24 +171,36 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                 <p className="text-sm font-medium text-gray-900">{user?.name || 'Pengguna Admin'}</p>
                 <p className="text-xs text-gray-500 capitalize">{user?.role || 'admin'}</p>
               </div>
-              <UserCircleIcon className="h-8 w-8 text-gray-400 flex-shrink-0" />
+              <UserCircleIcon className="h-8 w-8 flex-shrink-0 text-gray-400" />
               <ChevronDownIcon className={`hidden h-4 w-4 text-gray-400 transition sm:block ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                <div className="border-b border-gray-100 px-4 py-2 sm:hidden">
-                  <p className="truncate text-sm font-medium text-gray-900">{user?.name || 'Pengguna Admin'}</p>
+              <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <p className="truncate text-sm font-semibold text-gray-900">{user?.name || 'Pengguna Admin'}</p>
                   <p className="truncate text-xs text-gray-500 capitalize">{user?.role || 'admin'}</p>
+                  <p className="mt-1 truncate text-xs font-medium text-blue-700">{accountLabel}</p>
                 </div>
-              <button
-                onClick={handleLogout}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                Keluar
-              </button>
+                <button
+                  onClick={handleLogout}
+                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Keluar
+                </button>
               </div>
             )}
           </div>
+        </div>
+      </div>
+      <div className="px-4 pb-3 sm:hidden">
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2">
+          <PrinterBridgeIndicator />
+          <p className="mt-2 truncate text-xs font-medium text-blue-700">
+            {accountLabel}
+          </p>
+          <p className="truncate text-xs text-gray-500 uppercase tracking-wide">
+            {user?.role?.replace('_', ' ') || 'admin'}
+          </p>
         </div>
       </div>
     </header>

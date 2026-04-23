@@ -9,14 +9,14 @@ import {
   ChartBarIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
-import { DataTable } from '../../components/DataTable';
+import { DataTable, type Column } from '../../components/DataTable';
 import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
 import type { WaterPemakaian, WaterPemakaianFilters } from '../../types/usage';
 import type { Customer } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
-import { PageHeader, ConfirmModal } from '../../components';
+import { DashboardStatCard, PageHeader, ConfirmModal } from '../../components';
 
 export default function PemakaianList() {
   const navigate = useNavigate();
@@ -26,7 +26,6 @@ export default function PemakaianList() {
   const [customers, setPelanggan] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [_totalPages, setTotalPages] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
@@ -34,6 +33,7 @@ export default function PemakaianList() {
     customerId: undefined,
     usageMonth: undefined,
   });
+  const hasActiveFilters = Boolean(filters.customerId || filters.usageMonth);
 
   const fetchWaterPemakaians = useCallback(async () => {
     try {
@@ -44,7 +44,6 @@ export default function PemakaianList() {
         filters
       );
       setWaterPemakaians(response.data);
-      setTotalPages(response.totalPages);
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
@@ -130,11 +129,11 @@ export default function PemakaianList() {
     });
   };
 
-  const columns = [
+  const columns: Column<WaterPemakaian>[] = [
     {
       key: 'customer',
-      label: 'Customer',
-      render: (_: any, row: WaterPemakaian) => (
+      label: 'Pelanggan',
+      render: (_value: unknown, row: WaterPemakaian) => (
         <div>
           <div className="font-medium text-gray-900">{row.customer?.name || '-'}</div>
           <div className="text-sm text-gray-500">{row.customer?.address || '-'}</div>
@@ -144,31 +143,33 @@ export default function PemakaianList() {
     },
     {
       key: 'usageMonth',
-      label: 'Period',
-      render: (_: any, row: WaterPemakaian) => formatMonth(row.usageMonth),
+      label: 'Periode',
+      render: (_value: unknown, row: WaterPemakaian) => formatMonth(row.usageMonth),
       sortable: true,
     },
     {
       key: 'meterNumber',
-      label: 'Meter No.',
-      render: (_: any, row: WaterPemakaian) => row.customer?.meterNumber || '-',
+      label: 'No. Meter',
+      render: (_value: unknown, row: WaterPemakaian) => row.customer?.meterNumber || '-',
     },
     {
       key: 'meterStart',
-      label: 'Previous',
-      render: (_: any, row: WaterPemakaian) => (row.meterStart ?? 0).toFixed(2),
+      label: 'Meter Awal',
+      hideOnMobile: true,
+      render: (_value: unknown, row: WaterPemakaian) => (row.meterStart ?? 0).toFixed(2),
       align: 'right' as const,
     },
     {
       key: 'meterEnd',
-      label: 'Current',
-      render: (_: any, row: WaterPemakaian) => (row.meterEnd ?? 0).toFixed(2),
+      label: 'Meter Akhir',
+      hideOnMobile: true,
+      render: (_value: unknown, row: WaterPemakaian) => (row.meterEnd ?? 0).toFixed(2),
       align: 'right' as const,
     },
     {
       key: 'usageM3',
       label: 'Pemakaian (m³)',
-      render: (_: any, row: WaterPemakaian) => (
+      render: (_value: unknown, row: WaterPemakaian) => (
         <div className="flex items-center justify-end">
           <span className="font-medium">{(row.usageM3 ?? 0).toFixed(2)}</span>
           {row.isAnomaly && (
@@ -181,34 +182,34 @@ export default function PemakaianList() {
     },
     {
       key: 'amountCalculated',
-      label: 'Amount',
-      render: (_: any, row: WaterPemakaian) => formatCurrency(row.amountCalculated),
+      label: 'Nominal',
+      render: (_value: unknown, row: WaterPemakaian) => formatCurrency(row.amountCalculated),
       align: 'right' as const,
       sortable: true,
     },
     {
       key: 'actions',
-      label: 'Actions',
-      render: (_: any, row: WaterPemakaian) => (
-        <div className="flex space-x-2">
+      label: 'Aksi',
+      render: (_value: unknown, row: WaterPemakaian) => (
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             onClick={() => navigate(`/admin/usage/${row.customerId}/history`)}
-            className="text-purple-600 hover:text-purple-900"
-            title="View History"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-purple-200 text-purple-600 transition hover:bg-purple-50"
+            title="Lihat riwayat"
           >
             <ChartBarIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => navigate(`/admin/usage/edit/${row.id}`)}
-            className="text-blue-600 hover:text-blue-900"
-            title="Edit"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 text-blue-600 transition hover:bg-blue-50"
+            title="Ubah data"
           >
             <PencilIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => handleDelete(row.id)}
-            className="text-red-600 hover:text-red-900"
-            title="Delete"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50"
+            title="Hapus data"
           >
             <TrashIcon className="w-5 h-5" />
           </button>
@@ -224,107 +225,71 @@ export default function PemakaianList() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Pemakaian Air" subtitle="Track and manage water meter readings and usage calculations" />
+      <PageHeader
+        title="Pemakaian Air"
+        subtitle="Pantau pencatatan meter, nominal pemakaian, dan anomali dengan tampilan yang lebih nyaman di mobile."
+      />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <ChartBarIcon className="h-6 w-6 text-blue-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Records
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {waterPemakaians.length}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <ChartBarIcon className="h-6 w-6 text-green-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Pemakaian
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {totalPemakaian.toFixed(2)} m³
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <ChartBarIcon className="h-6 w-6 text-purple-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Amount
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {formatCurrency(totalAmount)}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <ExclamationTriangleIcon className="h-6 w-6 text-yellow-400" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    Anomalies
-                  </dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {anomaliesCount}
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <DashboardStatCard
+          title="Data tampil"
+          value={loading ? '...' : waterPemakaians.length.toLocaleString('id-ID')}
+          helper={hasActiveFilters ? 'Daftar sedang difilter' : 'Semua item pada halaman'}
+          subtitle="Jumlah catatan pemakaian yang sedang tampil pada daftar aktif."
+          icon={ChartBarIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Total pemakaian"
+          value={loading ? '...' : `${totalPemakaian.toFixed(2)} m3`}
+          subtitle="Akumulasi pemakaian dari catatan yang sedang tampil pada daftar."
+          icon={ChartBarIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Total nominal"
+          value={loading ? '...' : formatCurrency(totalAmount)}
+          subtitle="Ringkasan nominal hasil perhitungan pemakaian pada daftar aktif."
+          icon={PlusIcon}
+          tone="purple"
+        />
+        <DashboardStatCard
+          title="Anomali"
+          value={loading ? '...' : anomaliesCount.toLocaleString('id-ID')}
+          subtitle="Catatan yang terindikasi anomali agar bisa ditinjau lebih dulu."
+          icon={ExclamationTriangleIcon}
+          tone="yellow"
+        />
       </div>
 
-      {/* Filters */}
-        <div className="mb-4">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center text-sm text-gray-700 hover:text-gray-900 mb-3"
+      <div>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className="mb-3 flex items-center text-sm text-gray-700 hover:text-gray-900"
         >
           <FunnelIcon className="w-4 h-4 mr-2" />
-          {showFilters ? 'Hide Filters' : 'Show Filters'}
+          {showFilters ? 'Tutup Filter' : 'Filter'}
         </button>
 
         {showFilters && (
-          <div className="bg-white p-4 rounded-lg shadow mb-4">
+          <div className="mb-4 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Filter pemakaian</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Saring catatan pemakaian berdasarkan pelanggan atau periode pencatatan.
+                </p>
+              </div>
+              {hasActiveFilters && (
+                <span className="inline-flex w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                  Filter aktif
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Customer
+                  Pelanggan
                 </label>
                 <select
                   value={filters.customerId || ''}
@@ -342,7 +307,7 @@ export default function PemakaianList() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Period
+                  Periode
                 </label>
                 <input
                   type="month"
@@ -357,7 +322,7 @@ export default function PemakaianList() {
                   onClick={clearFilters}
                   className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
                 >
-                  Clear Filters
+                  Reset Filter
                 </button>
               </div>
             </div>
@@ -365,30 +330,31 @@ export default function PemakaianList() {
         )}
       </div>
 
-      {/* Actions */}
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <button
           onClick={() => navigate('/admin/usage/bulk-import')}
           className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
         >
           <ArrowUpTrayIcon className="h-5 w-5 mr-2" />
-          Bulk Import
+          Import Massal
         </button>
         <button
           onClick={() => navigate('/admin/usage/create')}
           className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
-          Add Meter Reading
+          Tambah Catatan Meter
         </button>
       </div>
 
-      {/* Table */}
       <div className="bg-white shadow rounded-lg">
         <DataTable
           columns={columns}
           data={waterPemakaians}
           loading={loading}
+          searchable={false}
+          emptyMessage="Belum ada data pemakaian yang sesuai dengan filter"
+          onRowClick={(row) => navigate(`/admin/usage/${row.customerId}/history`)}
         />
       </div>
 

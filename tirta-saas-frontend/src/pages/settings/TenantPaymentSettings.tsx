@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   BuildingLibraryIcon,
   CloudArrowUpIcon,
@@ -18,7 +18,7 @@ import {
 import { authService } from '../../services/authService';
 import { useAppDispatch } from '../../hooks/redux';
 import { setUser } from '../../store/slices/authSlice';
-import { ConfirmModal, ImageCropModal, PageHeader, useToast } from '../../components';
+import { ConfirmModal, ImageCropModal, Modal, PageHeader, useToast } from '../../components';
 
 interface BankAccount {
   id: string;
@@ -28,6 +28,29 @@ interface BankAccount {
   bankCode: string;
   isActive: boolean;
   isPrimary: boolean;
+}
+
+interface RawBankAccount {
+  id: string;
+  bank_name: string;
+  account_number: string;
+  account_name: string;
+  swift_code?: string;
+  bank_branch?: string;
+  is_active: boolean;
+  is_primary: boolean;
+}
+
+function extractBankList(payload: unknown): RawBankAccount[] {
+  if (Array.isArray(payload)) {
+    return payload as RawBankAccount[];
+  }
+
+  if (payload && typeof payload === 'object' && Array.isArray((payload as { data?: unknown }).data)) {
+    return (payload as { data: RawBankAccount[] }).data;
+  }
+
+  return [];
 }
 
 interface TenantProfileForm {
@@ -47,7 +70,7 @@ interface BillingSettingsForm {
 
 type QRCodeType = 'QRIS' | 'DANA' | 'GOPAY' | 'OVO' | 'SHOPEEPAY';
 
-function mapBank(bank: any): BankAccount {
+function mapBank(bank: RawBankAccount): BankAccount {
   return {
     id: bank.id,
     bankName: bank.bank_name,
@@ -117,10 +140,6 @@ export default function TenantPaymentSettings() {
   });
 
   useEffect(() => {
-    void loadSettings();
-  }, []);
-
-  useEffect(() => {
     return () => {
       if (tenantLogoPreviewUrl) {
         URL.revokeObjectURL(tenantLogoPreviewUrl);
@@ -139,11 +158,11 @@ export default function TenantPaymentSettings() {
     }
   };
 
-  const loadSettings = async (): Promise<void> => {
+  const loadSettings = useCallback(async (): Promise<void> => {
     try {
       const [settingsRes, bankRes, qrRes] = await Promise.allSettled([
         tenantSettingsService.getTenantSettings(),
-        apiClient.get('/payment-methods/bank-accounts'),
+        apiClient.get<unknown>('/payment-methods/bank-accounts'),
         qrCodeService.getQRCodes(),
       ]);
 
@@ -166,7 +185,7 @@ export default function TenantPaymentSettings() {
       }
 
       if (bankRes.status === 'fulfilled') {
-        const list = (bankRes.value as any)?.data || [];
+        const list = extractBankList(bankRes.value);
         setBankAccounts(list.map(mapBank));
       }
 
@@ -177,7 +196,11 @@ export default function TenantPaymentSettings() {
       console.error('Failed to load tenant settings:', error);
       toast.error('Gagal memuat pengaturan tenant.');
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   const handleProfileChange = (
     field: keyof TenantProfileForm,
@@ -851,16 +874,16 @@ export default function TenantPaymentSettings() {
         </div>
       </div>
 
-      {showBankModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-600 bg-opacity-50 p-4 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl">
-            <form onSubmit={handleBankSubmit}>
-              <div className="p-6">
-                <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                  {editingBank ? 'Edit Rekening Bank' : 'Tambah Rekening Bank'}
-                </h3>
-
-                <div className="space-y-4">
+      <Modal
+        isOpen={showBankModal}
+        onClose={closeBankModal}
+        title={editingBank ? 'Edit Rekening Bank' : 'Tambah Rekening Bank'}
+        size="md"
+        mobileFullscreen
+        bodyClassName="p-0"
+      >
+        <form onSubmit={handleBankSubmit} className="flex min-h-full flex-col">
+          <div className="flex-1 space-y-4 p-4 sm:p-6">
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">
                       Nama Bank
@@ -934,39 +957,38 @@ export default function TenantPaymentSettings() {
                       <span className="ml-2 text-sm text-gray-700">Jadikan utama</span>
                     </label>
                   </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col-reverse gap-3 rounded-b-lg bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeBankModal}
-                  className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
-                >
-                  {editingBank ? 'Simpan Perubahan' : 'Tambah Rekening'}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
 
-      {showQRModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-gray-600 bg-opacity-50 p-4 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl">
-            <form onSubmit={handleQRSubmit}>
-              <div className="p-6">
-                <h3 className="mb-4 text-lg font-semibold text-gray-900">
-                  {editingQR ? 'Edit QR Code' : 'Tambah QR Code'}
-                </h3>
+          <div className="border-t border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeBankModal}
+                className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
+              >
+                {editingBank ? 'Simpan Perubahan' : 'Tambah Rekening'}
+              </button>
+            </div>
+          </div>
+        </form>
+      </Modal>
 
-                <div className="space-y-4">
+      <Modal
+        isOpen={showQRModal}
+        onClose={closeQRModal}
+        title={editingQR ? 'Edit QR Code' : 'Tambah QR Code'}
+        size="md"
+        mobileFullscreen
+        bodyClassName="p-0"
+      >
+        <form onSubmit={handleQRSubmit} className="flex min-h-full flex-col">
+          <div className="flex-1 space-y-4 p-4 sm:p-6">
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700">Tipe</label>
                     <select
@@ -1058,28 +1080,27 @@ export default function TenantPaymentSettings() {
                       placeholder="Catatan opsional"
                     />
                   </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col-reverse gap-3 rounded-b-lg bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeQRModal}
-                  className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="w-full rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 sm:w-auto"
-                >
-                  {editingQR ? 'Simpan Perubahan' : 'Tambah QR Code'}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+
+          <div className="border-t border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeQRModal}
+                className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 sm:w-auto"
+              >
+                {editingQR ? 'Simpan Perubahan' : 'Tambah QR Code'}
+              </button>
+            </div>
+          </div>
+        </form>
+      </Modal>
 
       <ConfirmModal
         isOpen={deleteTarget !== null}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import { DataTable } from '../../components/DataTable';
+import { DataTable, type Column } from '../../components/DataTable';
 import { PageHeader } from '../../components';
 import { waterRateService } from '../../services/waterRateService';
 import { subscriptionService } from '../../services/subscriptionService';
@@ -18,7 +18,6 @@ export default function RateHistory() {
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [_totalPages, setTotalPages] = useState(1);
   const [selectedSubscription, setSelectedSubscription] = useState<string>('');
 
   const fetchHistory = useCallback(async () => {
@@ -30,7 +29,6 @@ export default function RateHistory() {
         20
       );
       setHistory(response.data);
-      setTotalPages(response.totalPages);
     } catch (error) {
       dispatch(addNotification({
         type: 'error',
@@ -85,7 +83,7 @@ export default function RateHistory() {
     });
   };
 
-  const columns = [
+  const columns: Column<RateHistory>[] = [
     {
       key: 'subscriptionName',
       label: 'Subscription Type',
@@ -94,26 +92,26 @@ export default function RateHistory() {
     {
       key: 'amount',
       label: 'Rate per m³',
-      render: (row: RateHistory) => formatCurrency(row.amount),
+      render: (_value: unknown, row: RateHistory) => formatCurrency(row.amount),
       align: 'right' as const,
       sortable: true,
     },
     {
       key: 'effectiveDate',
       label: 'Effective Date',
-      render: (row: RateHistory) => formatDate(row.effective_date),
+      render: (_value: unknown, row: RateHistory) => formatDate(row.effective_date),
       sortable: true,
     },
     {
       key: 'createdAt',
       label: 'Created At',
-      render: (row: RateHistory) => formatDateTime(row.created_at),
+      render: (_value: unknown, row: RateHistory) => formatDateTime(row.created_at),
       sortable: true,
     },
     {
       key: 'active',
       label: 'Status',
-      render: (row: RateHistory) => (
+      render: (_value: unknown, row: RateHistory) => (
         <span
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
             row.active

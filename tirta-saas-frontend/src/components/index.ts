@@ -32,6 +32,9 @@ export type { SkeletonProps } from './LoadingSkeleton';
 export { Badge, StatusBadge, PaymentStatusBadge } from './Badge';
 export type { BadgeProps, BadgeVariant, BadgeSize } from './Badge';
 
+export { default as DashboardStatCard } from './DashboardStatCard';
+export { default as QuickActionCard } from './QuickActionCard';
+
 export { CurrencyInput, CurrencyDisplay } from './CurrencyInput';
 export type { CurrencyInputProps, CurrencyDisplayProps } from './CurrencyInput';
 
