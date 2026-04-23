@@ -46,11 +46,26 @@ export interface PaymentReceipt {
   id: string;
   paymentId: string;
   receiptNumber: string;
+  tenantInfo?: {
+    companyName?: string;
+    phone?: string;
+    logoUrl?: string;
+    footerText?: string;
+    bankName?: string;
+    bankAccountName?: string;
+    bankAccountNo?: string;
+    qrisImageUrl?: string;
+  };
+  usageDetails?: {
+    usageMonth?: string;
+    usageM3?: number;
+  };
   payment: Payment;
   invoiceDetails: {
     invoiceNumber: string;
     invoiceDate: string;
     dueDate: string;
+    invoiceType?: 'monthly' | 'registration';
     subTotal?: number;
     penaltyAmount?: number;
     totalAmount: number;

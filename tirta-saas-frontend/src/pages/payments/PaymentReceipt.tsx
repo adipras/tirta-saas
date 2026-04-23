@@ -5,7 +5,7 @@ import { PageHeader, useToast } from '../../components';
 import { paymentService } from '../../services/paymentService';
 import { thermalPrinterService } from '../../services/thermalPrinterService';
 import type { PaymentReceipt as PaymentReceiptType } from '../../types/payment';
-import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from '../../types/payment';
+import { PAYMENT_METHOD_LABELS } from '../../types/payment';
 import type { ThermalPrinterDevice, ThermalPrinterStatus } from '../../types/thermalPrinter';
 import { PRINTER_BRIDGE_BASE_URL } from '../../constants/api';
 
@@ -25,12 +25,8 @@ const PaymentReceipt: React.FC = () => {
   const [preferredPrinter, setPreferredPrinter] = useState<ThermalPrinterDevice | null>(null);
   const [bridgeChecked, setBridgeChecked] = useState(false);
   const [bridgeAvailable, setBridgeAvailable] = useState(false);
+  const [bridgeWarnDismissed, setBridgeWarnDismissed] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
-
-  const formatTanggal = (value?: string) => {
-    if (!value) return '-';
-    return new Date(value).toLocaleDateString('id-ID');
-  };
 
   const formatTanggalWaktu = (value?: string) => {
     if (!value) return '-';
@@ -238,19 +234,37 @@ const PaymentReceipt: React.FC = () => {
   }
 
   const isPartialPayment = receipt.invoiceDetails.paymentCoverageType === 'partial';
-  const paymentStatusLabel = isPartialPayment ? 'Pembayaran Parsial' : 'Pelunasan Tagihan';
-  const paymentStatusColor = isPartialPayment ? 'text-amber-600' : 'text-green-600';
   const thermalBridgeDetected = bridgeAvailable;
   const thermalModeActive = bridgeAvailable;
   const compactAddress = truncateText(receipt.customerDetails.address, 90);
   const compactNotes = truncateText(receipt.payment.notes, 120);
   const paymentMethodLabel = PAYMENT_METHOD_LABELS[receipt.payment.paymentMethod] || receipt.payment.paymentMethod;
-  const paymentStateLabel = PAYMENT_STATUS_LABELS[receipt.payment.status] || receipt.payment.status;
   const invoiceStatusLabel = receipt.invoiceDetails.invoicePaymentStatus === 'paid'
     ? 'Lunas'
     : receipt.invoiceDetails.invoicePaymentStatus === 'partial'
       ? 'Parsial'
       : 'Belum Lunas';
+  const invoiceStatusColor = receipt.invoiceDetails.invoicePaymentStatus === 'paid'
+    ? 'text-green-600'
+    : receipt.invoiceDetails.invoicePaymentStatus === 'partial'
+      ? 'text-amber-600'
+      : 'text-red-600';
+
+  const tenantName = receipt.tenantInfo?.companyName || 'TIRTA SAAS';
+  const tenantPhone = receipt.tenantInfo?.phone;
+  const tenantLogo = receipt.tenantInfo?.logoUrl;
+  const footerText = receipt.tenantInfo?.footerText || 'Terima kasih telah membayar tagihan air Anda.';
+  const bankName = receipt.tenantInfo?.bankName;
+  const bankAccountName = receipt.tenantInfo?.bankAccountName;
+  const bankAccountNo = receipt.tenantInfo?.bankAccountNo;
+  const qrisImageUrl = receipt.tenantInfo?.qrisImageUrl;
+  const hasBankInfo = bankName || bankAccountNo;
+
+  const usageMonth = receipt.usageDetails?.usageMonth;
+  const usageM3 = receipt.usageDetails?.usageM3;
+  const usageMonthLabel = usageMonth
+    ? new Date(`${usageMonth}-01`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+    : null;
 
   return (
     <div className="p-6">
@@ -258,277 +272,229 @@ const PaymentReceipt: React.FC = () => {
         title="Struk Pembayaran"
         subtitle={`No. Struk ${receipt.receiptNumber}`}
         actions={
-          <>
-            <button
-              onClick={() => navigate('/admin/payments')}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-            >
-              Kembali ke Pembayaran
-            </button>
-            <button
-              onClick={handleReceiptPrint}
-              disabled={printing}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
-            >
-              {printing
-                ? 'Mengirim ke Printer...'
-                : thermalModeActive
-                  ? 'Cetak ke Printer Thermal'
-                  : 'Cetak Struk'}
-            </button>
+          <div className="flex items-center gap-2">
             {thermalModeActive && (
               <button
                 onClick={handlePrint}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                className="px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
               >
-                Fallback Cetak Browser
+                Cetak Browser
               </button>
             )}
-          </>
+            <button
+              onClick={handleReceiptPrint}
+              disabled={printing}
+              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
+            >
+              {printing
+                ? 'Mengirim...'
+                : thermalModeActive
+                  ? 'Cetak Thermal'
+                  : 'Cetak Struk'}
+            </button>
+          </div>
         }
       />
 
-      {bridgeChecked && !thermalBridgeDetected && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4 max-w-4xl mx-auto mb-6">
-          <p className="font-semibold">Bridge printer thermal belum aktif</p>
-          <p className="mt-1 text-sm">
-            Jalankan aplikasi <span className="font-medium">Bridge Printer Thermal</span> di Android agar frontend dapat
-            mengakses <span className="font-medium">{PRINTER_BRIDGE_BASE_URL}</span>. Sementara itu, cetak browser tetap tersedia.
+      {bridgeChecked && !thermalBridgeDetected && !bridgeWarnDismissed && (
+        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-lg px-3 py-2.5 max-w-4xl mx-auto mb-4">
+          <span className="text-amber-500 mt-0.5 flex-shrink-0">⚠</span>
+          <p className="flex-1 text-xs leading-snug">
+            <span className="font-semibold">Bridge printer thermal belum aktif.</span>{' '}
+            Jalankan aplikasi Bridge di Android ({PRINTER_BRIDGE_BASE_URL}). Cetak browser tetap tersedia.
           </p>
+          <button
+            onClick={() => setBridgeWarnDismissed(true)}
+            className="flex-shrink-0 text-amber-600 hover:text-amber-800 transition-colors"
+            aria-label="Tutup"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 
       {thermalBridgeDetected && (
-        <div className="bg-white rounded-lg shadow p-6 max-w-4xl mx-auto mb-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Printer Thermal Kasir Keliling</h3>
-              <div className="mt-2 space-y-1 text-sm text-gray-600">
-                <p>
-                  <span className="font-medium text-gray-700">Status:</span>{' '}
-                  <span className={printerStatus.connected ? 'text-green-600 font-medium' : 'text-amber-600 font-medium'}>
-                    {printerStatus.connected ? 'Terhubung' : 'Belum terhubung'}
-                  </span>
-                </p>
-                {printerStatus.printerName && (
-                  <p><span className="font-medium text-gray-700">Printer aktif:</span> {printerStatus.printerName}</p>
-                )}
-                {preferredPrinter && (
-                  <p><span className="font-medium text-gray-700">Printer favorit:</span> {preferredPrinter.name}</p>
-                )}
-                {printerStatus.serverUrl && (
-                  <p><span className="font-medium text-gray-700">Bridge:</span> {printerStatus.serverUrl}</p>
-                )}
-                {printerStatus.message && (
-                  <p><span className="font-medium text-gray-700">Info:</span> {printerStatus.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => void refreshPrinterStatus()}
-                disabled={printerBusy}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 disabled:opacity-50"
-              >
-                Refresh Status
-              </button>
-              <button
-                onClick={() => void handleScanPrinters()}
-                disabled={printerBusy}
-                className="px-4 py-2 border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50 disabled:opacity-50"
-              >
-                Cari Printer
-              </button>
-              {preferredPrinter && !printerStatus.connected && (
-                <button
-                  onClick={() => void handleConnectPrinter(preferredPrinter)}
-                  disabled={printerBusy}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                >
-                  Hubungkan Printer Favorit
-                </button>
-              )}
-            </div>
+        <div className="bg-white rounded-lg shadow px-4 py-3 max-w-4xl mx-auto mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">Printer Thermal:</span>
+            <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${printerStatus.connected ? 'text-green-600' : 'text-amber-600'}`}>
+              <span className={`w-2 h-2 rounded-full ${printerStatus.connected ? 'bg-green-500' : 'bg-amber-400'}`} />
+              {printerStatus.connected
+                ? (printerStatus.printerName || 'Terhubung')
+                : 'Belum terhubung'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => void refreshPrinterStatus()}
+              disabled={printerBusy}
+              className="px-3 py-1.5 text-xs border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              Refresh
+            </button>
+            <button
+              onClick={() => void handleScanPrinters()}
+              disabled={printerBusy}
+              className="px-3 py-1.5 text-xs border border-blue-300 text-blue-700 rounded-md hover:bg-blue-50 disabled:opacity-50"
+            >
+              Cari Printer
+            </button>
           </div>
 
           {availablePrinters.length > 0 && (
-            <div className="mt-4 border-t pt-4">
-              <p className="text-sm font-medium text-gray-900 mb-3">Hasil pencarian printer</p>
-              <div className="space-y-2">
-                {availablePrinters.map((device) => (
-                  <div key={device.id} className="flex items-center justify-between rounded-md border border-gray-200 p-3">
-                    <div>
-                      <p className="font-medium text-gray-900">{device.name}</p>
-                      {device.address && <p className="text-sm text-gray-500">{device.address}</p>}
-                    </div>
-                    <button
-                      onClick={() => void handleConnectPrinter(device)}
-                      disabled={printerBusy}
-                      className="px-3 py-2 bg-gray-900 text-white rounded-md hover:bg-black disabled:opacity-50"
-                    >
-                      Hubungkan
-                    </button>
+            <div className="w-full border-t pt-3 mt-1 space-y-2">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Hasil Pencarian</p>
+              {availablePrinters.map((device) => (
+                <div key={device.id} className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{device.name}</p>
+                    {device.address && <p className="text-xs text-gray-500">{device.address}</p>}
                   </div>
-                ))}
-              </div>
+                  <button
+                    onClick={() => void handleConnectPrinter(device)}
+                    disabled={printerBusy}
+                    className="px-3 py-1.5 text-xs bg-gray-900 text-white rounded-md hover:bg-black disabled:opacity-50"
+                  >
+                    Hubungkan
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
       )}
 
-      <div ref={receiptRef} className="bg-white rounded-lg shadow p-6 md:p-8 max-w-2xl mx-auto">
-        <div className="border-b border-dashed border-gray-300 pb-4 mb-4">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">TIRTA SAAS</h2>
-            <p className="text-sm text-gray-600 mt-1">Struk Pembayaran Air</p>
+      <div ref={receiptRef} className="bg-white rounded-lg shadow p-5 max-w-sm mx-auto font-mono text-xs">
+
+        {/* Header — nama PDAM */}
+        <div className="text-center pb-3 border-b border-dashed border-gray-400">
+          {tenantLogo && (
+            <img src={tenantLogo} alt={tenantName} className="h-12 w-auto mx-auto mb-2 object-contain" />
+          )}
+          <p className="font-bold text-sm uppercase tracking-wide text-gray-900">{tenantName}</p>
+          {tenantPhone && <p className="text-gray-600 mt-0.5">Telp: {tenantPhone}</p>}
+        </div>
+
+        {/* Info struk + pelanggan */}
+        <div className="py-3 border-b border-dashed border-gray-400 space-y-0.5">
+          <div className="flex justify-between">
+            <span>No. {receipt.receiptNumber}</span>
+            <span className={`font-semibold ${invoiceStatusColor}`}>{invoiceStatusLabel}</span>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-gray-500">No. Struk</p>
-              <p className="font-semibold text-gray-900">{receipt.receiptNumber}</p>
+          <div className="flex justify-between text-gray-500">
+            <span>{formatTanggalWaktu(receipt.payment.paymentDate)}</span>
+          </div>
+          <div className="flex justify-between gap-2 mt-1">
+            <span className="text-gray-500">Pelanggan</span>
+            <span className="text-right font-medium text-gray-900">{receipt.customerDetails.name}</span>
+          </div>
+          {receipt.customerDetails.meterNumber && (
+            <div className="flex justify-between gap-2">
+              <span className="text-gray-500">No. Meter</span>
+              <span className="text-right text-gray-900">{receipt.customerDetails.meterNumber}</span>
             </div>
-            <div className="text-right">
-              <p className="text-gray-500">Dicetak</p>
-              <p className="font-semibold text-gray-900">{formatTanggalWaktu(receipt.generatedAt)}</p>
+          )}
+          {compactAddress && (
+            <p className="text-gray-600 mt-1">{compactAddress}</p>
+          )}
+          <div className="flex justify-between gap-2 mt-1">
+            <span className="text-gray-500">No. Tagihan</span>
+            <span className="text-right text-gray-900">{receipt.invoiceDetails.invoiceNumber}</span>
+          </div>
+          <div className="flex justify-between gap-2">
+            <span className="text-gray-500">Metode</span>
+            <span className="text-right text-gray-900">{paymentMethodLabel}</span>
+          </div>
+          {receipt.payment.referenceNumber && (
+            <div className="flex justify-between gap-2">
+              <span className="text-gray-500">Ref.</span>
+              <span className="text-right text-gray-900">{receipt.payment.referenceNumber}</span>
             </div>
-            <div>
-              <p className="text-gray-500">No. Tagihan</p>
-              <p className="font-semibold text-gray-900">{receipt.invoiceDetails.invoiceNumber}</p>
+          )}
+        </div>
+
+        {/* Item tagihan */}
+        <div className="py-3 border-b border-dashed border-gray-400">
+          <p className="font-semibold text-gray-900">
+            Tagihan Air{usageMonthLabel ? ` — ${usageMonthLabel}` : ''}
+          </p>
+          {usageM3 != null && usageM3 > 0 && (
+            <div className="flex justify-between mt-1">
+              <span className="text-gray-600">{usageM3} m³</span>
+              <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.subTotal)}</span>
             </div>
-            <div className="text-right">
-              <p className="text-gray-500">Jenis</p>
-              <p className={`font-semibold ${paymentStatusColor}`}>{paymentStatusLabel}</p>
+          )}
+        </div>
+
+        {/* Ringkasan biaya */}
+        <div className="py-3 border-b border-dashed border-gray-400 space-y-0.5">
+          {(receipt.invoiceDetails.subTotal || 0) > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">Subtotal</span>
+              <span>{formatCurrency(receipt.invoiceDetails.subTotal)}</span>
             </div>
+          )}
+          {(receipt.invoiceDetails.penaltyAmount || 0) > 0 && (
+            <div className="flex justify-between text-red-600">
+              <span>Denda</span>
+              <span>{formatCurrency(receipt.invoiceDetails.penaltyAmount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold text-sm pt-1">
+            <span>Total</span>
+            <span>{formatCurrency(receipt.invoiceDetails.totalAmount)}</span>
+          </div>
+          {(receipt.invoiceDetails.totalPaidBefore || 0) > 0 && (
+            <div className="flex justify-between text-gray-500">
+              <span>Terbayar</span>
+              <span>{formatCurrency(receipt.invoiceDetails.totalPaidBefore)}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-bold text-sm">
+            <span>Bayar ({paymentMethodLabel})</span>
+            <span className="text-green-600">{formatCurrency(receipt.payment.amount)}</span>
+          </div>
+          <div className="flex justify-between font-semibold">
+            <span>Sisa</span>
+            <span className={isPartialPayment ? 'text-red-600' : 'text-green-600'}>
+              {formatCurrency(receipt.invoiceDetails.remainingAmount)}
+            </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <section className="rounded-lg border border-gray-200 p-4">
-            <h4 className="font-semibold text-gray-900 mb-3">Pelanggan</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-500">Nama</span>
-                <span className="text-right font-medium text-gray-900">{receipt.customerDetails.name}</span>
+        {/* Info rekening + QR QRIS */}
+        {(hasBankInfo || qrisImageUrl) && (
+          <div className="py-3 border-b border-dashed border-gray-400">
+            {hasBankInfo && (
+              <div className="text-center mb-2 space-y-0.5">
+                {bankName && bankAccountNo && (
+                  <p className="font-semibold text-gray-900">{bankName} — {bankAccountNo}</p>
+                )}
+                {bankAccountName && (
+                  <p className="text-gray-600">a.n. {bankAccountName}</p>
+                )}
               </div>
-              {receipt.customerDetails.meterNumber && (
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-500">No. Meter</span>
-                  <span className="text-right text-gray-900">{receipt.customerDetails.meterNumber}</span>
-                </div>
-              )}
-              {compactAddress && (
-                <div className="space-y-1">
-                  <p className="text-gray-500">Alamat</p>
-                  <p className="text-gray-900">{compactAddress}</p>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-gray-200 p-4">
-            <h4 className="font-semibold text-gray-900 mb-3">Pembayaran</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-500">Tanggal</span>
-                <span className="text-right font-medium text-gray-900">{formatTanggal(receipt.payment.paymentDate)}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-500">Metode</span>
-                <span className="text-right text-gray-900">{paymentMethodLabel}</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-gray-500">Status</span>
-                <span className="text-right font-medium text-green-600">{paymentStateLabel}</span>
-              </div>
-              {receipt.payment.referenceNumber && (
-                <div className="flex justify-between gap-4">
-                  <span className="text-gray-500">Ref.</span>
-                  <span className="text-right text-gray-900">{receipt.payment.referenceNumber}</span>
-                </div>
-              )}
-            </div>
-          </section>
-        </div>
-
-        <section className="rounded-lg border border-gray-200 p-4 mb-4">
-          <h4 className="font-semibold text-gray-900 mb-3">Tagihan</h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-500">Tgl Tagihan</span>
-              <span className="text-right text-gray-900">{formatTanggal(receipt.invoiceDetails.invoiceDate)}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-500">Jatuh Tempo</span>
-              <span className="text-right text-gray-900">{formatTanggal(receipt.invoiceDetails.dueDate)}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-gray-500">Status Tagihan</span>
-              <span className={`text-right font-medium ${isPartialPayment ? 'text-amber-600' : 'text-green-600'}`}>
-                {invoiceStatusLabel}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        <div className="border-t border-dashed border-gray-300 pt-4">
-          <div className="flex justify-end">
-            <div className="w-full sm:w-72">
-              {(receipt.invoiceDetails.subTotal || 0) > 0 && (
-                <div className="flex justify-between py-1 text-sm">
-                  <span className="text-gray-500">Subtotal</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.subTotal)}</span>
-                </div>
-              )}
-              {(receipt.invoiceDetails.penaltyAmount || 0) > 0 && (
-                <div className="flex justify-between py-1 text-sm text-red-600">
-                  <span>Denda</span>
-                  <span className="font-medium">{formatCurrency(receipt.invoiceDetails.penaltyAmount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between py-1 text-sm">
-                <span className="text-gray-500">Tagihan</span>
-                <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.totalAmount)}</span>
-              </div>
-              {(receipt.invoiceDetails.totalPaidBefore || 0) > 0 && (
-                <div className="flex justify-between py-1 text-sm">
-                  <span className="text-gray-500">Terbayar</span>
-                  <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.totalPaidBefore)}</span>
-                </div>
-              )}
-              <div className="flex justify-between py-2 text-lg font-bold">
-                <span>Bayar</span>
-                <span className="text-green-600">{formatCurrency(receipt.payment.amount)}</span>
-              </div>
-              <div className="flex justify-between py-1 text-sm">
-                <span className="text-gray-500">Total Bayar</span>
-                <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.totalPaidAfter)}</span>
-              </div>
-              <div className="flex justify-between py-2 mt-2 border-t border-gray-200 text-base font-bold">
-                <span>Sisa</span>
-                <span className={isPartialPayment ? 'text-red-600' : 'text-green-600'}>
-                  {formatCurrency(receipt.invoiceDetails.remainingAmount)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {compactNotes && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <h4 className="font-semibold text-gray-900 mb-2">Catatan</h4>
-            <p className="text-sm text-gray-600">{compactNotes}</p>
+            )}
+            {qrisImageUrl && (
+              <img
+                src={qrisImageUrl}
+                alt="QRIS Pembayaran"
+                className="w-full max-w-[160px] mx-auto block"
+              />
+            )}
           </div>
         )}
 
-        <div className="mt-6 pt-4 border-t border-dashed border-gray-300 text-center text-sm text-gray-600">
-          <p>Terima kasih.</p>
+        {/* Footer */}
+        <div className="pt-3 text-center text-gray-600 space-y-0.5">
+          <p>{footerText}</p>
           {isPartialPayment && (
-            <p className="mt-1 text-amber-700">
-              Pembayaran parsial, masih ada sisa tagihan.
-            </p>
+            <p className="text-amber-700">Masih ada sisa tagihan.</p>
           )}
-          <p className="mt-1">Cetak: {formatTanggalWaktu(receipt.generatedAt)}</p>
+          {compactNotes && <p className="text-gray-500 italic">{compactNotes}</p>}
+          <p className="text-gray-400 mt-1">Dicetak: {formatTanggalWaktu(receipt.generatedAt)}</p>
         </div>
       </div>
     </div>

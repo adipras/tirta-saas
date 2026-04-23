@@ -14,6 +14,9 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.nio.charset.Charset
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.UUID
 
 class ThermalPrinterManager(
@@ -252,76 +255,115 @@ class ThermalPrinterManager(
         val summaryLines = payload.getJSONArray("summaryLines")
         val footerLines = payload.getJSONArray("footerLines")
 
+        // Extended fields (new layout)
+        val invoiceType = payload.optString("invoiceType")
+        val invoiceStatus = payload.optString("invoiceStatus")
+        val usageDetails = payload.optJSONObject("usageDetails")
+        val bankInfo = payload.optJSONObject("bankInfo")
+        val printNotes = payload.optString("printNotes").ifBlank { null }
+
         appendInitialize(output)
+
+        // === HEADER ===
         appendAlign(output, "center")
         appendBold(output, true)
         appendLine(output, merchant.getString("name"))
         appendBold(output, false)
-
-        appendOptionalLine(output, merchant.optString("subtitle"))
         val addressLines = merchant.optJSONArray("addressLines")
         if (addressLines != null) {
             for (index in 0 until addressLines.length()) {
                 appendLine(output, addressLines.getString(index))
             }
         }
-
-        appendLine(output, "STRUK PEMBAYARAN")
-        appendLine(output, "No. Struk: ${payload.optString("receiptNumber")}")
-        appendLine(
-            output,
-            if (payload.optString("settlementType") == "partial") {
-                "Pembayaran Parsial"
-            } else {
-                "Pelunasan Tagihan"
-            },
-        )
         appendDivider(output)
 
+        // === INFO STRUK + PELANGGAN ===
         appendAlign(output, "left")
-        appendLine(output, "Pelanggan")
-        appendKeyValue(output, "Nama", customer.optString("name"))
-        appendOptionalKeyValue(output, "Alamat", customer.optString("address"))
-        appendOptionalKeyValue(output, "Telepon", customer.optString("phone"))
-        appendOptionalKeyValue(output, "No. Meter", customer.optString("meterNumber"))
-        appendDivider(output)
 
-        appendLine(output, "Pembayaran")
-        appendKeyValue(output, "Tanggal", payment.optString("date"))
-        appendKeyValue(output, "Metode", payment.optString("method"))
-        appendOptionalKeyValue(output, "Referensi", payment.optString("referenceNumber"))
-        appendKeyValue(output, "Nominal", payment.optString("amount"))
-        appendDivider(output)
+        val statusLabel = when (invoiceStatus) {
+            "paid" -> "LUNAS"
+            "partial" -> "PARSIAL"
+            "unpaid" -> "BELUM LUNAS"
+            else -> if (payload.optString("settlementType") == "full") "LUNAS" else "PARSIAL"
+        }
+        appendKeyValue(output, "No. ${payload.optString("receiptNumber")}", statusLabel)
 
-        appendLine(output, "Tagihan")
+        val rawDate = payment.optString("date")
+        val formattedDate = formatIsoDate(rawDate)
+        appendLine(output, formattedDate)
+
+        appendKeyValue(output, "Pelanggan", customer.optString("name"))
+
+        val meterNumber = customer.optString("meterNumber")
+        if (meterNumber.isNotBlank()) appendKeyValue(output, "No. Meter", meterNumber)
+
+        val address = customer.optString("address")
+        if (address.isNotBlank()) appendLine(output, address)
+
         appendKeyValue(output, "No. Tagihan", invoice.optString("invoiceNumber"))
-        appendKeyValue(output, "Tanggal", invoice.optString("invoiceDate"))
-        appendOptionalKeyValue(output, "Jatuh Tempo", invoice.optString("dueDate"))
-        appendKeyValue(output, "Total Saat Bayar", invoice.optString("totalAmount"))
+        appendKeyValue(output, "Metode", payment.optString("method"))
+
+        val refNumber = payment.optString("referenceNumber")
+        if (refNumber.isNotBlank()) appendKeyValue(output, "Ref.", refNumber)
+
         appendDivider(output)
 
-        appendLine(output, "Ringkasan")
+        // === ITEM TAGIHAN (only for monthly) ===
+        val isMonthly = invoiceType == "monthly" || (invoiceType.isBlank() && usageDetails != null)
+        if (isMonthly && usageDetails != null) {
+            val month = usageDetails.optString("month").ifBlank { null }
+            val itemLabel = if (month != null) "Tagihan Air - $month" else "Tagihan Air"
+            appendBold(output, true)
+            appendLine(output, itemLabel)
+            appendBold(output, false)
+
+            val usageM3 = usageDetails.optDouble("usageM3", 0.0)
+            val subTotal = usageDetails.optDouble("subTotal", 0.0)
+            if (usageM3 > 0) {
+                val m3Label = usageM3.toBigDecimal().stripTrailingZeros().toPlainString()
+                appendKeyValue(output, "$m3Label m3", formatCurrencyKt(subTotal))
+            }
+            appendDivider(output)
+        }
+
+        // === RINGKASAN BIAYA ===
         for (index in 0 until summaryLines.length()) {
             val item = summaryLines.getJSONObject(index)
-            appendKeyValue(output, item.optString("label"), item.optString("value"))
+            val label = item.optString("label")
+            val value = item.optString("value")
+            val emphasis = item.optString("emphasis")
+            if (emphasis == "strong") {
+                appendBold(output, true)
+                appendKeyValue(output, label, value)
+                appendBold(output, false)
+            } else {
+                appendKeyValue(output, label, value)
+            }
         }
         appendDivider(output)
 
+        // === REKENING BANK (optional) ===
+        if (bankInfo != null) {
+            val bankName = bankInfo.optString("bankName")
+            val bankAccountNo = bankInfo.optString("bankAccountNo")
+            val bankAccountName = bankInfo.optString("bankAccountName")
+            appendAlign(output, "center")
+            val bankLine = listOf(bankName, bankAccountNo).filter { it.isNotBlank() }.joinToString(" - ")
+            if (bankLine.isNotBlank()) appendLine(output, bankLine)
+            if (bankAccountName.isNotBlank()) appendLine(output, "a.n. $bankAccountName")
+            appendDivider(output)
+        }
+
+        // === FOOTER ===
+        appendAlign(output, "center")
         for (index in 0 until footerLines.length()) {
             appendLine(output, footerLines.getString(index))
         }
-
-        val qrData = payload.optString("qrData").ifBlank {
-            payload.optJSONObject("payment")?.optString("referenceNumber").orEmpty()
-        }
-        if (qrData.isNotBlank()) {
-            appendDivider(output)
-            appendAlign(output, "center")
-            appendLine(output, "Scan Referensi")
-            appendQrCode(output, qrData)
-            appendFeed(output, 1)
+        if (!printNotes.isNullOrBlank()) {
+            appendLine(output, printNotes)
         }
 
+        appendFeed(output, 3)
         appendCut(output)
         return output.toByteArray()
     }
@@ -531,6 +573,34 @@ class ThermalPrinterManager(
             close()
         } catch (_: IOException) {
         }
+    }
+
+    private fun formatIsoDate(isoString: String): String {
+        if (isoString.isBlank()) return "-"
+        return try {
+            val inputFormats = listOf(
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault()),
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()),
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()),
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+            )
+            val date = inputFormats.firstNotNullOfOrNull { fmt ->
+                try { fmt.parse(isoString) } catch (_: Exception) { null }
+            }
+            if (date != null) {
+                SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("id", "ID")).format(date)
+            } else {
+                isoString
+            }
+        } catch (_: Exception) {
+            isoString
+        }
+    }
+
+    private fun formatCurrencyKt(value: Double): String {
+        val nf = NumberFormat.getNumberInstance(Locale("id", "ID"))
+        nf.maximumFractionDigits = 0
+        return "Rp ${nf.format(value.toLong())}"
     }
 
     private companion object {

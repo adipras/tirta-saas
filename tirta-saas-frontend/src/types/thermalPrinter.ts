@@ -14,6 +14,19 @@ export interface ThermalReceiptPayload {
   receiptNumber: string;
   printedAt: string;
   settlementType: 'full' | 'partial';
+  invoiceType?: 'monthly' | 'registration';
+  invoiceStatus?: 'paid' | 'partial' | 'unpaid';
+  usageDetails?: {
+    month?: string;
+    usageM3?: number;
+    subTotal?: number;
+  };
+  bankInfo?: {
+    bankName?: string;
+    bankAccountName?: string;
+    bankAccountNo?: string;
+  };
+  printNotes?: string;
   merchant: {
     name: string;
     subtitle?: string;
@@ -112,15 +125,54 @@ export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalRece
   const isPartialPayment = receipt.invoiceDetails.paymentCoverageType === 'partial';
   const compactAddress = truncateLine(receipt.customerDetails.address, 28);
   const compactNotes = truncateLine(receipt.payment.notes, 28);
+  const tenantInfo = receipt.tenantInfo;
+  const invoiceType = receipt.invoiceDetails.invoiceType;
+  const isMonthly = invoiceType === 'monthly';
+
+  const merchantAddressLines: string[] = [];
+  if (tenantInfo?.phone) {
+    merchantAddressLines.push(`Telp: ${tenantInfo.phone}`);
+  }
+
+  // Usage details: only for monthly invoices
+  const usageDetails = isMonthly && receipt.usageDetails
+    ? {
+        month: receipt.usageDetails.usageMonth
+          ? new Date(`${receipt.usageDetails.usageMonth}-01`).toLocaleDateString('id-ID', {
+              month: 'long',
+              year: 'numeric',
+            })
+          : undefined,
+        usageM3: receipt.usageDetails.usageM3,
+        subTotal: receipt.invoiceDetails.subTotal,
+      }
+    : undefined;
+
+  // Bank info (only if present)
+  const bankInfo =
+    tenantInfo?.bankName || tenantInfo?.bankAccountNo
+      ? {
+          bankName: tenantInfo?.bankName,
+          bankAccountName: tenantInfo?.bankAccountName,
+          bankAccountNo: tenantInfo?.bankAccountNo,
+        }
+      : undefined;
+
+  const paymentMethodLabel =
+    PAYMENT_METHOD_LABELS[receipt.payment.paymentMethod] || receipt.payment.paymentMethod;
 
   return buildReceiptPayload({
     receiptNumber: receipt.receiptNumber,
     printedAt: receipt.generatedAt,
     settlementType: isPartialPayment ? 'partial' : 'full',
+    invoiceType: invoiceType ?? undefined,
+    invoiceStatus: receipt.invoiceDetails.invoicePaymentStatus,
+    usageDetails,
+    bankInfo,
+    printNotes: compactNotes,
     merchant: {
-      name: 'TIRTA SAAS',
-      subtitle: 'Struk Air',
-      addressLines: [],
+      name: tenantInfo?.companyName || 'TIRTA SAAS',
+      addressLines: merchantAddressLines,
     },
     customer: {
       name: receipt.customerDetails.name,
@@ -129,7 +181,7 @@ export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalRece
     },
     payment: {
       date: receipt.payment.paymentDate,
-      method: PAYMENT_METHOD_LABELS[receipt.payment.paymentMethod] || receipt.payment.paymentMethod,
+      method: paymentMethodLabel,
       referenceNumber: receipt.payment.referenceNumber,
       status: PAYMENT_STATUS_LABELS[receipt.payment.status] || receipt.payment.status,
       amount: receipt.payment.amount,
@@ -147,29 +199,48 @@ export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalRece
       remainingAmount: receipt.invoiceDetails.remainingAmount,
       invoicePaymentStatus: receipt.invoiceDetails.invoicePaymentStatus,
     },
+    // Financial summary only (usage handled via usageDetails section)
     summaryLines: [
-      ...(receipt.invoiceDetails.totalAmount
-        ? [{ label: 'Tagihan', value: formatCompactCurrency(receipt.invoiceDetails.totalAmount) }]
+      ...((receipt.invoiceDetails.subTotal || 0) > 0
+        ? [{ label: 'Subtotal', value: formatCompactCurrency(receipt.invoiceDetails.subTotal) }]
         : []),
       ...(receipt.invoiceDetails.penaltyAmount
-        ? [{ label: 'Denda', value: formatCompactCurrency(receipt.invoiceDetails.penaltyAmount), emphasis: 'warning' as const }]
+        ? [
+            {
+              label: 'Denda',
+              value: formatCompactCurrency(receipt.invoiceDetails.penaltyAmount),
+              emphasis: 'warning' as const,
+            },
+          ]
         : []),
+      {
+        label: 'Total',
+        value: formatCompactCurrency(receipt.invoiceDetails.totalAmount),
+        emphasis: 'strong' as const,
+      },
       ...((receipt.invoiceDetails.totalPaidBefore || 0) > 0
-        ? [{ label: 'Terbayar', value: formatCompactCurrency(receipt.invoiceDetails.totalPaidBefore) }]
+        ? [
+            {
+              label: 'Terbayar',
+              value: formatCompactCurrency(receipt.invoiceDetails.totalPaidBefore),
+            },
+          ]
         : []),
-      { label: 'Bayar', value: formatCompactCurrency(receipt.payment.amount), emphasis: 'success' },
+      {
+        label: `Bayar (${paymentMethodLabel})`,
+        value: formatCompactCurrency(receipt.payment.amount),
+        emphasis: 'success' as const,
+      },
       {
         label: 'Sisa',
         value: formatCompactCurrency(receipt.invoiceDetails.remainingAmount || 0),
-        emphasis: isPartialPayment ? 'warning' : 'success',
+        emphasis: isPartialPayment ? ('warning' as const) : ('success' as const),
       },
     ],
     footerLines: [
-      'Terima kasih.',
-      ...(isPartialPayment
-        ? ['Parsial, sisa tagihan masih ada.']
-        : ['Tagihan lunas.']),
-      `Cetak ${formatCompactDateTime(receipt.generatedAt)}`,
+      tenantInfo?.footerText || 'Terima kasih.',
+      ...(isPartialPayment ? ['Masih ada sisa tagihan.'] : ['Tagihan lunas.']),
+      `Dicetak: ${formatCompactDateTime(receipt.generatedAt)}`,
     ],
   });
 };

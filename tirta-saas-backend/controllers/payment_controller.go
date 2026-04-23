@@ -135,10 +135,36 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 		invoicePaymentStatus = "unpaid"
 	}
 
+	// Load tenant settings for receipt header and payment info
+	tenantSettings := services.LoadTenantSettings(payment.Invoice.TenantID)
+
+	// Load primary active QRIS image for the tenant
+	qrisImageUrl := ""
+	var primaryQR models.QRCode
+	if err := config.DB.
+		Where("tenant_id = ? AND is_primary = ? AND is_active = ?", payment.Invoice.TenantID, true, true).
+		First(&primaryQR).Error; err == nil {
+		qrisImageUrl = primaryQR.ImageURL
+	}
+
 	return gin.H{
-		"id":             payment.ID,
-		"payment_id":     payment.ID,
-		"receipt_number": fmt.Sprintf("RCT-%s", payment.ID.String()[:8]),
+		"id":            payment.ID,
+		"payment_id":    payment.ID,
+		"receiptNumber": fmt.Sprintf("RCT-%s", payment.ID.String()[:8]),
+		"tenantInfo": gin.H{
+			"companyName":     tenantSettings.CompanyName,
+			"phone":           tenantSettings.Phone,
+			"logoUrl":         tenantSettings.LogoURL,
+			"footerText":      tenantSettings.InvoiceFooterText,
+			"bankName":        tenantSettings.BankName,
+			"bankAccountName": tenantSettings.BankAccountName,
+			"bankAccountNo":   tenantSettings.BankAccountNo,
+			"qrisImageUrl":    qrisImageUrl,
+		},
+		"usageDetails": gin.H{
+			"usageMonth": payment.Invoice.UsageMonth,
+			"usageM3":    payment.Invoice.UsageM3,
+		},
 		"payment": gin.H{
 			"id":              payment.ID,
 			"invoiceId":       payment.InvoiceID,
@@ -157,6 +183,7 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 			"invoiceNumber":        payment.Invoice.InvoiceNumber,
 			"invoiceDate":          payment.Invoice.CreatedAt,
 			"dueDate":              dueDate,
+			"invoiceType":          payment.Invoice.Type,
 			"subTotal":             snapshot.SubTotal,
 			"penaltyAmount":        snapshot.PenaltyAmount,
 			"totalAmount":          snapshot.TotalAmount,
