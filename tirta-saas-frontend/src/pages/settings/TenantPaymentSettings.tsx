@@ -18,7 +18,7 @@ import {
 import { authService } from '../../services/authService';
 import { useAppDispatch } from '../../hooks/redux';
 import { setUser } from '../../store/slices/authSlice';
-import { ConfirmModal, PageHeader, useToast } from '../../components';
+import { ConfirmModal, ImageCropModal, PageHeader, useToast } from '../../components';
 
 interface BankAccount {
   id: string;
@@ -90,6 +90,8 @@ export default function TenantPaymentSettings() {
   const [tenantLogoFile, setTenantLogoFile] = useState<File | null>(null);
   const [tenantLogoPreviewUrl, setTenantLogoPreviewUrl] = useState<string | null>(null);
   const [qrPreviewUrl, setQrPreviewUrl] = useState<string | null>(null);
+  const [logoCropSrc, setLogoCropSrc] = useState<string | null>(null);
+  const [qrCropSrc, setQrCropSrc] = useState<string | null>(null);
 
   const [bankForm, setBankForm] = useState({
     bankName: '',
@@ -194,6 +196,7 @@ export default function TenantPaymentSettings() {
 
   const handleTenantLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
+    event.target.value = '';
 
     if (!file) {
       resetTenantLogoSelection();
@@ -202,19 +205,16 @@ export default function TenantPaymentSettings() {
 
     if (!file.type.startsWith('image/')) {
       toast.warning('Logo tenant harus berupa file gambar.');
-      event.target.value = '';
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       toast.warning('Ukuran logo tenant maksimal 5MB.');
-      event.target.value = '';
       return;
     }
 
-    resetTenantLogoSelection();
-    setTenantLogoFile(file);
-    setTenantLogoPreviewUrl(URL.createObjectURL(file));
+    // Open crop modal
+    setLogoCropSrc(URL.createObjectURL(file));
   };
 
   const handleProfileSubmit = async (event: React.FormEvent) => {
@@ -393,6 +393,7 @@ export default function TenantPaymentSettings() {
 
   const handleQRFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    event.target.value = '';
 
     if (!file) {
       return;
@@ -408,10 +409,8 @@ export default function TenantPaymentSettings() {
       return;
     }
 
-    setQRForm((prev) => ({ ...prev, imageFile: file }));
-    const reader = new FileReader();
-    reader.onloadend = () => setQrPreviewUrl(reader.result as string);
-    reader.readAsDataURL(file);
+    // Open crop modal (1:1 for QR)
+    setQrCropSrc(URL.createObjectURL(file));
   };
 
   const handleQRSubmit = async (event: React.FormEvent) => {
@@ -1096,6 +1095,40 @@ export default function TenantPaymentSettings() {
         cancelText="Batal"
         type="danger"
       />
+
+      {logoCropSrc && (
+        <ImageCropModal
+          src={logoCropSrc}
+          filename="logo.png"
+          onConfirm={(croppedFile) => {
+            resetTenantLogoSelection();
+            setTenantLogoFile(croppedFile);
+            setTenantLogoPreviewUrl(URL.createObjectURL(croppedFile));
+            setLogoCropSrc(null);
+          }}
+          onCancel={() => {
+            URL.revokeObjectURL(logoCropSrc);
+            setLogoCropSrc(null);
+          }}
+        />
+      )}
+
+      {qrCropSrc && (
+        <ImageCropModal
+          src={qrCropSrc}
+          filename="qr.png"
+          aspect={1}
+          onConfirm={(croppedFile) => {
+            setQRForm((prev) => ({ ...prev, imageFile: croppedFile }));
+            setQrPreviewUrl(URL.createObjectURL(croppedFile));
+            setQrCropSrc(null);
+          }}
+          onCancel={() => {
+            URL.revokeObjectURL(qrCropSrc);
+            setQrCropSrc(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
 import { apiClient } from '../../services/apiClient';
 import { platformQrCodeService } from '../../services/platformQrCodeService';
 import type { QRCode } from '../../services/qrCodeService';
-import { PageHeader, ConfirmModal, useToast } from '../../components';
+import { PageHeader, ConfirmModal, ImageCropModal, useToast } from '../../components';
 
 interface PlatformBankAccount {
   id: string;
@@ -48,6 +48,7 @@ export default function PlatformPaymentSettings() {
   const [editingBank, setEditingBank] = useState<PlatformBankAccount | null>(null);
   const [editingQR, setEditingQR] = useState<QRCode | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [qrCropSrc, setQrCropSrc] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'bank' | 'qr'; id: string } | null>(null);
 
   const [bankForm, setBankForm] = useState({
@@ -190,6 +191,7 @@ export default function PlatformPaymentSettings() {
 
   const handleQRFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (file) {
       if (!file.type.startsWith('image/')) {
         toast.warning('Harap pilih file gambar');
@@ -199,10 +201,8 @@ export default function PlatformPaymentSettings() {
         toast.warning('Ukuran file tidak boleh lebih dari 2MB');
         return;
       }
-      setQRForm((prev) => ({ ...prev, imageFile: file }));
-      const reader = new FileReader();
-      reader.onloadend = () => setPreviewUrl(reader.result as string);
-      reader.readAsDataURL(file);
+      // Open crop modal (1:1 for QR)
+      setQrCropSrc(URL.createObjectURL(file));
     }
   };
 
@@ -722,6 +722,23 @@ export default function PlatformPaymentSettings() {
         cancelText="Batal"
         type="danger"
       />
+
+      {qrCropSrc && (
+        <ImageCropModal
+          src={qrCropSrc}
+          filename="qr.png"
+          aspect={1}
+          onConfirm={(croppedFile) => {
+            setQRForm((prev) => ({ ...prev, imageFile: croppedFile }));
+            setPreviewUrl(URL.createObjectURL(croppedFile));
+            setQrCropSrc(null);
+          }}
+          onCancel={() => {
+            URL.revokeObjectURL(qrCropSrc);
+            setQrCropSrc(null);
+          }}
+        />
+      )}
     </div>
   );
 }

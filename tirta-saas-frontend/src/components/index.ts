@@ -45,3 +45,4 @@ export type {
 
 export { default as CustomerSearchSelect } from './CustomerSearchSelect';
 export { default as PageHeader } from './PageHeader';
+export { default as ImageCropModal } from './ImageCropModal';
