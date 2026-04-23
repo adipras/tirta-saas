@@ -24,11 +24,11 @@ type DatabaseConfig struct {
 // GetDatabaseConfig returns database configuration from environment variables
 func GetDatabaseConfig() DatabaseConfig {
 	config := DatabaseConfig{
-		MaxOpenConns:    100,              // Default: 100 connections
-		MaxIdleConns:    10,               // Default: 10 idle connections
-		ConnMaxLifetime: 1 * time.Hour,    // Default: 1 hour
-		ConnMaxIdleTime: 10 * time.Minute, // Default: 10 minutes
-		EnableLogging:   true,             // Default: enable logging
+		MaxOpenConns:    100,                    // Default: 100 connections
+		MaxIdleConns:    10,                     // Default: 10 idle connections
+		ConnMaxLifetime: 1 * time.Hour,          // Default: 1 hour
+		ConnMaxIdleTime: 10 * time.Minute,       // Default: 10 minutes
+		EnableLogging:   true,                   // Default: enable logging
 		SlowThreshold:   200 * time.Millisecond, // Default: 200ms
 	}
 
@@ -88,7 +88,7 @@ func OptimizeDatabase(db *gorm.DB) error {
 	sqlDB.SetConnMaxLifetime(config.ConnMaxLifetime)
 	sqlDB.SetConnMaxIdleTime(config.ConnMaxIdleTime)
 
-	logger.Info("Database connection pool configured", map[string]interface{}{
+	logger.Debug("Database connection pool configured", map[string]interface{}{
 		"max_open_conns":     config.MaxOpenConns,
 		"max_idle_conns":     config.MaxIdleConns,
 		"conn_max_lifetime":  config.ConnMaxLifetime.String(),
@@ -112,7 +112,7 @@ func OptimizeDatabase(db *gorm.DB) error {
 
 // createIndexes creates database indexes for better performance
 func createIndexes(db *gorm.DB) error {
-	logger.Info("Creating database indexes for performance optimization")
+	logger.Debug("Creating database indexes for performance optimization")
 
 	indexes := []struct {
 		table   string
@@ -220,19 +220,19 @@ func createIndex(db *gorm.DB, table string, columns []string, indexName string) 
 
 // optimizeMySQLSettings applies MySQL-specific optimizations
 func optimizeMySQLSettings(db *gorm.DB) error {
-	logger.Info("Applying MySQL optimization settings")
+	logger.Debug("Applying MySQL optimization settings")
 
 	// MySQL optimization queries
 	optimizations := []string{
 		// Enable query cache (if not disabled by default)
 		"SET SESSION query_cache_type = ON",
-		
+
 		// Optimize for faster reads
 		"SET SESSION transaction_isolation = 'READ-COMMITTED'",
-		
+
 		// Optimize sort buffer
 		"SET SESSION sort_buffer_size = 2097152", // 2MB
-		
+
 		// Optimize join buffer
 		"SET SESSION join_buffer_size = 262144", // 256KB
 	}
@@ -264,15 +264,15 @@ func DatabaseHealthCheck(db *gorm.DB) error {
 
 	// Get database stats
 	stats := sqlDB.Stats()
-	logger.Info("Database connection pool stats", map[string]interface{}{
+	logger.Debug("Database connection pool stats", map[string]interface{}{
 		"open_connections":     stats.OpenConnections,
-		"in_use":              stats.InUse,
-		"idle":                stats.Idle,
-		"wait_count":          stats.WaitCount,
-		"wait_duration":       stats.WaitDuration.String(),
-		"max_idle_closed":     stats.MaxIdleClosed,
+		"in_use":               stats.InUse,
+		"idle":                 stats.Idle,
+		"wait_count":           stats.WaitCount,
+		"wait_duration":        stats.WaitDuration.String(),
+		"max_idle_closed":      stats.MaxIdleClosed,
 		"max_idle_time_closed": stats.MaxIdleTimeClosed,
-		"max_lifetime_closed": stats.MaxLifetimeClosed,
+		"max_lifetime_closed":  stats.MaxLifetimeClosed,
 	})
 
 	// Warn if connection pool is under stress
@@ -327,13 +327,13 @@ func AnalyzeQueryPerformance(db *gorm.DB) {
 			"queries":          slowQueries,
 		})
 	} else {
-		logger.Info("No slow queries detected")
+		logger.Debug("No slow queries detected")
 	}
 }
 
 // OptimizeForReporting creates additional indexes optimized for reporting queries
 func OptimizeForReporting(db *gorm.DB) error {
-	logger.Info("Creating reporting-optimized indexes")
+	logger.Debug("Creating reporting-optimized indexes")
 
 	reportingIndexes := []struct {
 		table   string

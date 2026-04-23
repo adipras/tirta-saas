@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	_ "github.com/adipras/tirta-saas-backend/docs"
@@ -84,6 +85,12 @@ func main() {
 		"env":     os.Getenv("ENV"),
 		"port":    port,
 	})
+
+	// Keep Gin startup output concise: suppress route dump and default to release mode outside development.
+	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {}
+	if os.Getenv("GIN_MODE") == "" && strings.ToLower(os.Getenv("ENV")) != "development" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	r := gin.Default()
 
