@@ -7,6 +7,33 @@ export interface SubscriptionStatus {
   subscriptionStart?: string;
   subscriptionEnd?: string;
   daysRemaining: number;
+  selectedPlan?: {
+    id: string;
+    plan: string;
+    name: string;
+    description: string;
+    monthlyPrice: number;
+    yearlyPrice: number;
+    maxUsers: number;
+    maxCustomers: number;
+    maxStorageGB: number;
+    maxApiCallsPerDay: number;
+    features: string[];
+  };
+  registrationInvoice?: {
+    id: string;
+    invoiceNumber: string;
+    type: string;
+    status: string;
+    subscriptionPlan: string;
+    planName: string;
+    billingPeriod: number;
+    amount: number;
+    description: string;
+    issuedAt: string;
+    dueDate?: string;
+    paidAt?: string;
+  };
   pendingPayment?: {
     id: string;
     status: string;
@@ -46,6 +73,37 @@ class SubscriptionPaymentService {
       subscriptionStart: response.subscription_start,
       subscriptionEnd: response.subscription_end,
       daysRemaining: response.days_remaining ?? 0,
+      selectedPlan: response.selected_plan
+        ? {
+            id: response.selected_plan.id,
+            plan: response.selected_plan.plan,
+            name: response.selected_plan.name,
+            description: response.selected_plan.description,
+            monthlyPrice: response.selected_plan.monthly_price,
+            yearlyPrice: response.selected_plan.yearly_price,
+            maxUsers: response.selected_plan.max_users,
+            maxCustomers: response.selected_plan.max_customers,
+            maxStorageGB: response.selected_plan.max_storage_gb,
+            maxApiCallsPerDay: response.selected_plan.max_api_calls_per_day,
+            features: response.selected_plan.features || [],
+          }
+        : undefined,
+      registrationInvoice: response.registration_invoice
+        ? {
+            id: response.registration_invoice.id,
+            invoiceNumber: response.registration_invoice.invoice_number,
+            type: response.registration_invoice.type,
+            status: response.registration_invoice.status,
+            subscriptionPlan: response.registration_invoice.subscription_plan,
+            planName: response.registration_invoice.plan_name,
+            billingPeriod: response.registration_invoice.billing_period,
+            amount: response.registration_invoice.amount,
+            description: response.registration_invoice.description,
+            issuedAt: response.registration_invoice.issued_at,
+            dueDate: response.registration_invoice.due_date,
+            paidAt: response.registration_invoice.paid_at,
+          }
+        : undefined,
       pendingPayment: response.pending_payment
         ? {
             id: response.pending_payment.id,

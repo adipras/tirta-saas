@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -159,6 +160,32 @@ func buildSubscriptionPaymentResponseFromRow(row subscriptionPaymentListRow) res
 	return resp
 }
 
+func buildSelectedSubscriptionPlanResponse(plan models.SubscriptionPlanDetails) responses.SubscriptionPlanResponse {
+	features := []string{}
+	if plan.Features != "" {
+		_ = json.Unmarshal([]byte(plan.Features), &features)
+	}
+
+	return responses.SubscriptionPlanResponse{
+		ID:                plan.ID,
+		Plan:              string(plan.Plan),
+		Name:              plan.Name,
+		Description:       plan.Description,
+		MonthlyPrice:      plan.MonthlyPrice,
+		YearlyPrice:       plan.YearlyPrice,
+		MaxUsers:          plan.MaxUsers,
+		MaxCustomers:      plan.MaxCustomers,
+		MaxStorageGB:      plan.MaxStorageGB,
+		MaxAPICallsPerDay: plan.MaxAPICallsPerDay,
+		Features:          features,
+		TrialDays:         plan.TrialDays,
+		DisplayOrder:      plan.DisplayOrder,
+		IsActive:          plan.IsActive,
+		CreatedAt:         plan.CreatedAt,
+		UpdatedAt:         plan.UpdatedAt,
+	}
+}
+
 // SubmitSubscriptionPayment handles tenant submission of subscription payment
 func SubmitSubscriptionPayment(c *gin.Context) {
 	userIDValue, exists := c.Get("user_id")
@@ -185,6 +212,7 @@ func SubmitSubscriptionPayment(c *gin.Context) {
 	}
 
 	tenantID := user.TenantID.String()
+	now := time.Now()
 
 	// Parse form data
 	subscriptionPlan := c.PostForm("subscription_plan")
@@ -228,6 +256,24 @@ func SubmitSubscriptionPayment(c *gin.Context) {
 		return
 	}
 
+	var activeInvoice models.SubscriptionInvoice
+	hasActiveInvoice := false
+	if err := config.DB.Where("tenant_id = ? AND status IN ?", user.TenantID, []models.SubscriptionInvoiceStatus{
+		models.SubscriptionInvoiceStatusPending,
+		models.SubscriptionInvoiceStatusAwaitingVerification,
+	}).
+		Order("created_at DESC").
+		First(&activeInvoice).Error; err == nil {
+		hasActiveInvoice = true
+		if activeInvoice.Status != models.SubscriptionInvoiceStatusPending {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invoice langganan ini sedang menunggu verifikasi pembayaran sebelumnya"})
+			return
+		}
+		subscriptionPlan = activeInvoice.SubscriptionPlan
+		billingPeriodInt = activeInvoice.BillingPeriod
+		amountFloat = activeInvoice.Amount
+	}
+
 	// Handle file upload for proof
 	file, err := c.FormFile("proof_file")
 	if err != nil {
@@ -259,17 +305,42 @@ func SubmitSubscriptionPayment(c *gin.Context) {
 		Status:           models.PaymentStatusPending,
 	}
 
-	if err := config.DB.Create(&payment).Error; err != nil {
+	tx := config.DB.Begin()
+
+	if err := tx.Create(&payment).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment record"})
 		return
 	}
 
-	// Update tenant status to PENDING_VERIFICATION
-	config.DB.Model(&models.Tenant{}).Where("id = ?", tenantID).Updates(map[string]interface{}{
+	if hasActiveInvoice {
+		if err := tx.Model(&models.SubscriptionInvoice{}).
+			Where("id = ?", activeInvoice.ID).
+			Updates(map[string]interface{}{
+				"status":                models.SubscriptionInvoiceStatusAwaitingVerification,
+				"payment_submission_id": payment.ID,
+				"payment_submitted_at":  &now,
+			}).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update subscription invoice"})
+			return
+		}
+	}
+
+	if err := tx.Model(&models.Tenant{}).Where("id = ?", tenantID).Updates(map[string]interface{}{
 		"status":              string(models.TenantStatusPendingVerification),
 		"subscription_status": "PENDING_VERIFICATION",
 		"payment_proof_url":   uploadPath,
-	})
+	}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update tenant status"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save payment submission"})
+		return
+	}
 
 	confirmationID := fmt.Sprintf("SUB-%s-%s", time.Now().Format("20060102"), payment.ID.String()[:8])
 
@@ -424,6 +495,17 @@ func VerifySubscriptionPayment(c *gin.Context) {
 		return
 	}
 
+	if err := tx.Model(&models.SubscriptionInvoice{}).
+		Where("payment_submission_id = ?", payment.ID).
+		Updates(map[string]interface{}{
+			"status":  models.SubscriptionInvoiceStatusPaid,
+			"paid_at": &now,
+		}).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update subscription invoice"})
+		return
+	}
+
 	tenantUpdates := map[string]interface{}{
 		"status":              string(models.TenantStatusPendingVerification),
 		"subscription_status": "VERIFIED",
@@ -511,10 +593,29 @@ func RejectSubscriptionPayment(c *gin.Context) {
 		return
 	}
 
-	// Keep tenant in TRIAL status
+	invoiceResetResult := config.DB.Model(&models.SubscriptionInvoice{}).
+		Where("payment_submission_id = ?", payment.ID).
+		Updates(map[string]interface{}{
+			"status":                models.SubscriptionInvoiceStatusPending,
+			"payment_submission_id": nil,
+			"payment_submitted_at":  nil,
+			"paid_at":               nil,
+		})
+	if invoiceResetResult.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reset subscription invoice"})
+		return
+	}
+
+	nextTenantStatus := string(models.TenantStatusTrial)
+	nextSubscriptionStatus := "TRIAL"
+	if invoiceResetResult.RowsAffected > 0 {
+		nextTenantStatus = string(models.TenantStatusPendingPayment)
+		nextSubscriptionStatus = "PENDING_PAYMENT"
+	}
+
 	config.DB.Model(&models.Tenant{}).Where("id = ?", originalTenantID).Updates(map[string]interface{}{
-		"status":              string(models.TenantStatusTrial),
-		"subscription_status": "TRIAL",
+		"status":              nextTenantStatus,
+		"subscription_status": nextSubscriptionStatus,
 		"payment_verified_at": nil,
 		"payment_verified_by": nil,
 	})
@@ -584,6 +685,34 @@ func GetTenantSubscriptionStatus(c *gin.Context) {
 		SubscriptionStart: tenant.SubscriptionStartsAt,
 		SubscriptionEnd:   tenant.SubscriptionEndsAt,
 		DaysRemaining:     daysRemaining,
+	}
+
+	if tenant.SubscriptionPlan != "" {
+		var selectedPlan models.SubscriptionPlanDetails
+		if err := config.DB.Where("plan = ?", tenant.SubscriptionPlan).First(&selectedPlan).Error; err == nil {
+			planResponse := buildSelectedSubscriptionPlanResponse(selectedPlan)
+			resp.SelectedPlan = &planResponse
+		}
+	}
+
+	var registrationInvoice models.SubscriptionInvoice
+	if err := config.DB.Where("tenant_id = ? AND type = ?", tenantID, "registration").
+		Order("created_at DESC").
+		First(&registrationInvoice).Error; err == nil {
+		resp.RegistrationInvoice = &responses.TenantSubscriptionInvoiceResponse{
+			ID:               registrationInvoice.ID.String(),
+			InvoiceNumber:    registrationInvoice.InvoiceNumber,
+			Type:             registrationInvoice.Type,
+			Status:           string(registrationInvoice.Status),
+			SubscriptionPlan: registrationInvoice.SubscriptionPlan,
+			PlanName:         registrationInvoice.PlanName,
+			BillingPeriod:    registrationInvoice.BillingPeriod,
+			Amount:           registrationInvoice.Amount,
+			Description:      registrationInvoice.Description,
+			IssuedAt:         registrationInvoice.IssuedAt,
+			DueDate:          registrationInvoice.DueDate,
+			PaidAt:           registrationInvoice.PaidAt,
+		}
 	}
 
 	// Check for pending payment

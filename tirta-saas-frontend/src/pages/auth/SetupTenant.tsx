@@ -296,13 +296,13 @@ const SetupTenant = () => {
                   className="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 />
                 <div className="ml-3">
-                  <span className="block font-medium text-gray-900">Langsung Berlangganan</span>
-                  <span className="block text-sm text-gray-500 mt-1">
-                    Pilih paket berlangganan. Memerlukan approval dari admin platform
-                    dan pembayaran sebelum dapat digunakan.
-                  </span>
-                </div>
-              </label>
+                   <span className="block font-medium text-gray-900">Langsung Berlangganan</span>
+                   <span className="block text-sm text-gray-500 mt-1">
+                     Pilih paket berlangganan. Sistem akan langsung membuat invoice awal
+                     dan Anda bisa melanjutkan ke halaman pembayaran tenant.
+                   </span>
+                 </div>
+               </label>
 
               {/* Subscription Plan Cards (shown when subscription selected) */}
               {selectedPlanType === 'subscription' && (

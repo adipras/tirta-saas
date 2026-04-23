@@ -6,6 +6,7 @@ import {
   ChartBarIcon,
   BanknotesIcon,
   PencilSquareIcon,
+  CheckBadgeIcon,
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { reportService } from '../../services/reportService';
@@ -113,7 +114,14 @@ export default function TenantAdminDashboard() {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Aksi Cepat</h2>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <button
+            onClick={() => navigate('/admin/subscription/upgrade')}
+            className="flex min-h-28 flex-col items-center justify-center rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-indigo-500 hover:bg-indigo-50"
+          >
+            <CheckBadgeIcon className="h-8 w-8 text-indigo-600 mb-2" />
+            <span className="text-sm font-medium text-gray-900">Langganan & Pembayaran</span>
+          </button>
           <button
             onClick={() => navigate('/admin/customers/new')}
             className="flex min-h-28 flex-col items-center justify-center rounded-lg border-2 border-gray-200 p-4 text-center transition-colors hover:border-blue-500 hover:bg-blue-50"

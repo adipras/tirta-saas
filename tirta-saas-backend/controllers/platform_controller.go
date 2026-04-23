@@ -439,6 +439,14 @@ func ActivateTenant(c *gin.Context) {
 		return
 	}
 
+	if tenant.Status != models.TenantStatusSuspended {
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Tenant hanya dapat diaktifkan kembali dari status suspended",
+		})
+		return
+	}
+
 	tenant.Status = models.TenantStatusActive
 	tenant.SuspendedAt = nil
 	tenant.SuspensionReason = ""

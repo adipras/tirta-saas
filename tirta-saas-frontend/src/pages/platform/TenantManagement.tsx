@@ -75,7 +75,7 @@ const subscriptionStatusColors: Record<string, { bg: string; text: string; label
 
 const TenantManagement = () => {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<TabType>('pending');
+  const [activeTab, setActiveTab] = useState<TabType>('all');
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [tenantStats, setTenantStats] = useState<TenantManagementStats>({
     pending_tenants: 0,
@@ -85,7 +85,7 @@ const TenantManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [modalAction, setModalAction] = useState<'approve' | 'suspend' | 'view'>('view');
+  const [modalAction, setModalAction] = useState<'approve' | 'activate' | 'suspend' | 'view'>('view');
   const [actionReason, setActionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -130,7 +130,7 @@ const TenantManagement = () => {
 
   const openModal = (
     tenant: Tenant,
-    action: 'approve' | 'suspend' | 'view'
+    action: 'approve' | 'activate' | 'suspend' | 'view'
   ) => {
     setSelectedTenant(tenant);
     setModalAction(action);
@@ -152,18 +152,29 @@ const TenantManagement = () => {
       let endpoint = '';
       let payload: any = {};
 
-      switch (modalAction) {
-        case 'approve':
-          endpoint = `/platform/tenants/${selectedTenant.id}/approve`;
-          payload = { notes: actionReason };
-          break;
-        case 'suspend':
-          endpoint = `/platform/tenants/${selectedTenant.id}/suspend`;
-          payload = { reason: actionReason };
-          break;
-      }
+        switch (modalAction) {
+          case 'approve':
+            endpoint = `/platform/tenants/${selectedTenant.id}/approve`;
+            payload = { notes: actionReason };
+            break;
+          case 'activate':
+            endpoint = `/platform/tenants/${selectedTenant.id}/activate`;
+            payload = {};
+            break;
+          case 'suspend':
+            endpoint = `/platform/tenants/${selectedTenant.id}/suspend`;
+            payload = { reason: actionReason };
+            break;
+        }
 
       await apiClient.post(endpoint, payload);
+      if (modalAction === 'activate') {
+        toast.success('Tenant berhasil diaktifkan kembali.');
+      } else if (modalAction === 'suspend') {
+        toast.success('Tenant berhasil dinonaktifkan.');
+      } else if (modalAction === 'approve') {
+        toast.success('Tenant berhasil diaktifkan setelah pembayaran terverifikasi.');
+      }
       await Promise.all([loadTenants(), loadTenantStats()]);
       closeModal();
     } catch (error) {
@@ -381,10 +392,20 @@ const TenantManagement = () => {
                         <button
                           onClick={() => openModal(tenant, 'suspend')}
                           className="inline-flex items-center justify-center rounded-md p-2.5 text-orange-600 hover:bg-orange-50 hover:text-orange-900"
-                          title="Suspend tenant"
-                          aria-label="Suspend tenant"
+                          title="Nonaktifkan tenant"
+                          aria-label="Nonaktifkan tenant"
                         >
                           <XCircleIcon className="h-5 w-5" />
+                        </button>
+                      )}
+                      {tenant.status === 'SUSPENDED' && (
+                        <button
+                          onClick={() => openModal(tenant, 'activate')}
+                          className="inline-flex items-center justify-center rounded-md p-2.5 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-900"
+                          title="Aktifkan tenant"
+                          aria-label="Aktifkan tenant"
+                        >
+                          <CheckCircleIcon className="h-5 w-5" />
                         </button>
                       )}
                       </div>
@@ -407,7 +428,8 @@ const TenantManagement = () => {
                 <h3 className="text-lg font-semibold text-gray-900">
                   {modalAction === 'view' && 'Tenant Details'}
                   {modalAction === 'approve' && 'Activate Tenant'}
-                  {modalAction === 'suspend' && 'Suspend Tenant'}
+                  {modalAction === 'activate' && 'Aktifkan Tenant'}
+                  {modalAction === 'suspend' && 'Nonaktifkan Tenant'}
                 </h3>
               </div>
 
@@ -465,24 +487,24 @@ const TenantManagement = () => {
                 </div>
 
                 {/* Action Input */}
-                {modalAction !== 'view' && (
+                {modalAction !== 'view' && modalAction !== 'activate' && (
                   <div className="border-t pt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {modalAction === 'approve' && 'Activation Notes (Optional)'}
-                      {modalAction === 'suspend' && 'Suspension Reason *'}
+                      {modalAction === 'suspend' && 'Alasan nonaktifkan tenant *'}
                     </label>
                     <textarea
                       value={actionReason}
                       onChange={(e) => setActionReason(e.target.value)}
                       rows={3}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder={
-                        modalAction === 'approve'
-                          ? 'Tambah catatan aktivasi...'
-                          : 'Enter suspension reason...'
-                      }
-                      required={modalAction === 'suspend'}
-                    />
+                        placeholder={
+                          modalAction === 'approve'
+                            ? 'Tambah catatan aktivasi...'
+                            : 'Masukkan alasan penonaktifan tenant...'
+                        }
+                       required={modalAction === 'suspend'}
+                     />
                   </div>
                 )}
               </div>
@@ -503,7 +525,7 @@ const TenantManagement = () => {
                       isSubmitting || (modalAction === 'suspend' && !actionReason.trim())
                     }
                     className={`px-4 py-2 text-white rounded-md disabled:opacity-50 ${
-                      modalAction === 'approve'
+                      modalAction === 'approve' || modalAction === 'activate'
                         ? 'bg-green-600 hover:bg-green-700'
                         : 'bg-orange-600 hover:bg-orange-700'
                     }`}
@@ -512,7 +534,9 @@ const TenantManagement = () => {
                       ? 'Processing...'
                       : modalAction === 'approve'
                         ? 'Approve & Activate'
-                        : 'Suspend'}
+                        : modalAction === 'activate'
+                          ? 'Aktifkan Tenant'
+                          : 'Nonaktifkan Tenant'}
                   </button>
                 )}
               </div>

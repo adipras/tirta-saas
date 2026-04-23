@@ -198,7 +198,7 @@ export default function PlatformSubscriptionVerification() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Subscription Verifikasi Pembayaran" subtitle="Verify tenant subscription payment confirmations" />
+      <PageHeader title="Verifikasi Pembayaran Langganan Tenant" subtitle="Validasi bukti pembayaran langganan tenant sebelum tenant diaktifkan" />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
@@ -478,7 +478,7 @@ export default function PlatformSubscriptionVerification() {
                     />
                     {modalAction === 'verify' && (
                       <p className="mt-1 text-xs text-gray-500">
-                        Upon verification, tenant status will be updated to ACTIVE and subscription will be activated.
+                        Setelah pembayaran diverifikasi, tenant akan siap diaktifkan dari menu Tenant.
                       </p>
                     )}
                   </div>

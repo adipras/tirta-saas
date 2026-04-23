@@ -25,7 +25,7 @@ const allNavigation = [
   // Platform Owner Menu
   { name: 'Dashboard Platform', href: '/admin', icon: HomeIcon, roles: ['PLATFORM_OWNER'] },
   { name: 'Tenant', href: '/admin/platform/tenants', icon: BuildingOfficeIcon, roles: ['PLATFORM_OWNER'] },
-  { name: 'Pembayaran Langganan', href: '/admin/platform/subscription-payments', icon: CheckBadgeIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Verifikasi Langganan Tenant', href: '/admin/platform/subscription-payments', icon: CheckBadgeIcon, roles: ['PLATFORM_OWNER'] },
   { name: 'Paket Langganan', href: '/admin/platform/subscription-plans', icon: ClipboardDocumentListIcon, roles: ['PLATFORM_OWNER'] },
   { name: 'Analitik Platform', href: '/admin/platform/analytics', icon: ChartBarIcon, roles: ['PLATFORM_OWNER'] },
   { name: 'Pengaturan Platform', href: '/admin/platform/settings', icon: CogIcon, roles: ['PLATFORM_OWNER'] },
@@ -40,6 +40,7 @@ const allNavigation = [
 ];
 
 const settingsNavigation = [
+  { name: 'Langganan & Pembayaran', href: '/admin/subscription/upgrade', icon: CheckBadgeIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Golongan Langganan', href: '/admin/subscriptions', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Tarif Air', href: '/admin/water-rates', icon: CurrencyDollarIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Manajemen Pengguna', href: '/admin/users', icon: UsersIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
@@ -64,8 +65,16 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
     [userRole]
   );
   const hasSettingsMenu = visibleSettingsNavigation.length > 0;
-  const hasActiveSettingsItem = visibleSettingsNavigation.some(item =>
-    location.pathname.startsWith(item.href)
+  const matchesSettingsItem = (href: string) => {
+    if (href === '/admin/subscription/upgrade') {
+      return location.pathname.startsWith('/admin/subscription');
+    }
+
+    return location.pathname.startsWith(href);
+  };
+
+  const hasActiveSettingsItem = visibleSettingsNavigation.some((item) =>
+    matchesSettingsItem(item.href)
   );
   const [settingsOpen, setSettingsOpen] = useState(hasActiveSettingsItem);
 
@@ -179,7 +188,7 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
                     onClick={onClose}
                     className={({ isActive }) =>
                       `group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                        isActive
+                        (isActive || matchesSettingsItem(item.href))
                           ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700 pl-2'
                           : 'border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                       }`

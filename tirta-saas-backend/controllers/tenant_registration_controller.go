@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
@@ -15,7 +17,41 @@ import (
 	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
+
+func buildRegistrationSubscriptionInvoice(tenantID uuid.UUID, plan models.SubscriptionPlanDetails, issuedAt time.Time) models.SubscriptionInvoice {
+	invoiceNumber := fmt.Sprintf(
+		"SUB-REG-%s-%s",
+		issuedAt.Format("20060102"),
+		strings.ToUpper(uuid.New().String()[:8]),
+	)
+	dueDate := issuedAt.AddDate(0, 0, 7)
+
+	return models.SubscriptionInvoice{
+		BaseModel:        models.BaseModel{ID: uuid.New()},
+		TenantID:         tenantID,
+		InvoiceNumber:    invoiceNumber,
+		Type:             "registration",
+		Status:           models.SubscriptionInvoiceStatusPending,
+		SubscriptionPlan: string(plan.Plan),
+		PlanName:         plan.Name,
+		BillingPeriod:    1,
+		Amount:           plan.MonthlyPrice,
+		Description:      fmt.Sprintf("Invoice registrasi langganan paket %s untuk tenant baru.", plan.Name),
+		IssuedAt:         issuedAt,
+		DueDate:          &dueDate,
+	}
+}
+
+func buildSubscriptionFeaturesJSON(raw string) string {
+	if raw != "" {
+		return raw
+	}
+
+	features, _ := json.Marshal([]string{})
+	return string(features)
+}
 
 // PublicTenantRegistration handles public tenant registration (no authentication required)
 // @Summary Public tenant registration
@@ -432,6 +468,92 @@ func ApproveTenant(c *gin.Context) {
 
 		subscriptionStarts := now
 		subscriptionEnds := subscriptionStarts.AddDate(0, verifiedPayment.BillingPeriod, 0)
+
+		var planDetails models.SubscriptionPlanDetails
+		if err := config.DB.Where("plan = ?", verifiedPayment.SubscriptionPlan).First(&planDetails).Error; err != nil {
+			c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+				Status:  "error",
+				Message: "Detail paket langganan tidak ditemukan",
+				Error:   err.Error(),
+			})
+			return
+		}
+
+		billingCycle := models.CycleMonthly
+		if verifiedPayment.BillingPeriod >= 12 {
+			billingCycle = models.CycleYearly
+		}
+
+		var tenantSubscription models.TenantSubscription
+		subscriptionLookup := config.DB.Where("tenant_id = ?", tenant.ID).First(&tenantSubscription)
+		if subscriptionLookup.Error == nil {
+			tenantSubscription.Plan = planDetails.Plan
+			tenantSubscription.Status = models.StatusActive
+			tenantSubscription.BillingCycle = billingCycle
+			tenantSubscription.MonthlyPrice = planDetails.MonthlyPrice
+			tenantSubscription.YearlyPrice = planDetails.YearlyPrice
+			tenantSubscription.MaxUsers = planDetails.MaxUsers
+			tenantSubscription.MaxCustomers = planDetails.MaxCustomers
+			tenantSubscription.MaxStorageGB = planDetails.MaxStorageGB
+			tenantSubscription.MaxAPICallsPerDay = planDetails.MaxAPICallsPerDay
+			tenantSubscription.EnabledFeatures = buildSubscriptionFeaturesJSON(planDetails.Features)
+			tenantSubscription.StartDate = subscriptionStarts
+			tenantSubscription.EndDate = subscriptionEnds
+			tenantSubscription.TrialEndsAt = nil
+			tenantSubscription.LastPaymentAmount = verifiedPayment.Amount
+			tenantSubscription.LastPaymentDate = &now
+			tenantSubscription.PaymentStatus = "PAID"
+			tenantSubscription.Notes = "Langganan tenant aktif setelah verifikasi pembayaran registrasi."
+
+			if err := config.DB.Model(&tenantSubscription).
+				Select("Plan", "Status", "BillingCycle", "MonthlyPrice", "YearlyPrice", "MaxUsers", "MaxCustomers", "MaxStorageGB", "MaxAPICallsPerDay", "EnabledFeatures", "StartDate", "EndDate", "TrialEndsAt", "LastPaymentAmount", "LastPaymentDate", "PaymentStatus", "Notes").
+				Updates(&tenantSubscription).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+					Status:  "error",
+					Message: "Gagal memperbarui data langganan tenant",
+					Error:   err.Error(),
+				})
+				return
+			}
+		} else if errors.Is(subscriptionLookup.Error, gorm.ErrRecordNotFound) {
+			newSubscription := models.TenantSubscription{
+				BaseModel:         models.BaseModel{ID: uuid.New()},
+				TenantID:          tenant.ID,
+				Plan:              planDetails.Plan,
+				Status:            models.StatusActive,
+				BillingCycle:      billingCycle,
+				MonthlyPrice:      planDetails.MonthlyPrice,
+				YearlyPrice:       planDetails.YearlyPrice,
+				MaxUsers:          planDetails.MaxUsers,
+				MaxCustomers:      planDetails.MaxCustomers,
+				MaxStorageGB:      planDetails.MaxStorageGB,
+				MaxAPICallsPerDay: planDetails.MaxAPICallsPerDay,
+				EnabledFeatures:   buildSubscriptionFeaturesJSON(planDetails.Features),
+				StartDate:         subscriptionStarts,
+				EndDate:           subscriptionEnds,
+				LastPaymentAmount: verifiedPayment.Amount,
+				LastPaymentDate:   &now,
+				PaymentStatus:     "PAID",
+				Notes:             "Langganan tenant aktif setelah verifikasi pembayaran registrasi.",
+			}
+
+			if err := config.DB.Create(&newSubscription).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+					Status:  "error",
+					Message: "Gagal membuat data langganan tenant",
+					Error:   err.Error(),
+				})
+				return
+			}
+		} else {
+			c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+				Status:  "error",
+				Message: "Gagal memuat data langganan tenant",
+				Error:   subscriptionLookup.Error.Error(),
+			})
+			return
+		}
+
 		updates = map[string]interface{}{
 			"status":                 string(models.TenantStatusActive),
 			"approved_at":            &now,
@@ -681,6 +803,7 @@ func SetupTenant(c *gin.Context) {
 
 	// Validate subscription plan if plan_type is "subscription"
 	var subscriptionPlan string
+	var selectedPlan *models.SubscriptionPlanDetails
 	if req.PlanType == "subscription" {
 		if req.PlanID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "plan_id wajib diisi ketika memilih subscription"})
@@ -691,7 +814,8 @@ func SetupTenant(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Paket langganan tidak ditemukan"})
 			return
 		}
-		subscriptionPlan = plan.Name
+		subscriptionPlan = string(plan.Plan)
+		selectedPlan = &plan
 	}
 
 	// Determine tenant status and trial date based on plan type
@@ -703,7 +827,7 @@ func SetupTenant(c *gin.Context) {
 		t := time.Now().AddDate(0, 0, 14)
 		trialEndsAt = &t
 	case "subscription":
-		tenantStatus = models.TenantStatusPendingApproval
+		tenantStatus = models.TenantStatusPendingPayment
 	}
 
 	// Start DB transaction
@@ -775,6 +899,44 @@ func SetupTenant(c *gin.Context) {
 		return
 	}
 
+	var createdInvoice *models.SubscriptionInvoice
+	if req.PlanType == "subscription" && selectedPlan != nil {
+		invoice := buildRegistrationSubscriptionInvoice(tenant.ID, *selectedPlan, time.Now())
+		if err := tx.Create(&invoice).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat invoice langganan awal"})
+			return
+		}
+
+		subscriptionEnd := time.Now().AddDate(0, 1, 0)
+		initialSubscription := models.TenantSubscription{
+			BaseModel:         models.BaseModel{ID: uuid.New()},
+			TenantID:          tenant.ID,
+			Plan:              selectedPlan.Plan,
+			Status:            models.StatusSuspended,
+			BillingCycle:      models.CycleMonthly,
+			MonthlyPrice:      selectedPlan.MonthlyPrice,
+			YearlyPrice:       selectedPlan.YearlyPrice,
+			MaxUsers:          selectedPlan.MaxUsers,
+			MaxCustomers:      selectedPlan.MaxCustomers,
+			MaxStorageGB:      selectedPlan.MaxStorageGB,
+			MaxAPICallsPerDay: selectedPlan.MaxAPICallsPerDay,
+			EnabledFeatures:   buildSubscriptionFeaturesJSON(selectedPlan.Features),
+			StartDate:         time.Now(),
+			EndDate:           subscriptionEnd,
+			PaymentStatus:     "PENDING",
+			Notes:             "Subscription awal tenant dibuat dari proses registrasi berlangganan.",
+		}
+
+		if err := tx.Create(&initialSubscription).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyiapkan data langganan tenant"})
+			return
+		}
+
+		createdInvoice = &invoice
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyelesaikan proses setup"})
 		return
@@ -792,14 +954,20 @@ func SetupTenant(c *gin.Context) {
 
 	statusMsg := "Tenant berhasil dibuat dalam mode Trial 14 hari."
 	if req.PlanType == "subscription" {
-		statusMsg = "Tenant berhasil didaftarkan. Menunggu approval dari admin platform."
+		statusMsg = "Tenant berhasil didaftarkan. Invoice langganan awal sudah dibuat dan siap dibayar."
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
+	response := gin.H{
 		"message":       statusMsg,
 		"token":         newToken,
 		"tenant_id":     tenant.ID,
 		"tenant_status": string(tenant.Status),
 		"trial_ends_at": tenant.TrialEndsAt,
-	})
+	}
+	if createdInvoice != nil {
+		response["registration_invoice_id"] = createdInvoice.ID
+		response["registration_invoice_number"] = createdInvoice.InvoiceNumber
+	}
+
+	c.JSON(http.StatusCreated, response)
 }

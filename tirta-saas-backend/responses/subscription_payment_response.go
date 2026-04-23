@@ -54,15 +54,32 @@ type SubmitPaymentResponse struct {
 }
 
 type TenantSubscriptionStatusResponse struct {
-	Status            string     `json:"status"`
-	SubscriptionPlan  string     `json:"subscription_plan,omitempty"`
-	TrialEndDate      *time.Time `json:"trial_end_date,omitempty"`
-	SubscriptionStart *time.Time `json:"subscription_start,omitempty"`
-	SubscriptionEnd   *time.Time `json:"subscription_end,omitempty"`
-	DaysRemaining     int        `json:"days_remaining"`
-	PendingPayment    *struct {
+	Status              string                             `json:"status"`
+	SubscriptionPlan    string                             `json:"subscription_plan,omitempty"`
+	TrialEndDate        *time.Time                         `json:"trial_end_date,omitempty"`
+	SubscriptionStart   *time.Time                         `json:"subscription_start,omitempty"`
+	SubscriptionEnd     *time.Time                         `json:"subscription_end,omitempty"`
+	DaysRemaining       int                                `json:"days_remaining"`
+	SelectedPlan        *SubscriptionPlanResponse          `json:"selected_plan,omitempty"`
+	RegistrationInvoice *TenantSubscriptionInvoiceResponse `json:"registration_invoice,omitempty"`
+	PendingPayment      *struct {
 		ID          string    `json:"id"`
 		Status      string    `json:"status"`
 		SubmittedAt time.Time `json:"submitted_at"`
 	} `json:"pending_payment,omitempty"`
+}
+
+type TenantSubscriptionInvoiceResponse struct {
+	ID               string     `json:"id"`
+	InvoiceNumber    string     `json:"invoice_number"`
+	Type             string     `json:"type"`
+	Status           string     `json:"status"`
+	SubscriptionPlan string     `json:"subscription_plan"`
+	PlanName         string     `json:"plan_name"`
+	BillingPeriod    int        `json:"billing_period"`
+	Amount           float64    `json:"amount"`
+	Description      string     `json:"description"`
+	IssuedAt         time.Time  `json:"issued_at"`
+	DueDate          *time.Time `json:"due_date,omitempty"`
+	PaidAt           *time.Time `json:"paid_at,omitempty"`
 }
