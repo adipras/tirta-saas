@@ -12,12 +12,13 @@ func InvoiceRoutes(r *gin.Engine) {
 
 	// Legacy single generation
 	group.POST("/generate-monthly", controllers.GenerateMonthlyInvoice)
-	
+
 	// New bulk generation endpoints
 	group.POST("/bulk-generate", controllers.BulkGenerateInvoices)
 	group.POST("/preview-generation", controllers.PreviewInvoiceGeneration)
-	
+
 	// CRUD operations
+	group.POST("", controllers.CreateInvoice)
 	group.GET("", controllers.GetInvoices)
 	group.GET("/outstanding", controllers.GetOutstandingInvoices)
 	group.GET("/:id", controllers.GetInvoice)

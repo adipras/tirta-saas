@@ -123,47 +123,50 @@ const Header = ({ onMenuClick }: HeaderProps) => {
 
   return (
     <header className="safe-top sticky top-0 z-30 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/85">
-      <div className="flex min-h-16 items-start justify-between gap-3 px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 items-start">
-          {/* Hamburger — only shown on mobile */}
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-6 sm:py-3">
+        {/* Left: hamburger + page title */}
+        <div className="flex min-w-0 items-center">
           <button
             onClick={onMenuClick}
-            className="mr-3 mt-0.5 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 md:hidden"
+            className="mr-3 flex-shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 md:hidden"
             aria-label="Buka sidebar"
           >
             <Bars3Icon className="h-6 w-6" />
           </button>
           <div className="min-w-0">
-            <p className="truncate text-lg font-semibold text-gray-900">
+            <p className="truncate text-base font-semibold text-gray-900 sm:text-lg">
               {pageMeta.title}
             </p>
-            <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
-              <p className="truncate text-xs text-gray-500">
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0">
+              {/* Subtitle hanya tampil di sm+ */}
+              <p className="hidden truncate text-xs text-gray-500 sm:block">
                 {pageMeta.subtitle}
               </p>
               <span className="hidden text-gray-300 sm:inline">•</span>
               <p className="truncate text-xs font-medium text-blue-700">
                 {accountLabel}
               </p>
-              <span className="hidden text-gray-300 sm:inline">•</span>
+              <span className="text-gray-300">·</span>
               <p className="truncate text-xs text-gray-500 uppercase tracking-wide">
                 {user?.role?.replace('_', ' ') || 'admin'}
               </p>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 self-center sm:gap-4">
+
+        {/* Right: printer indicator + bell + user menu */}
+        <div className="flex flex-shrink-0 items-center gap-1 sm:gap-3">
           <div className="hidden sm:block">
             <PrinterBridgeIndicator />
           </div>
           <button className="rounded-full p-2 text-gray-400 hover:text-gray-500">
-            <BellIcon className="h-6 w-6" aria-hidden="true" />
+            <BellIcon className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
           </button>
           <div className="relative" ref={menuRef}>
             <button
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-gray-100"
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition hover:bg-gray-100"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
@@ -181,6 +184,10 @@ const Header = ({ onMenuClick }: HeaderProps) => {
                   <p className="truncate text-xs text-gray-500 capitalize">{user?.role || 'admin'}</p>
                   <p className="mt-1 truncate text-xs font-medium text-blue-700">{accountLabel}</p>
                 </div>
+                {/* Printer indicator di dropdown untuk mobile */}
+                <div className="border-b border-gray-100 px-4 py-2 sm:hidden">
+                  <PrinterBridgeIndicator />
+                </div>
                 <button
                   onClick={handleLogout}
                   className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
@@ -190,17 +197,6 @@ const Header = ({ onMenuClick }: HeaderProps) => {
               </div>
             )}
           </div>
-        </div>
-      </div>
-      <div className="px-4 pb-3 sm:hidden">
-        <div className="rounded-2xl border border-gray-200 bg-gray-50 px-3 py-2">
-          <PrinterBridgeIndicator />
-          <p className="mt-2 truncate text-xs font-medium text-blue-700">
-            {accountLabel}
-          </p>
-          <p className="truncate text-xs text-gray-500 uppercase tracking-wide">
-            {user?.role?.replace('_', ' ') || 'admin'}
-          </p>
         </div>
       </div>
     </header>

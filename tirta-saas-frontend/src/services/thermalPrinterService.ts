@@ -18,12 +18,18 @@ const normalizeBridgeMode = (value?: string): 'auto' | 'mobile' | 'always' | 'of
 };
 
 const PRINTER_BRIDGE_MODE = normalizeBridgeMode(import.meta.env.VITE_PRINTER_BRIDGE_MODE);
+const STATUS_CACHE_TTL_MS = 30_000;
 let cachedBridgeAvailability = false;
+let cachedStatusFetchedAt = 0;
 let cachedBridgeStatus: ThermalPrinterStatus = {
   connected: false,
   bridgeAvailable: false,
   bridgeRunning: false,
   message: 'Bridge printer thermal belum diperiksa',
+};
+
+const invalidateStatusCache = () => {
+  cachedStatusFetchedAt = 0;
 };
 
 const shouldUseBridge = (): boolean => {
@@ -55,8 +61,10 @@ const printPage = (): void => {
 };
 
 const printReceipt = async (receipt: PaymentReceipt): Promise<void> => {
+  invalidateStatusCache();
   await printerBridgeHttpService.printReceipt(await buildThermalReceiptPayload(receipt));
   cachedBridgeAvailability = true;
+  cachedStatusFetchedAt = Date.now();
   cachedBridgeStatus = {
     ...cachedBridgeStatus,
     bridgeAvailable: true,
@@ -70,6 +78,7 @@ const scanPrinters = async (): Promise<ThermalPrinterDevice[]> => {
     return [];
   }
 
+  invalidateStatusCache();
   const printers = await printerBridgeHttpService.scanPrinters();
   cachedBridgeAvailability = true;
   return printers;
@@ -80,6 +89,7 @@ const connectPrinter = async (deviceId: string): Promise<void> => {
     return;
   }
 
+  invalidateStatusCache();
   await printerBridgeHttpService.connectPrinter(deviceId);
   cachedBridgeAvailability = true;
 };
@@ -87,6 +97,7 @@ const connectPrinter = async (deviceId: string): Promise<void> => {
 const getStatus = async (): Promise<ThermalPrinterStatus> => {
   if (!shouldUseBridge()) {
     cachedBridgeAvailability = false;
+    cachedStatusFetchedAt = Date.now();
     cachedBridgeStatus = {
       connected: false,
       bridgeAvailable: false,
@@ -98,13 +109,19 @@ const getStatus = async (): Promise<ThermalPrinterStatus> => {
     return cachedBridgeStatus;
   }
 
+  if (Date.now() - cachedStatusFetchedAt < STATUS_CACHE_TTL_MS) {
+    return cachedBridgeStatus;
+  }
+
   try {
     const status = await printerBridgeHttpService.getStatus();
     cachedBridgeAvailability = true;
+    cachedStatusFetchedAt = Date.now();
     cachedBridgeStatus = status;
     return status;
   } catch (error) {
     cachedBridgeAvailability = false;
+    cachedStatusFetchedAt = Date.now();
     cachedBridgeStatus = {
       connected: false,
       bridgeAvailable: false,
@@ -121,8 +138,13 @@ const isAvailable = async (): Promise<boolean> => {
     return false;
   }
 
+  if (Date.now() - cachedStatusFetchedAt < STATUS_CACHE_TTL_MS) {
+    return cachedBridgeAvailability;
+  }
+
   const available = await printerBridgeHttpService.ping();
   cachedBridgeAvailability = available;
+  cachedStatusFetchedAt = Date.now();
   return available;
 };
 

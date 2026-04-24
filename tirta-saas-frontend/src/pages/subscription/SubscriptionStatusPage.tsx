@@ -109,8 +109,8 @@ export default function SubscriptionStatusPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Subscription Status</h1>
+    <div className="max-w-4xl mx-auto px-4 py-6">
+      <h1 className="text-xl font-bold text-gray-900 mb-6 sm:text-2xl">Subscription Status</h1>
 
       {/* Current Status Card */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
@@ -257,7 +257,7 @@ export default function SubscriptionStatusPage() {
                 <div className="mt-4">
                   <button
                     onClick={() => navigate('/admin/subscription/upgrade')}
-                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 sm:w-auto"
                   >
                     Upgrade Sekarang
                   </button>

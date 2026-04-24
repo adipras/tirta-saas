@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   DocumentTextIcon, 
@@ -12,21 +12,14 @@ type InvoiceStatus = 'all' | 'paid' | 'unpaid' | 'overdue' | 'partial';
 
 export default function CustomerInvoiceList() {
   const [invoices, setTagihan] = useState<Invoice[]>([]);
-  const [filteredTagihan, setFilteredTagihan] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus>('all');
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadTagihan();
   }, []);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    filterTagihan();
-  }, [invoices, searchTerm, statusFilter]);
 
   const loadTagihan = async () => {
     try {
@@ -36,14 +29,18 @@ export default function CustomerInvoiceList() {
       const data = await invoiceService.getCustomerTagihan();
       setTagihan(data);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load invoices');
+    } catch (err: unknown) {
+      if (typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string') {
+        setError(err.message);
+      } else {
+        setError('Failed to load invoices');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const filterTagihan = () => {
+  const filteredTagihan = useMemo(() => {
     let filtered = [...invoices];
 
     // Filter by status
@@ -60,8 +57,8 @@ export default function CustomerInvoiceList() {
       );
     }
 
-    setFilteredTagihan(filtered);
-  };
+    return filtered;
+  }, [invoices, searchTerm, statusFilter]);
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -91,7 +88,7 @@ export default function CustomerInvoiceList() {
 
   const getTotalUnpaid = () => {
     return invoices
-      .filter(inv => inv.status === 'unpaid' || inv.status === 'overdue')
+      .filter(inv => inv.status === 'unpaid' || inv.status === 'overdue' || inv.status === 'partial')
       .reduce((sum, inv) => sum + inv.amountDue, 0);
   };
 
@@ -150,7 +147,7 @@ export default function CustomerInvoiceList() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-yellow-700">
-                You have <strong>{getStatusCount('unpaid') + getStatusCount('overdue')}</strong> unpaid invoice(s) 
+                You have <strong>{getStatusCount('unpaid') + getStatusCount('overdue') + getStatusCount('partial')}</strong> unpaid invoice(s) 
                 with total amount of <strong>{formatCurrency(getTotalUnpaid())}</strong>
               </p>
             </div>

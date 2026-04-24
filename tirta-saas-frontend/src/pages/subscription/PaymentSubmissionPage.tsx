@@ -126,7 +126,7 @@ const PaymentSubmissionPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-6">
+    <div className="max-w-4xl mx-auto px-4 py-6">
       <button
         onClick={() => navigate(-1)}
         className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
@@ -135,7 +135,7 @@ const PaymentSubmissionPage = () => {
         Back to Plan Selection
       </button>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Complete Your Payment</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-6 sm:text-2xl">Complete Your Payment</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Payment Info */}

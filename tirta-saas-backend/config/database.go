@@ -91,6 +91,10 @@ func Migrate() {
 		log.Fatalf("❌ Migrasi gagal: %v", err)
 	}
 
+	if err := applyInvoiceSchemaAdjustments(); err != nil {
+		log.Fatalf("❌ Migrasi schema invoice gagal: %v", err)
+	}
+
 	log.Println("✅ Migrasi database selesai.")
 
 	// Apply database optimizations after migration
@@ -102,6 +106,20 @@ func Migrate() {
 
 	// Initialize default permissions
 	initializeDefaultPermissions(DB)
+}
+
+func applyInvoiceSchemaAdjustments() error {
+	if err := DB.Exec("ALTER TABLE invoices MODIFY COLUMN type VARCHAR(20) NOT NULL").Error; err != nil {
+		return err
+	}
+
+	if !DB.Migrator().HasColumn(&models.Invoice{}, "ManualItems") {
+		if err := DB.Exec("ALTER TABLE invoices ADD COLUMN manual_items JSON NULL").Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func initializeDefaultPermissions(db *gorm.DB) {

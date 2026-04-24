@@ -30,13 +30,17 @@ const PrinterBridgeIndicator = () => {
     };
 
     void refresh();
-    const timer = window.setInterval(() => {
-      void refresh();
-    }, 15000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refresh();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       active = false;
-      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

@@ -390,6 +390,24 @@ const PaymentReceipt: React.FC = () => {
               </div>
             </div>
           )}
+          {receipt.invoiceDetails.invoiceType === 'manual' && receipt.invoiceDetails.items && receipt.invoiceDetails.items.length > 0 && (
+            <div className="mt-1 pt-1 space-y-1">
+              <p className="font-medium text-gray-900">Rincian Tagihan Manual</p>
+              {receipt.invoiceDetails.items.map((item, index) => (
+                <div key={`${item.description}-${index}`} className="flex justify-between gap-2 text-[11px]">
+                  <span className="text-gray-600">
+                    {item.description} ({item.quantity} x {new Intl.NumberFormat('id-ID').format(item.unitPrice)})
+                  </span>
+                  <span className="font-medium text-gray-900">
+                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(item.amount)}
+                  </span>
+                </div>
+              ))}
+              {receipt.invoiceDetails.notes && (
+                <p className="pt-1 text-gray-600">{receipt.invoiceDetails.notes}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Ringkasan biaya */}

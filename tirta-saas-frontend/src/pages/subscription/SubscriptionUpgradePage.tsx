@@ -542,7 +542,7 @@ export default function SubscriptionUpgradePage() {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="mb-12 text-center">
-          <h1 className="mb-4 text-4xl font-bold text-gray-900">Pilih Paket Langganan</h1>
+          <h1 className="mb-4 text-2xl font-bold text-gray-900 sm:text-4xl">Pilih Paket Langganan</h1>
           <p className="text-lg text-gray-600">
             Pilih paket yang paling sesuai untuk operasional pengelolaan air Anda.
           </p>
@@ -575,7 +575,7 @@ export default function SubscriptionUpgradePage() {
         {loadingPlans ? (
           <div className="py-12 text-center text-gray-500">Memuat paket langganan...</div>
         ) : (
-          <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-3">
+          <div className="mx-auto grid max-w-6xl gap-6 grid-cols-1 md:grid-cols-3">
             {plans.map((plan) => (
               <div
                 key={plan.id}

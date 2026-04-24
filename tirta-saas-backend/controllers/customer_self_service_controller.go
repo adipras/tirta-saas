@@ -40,27 +40,6 @@ type customerInvoiceResponse struct {
 	CreatedAt           time.Time  `json:"created_at"`
 }
 
-func customerInvoiceStatus(invoice models.Invoice, snapshot services.InvoiceAmountSnapshot) string {
-	status := strings.ToLower(string(invoice.PaymentStatus))
-	if status != "" {
-		if snapshot.RemainingAmount > 0 && status == "paid" {
-			return "partial"
-		}
-		return status
-	}
-
-	switch {
-	case snapshot.RemainingAmount == 0 && invoice.TotalPaid >= snapshot.TotalAmount:
-		return "paid"
-	case invoice.TotalPaid > 0:
-		return "partial"
-	case invoice.DueDate != nil && snapshot.PenaltyDays > 0:
-		return "overdue"
-	default:
-		return "unpaid"
-	}
-}
-
 func buildCustomerInvoiceResponse(invoice models.Invoice, subscription *models.SubscriptionType, tenantSettings models.TenantSettings) customerInvoiceResponse {
 	snapshot := services.CalculateInvoiceAmountSnapshot(invoice, subscription, tenantSettings, time.Time{})
 	usageYear := 0
@@ -90,7 +69,7 @@ func buildCustomerInvoiceResponse(invoice models.Invoice, subscription *models.S
 		StoredPenaltyAmount: snapshot.StoredPenaltyAmount,
 		StoredTotalAmount:   snapshot.StoredTotalAmount,
 		PenaltyDays:         snapshot.PenaltyDays,
-		PaymentStatus:       customerInvoiceStatus(invoice, snapshot),
+		PaymentStatus:       strings.ToLower(string(services.DetermineInvoicePaymentStatus(invoice, snapshot))),
 		IsPaid:              snapshot.RemainingAmount == 0 && invoice.TotalPaid >= snapshot.TotalAmount,
 		DueDate:             invoice.DueDate,
 		PaidDate:            invoice.PaidDate,

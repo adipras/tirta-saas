@@ -28,18 +28,16 @@ func getInvoiceSubscription(invoice models.Invoice) *models.SubscriptionType {
 
 func buildInvoiceResponse(invoice models.Invoice, tenantSettings models.TenantSettings, referenceTime time.Time) responses.InvoiceResponse {
 	snapshot := services.CalculateInvoiceAmountSnapshot(invoice, getInvoiceSubscription(invoice), tenantSettings, referenceTime)
-	paymentStatus := strings.ToLower(string(invoice.PaymentStatus))
-	if paymentStatus == "" {
-		switch {
-		case invoice.IsPaid || snapshot.RemainingAmount == 0:
-			paymentStatus = "paid"
-		case invoice.TotalPaid > 0:
-			paymentStatus = "partial"
-		case invoice.DueDate != nil && snapshot.PenaltyDays > 0:
-			paymentStatus = "overdue"
-		default:
-			paymentStatus = "unpaid"
-		}
+	paymentStatus := strings.ToLower(string(services.DetermineInvoicePaymentStatus(invoice, snapshot)))
+	manualItems := invoice.GetManualItems()
+	responseItems := make([]responses.InvoiceItem, 0, len(manualItems))
+	for _, item := range manualItems {
+		responseItems = append(responseItems, responses.InvoiceItem{
+			Description: item.Description,
+			Quantity:    item.Quantity,
+			UnitPrice:   item.UnitPrice,
+			Amount:      item.Amount,
+		})
 	}
 
 	response := responses.InvoiceResponse{
@@ -62,6 +60,8 @@ func buildInvoiceResponse(invoice models.Invoice, tenantSettings models.TenantSe
 		IsPaid:              snapshot.RemainingAmount == 0 && invoice.TotalPaid >= snapshot.TotalAmount,
 		PaymentStatus:       paymentStatus,
 		Type:                invoice.Type,
+		Notes:               invoice.Notes,
+		Items:               responseItems,
 		DueDate:             invoice.DueDate,
 		PaidDate:            invoice.PaidDate,
 		CreatedAt:           invoice.CreatedAt,
@@ -69,15 +69,175 @@ func buildInvoiceResponse(invoice models.Invoice, tenantSettings models.TenantSe
 
 	if invoice.Customer.ID != uuid.Nil {
 		response.CustomerName = invoice.Customer.Name
+		response.MeterNumber = invoice.Customer.MeterNumber
 		response.Customer = &responses.CustomerSummary{
 			ID:          invoice.Customer.ID,
 			Name:        invoice.Customer.Name,
 			MeterNumber: invoice.Customer.MeterNumber,
 			Email:       invoice.Customer.Email,
+			Address:     invoice.Customer.Address,
 		}
 	}
 
 	return response
+}
+
+func attachInvoiceUsageReadings(response *responses.InvoiceResponse, tenantID uuid.UUID) {
+	if response.Type != "monthly" || response.UsageMonth == "" {
+		return
+	}
+
+	var usage models.WaterUsage
+	if err := config.DB.
+		Where("tenant_id = ? AND customer_id = ? AND usage_month = ?", tenantID, response.CustomerID, response.UsageMonth).
+		Order("created_at desc").
+		First(&usage).Error; err != nil {
+		return
+	}
+
+	meterStart := usage.MeterStart
+	meterEnd := usage.MeterEnd
+	response.MeterStart = &meterStart
+	response.MeterEnd = &meterEnd
+}
+
+func buildInvoiceListStats(invoices []responses.InvoiceResponse) responses.InvoiceListStats {
+	stats := responses.InvoiceListStats{
+		TotalInvoices: len(invoices),
+	}
+
+	for _, invoice := range invoices {
+		stats.TotalAmount += invoice.TotalAmount
+		stats.OutstandingAmount += invoice.RemainingAmount
+
+		switch invoice.PaymentStatus {
+		case "paid":
+			stats.PaidCount++
+		case "partial":
+			stats.PartialCount++
+			stats.OpenCount++
+		case "overdue":
+			stats.OverdueCount++
+			stats.OpenCount++
+		default:
+			stats.UnpaidCount++
+			stats.OpenCount++
+		}
+	}
+
+	return stats
+}
+
+func parseInvoiceDueDate(value string) (time.Time, error) {
+	return time.Parse("2006-01-02", value)
+}
+
+// CreateInvoice godoc
+// @Summary Create manual invoice
+// @Description Create a manual invoice for non-registration and non-water-usage charges
+// @Tags Invoices
+// @Accept json
+// @Produce json
+// @Param request body requests.CreateInvoiceRequest true "Create invoice request"
+// @Security BearerAuth
+// @Success 201 {object} responses.InvoiceResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /api/invoices [post]
+func CreateInvoice(c *gin.Context) {
+	var req requests.CreateInvoiceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var customer models.Customer
+	if err := config.DB.Preload("Subscription").
+		Where("id = ? AND tenant_id = ?", req.CustomerID, tenantID).
+		First(&customer).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Pelanggan tidak ditemukan"})
+		return
+	}
+
+	dueDate, err := parseInvoiceDueDate(req.DueDate)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format jatuh tempo tidak valid"})
+		return
+	}
+
+	totalAmount := 0.0
+	manualItems := make([]models.ManualInvoiceItem, 0, len(req.Items))
+	for _, item := range req.Items {
+		lineTotal := item.Quantity * item.UnitPrice
+		if lineTotal < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nominal item tidak valid"})
+			return
+		}
+		totalAmount += lineTotal
+		manualItems = append(manualItems, models.ManualInvoiceItem{
+			Description: strings.TrimSpace(item.Description),
+			Quantity:    item.Quantity,
+			UnitPrice:   item.UnitPrice,
+			Amount:      lineTotal,
+		})
+	}
+
+	if totalAmount <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Total tagihan harus lebih besar dari nol"})
+		return
+	}
+
+	invoiceNumberGen := services.GetInvoiceNumberGenerator()
+	invoiceNumber, err := invoiceNumberGen.GenerateInvoiceNumber(tenantID, time.Now())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat nomor invoice"})
+		return
+	}
+
+	invoice := models.Invoice{
+		InvoiceNumber: invoiceNumber,
+		CustomerID:    req.CustomerID,
+		TenantID:      tenantID,
+		UsageMonth:    "",
+		UsageM3:       0,
+		PricePerM3:    0,
+		Abonemen:      0,
+		WaterCharge:   totalAmount,
+		SubTotal:      totalAmount,
+		TotalAmount:   totalAmount,
+		TotalPaid:     0,
+		PaymentStatus: models.PaymentStatusUnpaid,
+		IsPaid:        false,
+		DueDate:       &dueDate,
+		Type:          string(models.InvoiceTypeManual),
+		Notes:         strings.TrimSpace(req.Notes),
+	}
+
+	if err := invoice.SetManualItems(manualItems); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memproses item tagihan"})
+		return
+	}
+
+	if err := config.DB.Create(&invoice).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat tagihan"})
+		return
+	}
+
+	if err := config.DB.Preload("Customer").Preload("Customer.Subscription").
+		Where("id = ? AND tenant_id = ?", invoice.ID, tenantID).
+		First(&invoice).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tagihan berhasil dibuat, tetapi gagal memuat ulang data"})
+		return
+	}
+
+	response := buildInvoiceResponse(invoice, services.LoadTenantSettings(tenantID), time.Time{})
+	c.JSON(http.StatusCreated, response)
 }
 
 // GenerateMonthlyInvoiceRequest represents the request body for generating monthly invoice
@@ -276,10 +436,7 @@ func GetInvoices(c *gin.Context) {
 		query = query.Where("invoices.tenant_id = ?", tenantID)
 	}
 
-	// Apply query filters
-	if status := c.Query("status"); status != "" {
-		query = query.Where("invoices.payment_status = ?", strings.ToUpper(status))
-	}
+	statusFilter := strings.TrimSpace(strings.ToLower(c.Query("status")))
 	if invoiceType := c.Query("type"); invoiceType != "" {
 		query = query.Where("invoices.type = ?", invoiceType)
 	}
@@ -288,7 +445,12 @@ func GetInvoices(c *gin.Context) {
 	}
 	if search := c.Query("search"); search != "" {
 		query = query.Joins("LEFT JOIN customers ON customers.id = invoices.customer_id").
-			Where("invoices.invoice_number LIKE ? OR customers.name LIKE ?", "%"+search+"%", "%"+search+"%")
+			Where(
+				"invoices.invoice_number LIKE ? OR customers.name LIKE ? OR customers.meter_number LIKE ?",
+				"%"+search+"%",
+				"%"+search+"%",
+				"%"+search+"%",
+			)
 	}
 
 	if err := query.Find(&invoices).Error; err != nil {
@@ -306,9 +468,20 @@ func GetInvoices(c *gin.Context) {
 		invoiceResponses[i] = buildInvoiceResponse(invoice, invoiceTenantSettings, time.Time{})
 	}
 
+	if statusFilter != "" {
+		filteredResponses := make([]responses.InvoiceResponse, 0, len(invoiceResponses))
+		for _, invoiceResponse := range invoiceResponses {
+			if invoiceResponse.PaymentStatus == statusFilter {
+				filteredResponses = append(filteredResponses, invoiceResponse)
+			}
+		}
+		invoiceResponses = filteredResponses
+	}
+
 	response := responses.InvoiceListResponse{
 		Invoices: invoiceResponses,
 		Total:    len(invoiceResponses),
+		Stats:    buildInvoiceListStats(invoiceResponses),
 	}
 	c.JSON(http.StatusOK, response)
 }
@@ -352,6 +525,7 @@ func GetInvoice(c *gin.Context) {
 	}
 
 	response := buildInvoiceResponse(invoice, services.LoadTenantSettings(tenantID), time.Time{})
+	attachInvoiceUsageReadings(&response, tenantID)
 	helpers.RespondSuccess(c, "Invoice retrieved successfully", response)
 }
 

@@ -97,10 +97,10 @@ const PlanSelectionPage = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-6">
+    <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Upgrade Your Subscription</h1>
-        <p className="text-lg text-gray-600">Choose the plan that fits your needs</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2 sm:text-3xl">Upgrade Your Subscription</h1>
+        <p className="text-base text-gray-600 sm:text-lg">Choose the plan that fits your needs</p>
       </div>
 
       {/* Billing Period Selector */}
@@ -128,7 +128,7 @@ const PlanSelectionPage = () => {
             key={plan.id}
             className={`relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-200 cursor-pointer ${
               selectedPlan === plan.id
-                ? 'ring-2 ring-blue-600 transform scale-105'
+                ? 'ring-2 ring-blue-600 md:scale-105'
                 : 'hover:shadow-xl'
             }`}
             onClick={() => handleSelectPlan(plan.id)}
@@ -202,7 +202,7 @@ const PlanSelectionPage = () => {
           </div>
         </div>
 
-        <div className="flex space-x-4">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <button
             onClick={() => navigate(-1)}
             className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-lg transition-colors duration-200"

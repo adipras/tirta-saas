@@ -54,6 +54,7 @@ function downloadBlob(blob: Blob, filename: string): void {
 }
 
 /** Format number as IDR string for export */
-export function formatIDR(value: number): string {
-  return `Rp ${value.toLocaleString('id-ID')}`;
+export function formatIDR(value: number | null | undefined): string {
+  const normalizedValue = Number.isFinite(value) ? Number(value) : 0;
+  return `Rp ${normalizedValue.toLocaleString('id-ID')}`;
 }

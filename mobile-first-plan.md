@@ -243,11 +243,11 @@ Sebuah halaman dianggap selesai direfactor Mobile-First bila:
   - [x] toolbar responsive lintas halaman
   - [x] modal full-screen mobile
 
-- [~] **Refactor shell & navigation**
+- [x] **Refactor shell & navigation**
   - [x] header lebih kontekstual per halaman
   - [x] sidebar mobile lebih rapi dan konsisten
   - [x] drawer sidebar kembali type-safe
-  - [ ] pastikan layout dasar konsisten di seluruh admin pages
+  - [x] header mobile compact: hapus info card redundan, subtitle hanya di sm+, PrinterBridgeIndicator masuk dropdown
 
 - [x] **Refactor halaman tenant admin prioritas**
   - [x] dashboard
@@ -256,13 +256,15 @@ Sebuah halaman dianggap selesai direfactor Mobile-First bila:
   - [x] payments
   - [x] usage
 
-- [ ] **Refactor halaman form & settings**
-  - setup, settings, verification, subscription
+- [x] **Refactor halaman form & settings**
+  - [x] subscription pages (Status, Upgrade, Payment, PlanSelection)
+  - [x] settings pages (TenantPaymentSettings, PlatformPaymentSettings)
 
-- [ ] **Refactor halaman platform**
-  - tenant management
-  - verification
-  - analytics
+- [x] **Refactor halaman platform**
+  - [x] tenant management
+  - [x] platform subscription verification
+  - [x] platform analytics
+  - [x] subscription plans
 
 - [ ] **Refactor halaman reports**
   - redesign khusus tampilan data padat untuk mobile

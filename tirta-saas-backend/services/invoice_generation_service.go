@@ -192,8 +192,8 @@ func (s *InvoiceGenerationService) UpdateOverdueInvoices(tenantID uuid.UUID) err
 
 	// Update invoices that are past due date and not paid
 	result := config.DB.Model(&models.Invoice{}).
-		Where("tenant_id = ? AND due_date < ? AND payment_status = ?",
-			tenantID, now, models.PaymentStatusUnpaid).
+		Where("tenant_id = ? AND due_date < ? AND payment_status IN ?",
+			tenantID, now, []models.PaymentStatus{models.PaymentStatusUnpaid, models.PaymentStatusPartial}).
 		Update("payment_status", models.PaymentStatusOverdue)
 
 	if result.Error != nil {

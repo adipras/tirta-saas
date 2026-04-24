@@ -1,13 +1,19 @@
 export interface Invoice {
   id: string;
   invoiceNumber: string;
+  type?: 'monthly' | 'registration' | 'manual';
   customerId: string;
   customerName: string;
+  meterNumber?: string;
+  meterStart?: number;
+  meterEnd?: number;
   periodStartDate: string;
   periodEndDate: string;
   billingPeriod: string;
   usage: number;
   amount: number;
+  subscriptionFee?: number;
+  pricePerM3?: number;
   totalAmount: number;
   amountPaid: number;
   amountDue: number;
@@ -37,7 +43,18 @@ export interface Invoice {
 
 export interface InvoiceDetails extends Invoice {
   items: InvoiceItem[];
-  paymentHistory: Payment[];
+  paymentHistory: PaymentHistory[];
+}
+
+export interface InvoiceListStats {
+  totalInvoices: number;
+  paidCount: number;
+  unpaidCount: number;
+  partialCount: number;
+  overdueCount: number;
+  openCount: number;
+  totalAmount: number;
+  outstandingAmount: number;
 }
 
 export interface InvoiceItem {

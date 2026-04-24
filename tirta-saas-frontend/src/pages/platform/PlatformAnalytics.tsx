@@ -132,7 +132,7 @@ export default function PlatformAnalytics() {
       <PageHeader title="Analitik Platform" subtitle="Overview of platform performance and tenant statistics" />
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Tenants */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
@@ -233,7 +233,7 @@ export default function PlatformAnalytics() {
       {/* Pemakaian Statistics */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Platform Pemakaian</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
             <p className="text-sm text-gray-600">Total Users</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -263,7 +263,7 @@ export default function PlatformAnalytics() {
 
       {/* Tenant Growth */}
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Tenant Growth</h2>
           <select
             value={selectedPeriod}
@@ -374,7 +374,7 @@ export default function PlatformAnalytics() {
       {/* Performance Metrics */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <div>
             <p className="text-sm text-gray-600">Avg Response Time</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">

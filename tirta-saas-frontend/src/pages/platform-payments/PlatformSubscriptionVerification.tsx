@@ -201,7 +201,7 @@ export default function PlatformSubscriptionVerification() {
       <PageHeader title="Verifikasi Pembayaran Langganan Tenant" subtitle="Validasi bukti pembayaran langganan tenant sebelum tenant diaktifkan" />
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <ClockIcon className="h-8 w-8 text-yellow-500" />
@@ -233,7 +233,7 @@ export default function PlatformSubscriptionVerification() {
 
       {/* Search & Filter */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex-1 relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
@@ -264,7 +264,7 @@ export default function PlatformSubscriptionVerification() {
       )}
 
       {/* Pembayaran List */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
         {loading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -357,7 +357,7 @@ export default function PlatformSubscriptionVerification() {
                 {/* Tenant Info */}
                 <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-600">
                   <h4 className="font-semibold text-gray-900 mb-2">Tenant Information</h4>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <p className="text-sm text-gray-600">Tenant Name</p>
                       <p className="font-medium">{selectedPayment.tenant?.organizationName || 'N/A'}</p>
@@ -370,7 +370,7 @@ export default function PlatformSubscriptionVerification() {
                 </div>
 
                 {/* Subscription Info */}
-                <div className="grid grid-cols-2 gap-4 pb-4 border-b">
+                <div className="grid grid-cols-1 gap-4 pb-4 border-b sm:grid-cols-2">
                   <div>
                     <p className="text-sm text-gray-600">Subscription Plan</p>
                     {getPlanBadge(selectedPayment.subscriptionPlan)}
@@ -390,7 +390,7 @@ export default function PlatformSubscriptionVerification() {
                 </div>
 
                 {/* Payment Info */}
-                <div className="grid grid-cols-2 gap-4 pb-4 border-b">
+                <div className="grid grid-cols-1 gap-4 pb-4 border-b sm:grid-cols-2">
                   <div>
                     <p className="text-sm text-gray-600">Payment Date</p>
                     <p className="font-medium">{formatDate(selectedPayment.paymentDate)}</p>

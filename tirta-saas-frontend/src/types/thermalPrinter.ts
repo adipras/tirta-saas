@@ -23,7 +23,7 @@ export interface ThermalReceiptPayload {
   qrisImageUrl?: string;
   qrisImageDataUrl?: string;
   qrisLabel?: string;
-  invoiceType?: 'monthly' | 'registration';
+  invoiceType?: 'monthly' | 'registration' | 'manual';
   invoiceStatus?: 'paid' | 'partial' | 'unpaid';
   invoiceStatusLabel?: string;
   usageDetails?: {
@@ -31,6 +31,12 @@ export interface ThermalReceiptPayload {
     usageM3?: number;
     subTotal?: number;
   };
+  manualItems?: Array<{
+    description: string;
+    quantity?: number;
+    unitPrice?: number;
+    amount?: number;
+  }>;
   bankInfo?: {
     bankName?: string;
     bankAccountName?: string;
@@ -149,6 +155,10 @@ export const buildThermalReceiptPayload = async (receipt: PaymentReceipt): Promi
         subTotal: receipt.invoiceDetails.subTotal,
       }
     : undefined;
+  const manualItems =
+    receipt.invoiceDetails.invoiceType === 'manual' && receipt.invoiceDetails.items
+      ? receipt.invoiceDetails.items
+      : undefined;
 
   const bankInfo =
     receiptView.bankName || receiptView.bankAccountNo || receiptView.bankAccountName
@@ -176,6 +186,7 @@ export const buildThermalReceiptPayload = async (receipt: PaymentReceipt): Promi
     invoiceStatus: receipt.invoiceDetails.invoicePaymentStatus,
     invoiceStatusLabel: receiptView.invoiceStatusLabel,
     usageDetails,
+    manualItems,
     bankInfo,
     printNotes: receiptView.compactNotes,
     merchant: {

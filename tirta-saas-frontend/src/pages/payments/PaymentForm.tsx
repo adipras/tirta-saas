@@ -50,6 +50,18 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const getInvoiceTypeLabel = (invoice: OutstandingInvoice) => {
+  if (invoice.type === 'manual') {
+    return 'Tagihan manual';
+  }
+
+  if (invoice.type === 'registration') {
+    return 'Biaya registrasi';
+  }
+
+  return invoice.usageMonth || 'Tagihan air bulanan';
+};
+
 const PaymentForm: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
@@ -457,7 +469,7 @@ const PaymentForm: React.FC = () => {
                               </span>
                             </div>
                             <p className="mt-1 text-sm text-gray-500">
-                              {invoice.usageMonth || 'Biaya registrasi'} • Jatuh tempo{' '}
+                              {getInvoiceTypeLabel(invoice)} • Jatuh tempo{' '}
                               {invoice.dueDate
                                 ? new Date(invoice.dueDate).toLocaleDateString('id-ID')
                                 : '-'}

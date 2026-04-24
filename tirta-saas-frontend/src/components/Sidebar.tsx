@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   ChevronDownIcon,
@@ -242,9 +242,12 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
+  const prevPathnameRef = useRef(location.pathname);
+
   useEffect(() => {
-    if (open) {
-      onClose();
+    if (prevPathnameRef.current !== location.pathname) {
+      prevPathnameRef.current = location.pathname;
+      if (open) onClose();
     }
   }, [location.pathname, open, onClose]);
 

@@ -1,15 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeftIcon,
   PrinterIcon,
-  EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import invoiceService from '../../services/invoiceService';
 import { thermalPrinterService } from '../../services/thermalPrinterService';
-import type { InvoiceDetails as InvoiceDetailsType } from '../../types/invoice';
+import type { InvoiceDetails as InvoiceDetailsType, Invoice } from '../../types/invoice';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
+
+const STATUS_LABELS: Record<Invoice['status'], string> = {
+  paid: 'Lunas',
+  unpaid: 'Belum bayar',
+  partial: 'Parsial',
+  overdue: 'Terlambat',
+};
+
+const STATUS_BADGE_CLASSES: Record<Invoice['status'], string> = {
+  paid: 'bg-green-100 text-green-800',
+  unpaid: 'bg-yellow-100 text-yellow-800',
+  partial: 'bg-blue-100 text-blue-800',
+  overdue: 'bg-red-100 text-red-800',
+};
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount);
+
+const formatDate = (dateString?: string) => {
+  if (!dateString) return '-';
+
+  return new Date(dateString).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+};
 
 export default function InvoiceDetails() {
   const navigate = useNavigate();
@@ -19,14 +49,7 @@ export default function InvoiceDetails() {
   const [invoice, setInvoice] = useState<InvoiceDetailsType | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (id) {
-      fetchInvoice(id);
-    }
-  }, [id]);
-
-  const fetchInvoice = async (invoiceId: string) => {
+  const fetchInvoice = useCallback(async (invoiceId: string) => {
     try {
       setLoading(true);
       const data = await invoiceService.getInvoiceById(invoiceId);
@@ -34,49 +57,57 @@ export default function InvoiceDetails() {
     } catch {
       dispatch(addNotification({
         type: 'error',
-        message: 'Failed to fetch invoice details',
+        message: 'Gagal memuat detail tagihan',
       }));
       navigate('/admin/invoices');
     } finally {
       setLoading(false);
     }
-  };
+  }, [dispatch, navigate]);
 
-  const getStatusBadge = (status?: string) => {
-    const statusConfig: Record<string, { color: string }> = {
-      paid: { color: 'bg-green-100 text-green-800' },
-      unpaid: { color: 'bg-yellow-100 text-yellow-800' },
-      partial: { color: 'bg-blue-100 text-blue-800' },
-      overdue: { color: 'bg-red-100 text-red-800' },
-    };
-    const statusStr = status || 'unpaid';
-    const config = statusConfig[statusStr] || statusConfig.unpaid;
-    return (
-      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.color}`}>
-        {statusStr.charAt(0).toUpperCase() + statusStr.slice(1)}
-      </span>
-    );
+  useEffect(() => {
+    if (id) {
+      fetchInvoice(id);
+    }
+  }, [fetchInvoice, id]);
+
+  const handlePrint = () => {
+    thermalPrinterService.printPage();
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center py-12">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (!invoice) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">Invoice not found</p>
+      <div className="py-12 text-center">
+        <p className="text-gray-500">Tagihan tidak ditemukan</p>
       </div>
     );
   }
 
-  const isRegistration = !invoice.billingPeriod || invoice.billingPeriod === '';
-  const invoiceType = isRegistration ? 'Registration Fee' : 'Monthly Water Bill';
-  const typeColor = isRegistration ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800';
+  const isRegistration = invoice.type === 'registration';
+  const isManual = invoice.type === 'manual';
+  const invoiceTypeLabel = isRegistration
+    ? 'Tagihan Registrasi'
+    : isManual
+      ? 'Tagihan Manual'
+      : 'Tagihan Air Bulanan';
+  const meterDiffLabel =
+    typeof invoice.meterStart === 'number' && typeof invoice.meterEnd === 'number'
+      ? `${invoice.meterEnd.toFixed(0)} - ${invoice.meterStart.toFixed(0)}`
+      : '-';
+  const estimatedRate =
+    invoice.pricePerM3 && invoice.pricePerM3 > 0
+      ? invoice.pricePerM3
+      : invoice.usage > 0
+        ? invoice.amount / invoice.usage
+        : 0;
 
   return (
     <div className="space-y-6">
@@ -86,269 +117,227 @@ export default function InvoiceDetails() {
           className="flex items-center text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeftIcon className="mr-2 h-4 w-4" />
-          Back to Tagihan
+          Kembali ke daftar tagihan
         </button>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => thermalPrinterService.printPage()}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-            <PrinterIcon className="mr-2 h-4 w-4" />
-            Print
-          </button>
-          <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-            <EnvelopeIcon className="mr-2 h-4 w-4" />
-            Send
-          </button>
-        </div>
+        <button
+          onClick={handlePrint}
+          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+        >
+          <PrinterIcon className="mr-2 h-4 w-4" />
+          Print
+        </button>
       </div>
 
-      {/* Invoice Header Card */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg overflow-hidden">
-        <div className="px-6 py-8 sm:p-10">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white">
-                {invoiceType}
-              </h1>
-              <p className="mt-2 text-blue-100">
-                Invoice #{invoice.invoiceNumber || 'N/A'}
-              </p>
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <p className="text-sm font-medium uppercase tracking-wide text-blue-600">{invoiceTypeLabel}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{invoice.invoiceNumber || '-'}</h1>
+            <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+              <span>{invoice.customerName}</span>
+              <span className="text-gray-300">•</span>
+              <span>Nomor Meter: {invoice.meterNumber || invoice.customer?.meterNumber || '-'}</span>
             </div>
-            <div className="text-right">
-              <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${typeColor}`}>
-                {isRegistration ? 'Registration' : 'Monthly'}
-              </div>
-              <div className="mt-3">
-                {getStatusBadge(invoice.status)}
-              </div>
-            </div>
+          </div>
+          <span className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-sm font-medium ${STATUS_BADGE_CLASSES[invoice.status]}`}>
+            {STATUS_LABELS[invoice.status]}
+          </span>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl bg-gray-50 p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Tanggal terbit</p>
+            <p className="mt-1 font-semibold text-gray-900">{formatDate(invoice.issueDate)}</p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Jatuh tempo</p>
+            <p className="mt-1 font-semibold text-gray-900">{formatDate(invoice.dueDate)}</p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Periode</p>
+            <p className="mt-1 font-semibold text-gray-900">
+              {invoice.billingPeriod || (isRegistration ? 'Registrasi' : 'Manual')}
+            </p>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-4">
+            <p className="text-xs uppercase tracking-wide text-gray-500">Total tagihan</p>
+            <p className="mt-1 font-semibold text-gray-900">{formatCurrency(invoice.totalAmount)}</p>
           </div>
         </div>
       </div>
 
-      {/* Customer & Invoice Info */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-5 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Invoice Information</h2>
-        </div>
-        <div className="px-6 py-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-4">Customer Details</h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500">Name</p>
-                  <p className="text-base font-medium text-gray-900">{invoice.customerName}</p>
-                </div>
-                {invoice.customer?.meterNumber && (
-                  <div>
-                    <p className="text-sm text-gray-500">Meter Number</p>
-                    <p className="text-base font-medium text-gray-900">{invoice.customer.meterNumber}</p>
-                  </div>
-                )}
-                {invoice.customer?.email && (
-                  <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="text-base text-gray-900">{invoice.customer.email}</p>
-                  </div>
-                )}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">Informasi pelanggan</h2>
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <p className="text-sm text-gray-500">Nama pelanggan</p>
+                <p className="mt-1 font-medium text-gray-900">{invoice.customerName}</p>
               </div>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 mb-4">Invoice Details</h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500">Issue Date</p>
-                  <p className="text-base font-medium text-gray-900">
-                    {invoice.issueDate ? new Date(invoice.issueDate).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    }) : 'N/A'}
-                  </p>
-                </div>
-                {invoice.dueDate && (
-                  <div>
-                    <p className="text-sm text-gray-500">Due Date</p>
-                    <p className="text-base font-medium text-gray-900">
-                      {new Date(invoice.dueDate).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                )}
-                {!isRegistration && invoice.billingPeriod && (
-                  <div>
-                    <p className="text-sm text-gray-500">Billing Period</p>
-                    <p className="text-base font-medium text-gray-900">{invoice.billingPeriod}</p>
-                  </div>
-                )}
+              <div>
+                <p className="text-sm text-gray-500">Nomor meter</p>
+                <p className="mt-1 font-medium text-gray-900">{invoice.meterNumber || invoice.customer?.meterNumber || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Alamat</p>
+                <p className="mt-1 font-medium text-gray-900">{invoice.customer?.address || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Kontak</p>
+                <p className="mt-1 font-medium text-gray-900">
+                  {invoice.customer?.phone || invoice.customer?.email || '-'}
+                </p>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Charges Breakdown */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-5 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">
-            {isRegistration ? 'Registration Fee' : 'Pemakaian Details & Charges'}
-          </h2>
-        </div>
-        <div className="px-6 py-5">
-          {isRegistration ? (
-            // Registration Invoice
-            <div className="space-y-4">
-              <div className="flex justify-between py-3 border-b border-gray-200">
-                <div>
-                  <p className="text-base font-medium text-gray-900">New Customer Registration Fee</p>
-                  <p className="text-sm text-gray-500 mt-1">One-time registration charge</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold text-gray-900">
-                    {new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      minimumFractionDigits: 0,
-                    }).format(invoice.totalAmount)}
-                  </p>
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {isRegistration ? 'Rincian biaya registrasi' : isManual ? 'Rincian tagihan manual' : 'Detail pemakaian & biaya'}
+            </h2>
+
+            {isRegistration ? (
+              <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-gray-900">Biaya registrasi pelanggan baru</p>
+                    <p className="mt-1 text-sm text-gray-500">Tagihan satu kali untuk aktivasi pelanggan.</p>
+                  </div>
+                  <p className="text-lg font-semibold text-gray-900">{formatCurrency(invoice.totalAmount)}</p>
                 </div>
               </div>
-            </div>
-          ) : (
-            // Monthly Invoice
-            <div className="space-y-4">
-              {invoice.usage > 0 && (
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
+            ) : isManual ? (
+              <div className="mt-4 space-y-4">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-blue-900">Pemakaian Air</p>
-                      <p className="text-3xl font-bold text-blue-600 mt-1">{invoice.usage} m³</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-blue-700">Rate per m³</p>
-                      <p className="text-lg font-semibold text-blue-900">
-                        {new Intl.NumberFormat('id-ID', {
-                          style: 'currency',
-                          currency: 'IDR',
-                          minimumFractionDigits: 0,
-                        }).format(invoice.amount / invoice.usage || 0)}
+                      <p className="font-medium text-gray-900">Tagihan manual</p>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {invoice.notes || 'Tagihan tambahan di luar registrasi dan pemakaian air.'}
                       </p>
                     </div>
+                    <p className="text-lg font-semibold text-gray-900">{formatCurrency(invoice.totalAmount)}</p>
                   </div>
                 </div>
-              )}
-              
-                <div className="divide-y divide-gray-200">
-                  {invoice.usage > 0 && (
-                    <div className="flex justify-between py-3">
-                      <span className="text-gray-600">Water Charge ({invoice.usage} m³)</span>
-                    <span className="font-medium text-gray-900">
-                      {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                      }).format(invoice.amount)}
-                      </span>
+
+                {invoice.items && invoice.items.length > 0 && (
+                  <div className="overflow-hidden rounded-xl border border-gray-200">
+                    <div className="grid grid-cols-[minmax(0,1fr)_100px_160px_160px] gap-3 bg-gray-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <span>Item</span>
+                      <span className="text-right">Qty</span>
+                      <span className="text-right">Harga satuan</span>
+                      <span className="text-right">Total</span>
+                    </div>
+                    <div className="divide-y divide-gray-200">
+                      {invoice.items.map((item, index) => (
+                        <div key={`${item.description}-${index}`} className="grid grid-cols-[minmax(0,1fr)_100px_160px_160px] gap-3 px-4 py-3 text-sm">
+                          <span className="text-gray-900">{item.description}</span>
+                          <span className="text-right text-gray-600">{Number(item.quantity).toLocaleString('id-ID')}</span>
+                          <span className="text-right text-gray-600">{formatCurrency(item.unitPrice)}</span>
+                          <span className="text-right font-medium text-gray-900">{formatCurrency(item.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="rounded-xl bg-blue-50 p-4">
+                    <p className="text-sm text-blue-700">Pemakaian air</p>
+                    <p className="mt-1 text-2xl font-bold text-blue-900">{invoice.usage.toLocaleString('id-ID')} m³</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-sm text-slate-600">Meter akhir - sebelumnya</p>
+                    <p className="mt-1 text-2xl font-bold text-slate-900">{meterDiffLabel}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Akhir: {typeof invoice.meterEnd === 'number' ? invoice.meterEnd.toLocaleString('id-ID') : '-'} m³
+                      {' '}•{' '}
+                      Awal: {typeof invoice.meterStart === 'number' ? invoice.meterStart.toLocaleString('id-ID') : '-'} m³
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-emerald-50 p-4">
+                    <p className="text-sm text-emerald-700">Tarif air per m³</p>
+                    <p className="mt-1 text-2xl font-bold text-emerald-900">{formatCurrency(estimatedRate)}</p>
+                  </div>
+                </div>
+
+                <div className="mt-5 divide-y divide-gray-200 rounded-xl border border-gray-200">
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-sm text-gray-600">Biaya air</span>
+                    <span className="font-medium text-gray-900">{formatCurrency(invoice.amount)}</span>
+                  </div>
+                  {(invoice.subscriptionFee || 0) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="text-sm text-gray-600">Abonemen</span>
+                      <span className="font-medium text-gray-900">{formatCurrency(invoice.subscriptionFee || 0)}</span>
                     </div>
                   )}
-                 {((invoice.subtotal || 0) - invoice.amount) > 0 && (
-                   <div className="flex justify-between py-3">
-                     <span className="text-gray-600">Monthly Subscription Fee</span>
-                     <span className="font-medium text-gray-900">
-                       {new Intl.NumberFormat('id-ID', {
-                         style: 'currency',
-                         currency: 'IDR',
-                         minimumFractionDigits: 0,
-                       }).format((invoice.subtotal || 0) - invoice.amount)}
-                     </span>
-                   </div>
-                 )}
-                 {(invoice.penaltyAmount || 0) > 0 && (
-                   <div className="flex justify-between py-3 text-red-600">
-                     <span>Denda Keterlambatan</span>
-                     <span className="font-medium">
-                       {new Intl.NumberFormat('id-ID', {
-                         style: 'currency',
-                         currency: 'IDR',
-                         minimumFractionDigits: 0,
-                       }).format(invoice.penaltyAmount || 0)}
-                     </span>
-                   </div>
-                 )}
-               </div>
-             </div>
-           )}
+                  {(invoice.penaltyAmount || 0) > 0 && (
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="text-sm text-red-600">Denda keterlambatan</span>
+                      <span className="font-medium text-red-600">{formatCurrency(invoice.penaltyAmount || 0)}</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Payment Summary */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-5 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Payment Summary</h2>
-        </div>
-        <div className="px-6 py-5">
-            <div className="space-y-3">
-              {(invoice.subtotal || 0) > 0 && (
-                <div className="flex justify-between text-base">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span className="font-medium text-gray-900">
-                    {new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      minimumFractionDigits: 0,
-                    }).format(invoice.subtotal || 0)}
-                  </span>
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-gray-900">Ringkasan pembayaran</h2>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Total tagihan</span>
+                <span className="font-medium text-gray-900">{formatCurrency(invoice.totalAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Sudah dibayar</span>
+                <span className="font-medium text-green-600">{formatCurrency(invoice.amountPaid)}</span>
+              </div>
+              <div className="border-t border-gray-200 pt-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-semibold text-gray-900">Sisa tagihan</span>
+                  <span className="text-2xl font-bold text-red-600">{formatCurrency(invoice.amountDue)}</span>
                 </div>
-              )}
-              {(invoice.penaltyAmount || 0) > 0 && (
-                <div className="flex justify-between text-base">
-                  <span className="text-gray-600">Denda</span>
-                  <span className="font-medium text-red-600">
-                    {new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      minimumFractionDigits: 0,
-                    }).format(invoice.penaltyAmount || 0)}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between text-base">
-                <span className="text-gray-600">Total Amount</span>
-                <span className="font-medium text-gray-900">
-                {new Intl.NumberFormat('id-ID', {
-                  style: 'currency',
-                  currency: 'IDR',
-                  minimumFractionDigits: 0,
-                }).format(invoice.totalAmount)}
-              </span>
-            </div>
-            <div className="flex justify-between text-base">
-              <span className="text-gray-600">Amount Paid</span>
-              <span className="font-medium text-green-600">
-                {new Intl.NumberFormat('id-ID', {
-                  style: 'currency',
-                  currency: 'IDR',
-                  minimumFractionDigits: 0,
-                }).format(invoice.amountPaid)}
-              </span>
-            </div>
-            <div className="border-t-2 border-gray-300 pt-3">
-              <div className="flex justify-between">
-                <span className="text-lg font-semibold text-gray-900">Amount Due</span>
-                <span className="text-2xl font-bold text-red-600">
-                  {new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR',
-                    minimumFractionDigits: 0,
-                  }).format(invoice.amountDue)}
-                </span>
               </div>
             </div>
           </div>
+
+          {invoice.payments && invoice.payments.length > 0 && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-900">Riwayat pembayaran</h2>
+              <div className="mt-4 space-y-3">
+                {invoice.payments.map((payment, index) => (
+                  <div key={index} className="rounded-xl border border-green-200 bg-green-50 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-gray-900">{formatDate(payment.paymentDate)}</p>
+                        <p className="mt-1 text-sm text-gray-600">
+                          Metode: {payment.paymentMethod || payment.method || '-'}
+                        </p>
+                        {payment.referenceNumber && (
+                          <p className="text-sm text-gray-600">Referensi: {payment.referenceNumber}</p>
+                        )}
+                      </div>
+                      <p className="text-base font-semibold text-green-600">{formatCurrency(payment.amount)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {invoice.notes && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-900">Catatan</h2>
+              <p className="mt-3 text-sm text-gray-600">{invoice.notes}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,34 +1,29 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import invoiceService from '../../services/invoiceService';
+import invoiceService, { type CreateInvoicePayload } from '../../services/invoiceService';
 import customerService from '../../services/customerService';
+import CustomerSearchSelect from '../../components/CustomerSearchSelect';
 import type { Customer } from '../../types/customer';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 
 interface InvoiceFormData {
   customerId: string;
-  status: 'paid' | 'unpaid' | 'overdue';
   dueDate: string;
-  items: Partial<{
-    id?: string;
+  notes: string;
+  items: Array<{
     description: string;
     quantity: number | string;
     unitPrice: number;
-    amount: number;
-    total?: number;
-  }>[];
+  }>;
 }
 
 export default function InvoiceForm() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { id } = useParams<{ id: string }>();
-  const mode = id ? 'edit' : 'create';
-
-  const [customers, setPelanggan] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -36,11 +31,13 @@ export default function InvoiceForm() {
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors },
-    reset,
   } = useForm<InvoiceFormData>({
     defaultValues: {
-      status: 'unpaid',
+      customerId: '',
+      dueDate: '',
+      notes: '',
       items: [{ description: '', quantity: 1, unitPrice: 0 }],
     },
   });
@@ -50,79 +47,77 @@ export default function InvoiceForm() {
     name: 'items',
   });
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const watchedItems = useWatch({ control, name: 'items' });
+  const watchedCustomerId = useWatch({ control, name: 'customerId' });
+  const totalAmount = (watchedItems || []).reduce((sum, item) => {
+    const quantity = Number(item?.quantity) || 0;
+    const unitPrice = Number(item?.unitPrice) || 0;
+    return sum + (quantity * unitPrice);
+  }, 0);
+
   useEffect(() => {
-    fetchPelanggan();
-    if (mode === 'edit' && id) {
-      fetchInvoice(id);
-    }
-  }, [id, mode]);
+    const fetchCustomers = async () => {
+      try {
+        setLoading(true);
+        const response = await customerService.getPelanggan(1, 1000);
+        setCustomers(response.data);
+      } catch {
+        dispatch(addNotification({
+          type: 'error',
+          message: 'Gagal memuat data pelanggan',
+        }));
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const fetchPelanggan = async () => {
-    try {
-      const response = await customerService.getPelanggan(1, 100); // Fetch up to 100 customers
-      setPelanggan(response.data);
-    } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch customers',
-      }));
-    }
-  };
-
-  const fetchInvoice = async (invoiceId: string) => {
-    try {
-      setLoading(true);
-      const invoice = await invoiceService.getInvoiceById(invoiceId);
-      const formattedDate = invoice.dueDate.split('T')[0];
-      reset({
-        ...invoice,
-        dueDate: formattedDate,
-      } as any);
-    } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch invoice details',
-      }));
-      navigate('/admin/invoices');
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchCustomers();
+  }, [dispatch]);
 
   const onSubmit = async (data: InvoiceFormData) => {
+    if (!data.customerId) {
+      dispatch(addNotification({
+        type: 'error',
+        message: 'Pelanggan wajib dipilih',
+      }));
+      return;
+    }
+
+    const items = data.items
+      .map((item) => ({
+        description: item.description.trim(),
+        quantity: Number(item.quantity) || 0,
+        unitPrice: Number(item.unitPrice) || 0,
+      }))
+      .filter((item) => item.description !== '' && item.quantity > 0 && item.unitPrice >= 0);
+
+    if (items.length === 0) {
+      dispatch(addNotification({
+        type: 'error',
+        message: 'Tambahkan minimal satu item tagihan yang valid',
+      }));
+      return;
+    }
+
+    const payload: CreateInvoicePayload = {
+      customerId: data.customerId,
+      dueDate: data.dueDate,
+      notes: data.notes.trim() || undefined,
+      items,
+    };
+
     try {
       setSaving(true);
-      const itemsWithTotal = data.items.map(item => ({
-        ...item,
-        total: (Number(item.quantity) || 0) * (item.unitPrice || 0),
+      await invoiceService.createInvoice(payload);
+      dispatch(addNotification({
+        type: 'success',
+        message: 'Tagihan berhasil dibuat',
       }));
-      const totalAmount = itemsWithTotal.reduce((sum, item) => sum + item.total, 0);
-
-      const invoiceData = {
-        ...data,
-        amount: totalAmount,
-      } as any;
-
-      if (mode === 'create') {
-        await invoiceService.createInvoice(invoiceData);
-        dispatch(addNotification({
-          type: 'success',
-          message: 'Invoice created successfully',
-        }));
-      } else if (id) {
-        await invoiceService.updateInvoice(id, invoiceData);
-        dispatch(addNotification({
-          type: 'success',
-          message: 'Invoice updated successfully',
-        }));
-      }
-
       navigate('/admin/invoices');
     } catch {
       dispatch(addNotification({
         type: 'error',
-        message: `Failed to ${mode} invoice`,
+        message: 'Gagal membuat tagihan',
       }));
     } finally {
       setSaving(false);
@@ -131,8 +126,8 @@ export default function InvoiceForm() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center py-12">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -145,118 +140,153 @@ export default function InvoiceForm() {
           className="flex items-center text-sm text-gray-500 hover:text-gray-700"
         >
           <ArrowLeftIcon className="mr-2 h-4 w-4" />
-          Back to Tagihan
+          Kembali ke daftar tagihan
         </button>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="shadow sm:rounded-md sm:overflow-hidden">
-          <div className="px-4 py-5 bg-white space-y-6 sm:p-6">
-            <h3 className="text-lg font-medium leading-6 text-gray-900">
-              {mode === 'create' ? 'Create New Invoice' : 'Edit Invoice'}
-            </h3>
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="space-y-6 px-4 py-5 sm:p-6">
+            <div>
+              <h3 className="text-lg font-medium leading-6 text-gray-900">Buat tagihan manual</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Digunakan untuk tagihan di luar registrasi dan pemakaian air. Status otomatis diset sebagai belum bayar.
+              </p>
+            </div>
 
-            <div className="grid grid-cols-6 gap-6">
-              <div className="col-span-6 sm:col-span-3">
-                <label htmlFor="customerId" className="block text-sm font-medium text-gray-700">
-                  Customer *
-                </label>
-                <select
-                  {...register('customerId', { required: 'Customer is required' })}
-                  id="customerId"
-                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                >
-                  <option value="">Select a customer</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.customerId && <p className="mt-2 text-sm text-red-600">{errors.customerId.message}</p>}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div>
+                <input
+                  type="hidden"
+                  {...register('customerId', { required: 'Pelanggan wajib dipilih' })}
+                />
+                <CustomerSearchSelect
+                  customers={customers}
+                  value={watchedCustomerId || ''}
+                  onChange={(customerId) => {
+                    setValue('customerId', customerId, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    });
+                  }}
+                  error={errors.customerId?.message}
+                  label="Pelanggan"
+                  required
+                />
               </div>
 
-              <div className="col-span-6 sm:col-span-3">
+              <div>
                 <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
-                  Due Date *
+                  Jatuh tempo *
                 </label>
                 <input
-                  {...register('dueDate', { required: 'Due date is required' })}
+                  {...register('dueDate', { required: 'Jatuh tempo wajib diisi' })}
                   type="date"
                   id="dueDate"
-                  className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 />
                 {errors.dueDate && <p className="mt-2 text-sm text-red-600">{errors.dueDate.message}</p>}
               </div>
+            </div>
 
-              <div className="col-span-6 sm:col-span-3">
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700">
-                  Status
-                </label>
-                <select
-                  {...register('status')}
-                  id="status"
-                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                >
-                  <option value="unpaid">Unpaid</option>
-                  <option value="paid">Paid</option>
-                  <option value="overdue">Overdue</option>
-                </select>
-              </div>
+            <div>
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+                Catatan
+              </label>
+              <textarea
+                {...register('notes')}
+                id="notes"
+                rows={3}
+                placeholder="Contoh: biaya pemasangan ulang, denda administrasi, atau layanan tambahan."
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              />
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-md font-medium text-gray-800">Invoice Items</h4>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h4 className="text-md font-medium text-gray-800">Rincian tagihan</h4>
+                  <p className="text-sm text-gray-500">Tambahkan item biaya yang akan masuk ke invoice manual ini.</p>
+                </div>
+                <div className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
+                  Total: Rp{totalAmount.toLocaleString('id-ID')}
+                </div>
+              </div>
+
               {fields.map((field, index) => (
-                <div key={field.id} className="flex items-center space-x-4">
-                  <input
-                    {...register(`items.${index}.description`, { required: true })}
-                    placeholder="Description"
-                    className="flex-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                  />
-                  <input
-                    {...register(`items.${index}.quantity`, { valueAsNumber: true, min: 1 })}
-                    type="number"
-                    placeholder="Qty"
-                    className="w-24 focus:ring-blue-500 focus:border-blue-500 block shadow-sm sm:text-sm border-gray-300 rounded-md"
-                  />
-                  <input
-                    {...register(`items.${index}.unitPrice`, { valueAsNumber: true, min: 0 })}
-                    type="number"
-                    step="0.01"
-                    placeholder="Unit Price"
-                    className="w-32 focus:ring-blue-500 focus:border-blue-500 block shadow-sm sm:text-sm border-gray-300 rounded-md"
-                  />
-                  <button type="button" onClick={() => remove(index)} className="text-red-600 hover:text-red-800">
+                <div key={field.id} className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 p-4 md:grid-cols-[minmax(0,1fr)_120px_180px_auto] md:items-center">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Deskripsi item {index + 1}
+                    </label>
+                    <input
+                      {...register(`items.${index}.description`, { required: 'Deskripsi wajib diisi' })}
+                      placeholder="Deskripsi biaya"
+                      className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    />
+                    {errors.items?.[index]?.description && (
+                      <p className="mt-2 text-sm text-red-600">{errors.items[index]?.description?.message}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Qty
+                    </label>
+                    <input
+                      {...register(`items.${index}.quantity`, { valueAsNumber: true, min: { value: 1, message: 'Minimal 1' } })}
+                      type="number"
+                      placeholder="Qty"
+                      className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Harga satuan
+                    </label>
+                    <input
+                      {...register(`items.${index}.unitPrice`, { valueAsNumber: true, min: { value: 0, message: 'Minimal 0' } })}
+                      type="number"
+                      step="1"
+                      placeholder="Harga satuan"
+                      className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => remove(index)}
+                    className="inline-flex items-center justify-center rounded-md p-2 text-red-600 hover:bg-red-50 hover:text-red-800"
+                    title="Hapus item"
+                  >
                     <TrashIcon className="h-5 w-5" />
                   </button>
                 </div>
               ))}
+
               <button
                 type="button"
                 onClick={() => append({ description: '', quantity: 1, unitPrice: 0 })}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
                 <PlusIcon className="mr-2 h-4 w-4" />
-                Add Item
+                Tambah item
               </button>
             </div>
           </div>
 
-          <div className="px-4 py-3 bg-gray-50 text-right sm:px-6 space-x-3">
+          <div className="space-x-3 bg-gray-50 px-4 py-3 text-right sm:px-6">
             <button
               type="button"
               onClick={() => navigate('/admin/invoices')}
-              className="bg-white border border-gray-300 rounded-md py-2 px-4 inline-flex justify-center text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              Cancel
+              Batal
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="bg-blue-600 border border-transparent rounded-md py-2 px-4 inline-flex justify-center text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {saving ? 'Saving...' : (mode === 'create' ? 'Create Invoice' : 'Update Invoice')}
+              {saving ? 'Menyimpan...' : 'Buat tagihan'}
             </button>
           </div>
         </div>

@@ -17,24 +17,19 @@ import (
 	"github.com/google/uuid"
 )
 
-func recalculateInvoicePaymentStatus(invoice *models.Invoice, paidAt time.Time) {
-	switch {
-	case invoice.TotalPaid <= 0:
-		invoice.PaymentStatus = models.PaymentStatusUnpaid
-		invoice.IsPaid = false
-		invoice.PaidDate = nil
-	case invoice.TotalPaid >= invoice.TotalAmount:
-		invoice.PaymentStatus = models.PaymentStatusPaid
-		invoice.IsPaid = true
+func recalculateInvoicePaymentStatus(invoice *models.Invoice, snapshot services.InvoiceAmountSnapshot, paidAt time.Time) {
+	invoice.PaymentStatus = services.DetermineInvoicePaymentStatus(*invoice, snapshot)
+	invoice.IsPaid = invoice.PaymentStatus == models.PaymentStatusPaid
+
+	if invoice.IsPaid {
 		if paidAt.IsZero() {
 			paidAt = time.Now()
 		}
 		invoice.PaidDate = &paidAt
-	default:
-		invoice.PaymentStatus = models.PaymentStatusPartial
-		invoice.IsPaid = false
-		invoice.PaidDate = nil
+		return
 	}
+
+	invoice.PaidDate = nil
 }
 
 func parsePaymentTimestamp(paymentDate string) (time.Time, error) {
@@ -131,12 +126,18 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 
 	paymentCoverageType := "partial"
 	invoicePaymentStatus := "partial"
+	receiptStatus := services.DetermineInvoicePaymentStatus(models.Invoice{
+		DueDate:   payment.Invoice.DueDate,
+		TotalPaid: totalPaidAfter,
+	}, services.InvoiceAmountSnapshot{
+		TotalAmount:     snapshot.TotalAmount,
+		RemainingAmount: remainingAfter,
+		PenaltyDays:     snapshot.PenaltyDays,
+	})
 	if remainingAfter == 0 {
 		paymentCoverageType = "full"
-		invoicePaymentStatus = "paid"
-	} else if totalPaidAfter <= 0 {
-		invoicePaymentStatus = "unpaid"
 	}
+	invoicePaymentStatus = strings.ToLower(string(receiptStatus))
 
 	// Load tenant settings for receipt header and payment info
 	tenantSettings := services.LoadTenantSettings(payment.Invoice.TenantID)
@@ -199,6 +200,8 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 			"invoiceDate":          payment.Invoice.CreatedAt,
 			"dueDate":              dueDate,
 			"invoiceType":          payment.Invoice.Type,
+			"items":                payment.Invoice.GetManualItems(),
+			"notes":                payment.Invoice.Notes,
 			"subTotal":             snapshot.SubTotal,
 			"penaltyAmount":        snapshot.PenaltyAmount,
 			"totalAmount":          snapshot.TotalAmount,
@@ -343,7 +346,7 @@ func CreatePayment(c *gin.Context) {
 	// Update invoice
 	invoice.TotalPaid = totalPaid
 	services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
-	recalculateInvoicePaymentStatus(&invoice, paidAt)
+	recalculateInvoicePaymentStatus(&invoice, snapshot, paidAt)
 	if err := config.DB.Model(&invoice).Updates(map[string]interface{}{
 		"sub_total":      invoice.SubTotal,
 		"penalty_amount": invoice.PenaltyAmount,
@@ -571,7 +574,7 @@ func UpdatePayment(c *gin.Context) {
 
 	invoice.TotalPaid = newTotalPaid
 	services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
-	recalculateInvoicePaymentStatus(&invoice, payment.PaidAt)
+	recalculateInvoicePaymentStatus(&invoice, snapshot, payment.PaidAt)
 	config.DB.Model(&invoice).Updates(map[string]interface{}{
 		"sub_total":      invoice.SubTotal,
 		"penalty_amount": invoice.PenaltyAmount,
@@ -630,8 +633,8 @@ func DeletePayment(c *gin.Context) {
 		invoice.TotalPaid = newTotalPaid
 		if snapshot, snapErr := resolveInvoiceSnapshot(invoice, time.Now()); snapErr == nil {
 			services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
+			recalculateInvoicePaymentStatus(&invoice, snapshot, time.Time{})
 		}
-		recalculateInvoicePaymentStatus(&invoice, time.Time{})
 		config.DB.Model(&invoice).Updates(map[string]interface{}{
 			"sub_total":      invoice.SubTotal,
 			"penalty_amount": invoice.PenaltyAmount,
@@ -697,8 +700,8 @@ func VoidPayment(c *gin.Context) {
 	invoice.TotalPaid = totalPaid
 	if snapshot, snapErr := resolveInvoiceSnapshot(invoice, time.Now()); snapErr == nil {
 		services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
+		recalculateInvoicePaymentStatus(&invoice, snapshot, time.Time{})
 	}
-	recalculateInvoicePaymentStatus(&invoice, time.Time{})
 	if err := config.DB.Model(&invoice).Updates(map[string]interface{}{
 		"sub_total":      invoice.SubTotal,
 		"penalty_amount": invoice.PenaltyAmount,

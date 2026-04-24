@@ -97,6 +97,7 @@ class PaymentService {
     return data.map((inv: any) => ({
       id: inv.id,
       invoiceNumber: inv.invoice_number || '',
+      type: inv.type,
       invoiceDate: inv.created_at || '',
       dueDate: inv.due_date || '',
       totalAmount: inv.total_amount || 0,

@@ -19,7 +19,7 @@ export default function CustomerSearchSelect({
   onChange,
   disabled = false,
   error,
-  label = 'Pelanggan',
+  label = 'Cari data pelanggan',
   required = false,
 }: CustomerSearchSelectProps) {
   const [query, setQuery] = useState('');

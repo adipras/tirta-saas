@@ -108,6 +108,8 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
       ? 'Biaya Registrasi'
       : receipt.invoiceDetails.invoiceType === 'monthly'
         ? 'Biaya Air Bulanan'
+        : receipt.invoiceDetails.invoiceType === 'manual'
+          ? 'Tagihan Manual'
         : undefined;
 
   const usageMonthLabel = receipt.usageDetails?.usageMonth

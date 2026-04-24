@@ -43,6 +43,13 @@ export interface PaymentFormData {
   notes?: string;
 }
 
+export interface PaymentReceiptItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+}
+
 export interface PaymentReceipt {
   id: string;
   paymentId: string;
@@ -66,7 +73,9 @@ export interface PaymentReceipt {
     invoiceNumber: string;
     invoiceDate: string;
     dueDate: string;
-    invoiceType?: 'monthly' | 'registration';
+    invoiceType?: 'monthly' | 'registration' | 'manual';
+    items?: PaymentReceiptItem[];
+    notes?: string;
     subTotal?: number;
     penaltyAmount?: number;
     totalAmount: number;
@@ -88,6 +97,7 @@ export interface PaymentReceipt {
 export interface OutstandingInvoice {
   id: string;
   invoiceNumber: string;
+  type?: 'monthly' | 'registration' | 'manual';
   invoiceDate: string;
   dueDate: string;
   totalAmount: number;

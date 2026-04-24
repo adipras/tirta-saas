@@ -21,6 +21,22 @@ type InvoiceAmountSnapshot struct {
 	ReferenceAt         time.Time `json:"reference_at"`
 }
 
+func DetermineInvoicePaymentStatus(invoice models.Invoice, snapshot InvoiceAmountSnapshot) models.PaymentStatus {
+	if snapshot.RemainingAmount <= 0 && invoice.TotalPaid >= snapshot.TotalAmount {
+		return models.PaymentStatusPaid
+	}
+
+	if invoice.DueDate != nil && snapshot.PenaltyDays > 0 && snapshot.RemainingAmount > 0 {
+		return models.PaymentStatusOverdue
+	}
+
+	if invoice.TotalPaid > 0 {
+		return models.PaymentStatusPartial
+	}
+
+	return models.PaymentStatusUnpaid
+}
+
 func LoadTenantSettings(tenantID uuid.UUID) models.TenantSettings {
 	var tenantSettings models.TenantSettings
 	if err := config.DB.Where("tenant_id = ?", tenantID).First(&tenantSettings).Error; err != nil {

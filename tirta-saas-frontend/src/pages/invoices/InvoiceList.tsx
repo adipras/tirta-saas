@@ -1,30 +1,72 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  PlusIcon,
   EyeIcon,
-  ArrowDownTrayIcon,
   DocumentTextIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
   PrinterIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline';
 import { DataTable, type Column } from '../../components/DataTable';
 import invoiceService, { type InvoiceFilters } from '../../services/invoiceService';
-import type { Invoice } from '../../types/invoice';
+import type { Invoice, InvoiceListStats } from '../../types/invoice';
 import { useAppDispatch } from '../../hooks/redux';
 import { addNotification } from '../../store/slices/uiSlice';
 import { DashboardStatCard, PageHeader } from '../../components';
-import { exportToCSV, exportToExcel, formatIDR } from '../../utils/exportUtils';
-import { thermalPrinterService } from '../../services/thermalPrinterService';
+import { formatIDR } from '../../utils/exportUtils';
+
+const STATUS_LABELS: Record<Invoice['status'], string> = {
+  paid: 'Lunas',
+  unpaid: 'Belum bayar',
+  partial: 'Parsial',
+  overdue: 'Terlambat',
+};
+
+const STATUS_BADGE_CLASSES: Record<Invoice['status'], string> = {
+  paid: 'bg-green-100 text-green-800',
+  unpaid: 'bg-yellow-100 text-yellow-800',
+  partial: 'bg-blue-100 text-blue-800',
+  overdue: 'bg-red-100 text-red-800',
+};
+
+const EMPTY_STATS: InvoiceListStats = {
+  totalInvoices: 0,
+  paidCount: 0,
+  unpaidCount: 0,
+  partialCount: 0,
+  overdueCount: 0,
+  openCount: 0,
+  totalAmount: 0,
+  outstandingAmount: 0,
+};
+
+const normalizeStats = (stats?: Partial<InvoiceListStats> | null): InvoiceListStats => ({
+  totalInvoices: Number(stats?.totalInvoices ?? 0),
+  paidCount: Number(stats?.paidCount ?? 0),
+  unpaidCount: Number(stats?.unpaidCount ?? 0),
+  partialCount: Number(stats?.partialCount ?? 0),
+  overdueCount: Number(stats?.overdueCount ?? 0),
+  openCount: Number(stats?.openCount ?? 0),
+  totalAmount: Number(stats?.totalAmount ?? 0),
+  outstandingAmount: Number(stats?.outstandingAmount ?? 0),
+});
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 export default function InvoiceList() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   const [invoices, setTagihan] = useState<Invoice[]>([]);
+  const [stats, setStats] = useState<InvoiceListStats>(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
-  const [currentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<InvoiceFilters['status'] | ''>('');
   const [filterType, setFilterType] = useState<InvoiceFilters['type'] | ''>('');
@@ -34,21 +76,22 @@ export default function InvoiceList() {
   const fetchTagihan = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await invoiceService.getTagihan(currentPage, 100, {
+      const response = await invoiceService.getTagihan(1, 100, {
         search: searchTerm || undefined,
         status: filterStatus || undefined,
         type: filterType || undefined,
       });
       setTagihan(response.data);
+      setStats(normalizeStats(response.stats));
     } catch {
       dispatch(addNotification({
         type: 'error',
-        message: 'Failed to fetch invoices',
+        message: 'Gagal memuat data tagihan',
       }));
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, filterStatus, filterType, dispatch]);
+  }, [dispatch, filterStatus, filterType, searchTerm]);
 
   useEffect(() => {
     fetchTagihan();
@@ -60,97 +103,158 @@ export default function InvoiceList() {
     setFilterType('');
   };
 
-  const handleExport = (format: 'csv' | 'excel') => {
-    const rows = invoices.map((inv) => ({
-      'Invoice #': inv.invoiceNumber,
-      'Customer': inv.customerName,
-      'Type': inv.billingPeriod ? 'Monthly' : 'Registration',
-      'Billing Period': inv.billingPeriod || '',
-      'Amount (IDR)': inv.totalAmount,
-      'Amount': formatIDR(inv.totalAmount),
-      'Amount Due (IDR)': inv.amountDue,
-      'Amount Due': formatIDR(inv.amountDue),
-      'Due Date': inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('id-ID') : '',
-      'Status': inv.status,
-    }));
-    const baseName = `invoices_${new Date().toISOString().split('T')[0]}`;
-    if (format === 'csv') {
-      exportToCSV(rows, `${baseName}.csv`);
-    } else {
-      exportToExcel([{ sheetName: 'Tagihan', data: rows }], `${baseName}.xlsx`);
+  const handlePrintFilteredList = () => {
+    if (invoices.length === 0) {
+      dispatch(addNotification({
+        type: 'error',
+        message: 'Tidak ada data tagihan untuk dicetak',
+      }));
+      return;
     }
-  };
 
-  const getStatusBadge = (status: Invoice['status']) => {
-    const statusConfig: Record<Invoice['status'], { color: string }> = {
-      paid: { color: 'bg-green-100 text-green-800' },
-      unpaid: { color: 'bg-yellow-100 text-yellow-800' },
-      overdue: { color: 'bg-red-100 text-red-800' },
-      partial: { color: 'bg-blue-100 text-blue-800' },
+    const printWindow = window.open('', '_blank', 'width=1200,height=800');
+    if (!printWindow) {
+      dispatch(addNotification({
+        type: 'error',
+        message: 'Popup diblokir browser. Izinkan popup untuk mencetak daftar tagihan.',
+      }));
+      return;
+    }
+
+    const filterSummary = [
+      searchTerm ? `Pencarian: ${searchTerm}` : null,
+      filterStatus ? `Status: ${STATUS_LABELS[filterStatus]}` : null,
+      filterType
+        ? `Tipe: ${filterType === 'monthly' ? 'Bulanan' : filterType === 'registration' ? 'Registrasi' : 'Manual'}`
+        : null,
+    ].filter(Boolean);
+
+    const rows = invoices.map((invoice, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(invoice.invoiceNumber || '-')}</td>
+        <td>${escapeHtml(invoice.meterNumber || '-')}</td>
+        <td>${escapeHtml(invoice.customerName || '-')}</td>
+        <td>${escapeHtml(invoice.customer?.address || '-')}</td>
+        <td>${escapeHtml(invoice.billingPeriod || (invoice.type === 'registration' ? 'Registrasi' : 'Manual'))}</td>
+        <td>${escapeHtml(invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('id-ID') : '-')}</td>
+        <td style="text-align:right;">${escapeHtml(formatIDR(invoice.totalAmount))}</td>
+        <td style="text-align:right;">${escapeHtml(formatIDR(invoice.amountPaid))}</td>
+        <td style="text-align:right;">${escapeHtml(formatIDR(invoice.amountDue))}</td>
+        <td>${escapeHtml(STATUS_LABELS[invoice.status])}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <!doctype html>
+      <html lang="id">
+        <head>
+          <meta charset="utf-8" />
+          <title>Daftar Tagihan</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 32px; color: #111827; }
+            h1 { margin: 0 0 8px; font-size: 24px; }
+            p { margin: 4px 0; color: #4b5563; }
+            .summary { margin: 20px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+            .card { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; }
+            .card-label { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
+            .card-value { font-size: 18px; font-weight: 700; color: #111827; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #d1d5db; padding: 10px 12px; font-size: 13px; }
+            th { background: #f3f4f6; text-align: left; }
+            .meta { margin-top: 12px; font-size: 12px; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <h1>Daftar Tagihan</h1>
+          <p>Dicetak pada ${new Date().toLocaleString('id-ID')}</p>
+          <p>${filterSummary.length > 0 ? escapeHtml(filterSummary.join(' | ')) : 'Tanpa filter tambahan'}</p>
+
+          <div class="summary">
+            <div class="card">
+              <div class="card-label">Total nominal</div>
+              <div class="card-value">${escapeHtml(formatIDR(stats.totalAmount))}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Belum lunas</div>
+              <div class="card-value">${stats.openCount.toLocaleString('id-ID')}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Terlambat</div>
+              <div class="card-value">${stats.overdueCount.toLocaleString('id-ID')}</div>
+            </div>
+            <div class="card">
+              <div class="card-label">Lunas</div>
+              <div class="card-value">${stats.paidCount.toLocaleString('id-ID')}</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>Nomor Invoice</th>
+                <th>Nomor Meter</th>
+                <th>Pelanggan</th>
+                <th>Alamat</th>
+                <th>Periode</th>
+                <th>Jatuh Tempo</th>
+                <th>Total Tagihan</th>
+                <th>Sudah Dibayar</th>
+                <th>Sisa Tagihan</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+
+          <p class="meta">Dokumen ini mencetak hasil daftar tagihan sesuai filter aktif, bukan tampilan halaman admin.</p>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.onload = () => {
+      printWindow.print();
     };
-
-    const config = statusConfig[status] || statusConfig.unpaid;
-
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
-    );
   };
+
+  const getStatusBadge = (status: Invoice['status']) => (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASSES[status]}`}>
+      {STATUS_LABELS[status]}
+    </span>
+  );
 
   const columns: Column<Invoice>[] = [
     {
-      key: 'invoiceNumber',
-      label: 'Invoice #',
+      key: 'meterNumber',
+      label: 'Nomor Meter',
       sortable: true,
+      render: (value: unknown, invoice: Invoice) => {
+        const meterNumber = typeof value === 'string' && value ? value : invoice.customer?.meterNumber || '-';
+        return meterNumber;
+      },
     },
     {
       key: 'customerName',
-      label: 'Customer',
+      label: 'Pelanggan',
       sortable: true,
+      render: (value: unknown) => typeof value === 'string' && value ? value : '-',
     },
     {
-      key: 'billingPeriod',
-      label: 'Type',
+      key: 'totalAmount',
+      label: 'Nominal',
       sortable: true,
-      render: (billingPeriod: unknown) => {
-        const billingPeriodValue = typeof billingPeriod === 'string' ? billingPeriod : '';
-        const type = billingPeriodValue ? 'Monthly' : 'Registration';
-        const color = billingPeriodValue ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800';
-        return (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${color}`}>
-            {type}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'amount',
-      label: 'Amount',
-      sortable: true,
-      render: (amount: unknown) => {
-        const amountValue = typeof amount === 'number' ? amount : 0;
-        return new Intl.NumberFormat('id-ID', {
-          style: 'currency',
-          currency: 'IDR',
-          minimumFractionDigits: 0,
-        }).format(amountValue);
-      },
-    },
-    {
-      key: 'dueDate',
-      label: 'Due Date',
-      sortable: true,
-      hideOnMobile: true,
-      render: (dueDate: unknown) => {
-        return typeof dueDate === 'string' && dueDate ? new Date(dueDate).toLocaleDateString('id-ID') : 'N/A';
-      },
+      render: (value: unknown) => formatIDR(typeof value === 'number' ? value : 0),
     },
     {
       key: 'status',
       label: 'Status',
       sortable: true,
-      render: (status: unknown) => getStatusBadge((status as Invoice['status']) || 'unpaid'),
+      render: (value: unknown) => getStatusBadge((value as Invoice['status']) || 'unpaid'),
     },
   ];
 
@@ -159,58 +263,41 @@ export default function InvoiceList() {
       <button
         onClick={() => navigate(`/admin/invoices/${invoice.id}`)}
         className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 text-blue-600 transition hover:bg-blue-50"
-        title="Lihat detail"
+        title="Lihat detail tagihan"
+        aria-label="Lihat detail tagihan"
       >
         <EyeIcon className="h-5 w-5" />
       </button>
     </div>
   );
 
-  const totalOutstanding = invoices.reduce((sum, invoice) => sum + (invoice.amountDue || 0), 0);
-  const overdueCount = invoices.filter((invoice) => invoice.status === 'overdue').length;
-  const paidCount = invoices.filter((invoice) => invoice.status === 'paid').length;
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="Tagihan"
-        subtitle="Pantau tagihan pelanggan dengan ringkasan cepat, filter yang ringkas, dan daftar yang tetap nyaman di layar kecil."
+        subtitle="Kelola daftar tagihan air dengan filter yang ringkas, statistik yang konsisten, dan cetak daftar sesuai hasil filter."
         actions={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
             <button
               onClick={() => navigate('/admin/invoices/bulk-generate')}
-              className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-600 shadow-sm hover:bg-blue-50 sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-md border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-600 shadow-sm hover:bg-blue-50 sm:w-auto"
             >
               <DocumentTextIcon className="mr-2 h-4 w-4" />
-              Generate Massal
-            </button>
-            <button
-              onClick={() => handleExport('csv')}
-              className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
-            >
-              <ArrowDownTrayIcon className="mr-1 h-4 w-4" />
-              CSV
-            </button>
-            <button
-              onClick={() => handleExport('excel')}
-              className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
-            >
-              <ArrowDownTrayIcon className="mr-1 h-4 w-4" />
-              Excel
-            </button>
-            <button
-              onClick={() => thermalPrinterService.printPage()}
-              className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
-            >
-              <PrinterIcon className="mr-1 h-4 w-4" />
-              Print
+              Generate Tagihan Air
             </button>
             <button
               onClick={() => navigate('/admin/invoices/new')}
-              className="print:hidden inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-md border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 sm:w-auto"
             >
               <PlusIcon className="mr-2 h-4 w-4" />
               Buat Tagihan
+            </button>
+            <button
+              onClick={handlePrintFilteredList}
+              className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
+            >
+              <PrinterIcon className="mr-1 h-4 w-4" />
+              Print
             </button>
           </div>
         }
@@ -218,31 +305,30 @@ export default function InvoiceList() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardStatCard
-          title="Tagihan tampil"
-          value={loading ? '...' : invoices.length.toLocaleString('id-ID')}
-          helper={hasActiveFilters ? 'Daftar sedang difilter' : 'Semua item pada daftar'}
-          subtitle="Jumlah tagihan yang sedang tampil sesuai filter aktif saat ini."
+          title="Total nominal"
+          value={loading ? '...' : formatIDR(stats.totalAmount)}
+          subtitle="Akumulasi nominal seluruh tagihan yang cocok dengan filter aktif."
           icon={DocumentTextIcon}
           tone="blue"
         />
         <DashboardStatCard
-          title="Total outstanding"
-          value={loading ? '...' : formatIDR(totalOutstanding)}
-          subtitle="Ringkasan sisa tagihan yang masih perlu ditagih dari daftar saat ini."
-          icon={PrinterIcon}
+          title="Belum lunas"
+          value={loading ? '...' : stats.openCount.toLocaleString('id-ID')}
+          subtitle="Mencakup tagihan belum bayar, parsial, dan yang sudah lewat jatuh tempo."
+          icon={MagnifyingGlassIcon}
           tone="yellow"
         />
         <DashboardStatCard
-          title="Tagihan overdue"
-          value={loading ? '...' : overdueCount.toLocaleString('id-ID')}
-          subtitle="Gunakan angka ini untuk menentukan prioritas penagihan pelanggan."
+          title="Terlambat"
+          value={loading ? '...' : stats.overdueCount.toLocaleString('id-ID')}
+          subtitle="Jumlah tagihan yang sudah lewat jatuh tempo dan masih punya sisa pembayaran."
           icon={XMarkIcon}
           tone="purple"
         />
         <DashboardStatCard
-          title="Tagihan lunas"
-          value={loading ? '...' : paidCount.toLocaleString('id-ID')}
-          subtitle="Membantu melihat pembayaran yang sudah selesai pada daftar aktif."
+          title="Lunas"
+          value={loading ? '...' : stats.paidCount.toLocaleString('id-ID')}
+          subtitle="Jumlah tagihan yang sudah lunas penuh dari hasil filter yang sedang aktif."
           icon={EyeIcon}
           tone="green"
         />
@@ -253,7 +339,7 @@ export default function InvoiceList() {
           <div>
             <h2 className="text-base font-semibold text-gray-900">Filter tagihan</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Cari tagihan berdasarkan pelanggan, status pembayaran, atau tipe invoice.
+              Cari berdasarkan nomor invoice, pelanggan, atau nomor meter. Statistik dan hasil cetak mengikuti filter ini.
             </p>
           </div>
           {hasActiveFilters && (
@@ -264,43 +350,45 @@ export default function InvoiceList() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Cari nomor invoice atau pelanggan..."
+              placeholder="Cari nomor invoice, pelanggan, atau nomor meter..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-md border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
           <div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as InvoiceFilters['status'] | '')}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             >
               <option value="">Semua status</option>
               <option value="unpaid">Belum bayar</option>
-              <option value="paid">Lunas</option>
-              <option value="overdue">Terlambat</option>
               <option value="partial">Parsial</option>
+              <option value="overdue">Terlambat</option>
+              <option value="paid">Lunas</option>
             </select>
           </div>
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as InvoiceFilters['type'] | '')}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             >
               <option value="">Semua tipe</option>
               <option value="monthly">Bulanan</option>
               <option value="registration">Registrasi</option>
+              <option value="manual">Manual</option>
             </select>
             {hasActiveFilters && (
               <button
                 onClick={handleClearFilters}
                 className="inline-flex items-center justify-center rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 sm:flex-shrink-0"
                 title="Reset filter"
+                aria-label="Reset filter"
               >
                 <XMarkIcon className="h-4 w-4" />
               </button>
@@ -309,7 +397,7 @@ export default function InvoiceList() {
         </div>
       </div>
 
-      <div className="bg-white shadow rounded-lg">
+      <div className="rounded-lg bg-white shadow">
         <DataTable
           data={invoices}
           columns={columns}

@@ -274,6 +274,7 @@ class ThermalPrinterManager(
         val qrisImageDataUrl = payload.optString("qrisImageDataUrl").ifBlank { null }
         val qrisLabel = payload.optString("qrisLabel").ifBlank { "QRIS Pembayaran" }
         val usageDetails = payload.optJSONObject("usageDetails")
+        val manualItems = payload.optJSONArray("manualItems")
         val bankInfo = payload.optJSONObject("bankInfo")
         val printNotes = payload.optString("printNotes").ifBlank { null }
         val receiptNumber = payload.optString("receiptNumber").ifBlank { "-" }
@@ -293,7 +294,7 @@ class ThermalPrinterManager(
             output = output,
             customer = customer,
         )
-        appendPaymentReceiptBillingSection(output, invoiceTypeLabel, payment, invoice, usageDetails)
+        appendPaymentReceiptBillingSection(output, invoiceTypeLabel, payment, invoice, usageDetails, manualItems)
         appendPaymentReceiptSummarySection(output, summaryLines)
         appendPaymentReceiptStatusSection(
             output = output,
@@ -378,6 +379,7 @@ class ThermalPrinterManager(
         payment: JSONObject,
         invoice: JSONObject,
         usageDetails: JSONObject?,
+        manualItems: JSONArray?,
     ) {
         appendAlign(output, "left")
         appendKeyValue(output, "No. Tagihan", invoice.optString("invoiceNumber"))
@@ -396,6 +398,24 @@ class ThermalPrinterManager(
                 appendKeyValue(output, "$usageLabel m3", subTotalLabel)
             } else if (!usageLabel.isNullOrBlank()) {
                 appendLine(output, "$usageLabel m3")
+            }
+        }
+
+        if (manualItems != null && manualItems.length() > 0) {
+            appendLine(output, "Rincian Tagihan")
+            for (index in 0 until manualItems.length()) {
+                val item = manualItems.optJSONObject(index) ?: continue
+                val description = item.optString("description").ifBlank { "Item ${index + 1}" }
+                val quantity = item.optDouble("quantity", 0.0)
+                val unitPrice = item.optDouble("unitPrice", item.optDouble("unit_price", 0.0))
+                val amount = item.optDouble("amount", quantity * unitPrice)
+
+                appendLine(output, description)
+                appendKeyValue(
+                    output,
+                    "${formatUsageLabel(quantity) ?: "0"} x ${formatSummaryValue(unitPrice) ?: "-"}",
+                    formatSummaryValue(amount) ?: "-",
+                )
             }
         }
 

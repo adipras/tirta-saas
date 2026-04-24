@@ -237,7 +237,7 @@ const TenantManagement = () => {
       <PageHeader title="Tenant Management" subtitle="Kelola tenant pending, aktif, dan status langganannya" />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -420,8 +420,8 @@ const TenantManagement = () => {
 
       {/* Modal */}
       {showModal && selectedTenant && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 p-4">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
             <div className="mt-3">
               {/* Modal Header */}
               <div className="mb-4 pb-4 border-b">
@@ -510,11 +510,11 @@ const TenantManagement = () => {
               </div>
 
               {/* Modal Actions */}
-              <div className="mt-6 flex justify-end space-x-3">
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button
                   onClick={closeModal}
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                  className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 disabled:opacity-50 sm:w-auto"
                 >
                   Cancel
                 </button>
@@ -524,7 +524,7 @@ const TenantManagement = () => {
                     disabled={
                       isSubmitting || (modalAction === 'suspend' && !actionReason.trim())
                     }
-                    className={`px-4 py-2 text-white rounded-md disabled:opacity-50 ${
+                    className={`w-full px-4 py-2 text-white rounded-md disabled:opacity-50 sm:w-auto ${
                       modalAction === 'approve' || modalAction === 'activate'
                         ? 'bg-green-600 hover:bg-green-700'
                         : 'bg-orange-600 hover:bg-orange-700'
