@@ -141,6 +141,18 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 	// Load tenant settings for receipt header and payment info
 	tenantSettings := services.LoadTenantSettings(payment.Invoice.TenantID)
 
+	bankName := tenantSettings.BankName
+	bankAccountName := tenantSettings.BankAccountName
+	bankAccountNo := tenantSettings.BankAccountNo
+	var primaryBankAccount models.BankAccount
+	if err := config.DB.
+		Where("tenant_id = ? AND is_primary = ? AND is_active = ?", payment.Invoice.TenantID, true, true).
+		First(&primaryBankAccount).Error; err == nil {
+		bankName = primaryBankAccount.BankName
+		bankAccountName = primaryBankAccount.AccountName
+		bankAccountNo = primaryBankAccount.AccountNumber
+	}
+
 	// Load primary active QRIS image for the tenant
 	qrisImageUrl := ""
 	var primaryQR models.QRCode
@@ -159,9 +171,9 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 			"phone":           tenantSettings.Phone,
 			"logoUrl":         tenantSettings.LogoURL,
 			"footerText":      tenantSettings.InvoiceFooterText,
-			"bankName":        tenantSettings.BankName,
-			"bankAccountName": tenantSettings.BankAccountName,
-			"bankAccountNo":   tenantSettings.BankAccountNo,
+			"bankName":        bankName,
+			"bankAccountName": bankAccountName,
+			"bankAccountNo":   bankAccountNo,
 			"qrisImageUrl":    qrisImageUrl,
 		},
 		"usageDetails": gin.H{
