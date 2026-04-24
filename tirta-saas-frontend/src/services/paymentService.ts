@@ -4,6 +4,7 @@ import type {
   Payment,
   PaymentFormData,
   PaymentReceipt,
+  PaymentReceiptItem,
   OutstandingInvoice,
 } from '../types/payment';
 import type { PaginatedResponse } from './customerService';
@@ -19,6 +20,41 @@ export interface PaymentFilters {
 }
 
 class PaymentService {
+  private mapReceiptItems(items: any[] | undefined): PaymentReceiptItem[] {
+    if (!Array.isArray(items)) {
+      return [];
+    }
+
+    return items.map((item) => ({
+      description: item?.description || '',
+      quantity: Number(item?.quantity ?? 0),
+      unitPrice: Number(item?.unitPrice ?? item?.unit_price ?? 0),
+      amount: Number(
+        item?.amount ??
+        ((Number(item?.quantity ?? 0)) * Number(item?.unitPrice ?? item?.unit_price ?? 0))
+      ),
+    }));
+  }
+
+  private mapReceipt(raw: any): PaymentReceipt {
+    const data = raw?.data || raw;
+
+    return {
+      ...data,
+      invoiceDetails: data?.invoiceDetails
+        ? {
+            ...data.invoiceDetails,
+            items: this.mapReceiptItems(data.invoiceDetails.items),
+          }
+        : data?.invoice_details
+          ? {
+              ...data.invoice_details,
+              items: this.mapReceiptItems(data.invoice_details.items),
+            }
+          : undefined,
+    };
+  }
+
   async getPembayaran(
     page: number = 1,
     limit: number = 10,
@@ -149,14 +185,14 @@ class PaymentService {
     const response = await apiClient.post<any>(
       API_ENDPOINTS.PAYMENTS.GENERATE_RECEIPT.replace(':id', String(paymentId))
     );
-    return response.data || response;
+    return this.mapReceipt(response);
   }
 
   async getReceipt(paymentId: string): Promise<PaymentReceipt> {
     const response = await apiClient.get<any>(
       API_ENDPOINTS.PAYMENTS.GET_RECEIPT.replace(':id', String(paymentId))
     );
-    return response.data || response;
+    return this.mapReceipt(response);
   }
 
   async exportPembayaran(filters?: PaymentFilters): Promise<Blob> {
