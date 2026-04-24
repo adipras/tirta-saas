@@ -3,11 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useReactToPrint } from 'react-to-print';
 import { PageHeader, useToast } from '../../components';
 import { paymentService } from '../../services/paymentService';
-import { resolveTenantAssetUrl } from '../../services/tenantSettingsService';
 import { thermalPrinterService } from '../../services/thermalPrinterService';
 import type { PaymentReceipt as PaymentReceiptType } from '../../types/payment';
-import { PAYMENT_METHOD_LABELS } from '../../types/payment';
 import type { ThermalPrinterDevice, ThermalPrinterStatus } from '../../types/thermalPrinter';
+import { buildPaymentReceiptViewModel } from '../../utils/paymentReceipt';
 import { PRINTER_BRIDGE_BASE_URL } from '../../constants/api';
 
 const PaymentReceipt: React.FC = () => {
@@ -28,28 +27,6 @@ const PaymentReceipt: React.FC = () => {
   const [bridgeAvailable, setBridgeAvailable] = useState(false);
   const [bridgeWarnDismissed, setBridgeWarnDismissed] = useState(false);
   const receiptRef = useRef<HTMLDivElement>(null);
-
-  const formatTanggalWaktu = (value?: string) => {
-    if (!value) return '-';
-    return new Date(value).toLocaleString('id-ID');
-  };
-
-  const formatCurrency = (value?: number) => `Rp ${(value || 0).toLocaleString('id-ID')}`;
-
-  const truncateText = (value?: string, maxLength: number = 120) => {
-    if (!value) {
-      return undefined;
-    }
-
-    const normalized = value.replace(/\s+/g, ' ').trim();
-    if (!normalized) {
-      return undefined;
-    }
-
-    return normalized.length > maxLength
-      ? `${normalized.slice(0, maxLength - 1).trimEnd()}…`
-      : normalized;
-  };
 
   const fetchReceipt = useCallback(async (paymentId: string) => {
     try {
@@ -234,38 +211,9 @@ const PaymentReceipt: React.FC = () => {
     );
   }
 
-  const isPartialPayment = receipt.invoiceDetails.paymentCoverageType === 'partial';
+  const receiptView = buildPaymentReceiptViewModel(receipt);
   const thermalBridgeDetected = bridgeAvailable;
   const thermalModeActive = bridgeAvailable;
-  const compactAddress = truncateText(receipt.customerDetails.address, 90);
-  const compactNotes = truncateText(receipt.payment.notes, 120);
-  const paymentMethodLabel = PAYMENT_METHOD_LABELS[receipt.payment.paymentMethod] || receipt.payment.paymentMethod;
-  const invoiceStatusLabel = receipt.invoiceDetails.invoicePaymentStatus === 'paid'
-    ? 'Lunas'
-    : receipt.invoiceDetails.invoicePaymentStatus === 'partial'
-      ? 'Parsial'
-      : 'Belum Lunas';
-  const invoiceStatusColor = receipt.invoiceDetails.invoicePaymentStatus === 'paid'
-    ? 'text-green-600'
-    : receipt.invoiceDetails.invoicePaymentStatus === 'partial'
-      ? 'text-amber-600'
-      : 'text-red-600';
-
-  const tenantName = receipt.tenantInfo?.companyName || 'TIRTA SAAS';
-  const tenantPhone = receipt.tenantInfo?.phone;
-  const tenantLogo = resolveTenantAssetUrl(receipt.tenantInfo?.logoUrl);
-  const footerText = receipt.tenantInfo?.footerText || 'Terima kasih telah membayar tagihan air Anda.';
-  const bankName = receipt.tenantInfo?.bankName;
-  const bankAccountName = receipt.tenantInfo?.bankAccountName;
-  const bankAccountNo = receipt.tenantInfo?.bankAccountNo;
-  const qrisImageUrl = resolveTenantAssetUrl(receipt.tenantInfo?.qrisImageUrl);
-  const hasBankInfo = bankName || bankAccountNo;
-
-  const usageMonth = receipt.usageDetails?.usageMonth;
-  const usageM3 = receipt.usageDetails?.usageM3;
-  const usageMonthLabel = usageMonth
-    ? new Date(`${usageMonth}-01`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
-    : null;
 
   return (
     <div className="p-6">
@@ -371,21 +319,27 @@ const PaymentReceipt: React.FC = () => {
 
         {/* Header — nama PDAM */}
         <div className="text-center pb-3 border-b border-dashed border-gray-400">
-          {tenantLogo && (
-            <img src={tenantLogo} alt={tenantName} className="h-12 w-auto mx-auto mb-2 object-contain" />
+          {receiptView.tenantLogoUrl && (
+            <img
+              src={receiptView.tenantLogoUrl}
+              alt={receiptView.tenantName}
+              className="h-12 w-auto mx-auto mb-2 object-contain"
+            />
           )}
-          <p className="font-bold text-sm uppercase tracking-wide text-gray-900">{tenantName}</p>
-          {tenantPhone && <p className="text-gray-600 mt-0.5">Telp: {tenantPhone}</p>}
+          <p className="font-bold text-sm uppercase tracking-wide text-gray-900">{receiptView.tenantName}</p>
+          {receiptView.tenantPhone && <p className="text-gray-600 mt-0.5">Telp: {receiptView.tenantPhone}</p>}
         </div>
 
         {/* Info struk + pelanggan */}
         <div className="py-3 border-b border-dashed border-gray-400 space-y-0.5">
           <div className="flex justify-between">
             <span>No. {receipt.receiptNumber}</span>
-            <span className={`font-semibold ${invoiceStatusColor}`}>{invoiceStatusLabel}</span>
+            <span className={`font-semibold ${receiptView.invoiceStatusColorClass}`}>
+              {receiptView.invoiceStatusLabel}
+            </span>
           </div>
           <div className="flex justify-between text-gray-500">
-            <span>{formatTanggalWaktu(receipt.payment.paymentDate)}</span>
+            <span>{receiptView.paymentDateLabel}</span>
           </div>
           <div className="flex justify-between gap-2 mt-1">
             <span className="text-gray-500">Pelanggan</span>
@@ -397,8 +351,8 @@ const PaymentReceipt: React.FC = () => {
               <span className="text-right text-gray-900">{receipt.customerDetails.meterNumber}</span>
             </div>
           )}
-          {compactAddress && (
-            <p className="text-gray-600 mt-1">{compactAddress}</p>
+          {receiptView.compactAddress && (
+            <p className="text-gray-600 mt-1">{receiptView.compactAddress}</p>
           )}
           <div className="flex justify-between gap-2 mt-1">
             <span className="text-gray-500">No. Tagihan</span>
@@ -406,7 +360,7 @@ const PaymentReceipt: React.FC = () => {
           </div>
           <div className="flex justify-between gap-2">
             <span className="text-gray-500">Metode</span>
-            <span className="text-right text-gray-900">{paymentMethodLabel}</span>
+            <span className="text-right text-gray-900">{receiptView.paymentMethodLabel}</span>
           </div>
           {receipt.payment.referenceNumber && (
             <div className="flex justify-between gap-2">
@@ -417,70 +371,70 @@ const PaymentReceipt: React.FC = () => {
         </div>
 
         {/* Item tagihan */}
-        {usageM3 != null && usageM3 > 0 && (
+        {receiptView.showUsageSection && (
           <div className="py-3 border-b border-dashed border-gray-400">
             <p className="font-semibold text-gray-900">
-              Tagihan Air{usageMonthLabel ? ` — ${usageMonthLabel}` : ''}
+              Tagihan Air{receiptView.usageMonthLabel ? ` — ${receiptView.usageMonthLabel}` : ''}
             </p>
             <div className="flex justify-between mt-1">
-              <span className="text-gray-600">{usageM3} m³</span>
-              <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.subTotal)}</span>
+              <span className="text-gray-600">{receiptView.usageM3} m³</span>
+              <span className="font-medium text-gray-900">{receiptView.subTotalLabel}</span>
             </div>
           </div>
         )}
 
         {/* Ringkasan biaya */}
         <div className="py-3 border-b border-dashed border-gray-400 space-y-0.5">
-          {(receipt.invoiceDetails.subTotal || 0) > 0 && (
+          {receiptView.showSubTotal && (
             <div className="flex justify-between">
               <span className="text-gray-500">Subtotal</span>
-              <span>{formatCurrency(receipt.invoiceDetails.subTotal)}</span>
+              <span>{receiptView.subTotalLabel}</span>
             </div>
           )}
-          {(receipt.invoiceDetails.penaltyAmount || 0) > 0 && (
+          {receiptView.showPenaltyAmount && (
             <div className="flex justify-between text-red-600">
               <span>Denda</span>
-              <span>{formatCurrency(receipt.invoiceDetails.penaltyAmount)}</span>
+              <span>{receiptView.penaltyAmountLabel}</span>
             </div>
           )}
           <div className="flex justify-between font-bold text-sm pt-1">
             <span>Total</span>
-            <span>{formatCurrency(receipt.invoiceDetails.totalAmount)}</span>
+            <span>{receiptView.totalAmountLabel}</span>
           </div>
-          {(receipt.invoiceDetails.totalPaidBefore || 0) > 0 && (
+          {receiptView.showTotalPaidBefore && (
             <div className="flex justify-between text-gray-500">
               <span>Terbayar</span>
-              <span>{formatCurrency(receipt.invoiceDetails.totalPaidBefore)}</span>
+              <span>{receiptView.totalPaidBeforeLabel}</span>
             </div>
           )}
           <div className="flex justify-between font-bold text-sm">
-            <span>Bayar ({paymentMethodLabel})</span>
-            <span className="text-green-600">{formatCurrency(receipt.payment.amount)}</span>
+            <span>Bayar ({receiptView.paymentMethodLabel})</span>
+            <span className="text-green-600">{receiptView.paymentAmountLabel}</span>
           </div>
           <div className="flex justify-between font-semibold">
             <span>Sisa</span>
-            <span className={isPartialPayment ? 'text-red-600' : 'text-green-600'}>
-              {formatCurrency(receipt.invoiceDetails.remainingAmount)}
-            </span>
+            <span className={receiptView.remainingAmountColorClass}>{receiptView.remainingAmountLabel}</span>
           </div>
         </div>
 
         {/* Info rekening + QR QRIS */}
-        {(hasBankInfo || qrisImageUrl) && (
+        {(receiptView.hasBankInfo || receiptView.qrisImageUrl) && (
           <div className="py-3 border-b border-dashed border-gray-400">
-            {hasBankInfo && (
+            {receiptView.hasBankInfo && (
               <div className="text-center mb-2 space-y-0.5">
-                {bankName && bankAccountNo && (
-                  <p className="font-semibold text-gray-900">{bankName} — {bankAccountNo}</p>
+                {receiptView.bankName && receiptView.bankAccountNo && (
+                  <p className="font-semibold text-gray-900">
+                    {receiptView.bankName} — {receiptView.bankAccountNo}
+                  </p>
                 )}
-                {bankAccountName && (
-                  <p className="text-gray-600">a.n. {bankAccountName}</p>
+                {receiptView.bankAccountName && (
+                  <p className="text-gray-600">a.n. {receiptView.bankAccountName}</p>
                 )}
               </div>
             )}
-            {qrisImageUrl && (
+            {receiptView.qrisImageUrl && (
               <img
-                src={qrisImageUrl}
+                src={receiptView.qrisImageUrl}
                 alt="QRIS Pembayaran"
                 className="w-full max-w-[160px] mx-auto block"
               />
@@ -490,12 +444,12 @@ const PaymentReceipt: React.FC = () => {
 
         {/* Footer */}
         <div className="pt-3 text-center text-gray-600 space-y-0.5">
-          <p>{footerText}</p>
-          {isPartialPayment && (
+          <p>{receiptView.footerText}</p>
+          {receiptView.isPartialPayment && (
             <p className="text-amber-700">Masih ada sisa tagihan.</p>
           )}
-          {compactNotes && <p className="text-gray-500 italic">{compactNotes}</p>}
-          <p className="text-gray-400 mt-1">Dicetak: {formatTanggalWaktu(receipt.generatedAt)}</p>
+          {receiptView.compactNotes && <p className="text-gray-500 italic">{receiptView.compactNotes}</p>}
+          <p className="text-gray-400 mt-1">Dicetak: {receiptView.printedAtLabel}</p>
         </div>
       </div>
     </div>

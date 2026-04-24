@@ -261,91 +261,149 @@ class ThermalPrinterManager(
         val invoice = payload.getJSONObject("invoice")
         val summaryLines = payload.getJSONArray("summaryLines")
         val footerLines = payload.getJSONArray("footerLines")
-
-        // Extended fields (new layout)
-        val invoiceStatus = payload.optString("invoiceStatus")
         val settlementType = payload.optString("settlementType")
-        val printedAt = payload.optString("printedAt").ifBlank { null }
+        val printedAtLabel = payload.optString("printedAtLabel").ifBlank {
+            payload.optString("printedAt").ifBlank { null }?.let(::formatIsoDate)
+        }
         val footerText = payload.optString("footerText").ifBlank { null }
         val logoUrl = payload.optString("logoUrl").ifBlank { null }
         val qrisImageUrl = payload.optString("qrisImageUrl").ifBlank { null }
         val usageDetails = payload.optJSONObject("usageDetails")
         val bankInfo = payload.optJSONObject("bankInfo")
         val printNotes = payload.optString("printNotes").ifBlank { null }
+        val receiptNumber = payload.optString("receiptNumber").ifBlank { "-" }
+        val invoiceStatusLabel = payload.optString("invoiceStatusLabel").ifBlank {
+            resolveReceiptStatusLabel(
+                payload.optString("invoiceStatus"),
+                settlementType,
+            )
+        }
+        val paymentDateLabel = payment.optString("dateLabel").ifBlank {
+            formatIsoDate(payment.optString("date"))
+        }
 
         appendInitialize(output)
+        appendPaymentReceiptHeader(output, merchant, logoUrl)
+        appendPaymentReceiptInfoSection(
+            output = output,
+            receiptNumber = receiptNumber,
+            invoiceStatusLabel = invoiceStatusLabel,
+            paymentDateLabel = paymentDateLabel,
+            customer = customer,
+            payment = payment,
+            invoice = invoice,
+        )
+        appendPaymentReceiptUsageSection(output, usageDetails)
+        appendPaymentReceiptSummarySection(output, summaryLines)
+        appendPaymentReceiptBankSection(output, bankInfo, qrisImageUrl)
+        appendPaymentReceiptFooter(
+            output = output,
+            footerText = footerText,
+            footerLines = footerLines,
+            settlementType = settlementType,
+            printNotes = printNotes,
+            printedAtLabel = printedAtLabel,
+        )
 
-        // === HEADER ===
+        appendFeed(output, 3)
+        appendCut(output)
+        return output.toByteArray()
+    }
+
+    private fun appendPaymentReceiptHeader(
+        output: ByteArrayOutputStream,
+        merchant: JSONObject,
+        logoUrl: String?,
+    ) {
         appendAlign(output, "center")
         if (!logoUrl.isNullOrBlank()) {
             appendOptionalRemoteImage(output, logoUrl, "Logo tidak dapat dimuat", LOGO_MAX_WIDTH_DOTS)
         }
+
         appendBold(output, true)
         appendWrappedText(output, merchant.getString("name").uppercase(Locale("id", "ID")))
         appendBold(output, false)
+
         val addressLines = merchant.optJSONArray("addressLines")
         if (addressLines != null) {
             for (index in 0 until addressLines.length()) {
-                appendWrappedText(output, addressLines.getString(index))
+                val line = addressLines.optString(index)
+                if (line.isBlank()) {
+                    continue
+                }
+                appendWrappedText(output, line)
             }
         }
+
         appendDivider(output)
+    }
 
-        // === INFO STRUK + PELANGGAN ===
+    private fun appendPaymentReceiptInfoSection(
+        output: ByteArrayOutputStream,
+        receiptNumber: String,
+        invoiceStatusLabel: String,
+        paymentDateLabel: String,
+        customer: JSONObject,
+        payment: JSONObject,
+        invoice: JSONObject,
+    ) {
         appendAlign(output, "left")
-
-        val statusLabel = when (invoiceStatus) {
-            "paid" -> "Lunas"
-            "partial" -> "Parsial"
-            "unpaid" -> "Belum Lunas"
-            else -> if (settlementType == "full") "Lunas" else "Parsial"
-        }
-        appendKeyValue(output, "No. ${payload.optString("receiptNumber")}", statusLabel)
-
-        val rawDate = payment.optString("date")
-        val formattedDate = formatIsoDate(rawDate)
-        appendLine(output, formattedDate)
-
+        appendKeyValue(output, "No. $receiptNumber", invoiceStatusLabel)
+        appendLine(output, paymentDateLabel)
         appendKeyValue(output, "Pelanggan", customer.optString("name"))
+        appendOptionalKeyValue(output, "No. Meter", customer.optString("meterNumber").ifBlank { null })
 
-        val meterNumber = customer.optString("meterNumber")
-        if (meterNumber.isNotBlank()) appendKeyValue(output, "No. Meter", meterNumber)
-
-        val address = customer.optString("address")
-        if (address.isNotBlank()) appendWrappedText(output, address)
+        val address = customer.optString("address").ifBlank { null }
+        if (address != null) {
+            appendWrappedText(output, address)
+        }
 
         appendKeyValue(output, "No. Tagihan", invoice.optString("invoiceNumber"))
         appendKeyValue(output, "Metode", payment.optString("method"))
-
-        val refNumber = payment.optString("referenceNumber")
-        if (refNumber.isNotBlank()) appendKeyValue(output, "Ref.", refNumber)
-
+        appendOptionalKeyValue(output, "Ref.", payment.optString("referenceNumber").ifBlank { null })
         appendDivider(output)
+    }
 
-        // === ITEM TAGIHAN ===
-        val month = usageDetails?.optString("month")?.ifBlank { null }
-        val usageM3 = usageDetails?.optDouble("usageM3", 0.0) ?: 0.0
-        val shouldShowWaterBillSection = usageM3 > 0
-        if (shouldShowWaterBillSection) {
-            val itemLabel = if (month != null) "Tagihan Air - $month" else "Tagihan Air"
-            appendBold(output, true)
-            appendLine(output, itemLabel)
-            appendBold(output, false)
-
-            if (usageDetails != null) {
-                val subTotal = usageDetails.optDouble("subTotal", 0.0)
-                val m3Label = usageM3.toBigDecimal().stripTrailingZeros().toPlainString()
-                appendKeyValue(output, "$m3Label m3", formatCurrencyKt(subTotal))
-            }
-            appendDivider(output)
+    private fun appendPaymentReceiptUsageSection(
+        output: ByteArrayOutputStream,
+        usageDetails: JSONObject?,
+    ) {
+        if (usageDetails == null) {
+            return
         }
 
-        // === RINGKASAN BIAYA ===
+        val usageLabel = formatUsageLabel(usageDetails.opt("usageM3")) ?: return
+        val monthLabel = usageDetails.optString("month").ifBlank { null }
+        val itemLabel = if (monthLabel != null) "Tagihan Air - $monthLabel" else "Tagihan Air"
+        val subTotalLabel = formatSummaryValue(usageDetails.opt("subTotal"))
+
+        appendBold(output, true)
+        appendLine(output, itemLabel)
+        appendBold(output, false)
+
+        if (!subTotalLabel.isNullOrBlank()) {
+            appendKeyValue(output, "$usageLabel m3", subTotalLabel)
+        } else {
+            appendLine(output, "$usageLabel m3")
+        }
+
+        appendDivider(output)
+    }
+
+    private fun appendPaymentReceiptSummarySection(
+        output: ByteArrayOutputStream,
+        summaryLines: JSONArray,
+    ) {
+        appendAlign(output, "left")
         for (index in 0 until summaryLines.length()) {
-            val item = summaryLines.getJSONObject(index)
+            val item = summaryLines.optJSONObject(index) ?: continue
             val label = item.optString("label")
             val value = item.optString("value")
+            if (label.isBlank() || value.isBlank()) {
+                continue
+            }
             val emphasis = item.optString("emphasis")
+
             if (emphasis == "strong" || emphasis == "warning" || emphasis == "success") {
                 appendBold(output, true)
                 appendKeyValue(output, label, value)
@@ -355,37 +413,59 @@ class ThermalPrinterManager(
             }
         }
         appendDivider(output)
+    }
 
-        // === REKENING BANK + QRIS (optional) ===
-        if (bankInfo != null || !qrisImageUrl.isNullOrBlank()) {
-            appendAlign(output, "center")
+    private fun appendPaymentReceiptBankSection(
+        output: ByteArrayOutputStream,
+        bankInfo: JSONObject?,
+        qrisImageUrl: String?,
+    ) {
+        if (bankInfo == null && qrisImageUrl.isNullOrBlank()) {
+            return
         }
+
+        appendAlign(output, "center")
         if (bankInfo != null) {
             val bankName = bankInfo.optString("bankName")
             val bankAccountNo = bankInfo.optString("bankAccountNo")
             val bankAccountName = bankInfo.optString("bankAccountName")
+
             if (bankName.isNotBlank() && bankAccountNo.isNotBlank()) {
                 appendWrappedText(output, "$bankName - $bankAccountNo")
             }
-            if (bankAccountName.isNotBlank()) appendWrappedText(output, "a.n. $bankAccountName")
+            if (bankAccountName.isNotBlank()) {
+                appendWrappedText(output, "a.n. $bankAccountName")
+            }
         }
+
         if (!qrisImageUrl.isNullOrBlank()) {
             if (bankInfo != null) {
                 appendFeed(output, 1)
             }
             appendOptionalRemoteImage(output, qrisImageUrl, "QRIS tidak dapat dimuat", QRIS_MAX_WIDTH_DOTS)
         }
-        if (bankInfo != null || !qrisImageUrl.isNullOrBlank()) {
-            appendDivider(output)
-        }
 
-        // === FOOTER ===
+        appendDivider(output)
+    }
+
+    private fun appendPaymentReceiptFooter(
+        output: ByteArrayOutputStream,
+        footerText: String?,
+        footerLines: JSONArray,
+        settlementType: String,
+        printNotes: String?,
+        printedAtLabel: String?,
+    ) {
         appendAlign(output, "center")
         if (!footerText.isNullOrBlank()) {
             appendWrappedText(output, footerText)
         }
+
         for (index in 0 until footerLines.length()) {
-            val footerLine = footerLines.getString(index)
+            val footerLine = footerLines.optString(index)
+            if (footerLine.isBlank()) {
+                continue
+            }
             if (
                 footerLine.startsWith("Dicetak:", ignoreCase = true) ||
                 footerLine.equals("Masih ada sisa tagihan.", ignoreCase = true) ||
@@ -395,19 +475,41 @@ class ThermalPrinterManager(
             }
             appendLine(output, footerLine)
         }
+
         if (settlementType == "partial") {
             appendLine(output, "Masih ada sisa tagihan.")
         }
         if (!printNotes.isNullOrBlank()) {
             appendWrappedText(output, printNotes)
         }
-        if (printedAt != null) {
-            appendLine(output, "Dicetak: ${formatIsoDate(printedAt)}")
+        if (!printedAtLabel.isNullOrBlank()) {
+            appendLine(output, "Dicetak: $printedAtLabel")
         }
+    }
 
-        appendFeed(output, 3)
-        appendCut(output)
-        return output.toByteArray()
+    private fun resolveReceiptStatusLabel(
+        invoiceStatus: String,
+        settlementType: String,
+    ): String = when (invoiceStatus) {
+        "paid" -> "Lunas"
+        "partial" -> "Parsial"
+        "unpaid" -> "Belum Lunas"
+        else -> if (settlementType == "full") "Lunas" else "Parsial"
+    }
+
+    private fun formatUsageLabel(value: Any?): String? {
+        val raw = when (value) {
+            null -> return null
+            is Number -> value.toDouble().toBigDecimal().stripTrailingZeros().toPlainString()
+            else -> value.toString().trim()
+        }
+        return raw.ifBlank { null }
+    }
+
+    private fun formatSummaryValue(value: Any?): String? = when (value) {
+        null -> null
+        is Number -> formatCurrencyKt(value.toDouble())
+        else -> value.toString().trim().ifBlank { null }
     }
 
     private fun buildGenericReceiptBytes(content: JSONObject): ByteArray {

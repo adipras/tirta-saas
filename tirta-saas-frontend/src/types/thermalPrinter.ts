@@ -1,6 +1,6 @@
 import type { PaymentReceipt } from './payment';
-import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from './payment';
-import { API_ORIGIN } from '../constants/api';
+import { PAYMENT_STATUS_LABELS } from './payment';
+import { buildPaymentReceiptViewModel } from '../utils/paymentReceipt';
 
 export type ThermalPrintJobType = 'receipt' | 'payment_receipt';
 
@@ -14,12 +14,14 @@ export interface ThermalReceiptPayload {
   type: ThermalPrintJobType;
   receiptNumber: string;
   printedAt: string;
+  printedAtLabel?: string;
   settlementType: 'full' | 'partial';
   footerText?: string;
   logoUrl?: string;
   qrisImageUrl?: string;
   invoiceType?: 'monthly' | 'registration';
   invoiceStatus?: 'paid' | 'partial' | 'unpaid';
+  invoiceStatusLabel?: string;
   usageDetails?: {
     month?: string;
     usageM3?: number;
@@ -44,6 +46,7 @@ export interface ThermalReceiptPayload {
   };
   payment: {
     date: string;
+    dateLabel?: string;
     method: string;
     referenceNumber?: string;
     status: string;
@@ -89,110 +92,62 @@ export interface ThermalPrinterStatus {
   serverUrl?: string;
 }
 
-const truncateLine = (value?: string, maxLength: number = 32) => {
-  if (!value) {
-    return undefined;
-  }
-
-  const normalized = value.replace(/\s+/g, ' ').trim();
-  if (!normalized) {
-    return undefined;
-  }
-
-  return normalized.length > maxLength
-    ? `${normalized.slice(0, maxLength - 1).trimEnd()}…`
-    : normalized;
-};
-
-const formatCompactCurrency = (value?: number) => `Rp ${(value || 0).toLocaleString('id-ID')}`;
-
-const resolveAssetUrl = (path?: string) => {
-  if (!path) {
-    return undefined;
-  }
-
-  if (/^https?:\/\//i.test(path)) {
-    return path;
-  }
-
-  return path.startsWith('/') ? `${API_ORIGIN}${path}` : `${API_ORIGIN}/${path}`;
-};
-
 const buildReceiptPayload = (payload: ThermalReceiptPayloadInput): ThermalReceiptPayload => ({
   ...payload,
   type: payload.type ?? 'receipt',
 });
 
 export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalReceiptPayload => {
-  const isPartialPayment = receipt.invoiceDetails.paymentCoverageType === 'partial';
-  const compactAddress = truncateLine(receipt.customerDetails.address, 90);
-  const compactNotes = truncateLine(receipt.payment.notes, 120);
-  const tenantInfo = receipt.tenantInfo;
-  const invoiceType = receipt.invoiceDetails.invoiceType;
-  const usageM3 = receipt.usageDetails?.usageM3;
-  const footerText = tenantInfo?.footerText || 'Terima kasih telah membayar tagihan air Anda.';
-
-  const merchantAddressLines: string[] = [];
-  if (tenantInfo?.phone) {
-    merchantAddressLines.push(`Telp: ${tenantInfo.phone}`);
-  }
-
-  // Usage block follows the preview: only render when there is actual usage.
-  const usageDetails = usageM3 != null && usageM3 > 0 && receipt.usageDetails
+  const receiptView = buildPaymentReceiptViewModel(receipt);
+  const usageDetails = receiptView.showUsageSection
     ? {
-        month: receipt.usageDetails.usageMonth
-          ? new Date(`${receipt.usageDetails.usageMonth}-01`).toLocaleDateString('id-ID', {
-              month: 'long',
-              year: 'numeric',
-            })
-          : undefined,
-        usageM3,
+        month: receiptView.usageMonthLabel,
+        usageM3: receiptView.usageM3,
         subTotal: receipt.invoiceDetails.subTotal,
       }
     : undefined;
 
-  // Bank info (only if present)
   const bankInfo =
-    tenantInfo?.bankName || tenantInfo?.bankAccountNo
+    receiptView.bankName || receiptView.bankAccountNo
       ? {
-          bankName: tenantInfo?.bankName,
-          bankAccountName: tenantInfo?.bankAccountName,
-          bankAccountNo: tenantInfo?.bankAccountNo,
+          bankName: receiptView.bankName,
+          bankAccountName: receiptView.bankAccountName,
+          bankAccountNo: receiptView.bankAccountNo,
         }
       : undefined;
-
-  const paymentMethodLabel =
-    PAYMENT_METHOD_LABELS[receipt.payment.paymentMethod] || receipt.payment.paymentMethod;
 
   return buildReceiptPayload({
     type: 'payment_receipt',
     receiptNumber: receipt.receiptNumber,
     printedAt: receipt.generatedAt,
-    settlementType: isPartialPayment ? 'partial' : 'full',
-    footerText,
-    logoUrl: resolveAssetUrl(tenantInfo?.logoUrl),
-    qrisImageUrl: resolveAssetUrl(tenantInfo?.qrisImageUrl),
-    invoiceType: invoiceType ?? undefined,
+    printedAtLabel: receiptView.printedAtLabel,
+    settlementType: receiptView.isPartialPayment ? 'partial' : 'full',
+    footerText: receiptView.footerText,
+    logoUrl: receiptView.tenantLogoUrl,
+    qrisImageUrl: receiptView.qrisImageUrl,
+    invoiceType: receipt.invoiceDetails.invoiceType ?? undefined,
     invoiceStatus: receipt.invoiceDetails.invoicePaymentStatus,
+    invoiceStatusLabel: receiptView.invoiceStatusLabel,
     usageDetails,
     bankInfo,
-    printNotes: compactNotes,
+    printNotes: receiptView.compactNotes,
     merchant: {
-      name: tenantInfo?.companyName || 'TIRTA SAAS',
-      addressLines: merchantAddressLines,
+      name: receiptView.tenantName,
+      addressLines: receiptView.merchantAddressLines,
     },
     customer: {
       name: receipt.customerDetails.name,
-      address: compactAddress,
+      address: receiptView.compactAddress,
       meterNumber: receipt.customerDetails.meterNumber,
     },
     payment: {
       date: receipt.payment.paymentDate,
-      method: paymentMethodLabel,
+      dateLabel: receiptView.paymentDateLabel,
+      method: receiptView.paymentMethodLabel,
       referenceNumber: receipt.payment.referenceNumber,
       status: PAYMENT_STATUS_LABELS[receipt.payment.status] || receipt.payment.status,
       amount: receipt.payment.amount,
-      notes: compactNotes,
+      notes: receiptView.compactNotes,
     },
     invoice: {
       invoiceNumber: receipt.invoiceDetails.invoiceNumber,
@@ -206,44 +161,7 @@ export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalRece
       remainingAmount: receipt.invoiceDetails.remainingAmount,
       invoicePaymentStatus: receipt.invoiceDetails.invoicePaymentStatus,
     },
-    // Financial summary only (usage handled via usageDetails section)
-    summaryLines: [
-      ...((receipt.invoiceDetails.subTotal || 0) > 0
-        ? [{ label: 'Subtotal', value: formatCompactCurrency(receipt.invoiceDetails.subTotal) }]
-        : []),
-      ...(receipt.invoiceDetails.penaltyAmount
-        ? [
-            {
-              label: 'Denda',
-              value: formatCompactCurrency(receipt.invoiceDetails.penaltyAmount),
-              emphasis: 'warning' as const,
-            },
-          ]
-        : []),
-      {
-        label: 'Total',
-        value: formatCompactCurrency(receipt.invoiceDetails.totalAmount),
-        emphasis: 'strong' as const,
-      },
-      ...((receipt.invoiceDetails.totalPaidBefore || 0) > 0
-        ? [
-            {
-              label: 'Terbayar',
-              value: formatCompactCurrency(receipt.invoiceDetails.totalPaidBefore),
-            },
-          ]
-        : []),
-      {
-        label: `Bayar (${paymentMethodLabel})`,
-        value: formatCompactCurrency(receipt.payment.amount),
-        emphasis: 'success' as const,
-      },
-      {
-        label: 'Sisa',
-        value: formatCompactCurrency(receipt.invoiceDetails.remainingAmount || 0),
-        emphasis: isPartialPayment ? ('warning' as const) : ('success' as const),
-      },
-    ],
+    summaryLines: receiptView.summaryLines,
     footerLines: [],
   });
 };
