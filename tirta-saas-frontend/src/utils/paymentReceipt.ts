@@ -14,6 +14,7 @@ export interface PaymentReceiptSummaryLine {
 export interface PaymentReceiptViewModel {
   receiptNumber: string;
   invoiceTypeLabel?: string;
+  invoiceDateLabel: string;
   tenantName: string;
   tenantPhone?: string;
   tenantLogoUrl?: string;
@@ -22,6 +23,7 @@ export interface PaymentReceiptViewModel {
   bankAccountName?: string;
   bankAccountNo?: string;
   qrisImageUrl?: string;
+  qrisLabel: string;
   hasBankInfo: boolean;
   compactAddress?: string;
   compactNotes?: string;
@@ -31,6 +33,7 @@ export interface PaymentReceiptViewModel {
   invoiceStatusLabel: string;
   invoiceStatusTone: PaymentReceiptStatusTone;
   invoiceStatusColorClass: string;
+  invoiceStatusTextColorClass: string;
   isPartialPayment: boolean;
   usageMonthLabel?: string;
   usageM3?: number;
@@ -162,6 +165,7 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
   return {
     receiptNumber: receipt.receiptNumber,
     invoiceTypeLabel,
+    invoiceDateLabel: formatPaymentReceiptDateTime(receipt.invoiceDetails.invoiceDate),
     tenantName: receipt.tenantInfo?.companyName || 'TIRTA SAAS',
     tenantPhone,
     tenantLogoUrl,
@@ -170,7 +174,8 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
     bankAccountName,
     bankAccountNo,
     qrisImageUrl,
-    hasBankInfo: Boolean(bankName || bankAccountNo),
+    qrisLabel: 'QRIS Pembayaran',
+    hasBankInfo: Boolean(bankName || bankAccountNo || bankAccountName),
     compactAddress,
     compactNotes,
     paymentMethodLabel,
@@ -184,6 +189,12 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
         : invoiceStatusTone === 'partial'
           ? 'text-amber-600'
           : 'text-red-600',
+    invoiceStatusTextColorClass:
+      invoiceStatusTone === 'paid'
+        ? 'text-green-700'
+        : invoiceStatusTone === 'partial'
+          ? 'text-amber-700'
+          : 'text-red-700',
     isPartialPayment,
     usageMonthLabel,
     usageM3,

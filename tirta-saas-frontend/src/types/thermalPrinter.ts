@@ -13,6 +13,7 @@ export interface ThermalReceiptLineItem {
 export interface ThermalReceiptPayload {
   type: ThermalPrintJobType;
   receiptNumber: string;
+  invoiceDateLabel?: string;
   printedAt: string;
   printedAtLabel?: string;
   invoiceTypeLabel?: string;
@@ -22,6 +23,7 @@ export interface ThermalReceiptPayload {
   logoDataUrl?: string;
   qrisImageUrl?: string;
   qrisImageDataUrl?: string;
+  qrisLabel?: string;
   invoiceType?: 'monthly' | 'registration';
   invoiceStatus?: 'paid' | 'partial' | 'unpaid';
   invoiceStatusLabel?: string;
@@ -150,7 +152,7 @@ export const buildThermalReceiptPayload = async (receipt: PaymentReceipt): Promi
     : undefined;
 
   const bankInfo =
-    receiptView.bankName || receiptView.bankAccountNo
+    receiptView.bankName || receiptView.bankAccountNo || receiptView.bankAccountName
       ? {
           bankName: receiptView.bankName,
           bankAccountName: receiptView.bankAccountName,
@@ -161,6 +163,7 @@ export const buildThermalReceiptPayload = async (receipt: PaymentReceipt): Promi
   return buildReceiptPayload({
     type: 'payment_receipt',
     receiptNumber: receipt.receiptNumber,
+    invoiceDateLabel: receiptView.invoiceDateLabel,
     printedAt: receipt.generatedAt,
     printedAtLabel: receiptView.printedAtLabel,
     invoiceTypeLabel: receiptView.invoiceTypeLabel,
@@ -170,6 +173,7 @@ export const buildThermalReceiptPayload = async (receipt: PaymentReceipt): Promi
     logoDataUrl,
     qrisImageUrl: receiptView.qrisImageUrl,
     qrisImageDataUrl,
+    qrisLabel: receiptView.qrisLabel,
     invoiceType: receipt.invoiceDetails.invoiceType ?? undefined,
     invoiceStatus: receipt.invoiceDetails.invoicePaymentStatus,
     invoiceStatusLabel: receiptView.invoiceStatusLabel,

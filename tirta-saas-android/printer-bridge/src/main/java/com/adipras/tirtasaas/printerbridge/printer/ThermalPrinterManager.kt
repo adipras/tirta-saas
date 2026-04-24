@@ -263,6 +263,9 @@ class ThermalPrinterManager(
         val summaryLines = payload.getJSONArray("summaryLines")
         val footerLines = payload.getJSONArray("footerLines")
         val settlementType = payload.optString("settlementType")
+        val invoiceDateLabel = payload.optString("invoiceDateLabel").ifBlank {
+            formatIsoDate(invoice.optString("invoiceDate"))
+        }
         val printedAtLabel = payload.optString("printedAtLabel").ifBlank {
             payload.optString("printedAt").ifBlank { null }?.let(::formatIsoDate)
         }
@@ -272,6 +275,7 @@ class ThermalPrinterManager(
         val logoDataUrl = payload.optString("logoDataUrl").ifBlank { null }
         val qrisImageUrl = payload.optString("qrisImageUrl").ifBlank { null }
         val qrisImageDataUrl = payload.optString("qrisImageDataUrl").ifBlank { null }
+        val qrisLabel = payload.optString("qrisLabel").ifBlank { "QRIS Pembayaran" }
         val usageDetails = payload.optJSONObject("usageDetails")
         val bankInfo = payload.optJSONObject("bankInfo")
         val printNotes = payload.optString("printNotes").ifBlank { null }
@@ -282,17 +286,11 @@ class ThermalPrinterManager(
                 settlementType,
             )
         }
-        val paymentDateLabel = payment.optString("dateLabel").ifBlank {
-            formatIsoDate(payment.optString("date"))
-        }
 
         appendInitialize(output)
-        appendPaymentReceiptHeader(output, merchant, logoDataUrl, logoUrl)
+        appendPaymentReceiptHeader(output, merchant, logoDataUrl, logoUrl, receiptNumber, invoiceDateLabel)
         appendPaymentReceiptInfoSection(
             output = output,
-            receiptNumber = receiptNumber,
-            invoiceStatusLabel = invoiceStatusLabel,
-            paymentDateLabel = paymentDateLabel,
             invoiceTypeLabel = invoiceTypeLabel,
             customer = customer,
             payment = payment,
@@ -300,7 +298,13 @@ class ThermalPrinterManager(
         )
         appendPaymentReceiptUsageSection(output, usageDetails)
         appendPaymentReceiptSummarySection(output, summaryLines)
-        appendPaymentReceiptBankSection(output, bankInfo, qrisImageDataUrl, qrisImageUrl)
+        appendPaymentReceiptStatusSection(
+            output = output,
+            invoiceStatusLabel = invoiceStatusLabel,
+            settlementType = settlementType,
+            remainingAmountLabel = formatSummaryValue(invoice.opt("remainingAmount")),
+        )
+        appendPaymentReceiptBankSection(output, bankInfo, qrisImageDataUrl, qrisImageUrl, qrisLabel)
         appendPaymentReceiptFooter(
             output = output,
             footerText = footerText,
@@ -320,6 +324,8 @@ class ThermalPrinterManager(
         merchant: JSONObject,
         logoDataUrl: String?,
         logoUrl: String?,
+        receiptNumber: String,
+        invoiceDateLabel: String,
     ) {
         appendAlign(output, "center")
         if (!logoDataUrl.isNullOrBlank() || !logoUrl.isNullOrBlank()) {
@@ -328,6 +334,7 @@ class ThermalPrinterManager(
                 imageSource = logoDataUrl ?: logoUrl.orEmpty(),
                 fallbackMessage = "Logo tidak dapat dimuat",
                 maxWidthDots = LOGO_MAX_WIDTH_DOTS,
+                trailingFeedLines = 0,
             )
         }
 
@@ -346,22 +353,19 @@ class ThermalPrinterManager(
             }
         }
 
+        appendAlign(output, "left")
+        appendKeyValue(output, "No. $receiptNumber", invoiceDateLabel)
         appendDivider(output)
     }
 
     private fun appendPaymentReceiptInfoSection(
         output: ByteArrayOutputStream,
-        receiptNumber: String,
-        invoiceStatusLabel: String,
-        paymentDateLabel: String,
         invoiceTypeLabel: String?,
         customer: JSONObject,
         payment: JSONObject,
         invoice: JSONObject,
     ) {
         appendAlign(output, "left")
-        appendKeyValue(output, "No. $receiptNumber", invoiceStatusLabel)
-        appendLine(output, paymentDateLabel)
         appendKeyValue(output, "Pelanggan", customer.optString("name"))
         appendOptionalKeyValue(output, "No. Meter", customer.optString("meterNumber").ifBlank { null })
 
@@ -374,6 +378,24 @@ class ThermalPrinterManager(
         appendOptionalKeyValue(output, "Tipe Tagihan", invoiceTypeLabel)
         appendKeyValue(output, "Metode", payment.optString("method"))
         appendOptionalKeyValue(output, "Ref.", payment.optString("referenceNumber").ifBlank { null })
+        appendDivider(output)
+    }
+
+    private fun appendPaymentReceiptStatusSection(
+        output: ByteArrayOutputStream,
+        invoiceStatusLabel: String,
+        settlementType: String,
+        remainingAmountLabel: String?,
+    ) {
+        appendAlign(output, "left")
+        appendBold(output, true)
+        appendKeyValue(output, "Status Invoice", invoiceStatusLabel)
+        appendBold(output, false)
+
+        if (settlementType == "partial" && !remainingAmountLabel.isNullOrBlank()) {
+            appendKeyValue(output, "Belum Terbayar", remainingAmountLabel)
+        }
+
         appendDivider(output)
     }
 
@@ -433,6 +455,7 @@ class ThermalPrinterManager(
         bankInfo: JSONObject?,
         qrisImageDataUrl: String?,
         qrisImageUrl: String?,
+        qrisLabel: String,
     ) {
         if (bankInfo == null && qrisImageDataUrl.isNullOrBlank() && qrisImageUrl.isNullOrBlank()) {
             return
@@ -446,6 +469,10 @@ class ThermalPrinterManager(
 
             if (bankName.isNotBlank() && bankAccountNo.isNotBlank()) {
                 appendWrappedText(output, "$bankName - $bankAccountNo")
+            } else if (bankName.isNotBlank()) {
+                appendWrappedText(output, bankName)
+            } else if (bankAccountNo.isNotBlank()) {
+                appendWrappedText(output, bankAccountNo)
             }
             if (bankAccountName.isNotBlank()) {
                 appendWrappedText(output, "a.n. $bankAccountName")
@@ -456,12 +483,15 @@ class ThermalPrinterManager(
             if (bankInfo != null) {
                 appendFeed(output, 1)
             }
-            appendOptionalImage(
+            val printed = appendOptionalImage(
                 output = output,
                 imageSource = qrisImageDataUrl ?: qrisImageUrl.orEmpty(),
                 fallbackMessage = "QRIS tidak dapat dimuat",
                 maxWidthDots = QRIS_MAX_WIDTH_DOTS,
             )
+            if (printed) {
+                appendLine(output, qrisLabel)
+            }
         }
 
         appendDivider(output)
@@ -716,15 +746,21 @@ class ThermalPrinterManager(
         imageSource: String,
         fallbackMessage: String,
         maxWidthDots: Int,
-    ) {
+        trailingFeedLines: Int = 1,
+    ): Boolean {
         try {
             val bitmap = fetchBitmap(imageSource)
             appendBitmap(output, bitmap, maxWidthDots)
-            appendFeed(output, 1)
+            if (trailingFeedLines > 0) {
+                appendFeed(output, trailingFeedLines)
+            }
+            return true
         } catch (_: IOException) {
             appendLine(output, fallbackMessage)
+            return false
         } catch (_: IllegalArgumentException) {
             appendLine(output, fallbackMessage)
+            return false
         }
     }
 
@@ -952,10 +988,10 @@ class ThermalPrinterManager(
     private companion object {
         const val KEY_PREFERRED_PRINTER_ID = "preferred_printer_id"
         const val LINE_WIDTH = 32
-        const val LOGO_MAX_WIDTH_DOTS = 192
+        const val LOGO_MAX_WIDTH_DOTS = 224
         const val QRIS_MAX_WIDTH_DOTS = 192
         const val IMAGE_THRESHOLD = 180
         const val IMAGE_FETCH_TIMEOUT_MS = 5000
-        const val PAYMENT_RECEIPT_EXTRA_FEED_LINES = 6
+        const val PAYMENT_RECEIPT_EXTRA_FEED_LINES = 9
     }
 }

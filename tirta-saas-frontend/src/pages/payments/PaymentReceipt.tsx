@@ -318,29 +318,24 @@ const PaymentReceipt: React.FC = () => {
       <div ref={receiptRef} className="bg-white rounded-lg shadow p-5 max-w-sm mx-auto font-mono text-xs">
 
         {/* Header — nama PDAM */}
-        <div className="text-center pb-3 border-b border-dashed border-gray-400">
+        <div className="text-center pb-2 border-b border-dashed border-gray-400">
           {receiptView.tenantLogoUrl && (
             <img
               src={receiptView.tenantLogoUrl}
               alt={receiptView.tenantName}
-              className="h-12 w-auto mx-auto mb-2 object-contain"
+              className="h-16 w-auto mx-auto mb-1 object-contain"
             />
           )}
           <p className="font-bold text-sm uppercase tracking-wide text-gray-900">{receiptView.tenantName}</p>
           {receiptView.tenantPhone && <p className="text-gray-600 mt-0.5">Telp: {receiptView.tenantPhone}</p>}
+          <div className="flex justify-between gap-3 mt-2 text-[11px] text-gray-600">
+            <span className="font-semibold text-gray-800">No. {receipt.receiptNumber}</span>
+            <span className="text-right">{receiptView.invoiceDateLabel}</span>
+          </div>
         </div>
 
         {/* Info struk + pelanggan */}
         <div className="py-3 border-b border-dashed border-gray-400 space-y-0.5">
-          <div className="flex justify-between">
-            <span>No. {receipt.receiptNumber}</span>
-            <span className={`font-semibold ${receiptView.invoiceStatusColorClass}`}>
-              {receiptView.invoiceStatusLabel}
-            </span>
-          </div>
-          <div className="flex justify-between text-gray-500">
-            <span>{receiptView.paymentDateLabel}</span>
-          </div>
           <div className="flex justify-between gap-2 mt-1">
             <span className="text-gray-500">Pelanggan</span>
             <span className="text-right font-medium text-gray-900">{receipt.customerDetails.name}</span>
@@ -423,6 +418,23 @@ const PaymentReceipt: React.FC = () => {
           </div>
         </div>
 
+        <div className="py-3 border-b border-dashed border-gray-400 space-y-1">
+          <div className="flex justify-between items-start gap-2">
+            <span className="font-semibold text-gray-700">Status Invoice</span>
+            <span className={`text-right font-bold ${receiptView.invoiceStatusColorClass}`}>
+              {receiptView.invoiceStatusLabel}
+            </span>
+          </div>
+          {receiptView.isPartialPayment && (
+            <div className="flex justify-between items-start gap-2">
+              <span className="font-medium text-gray-600">Sisa tagihan belum terbayar</span>
+              <span className={`text-right font-bold ${receiptView.invoiceStatusTextColorClass}`}>
+                {receiptView.remainingAmountLabel}
+              </span>
+            </div>
+          )}
+        </div>
+
         {/* Info rekening + QR QRIS */}
         {(receiptView.hasBankInfo || receiptView.qrisImageUrl) && (
           <div className="py-3 border-b border-dashed border-gray-400">
@@ -439,11 +451,14 @@ const PaymentReceipt: React.FC = () => {
               </div>
             )}
             {receiptView.qrisImageUrl && (
-              <img
-                src={receiptView.qrisImageUrl}
-                alt="QRIS Pembayaran"
-                className="w-full max-w-[160px] mx-auto block"
-              />
+              <div className="text-center">
+                <img
+                  src={receiptView.qrisImageUrl}
+                  alt={receiptView.qrisLabel}
+                  className="w-full max-w-[160px] mx-auto block"
+                />
+                <p className="text-gray-500 mt-1">{receiptView.qrisLabel}</p>
+              </div>
             )}
           </div>
         )}
