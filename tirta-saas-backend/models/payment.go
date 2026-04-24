@@ -17,16 +17,17 @@ type Payment struct {
 	PaidAt    time.Time `gorm:"not null" json:"paid_at"`
 
 	// Additional fields for Phase 6
-	PaymentMethodID *uuid.UUID     `gorm:"type:char(36);index" json:"payment_method_id"`
-	PaymentMethod   *PaymentMethod `gorm:"foreignKey:PaymentMethodID" json:"payment_method,omitempty"`
-	ReceivedBy      *uuid.UUID     `gorm:"type:char(36)" json:"received_by"`
-	Receiver        *User          `gorm:"foreignKey:ReceivedBy" json:"receiver,omitempty"`
-	ReferenceNumber string         `gorm:"type:varchar(100)" json:"reference_number"`
-	ProofImageURL   string         `gorm:"type:varchar(500)" json:"proof_image_url"`
-	Notes           string         `gorm:"type:text" json:"notes"`
-	VerifiedBy      *uuid.UUID     `gorm:"type:char(36)" json:"verified_by"`
-	VerifiedAt      *time.Time     `gorm:"type:datetime" json:"verified_at"`
-	Status          string         `gorm:"type:varchar(20);default:'completed';not null" json:"status"`
+	PaymentMethodID   *uuid.UUID     `gorm:"type:char(36);index" json:"payment_method_id"`
+	PaymentMethod     *PaymentMethod `gorm:"foreignKey:PaymentMethodID" json:"payment_method,omitempty"`
+	PaymentMethodType string         `gorm:"type:varchar(50)" json:"payment_method_type"`
+	ReceivedBy        *uuid.UUID     `gorm:"type:char(36)" json:"received_by"`
+	Receiver          *User          `gorm:"foreignKey:ReceivedBy" json:"receiver,omitempty"`
+	ReferenceNumber   string         `gorm:"type:varchar(100)" json:"reference_number"`
+	ProofImageURL     string         `gorm:"type:varchar(500)" json:"proof_image_url"`
+	Notes             string         `gorm:"type:text" json:"notes"`
+	VerifiedBy        *uuid.UUID     `gorm:"type:char(36)" json:"verified_by"`
+	VerifiedAt        *time.Time     `gorm:"type:datetime" json:"verified_at"`
+	Status            string         `gorm:"type:varchar(20);default:'completed';not null" json:"status"`
 
 	BaseModel
 }

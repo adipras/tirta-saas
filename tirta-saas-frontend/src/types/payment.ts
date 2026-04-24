@@ -1,10 +1,11 @@
-export type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'e_wallet' | 'other';
+export type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'e_wallet' | 'qris' | 'other';
 
 export const PaymentMethod = {
   CASH: 'cash' as PaymentMethod,
   BANK_TRANSFER: 'bank_transfer' as PaymentMethod,
   CARD: 'card' as PaymentMethod,
   E_WALLET: 'e_wallet' as PaymentMethod,
+  QRIS: 'qris' as PaymentMethod,
   OTHER: 'other' as PaymentMethod,
 };
 

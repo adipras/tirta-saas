@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+} from '@heroicons/react/24/outline';
 import { paymentService } from '../../services/paymentService';
 import customerService from '../../services/customerService';
 import CustomerSearchSelect from '../../components/CustomerSearchSelect';
+import { CurrencyInput } from '../../components/CurrencyInput';
 import type {
   PaymentFormData,
   OutstandingInvoice,
@@ -14,15 +19,48 @@ import {
 import type { Customer } from '../../types/customer';
 import { PageHeader, useToast } from '../../components';
 
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = error.response;
+    if (typeof response === 'object' && response !== null && 'data' in response) {
+      const data = response.data;
+      if (typeof data === 'object' && data !== null) {
+        if ('message' in data && typeof data.message === 'string') {
+          return data.message;
+        }
+        if ('error' in data && typeof data.error === 'string') {
+          return data.error;
+        }
+      }
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 const PaymentForm: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
   const [loading, setLoading] = useState(false);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [customers, setPelanggan] = useState<Customer[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [outstandingTagihan, setOutstandingTagihan] = useState<OutstandingInvoice[]>([]);
   const [selectedTagihan, setSelectedTagihan] = useState<Set<string>>(new Set());
+  const [paymentAmounts, setPaymentAmounts] = useState<Record<string, number>>({});
   
   const [formData, setFormData] = useState<PaymentFormData>({
     invoiceId: '',
@@ -35,20 +73,7 @@ const PaymentForm: React.FC = () => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    fetchPelanggan();
-  }, []);
-
-  useEffect(() => {
-    if (selectedCustomerId) {
-      fetchOutstandingTagihan(selectedCustomerId);
-    } else {
-      setOutstandingTagihan([]);
-      setSelectedTagihan(new Set());
-    }
-  }, [selectedCustomerId]);
-
-  const fetchPelanggan = async () => {
+  const fetchPelanggan = useCallback(async () => {
     try {
       const response = await customerService.getPelanggan(1, 1000);
       // Allow payment for all customers (including inactive)
@@ -57,37 +82,106 @@ const PaymentForm: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch customers:', error);
     }
-  };
+  }, []);
 
-  const fetchOutstandingTagihan = async (customerId: string) => {
+  const fetchOutstandingTagihan = useCallback(async (customerId: string) => {
     try {
+      setLoadingInvoices(true);
       const invoices = await paymentService.getOutstandingTagihan(customerId);
       setOutstandingTagihan(invoices);
+      setSelectedTagihan(new Set());
+      setPaymentAmounts({});
     } catch (error) {
       console.error('Failed to fetch outstanding invoices:', error);
       setOutstandingTagihan([]);
+      setSelectedTagihan(new Set());
+      setPaymentAmounts({});
+      toast.error(getErrorMessage(error, 'Gagal memuat tagihan pelanggan'));
+    } finally {
+      setLoadingInvoices(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchPelanggan();
+  }, [fetchPelanggan]);
+
+  useEffect(() => {
+    if (selectedCustomerId) {
+      fetchOutstandingTagihan(selectedCustomerId);
+    } else {
+      setOutstandingTagihan([]);
+      setSelectedTagihan(new Set());
+      setPaymentAmounts({});
+    }
+  }, [fetchOutstandingTagihan, selectedCustomerId]);
 
   const handleCustomerChange = (customerId: string) => {
     setSelectedCustomerId(customerId);
     setSelectedTagihan(new Set());
+    setPaymentAmounts({});
+    setErrors({});
   };
 
-  const toggleInvoiceSelection = (invoiceId: string) => {
+  const toggleInvoiceSelection = (invoice: OutstandingInvoice) => {
     const newSelected = new Set(selectedTagihan);
-    if (newSelected.has(invoiceId)) {
-      newSelected.delete(invoiceId);
+    const newPaymentAmounts = { ...paymentAmounts };
+
+    if (newSelected.has(invoice.id)) {
+      newSelected.delete(invoice.id);
+      delete newPaymentAmounts[invoice.id];
     } else {
-      newSelected.add(invoiceId);
+      newSelected.add(invoice.id);
+      newPaymentAmounts[invoice.id] = invoice.remainingAmount;
     }
+
     setSelectedTagihan(newSelected);
+    setPaymentAmounts(newPaymentAmounts);
+
+    if (errors.invoices || errors.amounts) {
+      setErrors((prev) => ({
+        ...prev,
+        invoices: '',
+        amounts: '',
+      }));
+    }
   };
 
-  const calculateTotalAmount = () => {
-    return outstandingTagihan
-      .filter(inv => selectedTagihan.has(inv.id))
-      .reduce((sum, inv) => sum + inv.remainingAmount, 0);
+  const setInvoicePaymentAmount = (invoice: OutstandingInvoice, value: number) => {
+    setPaymentAmounts((prev) => ({
+      ...prev,
+      [invoice.id]: Math.min(Math.max(value, 0), invoice.remainingAmount),
+    }));
+
+    if (errors.amounts) {
+      setErrors((prev) => ({ ...prev, amounts: '' }));
+    }
+  };
+
+  const handleSelectAllInvoices = () => {
+    const nextSelected = new Set(outstandingTagihan.map((invoice) => invoice.id));
+    const nextPaymentAmounts = outstandingTagihan.reduce<Record<string, number>>((acc, invoice) => {
+      acc[invoice.id] = invoice.remainingAmount;
+      return acc;
+    }, {});
+
+    setSelectedTagihan(nextSelected);
+    setPaymentAmounts(nextPaymentAmounts);
+    setErrors((prev) => ({
+      ...prev,
+      invoices: '',
+      amounts: '',
+    }));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedTagihan(new Set());
+    setPaymentAmounts({});
+    setErrors((prev) => ({
+      ...prev,
+      invoices: '',
+      amounts: '',
+    }));
   };
 
   const handleInputChange = (
@@ -103,6 +197,43 @@ const PaymentForm: React.FC = () => {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
+
+  const selectedInvoices = useMemo(
+    () => outstandingTagihan.filter((invoice) => selectedTagihan.has(invoice.id)),
+    [outstandingTagihan, selectedTagihan]
+  );
+
+  const selectedInvoicesTotal = useMemo(
+    () => selectedInvoices.reduce((sum, invoice) => sum + invoice.remainingAmount, 0),
+    [selectedInvoices]
+  );
+
+  const totalPaymentAmount = useMemo(
+    () =>
+      selectedInvoices.reduce(
+        (sum, invoice) => sum + Math.min(paymentAmounts[invoice.id] ?? 0, invoice.remainingAmount),
+        0
+      ),
+    [paymentAmounts, selectedInvoices]
+  );
+
+  const totalRemainingAfterPayment = useMemo(
+    () =>
+      selectedInvoices.reduce(
+        (sum, invoice) => sum + Math.max(invoice.remainingAmount - (paymentAmounts[invoice.id] ?? 0), 0),
+        0
+      ),
+    [paymentAmounts, selectedInvoices]
+  );
+
+  const partialInvoiceCount = useMemo(
+    () =>
+      selectedInvoices.filter((invoice) => {
+        const paymentAmount = paymentAmounts[invoice.id] ?? 0;
+        return paymentAmount > 0 && paymentAmount < invoice.remainingAmount;
+      }).length,
+    [paymentAmounts, selectedInvoices]
+  );
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -123,6 +254,15 @@ const PaymentForm: React.FC = () => {
       newErrors.paymentMethod = 'Metode pembayaran wajib dipilih';
     }
 
+    const invalidInvoices = selectedInvoices.filter((invoice) => {
+      const paymentAmount = paymentAmounts[invoice.id] ?? 0;
+      return paymentAmount <= 0 || paymentAmount > invoice.remainingAmount;
+    });
+
+    if (invalidInvoices.length > 0) {
+      newErrors.amounts = 'Nominal setiap tagihan harus lebih dari 0 dan tidak melebihi sisa tagihan';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -141,9 +281,10 @@ const PaymentForm: React.FC = () => {
       for (const invoiceId of Array.from(selectedTagihan)) {
         const invoice = outstandingTagihan.find(inv => inv.id === invoiceId);
         if (invoice) {
+          const paymentAmount = paymentAmounts[invoice.id] ?? 0;
           const paymentData: PaymentFormData = {
             invoiceId: invoice.id,
-            amount: invoice.remainingAmount,
+            amount: paymentAmount,
             paymentMethod: formData.paymentMethod,
             paymentDate: formData.paymentDate,
             referenceNumber: formData.referenceNumber,
@@ -153,10 +294,15 @@ const PaymentForm: React.FC = () => {
         }
       }
 
+      toast.success(
+        partialInvoiceCount > 0
+          ? `Pembayaran tersimpan. ${partialInvoiceCount} tagihan dibayar parsial.`
+          : 'Pembayaran berhasil dicatat.'
+      );
       navigate('/admin/payments');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save payment:', error);
-      toast.error(error.response?.data?.message || 'Gagal menyimpan pembayaran');
+      toast.error(getErrorMessage(error, 'Gagal menyimpan pembayaran'));
     } finally {
       setLoading(false);
     }
@@ -171,14 +317,14 @@ const PaymentForm: React.FC = () => {
         <ArrowLeftIcon className="mr-2 h-4 w-4" />
         Kembali ke Pembayaran
       </button>
-      <PageHeader title="Catat Pembayaran" subtitle="Pilih pelanggan dan tagihan yang akan dibayar" />
+      <PageHeader
+        title="Catat Pembayaran"
+        subtitle="Admin bisa mencatat pembayaran penuh atau parsial untuk satu atau beberapa tagihan sekaligus."
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Selection */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Pelanggan <span className="text-red-500">*</span>
-          </label>
+        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
           <CustomerSearchSelect
             customers={customers}
             value={selectedCustomerId}
@@ -191,137 +337,251 @@ const PaymentForm: React.FC = () => {
         </div>
 
         {/* Outstanding Tagihan Cards */}
-        {selectedCustomerId && outstandingTagihan.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-lg font-medium text-gray-900">
-                Tagihan Belum Lunas
-              </h2>
-              <span className="text-sm text-gray-500">
-                Pilih tagihan yang ingin dibayar
-              </span>
+        {selectedCustomerId && (
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+            <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Tagihan belum lunas</h2>
+                <p className="text-sm text-gray-500">
+                  Pilih tagihan, lalu sesuaikan nominal jika ingin mencatat pembayaran parsial.
+                </p>
+              </div>
+              {outstandingTagihan.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSelectAllInvoices}
+                    disabled={loading || loadingInvoices}
+                    className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Pilih semua
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearSelection}
+                    disabled={loading || loadingInvoices || selectedTagihan.size === 0}
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Kosongkan pilihan
+                  </button>
+                </div>
+              )}
             </div>
-            
-            {errors.invoices && (
-              <p className="text-red-500 text-sm mb-4">{errors.invoices}</p>
+
+            {loadingInvoices && (
+              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
+                Memuat tagihan pelanggan...
+              </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              {outstandingTagihan.map((invoice) => {
-                const isSelected = selectedTagihan.has(invoice.id);
-                return (
-                  <div
-                    key={invoice.id}
-                    onClick={() => toggleInvoiceSelection(invoice.id)}
-                    className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      isSelected
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {isSelected && (
-                      <div className="absolute top-2 right-2">
-                        <CheckCircleIcon className="h-6 w-6 text-blue-600" />
-                      </div>
-                    )}
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-3 pr-8">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {invoice.invoiceNumber || `INV-${invoice.id}`}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {invoice.usageMonth || 'Biaya Registrasi'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-1 border-t border-gray-200 pt-2">
-                        <div className="flex items-start justify-between gap-3 text-sm">
-                          <span className="text-gray-600">Total Tagihan:</span>
-                          <span className="font-medium text-gray-900">
-                            {new Intl.NumberFormat('id-ID', {
-                              style: 'currency',
-                              currency: 'IDR',
-                              minimumFractionDigits: 0,
-                            }).format(invoice.totalAmount)}
-                          </span>
-                        </div>
-                        <div className="flex items-start justify-between gap-3 text-sm">
-                          <span className="text-gray-600">Sudah Dibayar:</span>
-                          <span className="font-medium text-green-600">
-                            {new Intl.NumberFormat('id-ID', {
-                              style: 'currency',
-                              currency: 'IDR',
-                              minimumFractionDigits: 0,
-                            }).format(invoice.paidAmount)}
-                          </span>
-                        </div>
-                        <div className="flex items-start justify-between gap-3 border-t pt-1 text-sm">
-                          <span className="font-medium text-gray-700">Sisa:</span>
-                          <span className="font-bold text-red-600">
-                            {new Intl.NumberFormat('id-ID', {
-                              style: 'currency',
-                              currency: 'IDR',
-                              minimumFractionDigits: 0,
-                            }).format(invoice.remainingAmount)}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col gap-2 border-t pt-2 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
-                        <span>Jatuh Tempo: {new Date(invoice.dueDate).toLocaleDateString('id-ID')}</span>
-                        <span className={`px-2 py-0.5 rounded-full ${
-                          invoice.status === 'overdue' 
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {invoice.status === 'overdue' ? 'Terlambat' : 'Menunggu'}
-                        </span>
-                      </div>
-                    </div>
+            {!loadingInvoices && outstandingTagihan.length > 0 && (
+              <>
+                <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-sm text-slate-500">Jumlah tagihan aktif</p>
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">{outstandingTagihan.length}</p>
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Payment Summary */}
-            {selectedTagihan.size > 0 && (
-              <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Total pembayaran untuk {selectedTagihan.size} tagihan</p>
-                    <p className="text-2xl font-bold text-blue-900 mt-1">
-                      {new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        minimumFractionDigits: 0,
-                      }).format(calculateTotalAmount())}
+                  <div className="rounded-xl bg-amber-50 p-4">
+                    <p className="text-sm text-amber-700">Total sisa tagihan</p>
+                    <p className="mt-1 text-2xl font-semibold text-amber-900">
+                      {formatCurrency(
+                        outstandingTagihan.reduce((sum, invoice) => sum + invoice.remainingAmount, 0)
+                      )}
                     </p>
                   </div>
+                  <div className="rounded-xl bg-blue-50 p-4">
+                    <p className="text-sm text-blue-700">Dipilih untuk dibayar</p>
+                    <p className="mt-1 text-2xl font-semibold text-blue-900">{selectedTagihan.size}</p>
+                  </div>
                 </div>
-              </div>
+
+                {(errors.invoices || errors.amounts) && (
+                  <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                    <div>{errors.invoices || errors.amounts}</div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  {outstandingTagihan.map((invoice) => {
+                    const isSelected = selectedTagihan.has(invoice.id);
+                    const paymentAmount = paymentAmounts[invoice.id] ?? 0;
+                    const remainingAfterPayment = Math.max(invoice.remainingAmount - paymentAmount, 0);
+                    const isPartialPayment =
+                      isSelected && paymentAmount > 0 && paymentAmount < invoice.remainingAmount;
+
+                    return (
+                      <div
+                        key={invoice.id}
+                        onClick={() => toggleInvoiceSelection(invoice)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            toggleInvoiceSelection(invoice);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        className={`relative rounded-2xl border p-5 text-left transition-all ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-50 shadow-sm ring-2 ring-blue-100'
+                            : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                        }`}
+                      >
+                        {isSelected && (
+                          <div className="absolute right-4 top-4">
+                            <CheckCircleIcon className="h-6 w-6 text-blue-600" />
+                          </div>
+                        )}
+
+                        <div className="space-y-4">
+                          <div className="pr-8">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-gray-900">
+                                {invoice.invoiceNumber || `INV-${invoice.id}`}
+                              </p>
+                              <span
+                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                  invoice.status === 'overdue'
+                                    ? 'bg-red-100 text-red-700'
+                                    : invoice.status === 'partial'
+                                      ? 'bg-blue-100 text-blue-700'
+                                      : 'bg-yellow-100 text-yellow-700'
+                                }`}
+                              >
+                                {invoice.status === 'overdue'
+                                  ? 'Terlambat'
+                                  : invoice.status === 'partial'
+                                    ? 'Parsial'
+                                    : 'Belum lunas'}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-sm text-gray-500">
+                              {invoice.usageMonth || 'Biaya registrasi'} • Jatuh tempo{' '}
+                              {invoice.dueDate
+                                ? new Date(invoice.dueDate).toLocaleDateString('id-ID')
+                                : '-'}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3 rounded-xl bg-white/80 p-4 sm:grid-cols-3">
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-gray-500">Total</p>
+                              <p className="mt-1 font-semibold text-gray-900">{formatCurrency(invoice.totalAmount)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-gray-500">Sudah dibayar</p>
+                              <p className="mt-1 font-semibold text-emerald-600">{formatCurrency(invoice.paidAmount)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-wide text-gray-500">Sisa tagihan</p>
+                              <p className="mt-1 font-semibold text-rose-600">{formatCurrency(invoice.remainingAmount)}</p>
+                            </div>
+                          </div>
+
+                          {isSelected ? (
+                            <div
+                              className="space-y-3 rounded-xl border border-blue-200 bg-white p-4"
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700">
+                                    Nominal dibayarkan
+                                  </label>
+                                  <p className="mt-1 text-xs text-gray-500">
+                                    Isi kurang dari sisa tagihan untuk pembayaran parsial.
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setInvoicePaymentAmount(invoice, invoice.remainingAmount)}
+                                  className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50"
+                                >
+                                  Bayar penuh
+                                </button>
+                              </div>
+
+                              <CurrencyInput
+                                value={paymentAmount}
+                                onChange={(value) => setInvoicePaymentAmount(invoice, value)}
+                                max={invoice.remainingAmount}
+                                min={0}
+                                disabled={loading}
+                                placeholder="Masukkan nominal pembayaran"
+                              />
+
+                              <div className="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
+                                <span className={isPartialPayment ? 'font-medium text-amber-700' : 'text-emerald-700'}>
+                                  {isPartialPayment ? 'Pembayaran parsial' : 'Tagihan akan lunas'}
+                                </span>
+                                <span className="text-gray-600">
+                                  Sisa setelah bayar: <strong>{formatCurrency(remainingAfterPayment)}</strong>
+                                </span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="rounded-xl border border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500">
+                              Klik kartu ini untuk memilih tagihan. Nominal otomatis diisi penuh dan bisa diubah jadi parsial.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {selectedTagihan.size > 0 && (
+                  <div className="mt-6 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5">
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+                      <div>
+                        <p className="text-sm text-gray-600">Tagihan dipilih</p>
+                        <p className="mt-1 text-2xl font-semibold text-gray-900">{selectedTagihan.size}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Total sisa tagihan terpilih</p>
+                        <p className="mt-1 text-xl font-semibold text-gray-900">{formatCurrency(selectedInvoicesTotal)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Total pembayaran dicatat</p>
+                        <p className="mt-1 text-xl font-semibold text-blue-900">{formatCurrency(totalPaymentAmount)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Sisa setelah pembayaran</p>
+                        <p className="mt-1 text-xl font-semibold text-amber-700">
+                          {formatCurrency(totalRemainingAfterPayment)}
+                        </p>
+                      </div>
+                    </div>
+                    {partialInvoiceCount > 0 && (
+                      <p className="mt-4 text-sm text-amber-700">
+                        {partialInvoiceCount} tagihan akan tetap berstatus parsial setelah pembayaran ini.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
 
-        {selectedCustomerId && outstandingTagihan.length === 0 && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-center py-8">
-              <p className="text-gray-500">
-                Tidak ada tagihan aktif untuk pelanggan ini.
-              </p>
+        {selectedCustomerId && !loadingInvoices && outstandingTagihan.length === 0 && (
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+            <div className="py-8 text-center">
+              <p className="text-gray-500">Tidak ada tagihan aktif untuk pelanggan ini.</p>
             </div>
           </div>
         )}
 
         {/* Payment Details */}
         {selectedTagihan.size > 0 && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
+          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+            <h2 className="mb-2 text-lg font-medium text-gray-900">
               Detail Pembayaran
             </h2>
+            <p className="mb-4 text-sm text-gray-500">
+              Informasi di bawah ini akan diterapkan ke semua tagihan yang sedang dipilih.
+            </p>
             
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div>
@@ -333,6 +593,7 @@ const PaymentForm: React.FC = () => {
                   name="paymentDate"
                   value={formData.paymentDate}
                   onChange={handleInputChange}
+                  max={new Date().toISOString().split('T')[0]}
                   className={`w-full border rounded-md px-3 py-2 ${
                     errors.paymentDate ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -412,7 +673,7 @@ const PaymentForm: React.FC = () => {
               className="w-full rounded-md bg-blue-600 px-6 py-2 text-white hover:bg-blue-700 disabled:bg-gray-400 sm:w-auto"
               disabled={loading}
             >
-              {loading ? 'Menyimpan...' : `Catat Pembayaran (${selectedTagihan.size} tagihan)`}
+              {loading ? 'Menyimpan...' : `Catat Pembayaran ${formatCurrency(totalPaymentAmount)}`}
             </button>
           </div>
         )}

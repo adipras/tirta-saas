@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
@@ -88,6 +89,8 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 	paymentMethod := "cash"
 	if payment.PaymentMethod != nil && payment.PaymentMethod.Type != "" {
 		paymentMethod = payment.PaymentMethod.Type
+	} else if payment.PaymentMethodType != "" {
+		paymentMethod = payment.PaymentMethodType
 	}
 
 	snapshot, err := resolveInvoiceSnapshot(payment.Invoice, payment.PaidAt)
@@ -283,12 +286,36 @@ func CreatePayment(c *gin.Context) {
 		return
 	}
 
+	normalizedPaymentMethod := strings.TrimSpace(strings.ToLower(req.PaymentMethod))
+	var paymentMethodID *uuid.UUID
+	if normalizedPaymentMethod != "" {
+		var paymentMethod models.PaymentMethod
+		if err := config.DB.
+			Where("tenant_id = ? AND type = ? AND is_active = ?", tenantID, normalizedPaymentMethod, true).
+			Order("display_order asc, created_at asc").
+			First(&paymentMethod).Error; err == nil {
+			paymentMethodID = &paymentMethod.ID
+		}
+	}
+
+	var receivedBy *uuid.UUID
+	if userIDValue, exists := c.Get("user_id"); exists {
+		if userID, ok := userIDValue.(uuid.UUID); ok {
+			receivedBy = &userID
+		}
+	}
+
 	// Buat record pembayaran
 	payment := models.Payment{
-		InvoiceID: req.InvoiceID,
-		Amount:    req.Amount,
-		TenantID:  tenantID,
-		PaidAt:    paidAt,
+		InvoiceID:         req.InvoiceID,
+		Amount:            req.Amount,
+		TenantID:          tenantID,
+		PaidAt:            paidAt,
+		PaymentMethodID:   paymentMethodID,
+		PaymentMethodType: normalizedPaymentMethod,
+		ReceivedBy:        receivedBy,
+		ReferenceNumber:   strings.TrimSpace(req.ReferenceNumber),
+		Notes:             strings.TrimSpace(req.Notes),
 	}
 	if err := config.DB.Create(&payment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mencatat pembayaran"})
@@ -330,10 +357,14 @@ func CreatePayment(c *gin.Context) {
 
 	// Kirim response
 	res := responses.PaymentResponse{
-		ID:        payment.ID,
-		InvoiceID: payment.InvoiceID,
-		Amount:    payment.Amount,
-		PaidAt:    payment.CreatedAt,
+		ID:              payment.ID,
+		InvoiceID:       payment.InvoiceID,
+		Amount:          payment.Amount,
+		PaidAt:          payment.PaidAt,
+		PaymentMethod:   normalizedPaymentMethod,
+		ReferenceNumber: payment.ReferenceNumber,
+		Notes:           payment.Notes,
+		Status:          payment.Status,
 	}
 	c.JSON(http.StatusCreated, res)
 }
@@ -397,7 +428,7 @@ func GetAllPayments(c *gin.Context) {
 	}
 
 	var payments []models.Payment
-	query := config.DB.Preload("Invoice.Customer")
+	query := config.DB.Preload("Invoice.Customer").Preload("PaymentMethod")
 
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)

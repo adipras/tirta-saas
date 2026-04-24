@@ -1,0 +1,207 @@
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/components/CurrencyInput.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/components/Toast.tsx
+  31:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/auth/RegisterAccount.tsx
+  79:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/auth/SetupTenant.tsx
+  145:19  error    Unexpected any. Specify a different type                                                                                             @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/auth/TenantRegistration.tsx
+  124:33  error  '_confirm' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  139:21  error  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer-invoices/CustomerInvoiceDetail.tsx
+  36:19  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  47:19  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer-invoices/CustomerInvoiceList.tsx
+  39:19  error    Unexpected any. Specify a different type                                                                          @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer-payments/CustomerPaymentConfirmation.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer-payments/CustomerPaymentForm.tsx
+   65:19  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+  157:19  error    Unexpected any. Specify a different type                                                                                @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer-payments/CustomerPaymentInfo.tsx
+  23:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  24:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer-profile/ChangePassword.tsx
+  118:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer-profile/CustomerProfile.tsx
+  22:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer-profile/CustomerProfileEdit.tsx
+   42:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  108:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer-usage/CustomerUsageMonitor.tsx
+   59:68  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+   69:19  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+  186:56  error    Unexpected any. Specify a different type                                                                              @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer/CustomerLogin.tsx
+  22:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer/CustomerPayInvoice.tsx
+  117:21  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customer/CustomerProfile.tsx
+  59:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  93:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/customers/BulkImportCustomers.tsx
+  103:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  121:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/invoices/InvoiceDetails.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/invoices/InvoiceForm.tsx
+   81:12  error    Unexpected any. Specify a different type                                                                                                @typescript-eslint/no-explicit-any
+  105:12  error    Unexpected any. Specify a different type                                                                                                @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/payment-proofs/PaymentProofDetailModal.tsx
+  36:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/payment-proofs/PaymentProofList.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/payment-proofs/PaymentProofSubmitForm.tsx
+  117:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/payments/PaymentForm.tsx
+  157:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/platform-payments/PlatformSubscriptionVerification.tsx
+   74:21  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  104:19  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+  153:19  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/platform/PlatformAnalytics.tsx
+  78:19  error    Unexpected any. Specify a different type                                                                           @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/platform/SubscriptionPlans.tsx
+  135:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/platform/TenantManagement.tsx
+  153:20  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/reports/CustomerAnalytics.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/reports/OutstandingReport.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/reports/PaymentReport.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/reports/RevenueReport.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/reports/UsageReport.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/subscription/PaymentSubmissionPage.tsx
+  113:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/subscription/SubscriptionUpgradePage.tsx
+  171:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  363:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/subscriptions/SubscriptionTypeForm.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/subscriptions/SubscriptionTypeList.tsx
+   41:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   62:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   62:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  114:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  119:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  125:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  131:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  137:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  149:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  155:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/usage/BulkImportWaterUsage.tsx
+  82:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  93:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx
+  222:21  error    Unexpected any. Specify a different type                                                                                                       @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/usage/UsageHistory.tsx
+  42:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/user-management/CreateUserModal.tsx
+  62:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/user-management/EditUserModal.tsx
+  51:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/user-management/UserManagementList.tsx
+  62:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  96:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/water-rates/WaterRateForm.tsx
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/pages/water-rates/WaterRateList.tsx
+  109:14  error  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  139:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  145:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  152:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  158:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  163:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  179:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/apiClient.ts
+   10:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   17:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   18:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  122:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  134:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  156:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  161:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  161:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  166:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  166:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  171:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  171:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  176:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/customerService.ts
+   35:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   55:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   61:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  152:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/invoiceService.ts
+   16:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   39:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  124:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  137:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  142:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  154:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  163:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/paymentProofService.ts
+  30:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/paymentService.ts
+   33:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   41:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   45:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   74:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   81:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   90:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  111:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  126:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  148:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  155:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  182:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  188:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/platformPaymentSettingsService.ts
+  47:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/platformQrCodeService.ts
+   7:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  17:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  58:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/platformSubscriptionService.ts
+  32:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  73:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  89:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  95:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/qrCodeService.ts
+  17:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  27:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  48:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  68:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/reportService.ts
+   27:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   35:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   45:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   76:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   83:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   99:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  108:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  120:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  139:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  148:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  159:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  166:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  190:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  198:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  206:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  213:64  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/tenantSettingsService.ts
+  52:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/services/usageService.ts
+   46:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   49:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   97:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+/home/adipras/projects/tirta-saas/tirta-saas-frontend/src/store/slices/authSlice.ts
+  35:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  46:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
