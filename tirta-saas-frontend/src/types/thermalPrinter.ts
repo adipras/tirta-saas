@@ -13,7 +13,6 @@ export interface ThermalReceiptLineItem {
 export interface ThermalReceiptPayload {
   type: ThermalPrintJobType;
   receiptNumber: string;
-  invoiceDateLabel?: string;
   printedAt: string;
   printedAtLabel?: string;
   invoiceTypeLabel?: string;
@@ -163,7 +162,6 @@ export const buildThermalReceiptPayload = async (receipt: PaymentReceipt): Promi
   return buildReceiptPayload({
     type: 'payment_receipt',
     receiptNumber: receipt.receiptNumber,
-    invoiceDateLabel: receiptView.invoiceDateLabel,
     printedAt: receipt.generatedAt,
     printedAtLabel: receiptView.printedAtLabel,
     invoiceTypeLabel: receiptView.invoiceTypeLabel,

@@ -263,9 +263,6 @@ class ThermalPrinterManager(
         val summaryLines = payload.getJSONArray("summaryLines")
         val footerLines = payload.getJSONArray("footerLines")
         val settlementType = payload.optString("settlementType")
-        val invoiceDateLabel = payload.optString("invoiceDateLabel").ifBlank {
-            formatIsoDate(invoice.optString("invoiceDate"))
-        }
         val printedAtLabel = payload.optString("printedAtLabel").ifBlank {
             payload.optString("printedAt").ifBlank { null }?.let(::formatIsoDate)
         }
@@ -286,17 +283,17 @@ class ThermalPrinterManager(
                 settlementType,
             )
         }
+        val paymentDateLabel = payment.optString("dateLabel").ifBlank {
+            formatIsoDate(payment.optString("date"))
+        }
 
         appendInitialize(output)
-        appendPaymentReceiptHeader(output, merchant, logoDataUrl, logoUrl, receiptNumber, invoiceDateLabel)
+        appendPaymentReceiptHeader(output, merchant, logoDataUrl, logoUrl, receiptNumber, paymentDateLabel)
         appendPaymentReceiptInfoSection(
             output = output,
-            invoiceTypeLabel = invoiceTypeLabel,
             customer = customer,
-            payment = payment,
-            invoice = invoice,
         )
-        appendPaymentReceiptUsageSection(output, usageDetails)
+        appendPaymentReceiptBillingSection(output, invoiceTypeLabel, payment, invoice, usageDetails)
         appendPaymentReceiptSummarySection(output, summaryLines)
         appendPaymentReceiptStatusSection(
             output = output,
@@ -325,7 +322,7 @@ class ThermalPrinterManager(
         logoDataUrl: String?,
         logoUrl: String?,
         receiptNumber: String,
-        invoiceDateLabel: String,
+        paymentDateLabel: String,
     ) {
         appendAlign(output, "center")
         if (!logoDataUrl.isNullOrBlank() || !logoUrl.isNullOrBlank()) {
@@ -354,16 +351,14 @@ class ThermalPrinterManager(
         }
 
         appendAlign(output, "left")
-        appendKeyValue(output, "No. $receiptNumber", invoiceDateLabel)
+        appendLeftKeyValue(output, "No.", receiptNumber)
+        appendLeftKeyValue(output, "Tgl. Bayar", paymentDateLabel)
         appendDivider(output)
     }
 
     private fun appendPaymentReceiptInfoSection(
         output: ByteArrayOutputStream,
-        invoiceTypeLabel: String?,
         customer: JSONObject,
-        payment: JSONObject,
-        invoice: JSONObject,
     ) {
         appendAlign(output, "left")
         appendKeyValue(output, "Pelanggan", customer.optString("name"))
@@ -374,10 +369,36 @@ class ThermalPrinterManager(
             appendWrappedText(output, address)
         }
 
+        appendDivider(output)
+    }
+
+    private fun appendPaymentReceiptBillingSection(
+        output: ByteArrayOutputStream,
+        invoiceTypeLabel: String?,
+        payment: JSONObject,
+        invoice: JSONObject,
+        usageDetails: JSONObject?,
+    ) {
+        appendAlign(output, "left")
         appendKeyValue(output, "No. Tagihan", invoice.optString("invoiceNumber"))
-        appendOptionalKeyValue(output, "Tipe Tagihan", invoiceTypeLabel)
+        appendOptionalKeyValue(output, "Tipe", invoiceTypeLabel)
         appendKeyValue(output, "Metode", payment.optString("method"))
         appendOptionalKeyValue(output, "Ref.", payment.optString("referenceNumber").ifBlank { null })
+
+        if (usageDetails != null) {
+            val usageLabel = formatUsageLabel(usageDetails.opt("usageM3"))
+            val monthLabel = usageDetails.optString("month").ifBlank { null }
+            val itemLabel = if (monthLabel != null) "Tagihan Air - $monthLabel" else "Tagihan Air"
+            val subTotalLabel = formatSummaryValue(usageDetails.opt("subTotal"))
+
+            appendLine(output, itemLabel)
+            if (!usageLabel.isNullOrBlank() && !subTotalLabel.isNullOrBlank()) {
+                appendKeyValue(output, "$usageLabel m3", subTotalLabel)
+            } else if (!usageLabel.isNullOrBlank()) {
+                appendLine(output, "$usageLabel m3")
+            }
+        }
+
         appendDivider(output)
     }
 
@@ -399,32 +420,6 @@ class ThermalPrinterManager(
         appendDivider(output)
     }
 
-    private fun appendPaymentReceiptUsageSection(
-        output: ByteArrayOutputStream,
-        usageDetails: JSONObject?,
-    ) {
-        if (usageDetails == null) {
-            return
-        }
-
-        val usageLabel = formatUsageLabel(usageDetails.opt("usageM3")) ?: return
-        val monthLabel = usageDetails.optString("month").ifBlank { null }
-        val itemLabel = if (monthLabel != null) "Tagihan Air - $monthLabel" else "Tagihan Air"
-        val subTotalLabel = formatSummaryValue(usageDetails.opt("subTotal"))
-
-        appendBold(output, true)
-        appendLine(output, itemLabel)
-        appendBold(output, false)
-
-        if (!subTotalLabel.isNullOrBlank()) {
-            appendKeyValue(output, "$usageLabel m3", subTotalLabel)
-        } else {
-            appendLine(output, "$usageLabel m3")
-        }
-
-        appendDivider(output)
-    }
-
     private fun appendPaymentReceiptSummarySection(
         output: ByteArrayOutputStream,
         summaryLines: JSONArray,
@@ -434,7 +429,7 @@ class ThermalPrinterManager(
             val item = summaryLines.optJSONObject(index) ?: continue
             val label = item.optString("label")
             val value = item.optString("value")
-            if (label.isBlank() || value.isBlank()) {
+            if (label.isBlank() || value.isBlank() || label.equals("Sisa", ignoreCase = true)) {
                 continue
             }
             val emphasis = item.optString("emphasis")
@@ -541,9 +536,9 @@ class ThermalPrinterManager(
         settlementType: String,
     ): String = when (invoiceStatus) {
         "paid" -> "Lunas"
-        "partial" -> "Parsial"
+        "partial" -> "Belum Lunas"
         "unpaid" -> "Belum Lunas"
-        else -> if (settlementType == "full") "Lunas" else "Parsial"
+        else -> if (settlementType == "full") "Lunas" else "Belum Lunas"
     }
 
     private fun formatUsageLabel(value: Any?): String? {
@@ -658,6 +653,27 @@ class ThermalPrinterManager(
         if (!value.isNullOrBlank()) {
             appendKeyValue(output, label, value)
         }
+    }
+
+    private fun appendLeftKeyValue(output: ByteArrayOutputStream, label: String, value: String) {
+        val normalizedLabel = label.replace("\\s+".toRegex(), " ").trim()
+        val normalizedValue = value.replace("\\s+".toRegex(), " ").trim()
+        if (normalizedLabel.isBlank()) {
+            appendWrappedText(output, normalizedValue)
+            return
+        }
+        if (normalizedValue.isBlank()) {
+            appendWrappedText(output, normalizedLabel)
+            return
+        }
+
+        appendWrappedText(output, "$normalizedLabel : $normalizedValue")
+    }
+
+    private fun appendSectionTitle(output: ByteArrayOutputStream, title: String) {
+        appendBold(output, true)
+        appendLine(output, title)
+        appendBold(output, false)
     }
 
     private fun appendInitialize(output: ByteArrayOutputStream) {
@@ -992,6 +1008,6 @@ class ThermalPrinterManager(
         const val QRIS_MAX_WIDTH_DOTS = 192
         const val IMAGE_THRESHOLD = 180
         const val IMAGE_FETCH_TIMEOUT_MS = 5000
-        const val PAYMENT_RECEIPT_EXTRA_FEED_LINES = 9
+        const val PAYMENT_RECEIPT_EXTRA_FEED_LINES = 12
     }
 }

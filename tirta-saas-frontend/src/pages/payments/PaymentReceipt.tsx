@@ -328,15 +328,21 @@ const PaymentReceipt: React.FC = () => {
           )}
           <p className="font-bold text-sm uppercase tracking-wide text-gray-900">{receiptView.tenantName}</p>
           {receiptView.tenantPhone && <p className="text-gray-600 mt-0.5">Telp: {receiptView.tenantPhone}</p>}
-          <div className="flex justify-between gap-3 mt-2 text-[11px] text-gray-600">
-            <span className="font-semibold text-gray-800">No. {receipt.receiptNumber}</span>
-            <span className="text-right">{receiptView.invoiceDateLabel}</span>
+          <div className="mt-2 text-[11px] text-gray-600 space-y-0.5 text-left">
+            <div className="flex gap-2">
+              <span className="w-16 flex-shrink-0">No.</span>
+              <span className="font-semibold text-gray-800">: {receipt.receiptNumber}</span>
+            </div>
+            <div className="flex gap-2">
+              <span className="w-16 flex-shrink-0">Tgl. Bayar</span>
+              <span>: {receiptView.paymentDateLabel}</span>
+            </div>
           </div>
         </div>
 
-        {/* Info struk + pelanggan */}
+        {/* Informasi pelanggan */}
         <div className="py-3 border-b border-dashed border-gray-400 space-y-0.5">
-          <div className="flex justify-between gap-2 mt-1">
+          <div className="flex justify-between gap-2">
             <span className="text-gray-500">Pelanggan</span>
             <span className="text-right font-medium text-gray-900">{receipt.customerDetails.name}</span>
           </div>
@@ -349,13 +355,17 @@ const PaymentReceipt: React.FC = () => {
           {receiptView.compactAddress && (
             <p className="text-gray-600 mt-1">{receiptView.compactAddress}</p>
           )}
-          <div className="flex justify-between gap-2 mt-1">
+        </div>
+
+        {/* Informasi tagihan */}
+        <div className="py-3 border-b border-dashed border-gray-400 space-y-0.5">
+          <div className="flex justify-between gap-2">
             <span className="text-gray-500">No. Tagihan</span>
             <span className="text-right text-gray-900">{receipt.invoiceDetails.invoiceNumber}</span>
           </div>
           {receiptView.invoiceTypeLabel && (
             <div className="flex justify-between gap-2">
-              <span className="text-gray-500">Tipe Tagihan</span>
+              <span className="text-gray-500">Tipe</span>
               <span className="text-right text-gray-900">{receiptView.invoiceTypeLabel}</span>
             </div>
           )}
@@ -369,20 +379,18 @@ const PaymentReceipt: React.FC = () => {
               <span className="text-right text-gray-900">{receipt.payment.referenceNumber}</span>
             </div>
           )}
-        </div>
-
-        {/* Item tagihan */}
-        {receiptView.showUsageSection && (
-          <div className="py-3 border-b border-dashed border-gray-400">
-            <p className="font-semibold text-gray-900">
-              Tagihan Air{receiptView.usageMonthLabel ? ` — ${receiptView.usageMonthLabel}` : ''}
-            </p>
-            <div className="flex justify-between mt-1">
-              <span className="text-gray-600">{receiptView.usageM3} m³</span>
-              <span className="font-medium text-gray-900">{receiptView.subTotalLabel}</span>
+          {receiptView.showUsageSection && (
+            <div className="mt-1 pt-1 space-y-0.5">
+              <p className="font-medium text-gray-900">
+                Tagihan Air{receiptView.usageMonthLabel ? ` — ${receiptView.usageMonthLabel}` : ''}
+              </p>
+              <div className="flex justify-between">
+                <span className="text-gray-600">{receiptView.usageM3} m³</span>
+                <span className="font-medium text-gray-900">{receiptView.subTotalLabel}</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Ringkasan biaya */}
         <div className="py-3 border-b border-dashed border-gray-400 space-y-0.5">
@@ -412,10 +420,6 @@ const PaymentReceipt: React.FC = () => {
             <span>Bayar ({receiptView.paymentMethodLabel})</span>
             <span className="text-green-600">{receiptView.paymentAmountLabel}</span>
           </div>
-          <div className="flex justify-between font-semibold">
-            <span>Sisa</span>
-            <span className={receiptView.remainingAmountColorClass}>{receiptView.remainingAmountLabel}</span>
-          </div>
         </div>
 
         <div className="py-3 border-b border-dashed border-gray-400 space-y-1">
@@ -444,6 +448,12 @@ const PaymentReceipt: React.FC = () => {
                   <p className="font-semibold text-gray-900">
                     {receiptView.bankName} — {receiptView.bankAccountNo}
                   </p>
+                )}
+                {receiptView.bankName && !receiptView.bankAccountNo && (
+                  <p className="font-semibold text-gray-900">{receiptView.bankName}</p>
+                )}
+                {!receiptView.bankName && receiptView.bankAccountNo && (
+                  <p className="font-semibold text-gray-900">{receiptView.bankAccountNo}</p>
                 )}
                 {receiptView.bankAccountName && (
                   <p className="text-gray-600">a.n. {receiptView.bankAccountName}</p>

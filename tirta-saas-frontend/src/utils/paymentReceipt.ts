@@ -14,7 +14,6 @@ export interface PaymentReceiptSummaryLine {
 export interface PaymentReceiptViewModel {
   receiptNumber: string;
   invoiceTypeLabel?: string;
-  invoiceDateLabel: string;
   tenantName: string;
   tenantPhone?: string;
   tenantLogoUrl?: string;
@@ -104,14 +103,12 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
   const invoiceStatusLabel =
     invoiceStatusTone === 'paid'
       ? 'Lunas'
-      : invoiceStatusTone === 'partial'
-        ? 'Parsial'
-        : 'Belum Lunas';
+      : 'Belum Lunas';
   const invoiceTypeLabel =
     receipt.invoiceDetails.invoiceType === 'registration'
       ? 'Biaya Registrasi'
       : receipt.invoiceDetails.invoiceType === 'monthly'
-        ? 'Tagihan Air Bulanan'
+        ? 'Biaya Air Bulanan'
         : undefined;
 
   const usageMonthLabel = receipt.usageDetails?.usageMonth
@@ -165,7 +162,6 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
   return {
     receiptNumber: receipt.receiptNumber,
     invoiceTypeLabel,
-    invoiceDateLabel: formatPaymentReceiptDateTime(receipt.invoiceDetails.invoiceDate),
     tenantName: receipt.tenantInfo?.companyName || 'TIRTA SAAS',
     tenantPhone,
     tenantLogoUrl,
