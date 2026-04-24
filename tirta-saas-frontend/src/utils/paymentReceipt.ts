@@ -38,7 +38,6 @@ export interface PaymentReceiptViewModel {
   usageM3?: number;
   showUsageSection: boolean;
   merchantAddressLines: string[];
-  showSubTotal: boolean;
   subTotalLabel: string;
   showPenaltyAmount: boolean;
   penaltyAmountLabel: string;
@@ -120,7 +119,6 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
 
   const usageM3 = receipt.usageDetails?.usageM3;
   const showUsageSection = usageM3 != null && usageM3 > 0;
-  const showSubTotal = (receipt.invoiceDetails.subTotal || 0) > 0;
   const showPenaltyAmount = (receipt.invoiceDetails.penaltyAmount || 0) > 0;
   const showTotalPaidBefore = (receipt.invoiceDetails.totalPaidBefore || 0) > 0;
 
@@ -132,7 +130,6 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
   const remainingAmountLabel = formatPaymentReceiptCurrency(receipt.invoiceDetails.remainingAmount);
 
   const summaryLines: PaymentReceiptSummaryLine[] = [
-    ...(showSubTotal ? [{ label: 'Subtotal', value: subTotalLabel }] : []),
     ...(showPenaltyAmount
       ? [{ label: 'Denda', value: penaltyAmountLabel, emphasis: 'warning' as const }]
       : []),
@@ -196,7 +193,6 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
     usageM3,
     showUsageSection,
     merchantAddressLines,
-    showSubTotal,
     subTotalLabel,
     showPenaltyAmount,
     penaltyAmountLabel,
