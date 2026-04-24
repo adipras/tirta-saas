@@ -394,6 +394,12 @@ const PaymentReceipt: React.FC = () => {
 
         {/* Ringkasan biaya */}
         <div className="py-3 border-b border-dashed border-gray-400 space-y-0.5">
+          {receiptView.showSubTotal && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">Subtotal</span>
+              <span>{receiptView.subTotalLabel}</span>
+            </div>
+          )}
           {receiptView.showPenaltyAmount && (
             <div className="flex justify-between text-red-600">
               <span>Denda</span>
