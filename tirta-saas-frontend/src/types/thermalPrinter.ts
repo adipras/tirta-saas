@@ -1,5 +1,6 @@
 import type { PaymentReceipt } from './payment';
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from './payment';
+import { API_ORIGIN } from '../constants/api';
 
 export type ThermalPrintJobType = 'receipt' | 'payment_receipt';
 
@@ -14,6 +15,9 @@ export interface ThermalReceiptPayload {
   receiptNumber: string;
   printedAt: string;
   settlementType: 'full' | 'partial';
+  footerText?: string;
+  logoUrl?: string;
+  qrisImageUrl?: string;
   invoiceType?: 'monthly' | 'registration';
   invoiceStatus?: 'paid' | 'partial' | 'unpaid';
   usageDetails?: {
@@ -102,18 +106,16 @@ const truncateLine = (value?: string, maxLength: number = 32) => {
 
 const formatCompactCurrency = (value?: number) => `Rp ${(value || 0).toLocaleString('id-ID')}`;
 
-const formatCompactDateTime = (value?: string) => {
-  if (!value) {
-    return '-';
+const resolveAssetUrl = (path?: string) => {
+  if (!path) {
+    return undefined;
   }
 
-  return new Date(value).toLocaleString('id-ID', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  return path.startsWith('/') ? `${API_ORIGIN}${path}` : `${API_ORIGIN}/${path}`;
 };
 
 const buildReceiptPayload = (payload: ThermalReceiptPayloadInput): ThermalReceiptPayload => ({
@@ -123,19 +125,20 @@ const buildReceiptPayload = (payload: ThermalReceiptPayloadInput): ThermalReceip
 
 export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalReceiptPayload => {
   const isPartialPayment = receipt.invoiceDetails.paymentCoverageType === 'partial';
-  const compactAddress = truncateLine(receipt.customerDetails.address, 28);
-  const compactNotes = truncateLine(receipt.payment.notes, 28);
+  const compactAddress = truncateLine(receipt.customerDetails.address, 90);
+  const compactNotes = truncateLine(receipt.payment.notes, 120);
   const tenantInfo = receipt.tenantInfo;
   const invoiceType = receipt.invoiceDetails.invoiceType;
-  const isMonthly = invoiceType === 'monthly';
+  const usageM3 = receipt.usageDetails?.usageM3;
+  const footerText = tenantInfo?.footerText || 'Terima kasih telah membayar tagihan air Anda.';
 
   const merchantAddressLines: string[] = [];
   if (tenantInfo?.phone) {
     merchantAddressLines.push(`Telp: ${tenantInfo.phone}`);
   }
 
-  // Usage details: only for monthly invoices
-  const usageDetails = isMonthly && receipt.usageDetails
+  // Usage block follows the preview: only render when there is actual usage.
+  const usageDetails = usageM3 != null && usageM3 > 0 && receipt.usageDetails
     ? {
         month: receipt.usageDetails.usageMonth
           ? new Date(`${receipt.usageDetails.usageMonth}-01`).toLocaleDateString('id-ID', {
@@ -143,7 +146,7 @@ export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalRece
               year: 'numeric',
             })
           : undefined,
-        usageM3: receipt.usageDetails.usageM3,
+        usageM3,
         subTotal: receipt.invoiceDetails.subTotal,
       }
     : undefined;
@@ -162,9 +165,13 @@ export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalRece
     PAYMENT_METHOD_LABELS[receipt.payment.paymentMethod] || receipt.payment.paymentMethod;
 
   return buildReceiptPayload({
+    type: 'payment_receipt',
     receiptNumber: receipt.receiptNumber,
     printedAt: receipt.generatedAt,
     settlementType: isPartialPayment ? 'partial' : 'full',
+    footerText,
+    logoUrl: resolveAssetUrl(tenantInfo?.logoUrl),
+    qrisImageUrl: resolveAssetUrl(tenantInfo?.qrisImageUrl),
     invoiceType: invoiceType ?? undefined,
     invoiceStatus: receipt.invoiceDetails.invoicePaymentStatus,
     usageDetails,
@@ -237,10 +244,6 @@ export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalRece
         emphasis: isPartialPayment ? ('warning' as const) : ('success' as const),
       },
     ],
-    footerLines: [
-      tenantInfo?.footerText || 'Terima kasih.',
-      ...(isPartialPayment ? ['Masih ada sisa tagihan.'] : ['Tagihan lunas.']),
-      `Dicetak: ${formatCompactDateTime(receipt.generatedAt)}`,
-    ],
+    footerLines: [],
   });
 };

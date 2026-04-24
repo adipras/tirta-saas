@@ -36,6 +36,14 @@ Modul legacy WebView sudah dihapus. Integrasi Android kini sepenuhnya menggunaka
 .\gradlew.bat :printer-bridge:assembleDebug
 ```
 
+Untuk kompatibilitas dengan tooling lama, task legacy berikut juga tetap tersedia:
+
+```powershell
+.\gradlew.bat :app:assembleDebug
+```
+
+Alias `:app` memakai source yang sama dengan `:printer-bridge`, tetapi output build dipisah ke folder legacy agar tidak bentrok.
+
 APK debug hasil build:
 
 ```text

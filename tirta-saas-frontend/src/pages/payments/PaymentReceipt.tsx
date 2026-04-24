@@ -417,17 +417,17 @@ const PaymentReceipt: React.FC = () => {
         </div>
 
         {/* Item tagihan */}
-        <div className="py-3 border-b border-dashed border-gray-400">
-          <p className="font-semibold text-gray-900">
-            Tagihan Air{usageMonthLabel ? ` — ${usageMonthLabel}` : ''}
-          </p>
-          {usageM3 != null && usageM3 > 0 && (
+        {usageM3 != null && usageM3 > 0 && (
+          <div className="py-3 border-b border-dashed border-gray-400">
+            <p className="font-semibold text-gray-900">
+              Tagihan Air{usageMonthLabel ? ` — ${usageMonthLabel}` : ''}
+            </p>
             <div className="flex justify-between mt-1">
               <span className="text-gray-600">{usageM3} m³</span>
               <span className="font-medium text-gray-900">{formatCurrency(receipt.invoiceDetails.subTotal)}</span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Ringkasan biaya */}
         <div className="py-3 border-b border-dashed border-gray-400 space-y-0.5">

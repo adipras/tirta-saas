@@ -4,15 +4,21 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Build
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import java.nio.charset.Charset
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -24,7 +30,8 @@ class ThermalPrinterManager(
 ) {
     private val appContext = context.applicationContext
     private val preferences = appContext.getSharedPreferences("printer_bridge", Context.MODE_PRIVATE)
-    private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    private val bluetoothAdapter: BluetoothAdapter? =
+        appContext.getSystemService(BluetoothManager::class.java)?.adapter
     private val sppUuid: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     private val printerCharset: Charset = Charset.forName("CP437")
 
@@ -256,8 +263,12 @@ class ThermalPrinterManager(
         val footerLines = payload.getJSONArray("footerLines")
 
         // Extended fields (new layout)
-        val invoiceType = payload.optString("invoiceType")
         val invoiceStatus = payload.optString("invoiceStatus")
+        val settlementType = payload.optString("settlementType")
+        val printedAt = payload.optString("printedAt").ifBlank { null }
+        val footerText = payload.optString("footerText").ifBlank { null }
+        val logoUrl = payload.optString("logoUrl").ifBlank { null }
+        val qrisImageUrl = payload.optString("qrisImageUrl").ifBlank { null }
         val usageDetails = payload.optJSONObject("usageDetails")
         val bankInfo = payload.optJSONObject("bankInfo")
         val printNotes = payload.optString("printNotes").ifBlank { null }
@@ -266,13 +277,16 @@ class ThermalPrinterManager(
 
         // === HEADER ===
         appendAlign(output, "center")
+        if (!logoUrl.isNullOrBlank()) {
+            appendOptionalRemoteImage(output, logoUrl, "Logo tidak dapat dimuat", LOGO_MAX_WIDTH_DOTS)
+        }
         appendBold(output, true)
-        appendLine(output, merchant.getString("name"))
+        appendWrappedText(output, merchant.getString("name").uppercase(Locale("id", "ID")))
         appendBold(output, false)
         val addressLines = merchant.optJSONArray("addressLines")
         if (addressLines != null) {
             for (index in 0 until addressLines.length()) {
-                appendLine(output, addressLines.getString(index))
+                appendWrappedText(output, addressLines.getString(index))
             }
         }
         appendDivider(output)
@@ -281,10 +295,10 @@ class ThermalPrinterManager(
         appendAlign(output, "left")
 
         val statusLabel = when (invoiceStatus) {
-            "paid" -> "LUNAS"
-            "partial" -> "PARSIAL"
-            "unpaid" -> "BELUM LUNAS"
-            else -> if (payload.optString("settlementType") == "full") "LUNAS" else "PARSIAL"
+            "paid" -> "Lunas"
+            "partial" -> "Parsial"
+            "unpaid" -> "Belum Lunas"
+            else -> if (settlementType == "full") "Lunas" else "Parsial"
         }
         appendKeyValue(output, "No. ${payload.optString("receiptNumber")}", statusLabel)
 
@@ -298,7 +312,7 @@ class ThermalPrinterManager(
         if (meterNumber.isNotBlank()) appendKeyValue(output, "No. Meter", meterNumber)
 
         val address = customer.optString("address")
-        if (address.isNotBlank()) appendLine(output, address)
+        if (address.isNotBlank()) appendWrappedText(output, address)
 
         appendKeyValue(output, "No. Tagihan", invoice.optString("invoiceNumber"))
         appendKeyValue(output, "Metode", payment.optString("method"))
@@ -308,18 +322,18 @@ class ThermalPrinterManager(
 
         appendDivider(output)
 
-        // === ITEM TAGIHAN (only for monthly) ===
-        val isMonthly = invoiceType == "monthly" || (invoiceType.isBlank() && usageDetails != null)
-        if (isMonthly && usageDetails != null) {
-            val month = usageDetails.optString("month").ifBlank { null }
+        // === ITEM TAGIHAN ===
+        val month = usageDetails?.optString("month")?.ifBlank { null }
+        val usageM3 = usageDetails?.optDouble("usageM3", 0.0) ?: 0.0
+        val shouldShowWaterBillSection = usageM3 > 0
+        if (shouldShowWaterBillSection) {
             val itemLabel = if (month != null) "Tagihan Air - $month" else "Tagihan Air"
             appendBold(output, true)
             appendLine(output, itemLabel)
             appendBold(output, false)
 
-            val usageM3 = usageDetails.optDouble("usageM3", 0.0)
-            val subTotal = usageDetails.optDouble("subTotal", 0.0)
-            if (usageM3 > 0) {
+            if (usageDetails != null) {
+                val subTotal = usageDetails.optDouble("subTotal", 0.0)
                 val m3Label = usageM3.toBigDecimal().stripTrailingZeros().toPlainString()
                 appendKeyValue(output, "$m3Label m3", formatCurrencyKt(subTotal))
             }
@@ -332,7 +346,7 @@ class ThermalPrinterManager(
             val label = item.optString("label")
             val value = item.optString("value")
             val emphasis = item.optString("emphasis")
-            if (emphasis == "strong") {
+            if (emphasis == "strong" || emphasis == "warning" || emphasis == "success") {
                 appendBold(output, true)
                 appendKeyValue(output, label, value)
                 appendBold(output, false)
@@ -342,25 +356,53 @@ class ThermalPrinterManager(
         }
         appendDivider(output)
 
-        // === REKENING BANK (optional) ===
+        // === REKENING BANK + QRIS (optional) ===
+        if (bankInfo != null || !qrisImageUrl.isNullOrBlank()) {
+            appendAlign(output, "center")
+        }
         if (bankInfo != null) {
             val bankName = bankInfo.optString("bankName")
             val bankAccountNo = bankInfo.optString("bankAccountNo")
             val bankAccountName = bankInfo.optString("bankAccountName")
-            appendAlign(output, "center")
-            val bankLine = listOf(bankName, bankAccountNo).filter { it.isNotBlank() }.joinToString(" - ")
-            if (bankLine.isNotBlank()) appendLine(output, bankLine)
-            if (bankAccountName.isNotBlank()) appendLine(output, "a.n. $bankAccountName")
+            if (bankName.isNotBlank() && bankAccountNo.isNotBlank()) {
+                appendWrappedText(output, "$bankName - $bankAccountNo")
+            }
+            if (bankAccountName.isNotBlank()) appendWrappedText(output, "a.n. $bankAccountName")
+        }
+        if (!qrisImageUrl.isNullOrBlank()) {
+            if (bankInfo != null) {
+                appendFeed(output, 1)
+            }
+            appendOptionalRemoteImage(output, qrisImageUrl, "QRIS tidak dapat dimuat", QRIS_MAX_WIDTH_DOTS)
+        }
+        if (bankInfo != null || !qrisImageUrl.isNullOrBlank()) {
             appendDivider(output)
         }
 
         // === FOOTER ===
         appendAlign(output, "center")
+        if (!footerText.isNullOrBlank()) {
+            appendWrappedText(output, footerText)
+        }
         for (index in 0 until footerLines.length()) {
-            appendLine(output, footerLines.getString(index))
+            val footerLine = footerLines.getString(index)
+            if (
+                footerLine.startsWith("Dicetak:", ignoreCase = true) ||
+                footerLine.equals("Masih ada sisa tagihan.", ignoreCase = true) ||
+                footerLine.equals("Tagihan lunas.", ignoreCase = true)
+            ) {
+                continue
+            }
+            appendLine(output, footerLine)
+        }
+        if (settlementType == "partial") {
+            appendLine(output, "Masih ada sisa tagihan.")
         }
         if (!printNotes.isNullOrBlank()) {
-            appendLine(output, printNotes)
+            appendWrappedText(output, printNotes)
+        }
+        if (printedAt != null) {
+            appendLine(output, "Dicetak: ${formatIsoDate(printedAt)}")
         }
 
         appendFeed(output, 3)
@@ -489,7 +531,24 @@ class ThermalPrinterManager(
     }
 
     private fun appendKeyValue(output: ByteArrayOutputStream, label: String, value: String) {
-        appendLine(output, padColumns(label, value, LINE_WIDTH))
+        val normalizedLabel = label.replace("\\s+".toRegex(), " ").trim()
+        val normalizedValue = value.replace("\\s+".toRegex(), " ").trim()
+        if (normalizedLabel.isBlank()) {
+            appendWrappedText(output, normalizedValue)
+            return
+        }
+        if (normalizedValue.isBlank()) {
+            appendWrappedText(output, normalizedLabel)
+            return
+        }
+
+        if (normalizedLabel.length + normalizedValue.length + 1 <= LINE_WIDTH) {
+            appendLine(output, padColumns(normalizedLabel, normalizedValue, LINE_WIDTH))
+            return
+        }
+
+        appendWrappedText(output, normalizedLabel)
+        wrapText(normalizedValue, LINE_WIDTH).forEach { appendLine(output, it.padStart(LINE_WIDTH)) }
     }
 
     private fun appendDivider(output: ByteArrayOutputStream) {
@@ -503,6 +562,10 @@ class ThermalPrinterManager(
 
     private fun appendMultilineText(output: ByteArrayOutputStream, text: String) {
         text.lines().forEach { appendLine(output, it) }
+    }
+
+    private fun appendWrappedText(output: ByteArrayOutputStream, text: String) {
+        wrapText(text, LINE_WIDTH).forEach { appendLine(output, it) }
     }
 
     private fun appendFeed(output: ByteArrayOutputStream, lines: Int) {
@@ -525,6 +588,152 @@ class ThermalPrinterManager(
         output.write(byteArrayOf(0x1D, 0x28, 0x6B, pL, pH, 0x31, 0x50, 0x30))
         output.write(qrBytes)
         output.write(byteArrayOf(0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x51, 0x30))
+    }
+
+    private fun appendOptionalRemoteImage(
+        output: ByteArrayOutputStream,
+        imageUrl: String,
+        fallbackMessage: String,
+        maxWidthDots: Int,
+    ) {
+        try {
+            val bitmap = fetchBitmap(imageUrl)
+            appendBitmap(output, bitmap, maxWidthDots)
+            appendFeed(output, 1)
+        } catch (_: IOException) {
+            appendLine(output, fallbackMessage)
+        } catch (_: IllegalArgumentException) {
+            appendLine(output, fallbackMessage)
+        }
+    }
+
+    private fun fetchBitmap(imageUrl: String): Bitmap {
+        val connection = (URL(imageUrl).openConnection() as HttpURLConnection).apply {
+            connectTimeout = IMAGE_FETCH_TIMEOUT_MS
+            readTimeout = IMAGE_FETCH_TIMEOUT_MS
+            requestMethod = "GET"
+            instanceFollowRedirects = true
+            doInput = true
+        }
+
+        try {
+            connection.connect()
+            if (connection.responseCode !in 200..299) {
+                throw IOException("HTTP ${connection.responseCode}")
+            }
+
+            connection.inputStream.use { stream ->
+                return BitmapFactory.decodeStream(stream)
+                    ?: throw IOException("Gagal membaca gambar")
+            }
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun appendBitmap(output: ByteArrayOutputStream, bitmap: Bitmap, maxWidthDots: Int) {
+        val scaledBitmap = scaleBitmap(bitmap, maxWidthDots)
+        val width = scaledBitmap.width
+        val height = scaledBitmap.height
+        val widthBytes = (width + 7) / 8
+        val imageBytes = ByteArray(widthBytes * height)
+
+        var offset = 0
+        for (y in 0 until height) {
+            for (xByte in 0 until widthBytes) {
+                var value = 0
+                for (bit in 0 until 8) {
+                    val x = xByte * 8 + bit
+                    if (x >= width) {
+                        continue
+                    }
+
+                    val pixel = scaledBitmap.getPixel(x, y)
+                    val alpha = Color.alpha(pixel)
+                    if (alpha < 128) {
+                        continue
+                    }
+
+                    val luminance = (
+                        (Color.red(pixel) * 0.299) +
+                            (Color.green(pixel) * 0.587) +
+                            (Color.blue(pixel) * 0.114)
+                        ).toInt()
+
+                    if (luminance < IMAGE_THRESHOLD) {
+                        value = value or (1 shl (7 - bit))
+                    }
+                }
+                imageBytes[offset++] = value.toByte()
+            }
+        }
+
+        output.write(
+            byteArrayOf(
+                0x1D,
+                0x76,
+                0x30,
+                0x00,
+                (widthBytes and 0xFF).toByte(),
+                ((widthBytes shr 8) and 0xFF).toByte(),
+                (height and 0xFF).toByte(),
+                ((height shr 8) and 0xFF).toByte(),
+            ),
+        )
+        output.write(imageBytes)
+
+        if (scaledBitmap != bitmap) {
+            scaledBitmap.recycle()
+        }
+    }
+
+    private fun scaleBitmap(bitmap: Bitmap, maxWidthDots: Int): Bitmap {
+        if (bitmap.width <= maxWidthDots) {
+            return bitmap
+        }
+
+        val aspectRatio = bitmap.height.toDouble() / bitmap.width.toDouble()
+        val scaledHeight = (maxWidthDots * aspectRatio).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(bitmap, maxWidthDots, scaledHeight, true)
+    }
+
+    private fun wrapText(text: String, width: Int): List<String> {
+        val normalized = text.replace("\\s+".toRegex(), " ").trim()
+        if (normalized.isBlank()) {
+            return emptyList()
+        }
+
+        val lines = mutableListOf<String>()
+        var current = ""
+
+        normalized.split(" ").forEach { word ->
+            if (word.length > width) {
+                if (current.isNotBlank()) {
+                    lines += current
+                    current = ""
+                }
+
+                var startIndex = 0
+                while (startIndex < word.length) {
+                    val endIndex = (startIndex + width).coerceAtMost(word.length)
+                    lines += word.substring(startIndex, endIndex)
+                    startIndex = endIndex
+                }
+            } else if (current.isBlank()) {
+                current = word
+            } else if (current.length + 1 + word.length <= width) {
+                current = "$current $word"
+            } else {
+                lines += current
+                current = word
+            }
+        }
+
+        if (current.isNotBlank()) {
+            lines += current
+        }
+
+        return lines
     }
 
     private fun padColumns(left: String, right: String, width: Int): String {
@@ -606,5 +815,9 @@ class ThermalPrinterManager(
     private companion object {
         const val KEY_PREFERRED_PRINTER_ID = "preferred_printer_id"
         const val LINE_WIDTH = 32
+        const val LOGO_MAX_WIDTH_DOTS = 192
+        const val QRIS_MAX_WIDTH_DOTS = 192
+        const val IMAGE_THRESHOLD = 180
+        const val IMAGE_FETCH_TIMEOUT_MS = 5000
     }
 }
