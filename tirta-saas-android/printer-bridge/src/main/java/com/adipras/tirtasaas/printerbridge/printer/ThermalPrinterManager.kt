@@ -12,6 +12,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Build
+import android.util.Base64
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -265,9 +266,12 @@ class ThermalPrinterManager(
         val printedAtLabel = payload.optString("printedAtLabel").ifBlank {
             payload.optString("printedAt").ifBlank { null }?.let(::formatIsoDate)
         }
+        val invoiceTypeLabel = payload.optString("invoiceTypeLabel").ifBlank { null }
         val footerText = payload.optString("footerText").ifBlank { null }
         val logoUrl = payload.optString("logoUrl").ifBlank { null }
+        val logoDataUrl = payload.optString("logoDataUrl").ifBlank { null }
         val qrisImageUrl = payload.optString("qrisImageUrl").ifBlank { null }
+        val qrisImageDataUrl = payload.optString("qrisImageDataUrl").ifBlank { null }
         val usageDetails = payload.optJSONObject("usageDetails")
         val bankInfo = payload.optJSONObject("bankInfo")
         val printNotes = payload.optString("printNotes").ifBlank { null }
@@ -283,19 +287,20 @@ class ThermalPrinterManager(
         }
 
         appendInitialize(output)
-        appendPaymentReceiptHeader(output, merchant, logoUrl)
+        appendPaymentReceiptHeader(output, merchant, logoDataUrl, logoUrl)
         appendPaymentReceiptInfoSection(
             output = output,
             receiptNumber = receiptNumber,
             invoiceStatusLabel = invoiceStatusLabel,
             paymentDateLabel = paymentDateLabel,
+            invoiceTypeLabel = invoiceTypeLabel,
             customer = customer,
             payment = payment,
             invoice = invoice,
         )
         appendPaymentReceiptUsageSection(output, usageDetails)
         appendPaymentReceiptSummarySection(output, summaryLines)
-        appendPaymentReceiptBankSection(output, bankInfo, qrisImageUrl)
+        appendPaymentReceiptBankSection(output, bankInfo, qrisImageDataUrl, qrisImageUrl)
         appendPaymentReceiptFooter(
             output = output,
             footerText = footerText,
@@ -305,7 +310,7 @@ class ThermalPrinterManager(
             printedAtLabel = printedAtLabel,
         )
 
-        appendFeed(output, 3)
+        appendFeed(output, PAYMENT_RECEIPT_EXTRA_FEED_LINES)
         appendCut(output)
         return output.toByteArray()
     }
@@ -313,11 +318,17 @@ class ThermalPrinterManager(
     private fun appendPaymentReceiptHeader(
         output: ByteArrayOutputStream,
         merchant: JSONObject,
+        logoDataUrl: String?,
         logoUrl: String?,
     ) {
         appendAlign(output, "center")
-        if (!logoUrl.isNullOrBlank()) {
-            appendOptionalRemoteImage(output, logoUrl, "Logo tidak dapat dimuat", LOGO_MAX_WIDTH_DOTS)
+        if (!logoDataUrl.isNullOrBlank() || !logoUrl.isNullOrBlank()) {
+            appendOptionalImage(
+                output = output,
+                imageSource = logoDataUrl ?: logoUrl.orEmpty(),
+                fallbackMessage = "Logo tidak dapat dimuat",
+                maxWidthDots = LOGO_MAX_WIDTH_DOTS,
+            )
         }
 
         appendBold(output, true)
@@ -343,6 +354,7 @@ class ThermalPrinterManager(
         receiptNumber: String,
         invoiceStatusLabel: String,
         paymentDateLabel: String,
+        invoiceTypeLabel: String?,
         customer: JSONObject,
         payment: JSONObject,
         invoice: JSONObject,
@@ -359,6 +371,7 @@ class ThermalPrinterManager(
         }
 
         appendKeyValue(output, "No. Tagihan", invoice.optString("invoiceNumber"))
+        appendOptionalKeyValue(output, "Tipe Tagihan", invoiceTypeLabel)
         appendKeyValue(output, "Metode", payment.optString("method"))
         appendOptionalKeyValue(output, "Ref.", payment.optString("referenceNumber").ifBlank { null })
         appendDivider(output)
@@ -418,9 +431,10 @@ class ThermalPrinterManager(
     private fun appendPaymentReceiptBankSection(
         output: ByteArrayOutputStream,
         bankInfo: JSONObject?,
+        qrisImageDataUrl: String?,
         qrisImageUrl: String?,
     ) {
-        if (bankInfo == null && qrisImageUrl.isNullOrBlank()) {
+        if (bankInfo == null && qrisImageDataUrl.isNullOrBlank() && qrisImageUrl.isNullOrBlank()) {
             return
         }
 
@@ -438,11 +452,16 @@ class ThermalPrinterManager(
             }
         }
 
-        if (!qrisImageUrl.isNullOrBlank()) {
+        if (!qrisImageDataUrl.isNullOrBlank() || !qrisImageUrl.isNullOrBlank()) {
             if (bankInfo != null) {
                 appendFeed(output, 1)
             }
-            appendOptionalRemoteImage(output, qrisImageUrl, "QRIS tidak dapat dimuat", QRIS_MAX_WIDTH_DOTS)
+            appendOptionalImage(
+                output = output,
+                imageSource = qrisImageDataUrl ?: qrisImageUrl.orEmpty(),
+                fallbackMessage = "QRIS tidak dapat dimuat",
+                maxWidthDots = QRIS_MAX_WIDTH_DOTS,
+            )
         }
 
         appendDivider(output)
@@ -692,14 +711,14 @@ class ThermalPrinterManager(
         output.write(byteArrayOf(0x1D, 0x28, 0x6B, 0x03, 0x00, 0x31, 0x51, 0x30))
     }
 
-    private fun appendOptionalRemoteImage(
+    private fun appendOptionalImage(
         output: ByteArrayOutputStream,
-        imageUrl: String,
+        imageSource: String,
         fallbackMessage: String,
         maxWidthDots: Int,
     ) {
         try {
-            val bitmap = fetchBitmap(imageUrl)
+            val bitmap = fetchBitmap(imageSource)
             appendBitmap(output, bitmap, maxWidthDots)
             appendFeed(output, 1)
         } catch (_: IOException) {
@@ -709,7 +728,12 @@ class ThermalPrinterManager(
         }
     }
 
-    private fun fetchBitmap(imageUrl: String): Bitmap {
+    private fun fetchBitmap(imageSource: String): Bitmap {
+        if (imageSource.startsWith("data:image", ignoreCase = true)) {
+            return decodeBitmapDataUrl(imageSource)
+        }
+
+        val imageUrl = imageSource
         val connection = (URL(imageUrl).openConnection() as HttpURLConnection).apply {
             connectTimeout = IMAGE_FETCH_TIMEOUT_MS
             readTimeout = IMAGE_FETCH_TIMEOUT_MS
@@ -731,6 +755,17 @@ class ThermalPrinterManager(
         } finally {
             connection.disconnect()
         }
+    }
+
+    private fun decodeBitmapDataUrl(dataUrl: String): Bitmap {
+        val payload = dataUrl.substringAfter("base64,", missingDelimiterValue = "")
+        if (payload.isBlank()) {
+            throw IOException("Payload gambar base64 kosong")
+        }
+
+        val bytes = Base64.decode(payload, Base64.DEFAULT)
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            ?: throw IOException("Gagal membaca data gambar")
     }
 
     private fun appendBitmap(output: ByteArrayOutputStream, bitmap: Bitmap, maxWidthDots: Int) {
@@ -921,5 +956,6 @@ class ThermalPrinterManager(
         const val QRIS_MAX_WIDTH_DOTS = 192
         const val IMAGE_THRESHOLD = 180
         const val IMAGE_FETCH_TIMEOUT_MS = 5000
+        const val PAYMENT_RECEIPT_EXTRA_FEED_LINES = 6
     }
 }

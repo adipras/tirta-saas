@@ -13,6 +13,7 @@ export interface PaymentReceiptSummaryLine {
 
 export interface PaymentReceiptViewModel {
   receiptNumber: string;
+  invoiceTypeLabel?: string;
   tenantName: string;
   tenantPhone?: string;
   tenantLogoUrl?: string;
@@ -103,6 +104,12 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
       : invoiceStatusTone === 'partial'
         ? 'Parsial'
         : 'Belum Lunas';
+  const invoiceTypeLabel =
+    receipt.invoiceDetails.invoiceType === 'registration'
+      ? 'Biaya Registrasi'
+      : receipt.invoiceDetails.invoiceType === 'monthly'
+        ? 'Tagihan Air Bulanan'
+        : undefined;
 
   const usageMonthLabel = receipt.usageDetails?.usageMonth
     ? new Date(`${receipt.usageDetails.usageMonth}-01`).toLocaleDateString('id-ID', {
@@ -154,6 +161,7 @@ export const buildPaymentReceiptViewModel = (receipt: PaymentReceipt): PaymentRe
 
   return {
     receiptNumber: receipt.receiptNumber,
+    invoiceTypeLabel,
     tenantName: receipt.tenantInfo?.companyName || 'TIRTA SAAS',
     tenantPhone,
     tenantLogoUrl,

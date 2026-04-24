@@ -15,10 +15,13 @@ export interface ThermalReceiptPayload {
   receiptNumber: string;
   printedAt: string;
   printedAtLabel?: string;
+  invoiceTypeLabel?: string;
   settlementType: 'full' | 'partial';
   footerText?: string;
   logoUrl?: string;
+  logoDataUrl?: string;
   qrisImageUrl?: string;
+  qrisImageDataUrl?: string;
   invoiceType?: 'monthly' | 'registration';
   invoiceStatus?: 'paid' | 'partial' | 'unpaid';
   invoiceStatusLabel?: string;
@@ -97,8 +100,47 @@ const buildReceiptPayload = (payload: ThermalReceiptPayloadInput): ThermalReceip
   type: payload.type ?? 'receipt',
 });
 
-export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalReceiptPayload => {
+const fetchAssetAsDataUrl = async (assetUrl?: string): Promise<string | undefined> => {
+  if (!assetUrl) {
+    return undefined;
+  }
+
+  try {
+    const response = await fetch(assetUrl, {
+      mode: 'cors',
+      cache: 'no-store',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      return undefined;
+    }
+
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+          return;
+        }
+
+        reject(new Error('Gagal membaca asset gambar'));
+      };
+      reader.onerror = () => reject(reader.error || new Error('Gagal membaca asset gambar'));
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return undefined;
+  }
+};
+
+export const buildThermalReceiptPayload = async (receipt: PaymentReceipt): Promise<ThermalReceiptPayload> => {
   const receiptView = buildPaymentReceiptViewModel(receipt);
+  const [logoDataUrl, qrisImageDataUrl] = await Promise.all([
+    fetchAssetAsDataUrl(receiptView.tenantLogoUrl),
+    fetchAssetAsDataUrl(receiptView.qrisImageUrl),
+  ]);
   const usageDetails = receiptView.showUsageSection
     ? {
         month: receiptView.usageMonthLabel,
@@ -121,10 +163,13 @@ export const buildThermalReceiptPayload = (receipt: PaymentReceipt): ThermalRece
     receiptNumber: receipt.receiptNumber,
     printedAt: receipt.generatedAt,
     printedAtLabel: receiptView.printedAtLabel,
+    invoiceTypeLabel: receiptView.invoiceTypeLabel,
     settlementType: receiptView.isPartialPayment ? 'partial' : 'full',
     footerText: receiptView.footerText,
     logoUrl: receiptView.tenantLogoUrl,
+    logoDataUrl,
     qrisImageUrl: receiptView.qrisImageUrl,
+    qrisImageDataUrl,
     invoiceType: receipt.invoiceDetails.invoiceType ?? undefined,
     invoiceStatus: receipt.invoiceDetails.invoicePaymentStatus,
     invoiceStatusLabel: receiptView.invoiceStatusLabel,

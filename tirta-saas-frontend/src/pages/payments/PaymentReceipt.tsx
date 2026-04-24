@@ -358,6 +358,12 @@ const PaymentReceipt: React.FC = () => {
             <span className="text-gray-500">No. Tagihan</span>
             <span className="text-right text-gray-900">{receipt.invoiceDetails.invoiceNumber}</span>
           </div>
+          {receiptView.invoiceTypeLabel && (
+            <div className="flex justify-between gap-2">
+              <span className="text-gray-500">Tipe Tagihan</span>
+              <span className="text-right text-gray-900">{receiptView.invoiceTypeLabel}</span>
+            </div>
+          )}
           <div className="flex justify-between gap-2">
             <span className="text-gray-500">Metode</span>
             <span className="text-right text-gray-900">{receiptView.paymentMethodLabel}</span>

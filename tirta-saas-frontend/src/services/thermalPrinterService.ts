@@ -55,7 +55,7 @@ const printPage = (): void => {
 };
 
 const printReceipt = async (receipt: PaymentReceipt): Promise<void> => {
-  await printerBridgeHttpService.printReceipt(buildThermalReceiptPayload(receipt));
+  await printerBridgeHttpService.printReceipt(await buildThermalReceiptPayload(receipt));
   cachedBridgeAvailability = true;
   cachedBridgeStatus = {
     ...cachedBridgeStatus,
