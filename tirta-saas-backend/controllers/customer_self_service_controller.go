@@ -259,46 +259,28 @@ func CustomerMakePayment(c *gin.Context) {
 		TenantID:  tenantID,
 	}
 
-	if err := config.DB.Create(&payment).Error; err != nil {
+	tx := config.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Create(&payment).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mencatat pembayaran"})
 		return
 	}
 
-	// Update invoice
-	var totalPaid float64
-	config.DB.Model(&models.Payment{}).
-		Where("invoice_id = ? AND status != ?", input.InvoiceID, "voided").
-		Select("COALESCE(SUM(amount), 0)").Scan(&totalPaid)
-
-	invoice.TotalPaid = totalPaid
-	services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
-	invoice.IsPaid = totalPaid >= snapshot.TotalAmount
-	if invoice.IsPaid {
-		now := time.Now()
-		invoice.PaidDate = &now
-		invoice.PaymentStatus = models.PaymentStatusPaid
-	} else if totalPaid > 0 {
-		invoice.PaymentStatus = models.PaymentStatusPartial
-		invoice.PaidDate = nil
-	} else {
-		invoice.PaymentStatus = models.PaymentStatusUnpaid
-		invoice.PaidDate = nil
+	if _, err := services.SyncInvoicePaymentState(tx, &invoice, payment.PaidAt); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui status invoice"})
+		return
 	}
-	config.DB.Model(&invoice).Updates(map[string]interface{}{
-		"sub_total":      invoice.SubTotal,
-		"penalty_amount": invoice.PenaltyAmount,
-		"total_amount":   invoice.TotalAmount,
-		"total_paid":     invoice.TotalPaid,
-		"is_paid":        invoice.IsPaid,
-		"payment_status": invoice.PaymentStatus,
-		"paid_date":      invoice.PaidDate,
-	})
 
-	// If registration invoice is now paid, activate customer
-	if invoice.Type == "registration" && invoice.IsPaid {
-		config.DB.Model(&models.Customer{}).
-			Where("id = ?", customerID).
-			Update("is_active", true)
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan pembayaran"})
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

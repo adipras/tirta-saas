@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeftIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import customerAuthService from '../../services/customerAuthService';
 import customerPortalService, { type CustomerInvoice } from '../../services/customerPortalService';
-import paymentProofService from '../../services/paymentProofService';
+import paymentProofService, { type PaymentProof } from '../../services/paymentProofService';
 
 const CustomerPayInvoice: React.FC = () => {
   const navigate = useNavigate();
@@ -13,8 +13,10 @@ const CustomerPayInvoice: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [submittedProof, setSubmittedProof] = useState<PaymentProof | null>(null);
 
   const [formData, setFormData] = useState({
+    amount: '',
     payment_date: new Date().toISOString().split('T')[0],
     payment_method: 'bank_transfer',
     account_name: '',
@@ -95,12 +97,23 @@ const CustomerPayInvoice: React.FC = () => {
 
     if (!invoice) return;
 
+    const parsedAmount = Number(formData.amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setError('Masukkan nominal pembayaran yang valid');
+      return;
+    }
+
+    if (parsedAmount > invoice.remaining_amount) {
+      setError('Nominal pembayaran tidak boleh melebihi sisa tagihan saat ini');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-        await paymentProofService.submitPaymentProof({
-          invoice_id: invoice.id,
-          amount: invoice.remaining_amount,
+      const proof = await paymentProofService.submitPaymentProof({
+        invoice_id: invoice.id,
+        amount: parsedAmount,
         payment_date: formData.payment_date,
         payment_method: formData.payment_method,
         account_name: formData.account_name,
@@ -109,7 +122,8 @@ const CustomerPayInvoice: React.FC = () => {
         notes: formData.notes || undefined,
         proof_image: proofImage,
       });
-      
+
+      setSubmittedProof(proof);
       setSuccess(true);
       setTimeout(() => {
         navigate('/customer/invoices');
@@ -157,6 +171,17 @@ const CustomerPayInvoice: React.FC = () => {
           <p className="text-gray-600 mb-4">
             Bukti pembayaran Anda telah dikirim dan sedang menunggu verifikasi admin.
           </p>
+          {submittedProof && (
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-left text-sm text-blue-900">
+              <p className="font-semibold">Snapshot nominal yang dikirim</p>
+              <div className="mt-2 space-y-1">
+                <p>Subtotal: {formatCurrency(submittedProof.snapshot_sub_total)}</p>
+                <p>Denda: {formatCurrency(submittedProof.snapshot_penalty_amount)}</p>
+                <p>Total tagihan: {formatCurrency(submittedProof.snapshot_total_amount)}</p>
+                <p>Nominal yang Anda konfirmasi: {formatCurrency(submittedProof.amount)}</p>
+              </div>
+            </div>
+          )}
           <p className="text-sm text-gray-500">Mengalihkan ke halaman tagihan...</p>
         </div>
       </div>
@@ -173,7 +198,7 @@ const CustomerPayInvoice: React.FC = () => {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Bayar Tagihan</h1>
-              <p className="text-sm text-gray-600">Upload bukti pembayaran Anda</p>
+              <p className="text-sm text-gray-600">Kirim konfirmasi pembayaran. Admin akan memverifikasi sesuai nominal snapshot saat Anda submit.</p>
             </div>
           </div>
         </div>
@@ -195,17 +220,29 @@ const CustomerPayInvoice: React.FC = () => {
               </span>
             </div>
             <div className="flex items-start justify-between gap-3 border-t pt-2 text-lg font-bold">
-              <span>Total yang Harus Dibayar</span>
+              <span>Sisa Tagihan Saat Ini</span>
               <span className="text-indigo-600">
                 {formatCurrency(invoice.remaining_amount)}
               </span>
             </div>
+            {invoice.penalty_amount > 0 && (
+              <div className="flex items-start justify-between gap-3 text-sm text-red-600">
+                <span>Denda aktif saat ini</span>
+                <span>{formatCurrency(invoice.penalty_amount)}</span>
+              </div>
+            )}
           </div>
+        </div>
+
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Nominal final akan dibekukan saat Anda mengirim konfirmasi ini, berdasarkan
+          <span className="font-semibold"> tanggal pembayaran</span> yang Anda isi. Admin memverifikasi
+          bukti bayar terhadap snapshot tersebut dan tidak menghitung ulang denda dari waktu approval.
         </div>
 
         {/* Payment Form */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Form Pembayaran</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Form Konfirmasi Pembayaran</h3>
 
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -214,6 +251,25 @@ const CustomerPayInvoice: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nominal yang Dikonfirmasi
+              </label>
+              <input
+                type="number"
+                required
+                min="1"
+                step="0.01"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                placeholder="Masukkan nominal yang dibayar"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Anda boleh kirim pembayaran penuh atau partial, maksimal {formatCurrency(invoice.remaining_amount)}.
+              </p>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tanggal Pembayaran

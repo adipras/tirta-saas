@@ -30,6 +30,11 @@ type PendingPayment = {
   proofUrl: string;
   submittedAt: string;
   notes?: string;
+  snapshotSubTotal: number;
+  snapshotPenaltyAmount: number;
+  snapshotTotalAmount: number;
+  snapshotRemainingAmount: number;
+  snapshotCapturedAt: string;
   status: 'pending' | 'verified' | 'rejected';
 };
 
@@ -46,6 +51,11 @@ const mapProofToPayment = (proof: PaymentProof): PendingPayment => ({
   proofUrl: proof.proof_image_url,
   submittedAt: proof.submitted_at,
   notes: proof.notes,
+  snapshotSubTotal: proof.snapshot_sub_total,
+  snapshotPenaltyAmount: proof.snapshot_penalty_amount,
+  snapshotTotalAmount: proof.snapshot_total_amount,
+  snapshotRemainingAmount: proof.snapshot_remaining_amount,
+  snapshotCapturedAt: proof.snapshot_captured_at,
   status:
     proof.status === 'VERIFIED' ? 'verified' : proof.status === 'REJECTED' ? 'rejected' : 'pending',
 });
@@ -409,6 +419,38 @@ export default function TenantPaymentVerification() {
               </div>
 
               <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-gray-900">Snapshot nominal saat customer submit</h4>
+                <dl className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <dt className="text-gray-500">Subtotal</dt>
+                    <dd className="mt-1 text-gray-900">{formatCurrency(selectedPayment.snapshotSubTotal)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Denda beku</dt>
+                    <dd className="mt-1 text-gray-900">{formatCurrency(selectedPayment.snapshotPenaltyAmount)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Total tagihan beku</dt>
+                    <dd className="mt-1 font-semibold text-blue-600">
+                      {formatCurrency(selectedPayment.snapshotTotalAmount)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Sisa tagihan saat submit</dt>
+                    <dd className="mt-1 text-gray-900">
+                      {formatCurrency(selectedPayment.snapshotRemainingAmount)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Snapshot diambil</dt>
+                    <dd className="mt-1 text-gray-900">
+                      {formatDate(selectedPayment.snapshotCapturedAt)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 lg:col-span-2">
                 <h4 className="text-sm font-semibold text-gray-900">Detail transfer</h4>
                 <dl className="mt-4 space-y-3 text-sm">
                   <div>
@@ -433,6 +475,11 @@ export default function TenantPaymentVerification() {
                   )}
                 </dl>
               </div>
+            </section>
+
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              Approval admin akan memakai nominal snapshot yang dibekukan saat customer submit.
+              Waktu approval tidak menghitung ulang denda.
             </section>
 
             <section className="rounded-2xl border border-gray-200 bg-white p-4">

@@ -28,27 +28,32 @@ func buildPaymentProofFileURL(proof *models.PaymentProof) string {
 
 func buildPaymentProofResponse(proof *models.PaymentProof) responses.PaymentProofResponse {
 	return responses.PaymentProofResponse{
-		ID:              proof.ID,
-		InvoiceID:       proof.InvoiceID,
-		InvoiceNumber:   proof.Invoice.InvoiceNumber,
-		CustomerID:      proof.CustomerID,
-		CustomerName:    proof.Customer.Name,
-		TenantID:        proof.TenantID,
-		Amount:          proof.Amount,
-		PaymentDate:     proof.PaymentDate,
-		PaymentMethod:   proof.PaymentMethod,
-		AccountName:     proof.AccountName,
-		AccountNumber:   proof.AccountNumber,
-		ReferenceNumber: proof.ReferenceNumber,
-		ProofImageURL:   buildPaymentProofFileURL(proof),
-		Notes:           proof.Notes,
-		Status:          responses.PaymentProofStatus(proof.Status),
-		SubmittedAt:     proof.SubmittedAt,
-		VerifiedBy:      proof.VerifiedBy,
-		VerifiedAt:      proof.VerifiedAt,
-		RejectionReason: proof.RejectionReason,
-		CreatedAt:       proof.CreatedAt,
-		UpdatedAt:       proof.UpdatedAt,
+		ID:                      proof.ID,
+		InvoiceID:               proof.InvoiceID,
+		InvoiceNumber:           proof.Invoice.InvoiceNumber,
+		CustomerID:              proof.CustomerID,
+		CustomerName:            proof.Customer.Name,
+		TenantID:                proof.TenantID,
+		Amount:                  proof.Amount,
+		PaymentDate:             proof.PaymentDate,
+		PaymentMethod:           proof.PaymentMethod,
+		AccountName:             proof.AccountName,
+		AccountNumber:           proof.AccountNumber,
+		ReferenceNumber:         proof.ReferenceNumber,
+		ProofImageURL:           buildPaymentProofFileURL(proof),
+		Notes:                   proof.Notes,
+		SnapshotSubTotal:        proof.SnapshotSubTotal,
+		SnapshotPenaltyAmount:   proof.SnapshotPenaltyAmount,
+		SnapshotTotalAmount:     proof.SnapshotTotalAmount,
+		SnapshotRemainingAmount: proof.SnapshotRemainingAmount,
+		SnapshotCapturedAt:      proof.SnapshotCapturedAt,
+		Status:                  responses.PaymentProofStatus(proof.Status),
+		SubmittedAt:             proof.SubmittedAt,
+		VerifiedBy:              proof.VerifiedBy,
+		VerifiedAt:              proof.VerifiedAt,
+		RejectionReason:         proof.RejectionReason,
+		CreatedAt:               proof.CreatedAt,
+		UpdatedAt:               proof.UpdatedAt,
 	}
 }
 
@@ -157,18 +162,23 @@ func SubmitPaymentProof(c *gin.Context) {
 
 	// Create payment proof record
 	paymentProof := models.PaymentProof{
-		TenantID:        tenantID,
-		InvoiceID:       invoiceID,
-		CustomerID:      invoice.CustomerID,
-		Amount:          amount,
-		PaymentDate:     paymentDate,
-		PaymentMethod:   paymentMethod,
-		AccountName:     accountName,
-		AccountNumber:   accountNumber,
-		ReferenceNumber: referenceNumber,
-		ProofImageURL:   uploadPath,
-		Notes:           notes,
-		Status:          models.PaymentProofStatusPending,
+		TenantID:                tenantID,
+		InvoiceID:               invoiceID,
+		CustomerID:              invoice.CustomerID,
+		Amount:                  amount,
+		PaymentDate:             paymentDate,
+		PaymentMethod:           paymentMethod,
+		AccountName:             accountName,
+		AccountNumber:           accountNumber,
+		ReferenceNumber:         referenceNumber,
+		ProofImageURL:           uploadPath,
+		Notes:                   notes,
+		SnapshotSubTotal:        snapshot.SubTotal,
+		SnapshotPenaltyAmount:   snapshot.PenaltyAmount,
+		SnapshotTotalAmount:     snapshot.TotalAmount,
+		SnapshotRemainingAmount: snapshot.RemainingAmount,
+		SnapshotCapturedAt:      snapshot.ReferenceAt,
+		Status:                  models.PaymentProofStatusPending,
 	}
 
 	if err := config.DB.Create(&paymentProof).Error; err != nil {
@@ -332,7 +342,8 @@ func VerifyPaymentProof(c *gin.Context) {
 	// Get payment proof
 	var paymentProof models.PaymentProof
 	if err := config.DB.
-		Preload("Invoice").
+		Preload("Invoice.Customer").
+		Preload("Invoice.Customer.Subscription").
 		Preload("Customer").
 		Where("id = ? AND tenant_id = ?", id, tenantID).
 		First(&paymentProof).Error; err != nil {
@@ -351,10 +362,23 @@ func VerifyPaymentProof(c *gin.Context) {
 		services.LoadTenantSettings(tenantID),
 		paymentProof.PaymentDate,
 	)
-	if paymentProof.Invoice.TotalPaid+paymentProof.Amount > snapshot.TotalAmount {
+	if err := services.ValidateStoredSnapshot(
+		snapshot,
+		paymentProof.SnapshotSubTotal,
+		paymentProof.SnapshotPenaltyAmount,
+		paymentProof.SnapshotTotalAmount,
+		paymentProof.SnapshotRemainingAmount,
+	); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error":            "Payment proof amount exceeds the current invoice balance",
-			"remaining_amount": snapshot.RemainingAmount,
+			"error": "Snapshot tagihan sudah berubah sejak konfirmasi dikirim. Minta pelanggan checkout atau kirim konfirmasi ulang.",
+		})
+		return
+	}
+
+	if paymentProof.Invoice.TotalPaid+paymentProof.Amount > paymentProof.SnapshotTotalAmount {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":            "Payment proof amount exceeds the frozen invoice balance",
+			"remaining_amount": paymentProof.SnapshotRemainingAmount,
 		})
 		return
 	}
@@ -384,17 +408,18 @@ func VerifyPaymentProof(c *gin.Context) {
 
 	// Create payment record
 	payment := models.Payment{
-		TenantID:        tenantID,
-		InvoiceID:       paymentProof.InvoiceID,
-		Amount:          paymentProof.Amount,
-		PaidAt:          paymentProof.PaymentDate,
-		ReferenceNumber: paymentProof.ReferenceNumber,
-		ProofImageURL:   paymentProof.ProofImageURL,
-		Notes:           paymentProof.Notes,
-		ReceivedBy:      &verifierID,
-		VerifiedBy:      &verifierID,
-		VerifiedAt:      &now,
-		Status:          "verified",
+		TenantID:          tenantID,
+		InvoiceID:         paymentProof.InvoiceID,
+		Amount:            paymentProof.Amount,
+		PaidAt:            paymentProof.PaymentDate,
+		PaymentMethodType: paymentProof.PaymentMethod,
+		ReferenceNumber:   paymentProof.ReferenceNumber,
+		ProofImageURL:     paymentProof.ProofImageURL,
+		Notes:             paymentProof.Notes,
+		ReceivedBy:        &verifierID,
+		VerifiedBy:        &verifierID,
+		VerifiedAt:        &now,
+		Status:            "verified",
 	}
 
 	if err := tx.Create(&payment).Error; err != nil {
@@ -403,31 +428,8 @@ func VerifyPaymentProof(c *gin.Context) {
 		return
 	}
 
-	// Update invoice payment status
 	invoice := paymentProof.Invoice
-	var totalPaid float64
-	tx.Model(&models.Payment{}).
-		Where("invoice_id = ? AND status != ?", paymentProof.InvoiceID, "voided").
-		Select("COALESCE(SUM(amount), 0)").Scan(&totalPaid)
-
-	invoice.TotalPaid = totalPaid
-	services.ApplyInvoiceAmountSnapshot(&invoice, snapshot)
-	if invoice.TotalPaid >= invoice.TotalAmount {
-		invoice.PaymentStatus = models.PaymentStatusPaid
-		invoice.IsPaid = true
-		paidDate := paymentProof.PaymentDate
-		invoice.PaidDate = &paidDate
-	} else if invoice.TotalPaid > 0 {
-		invoice.PaymentStatus = models.PaymentStatusPartial
-		invoice.IsPaid = false
-		invoice.PaidDate = nil
-	} else {
-		invoice.PaymentStatus = models.PaymentStatusUnpaid
-		invoice.IsPaid = false
-		invoice.PaidDate = nil
-	}
-
-	if err := tx.Save(&invoice).Error; err != nil {
+	if _, err := services.SyncInvoicePaymentState(tx, &invoice, paymentProof.PaymentDate); err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update invoice"})
 		return

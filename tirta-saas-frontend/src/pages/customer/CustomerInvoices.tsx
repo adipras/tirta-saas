@@ -76,7 +76,7 @@ const CustomerTagihan: React.FC = () => {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Tagihan Saya</h1>
-              <p className="text-sm text-gray-600">Kelola dan bayar tagihan Anda</p>
+              <p className="text-sm text-gray-600">Lihat tagihan aktif dan kirim konfirmasi pembayaran untuk diverifikasi admin</p>
             </div>
           </div>
         </div>
@@ -188,7 +188,7 @@ const CustomerTagihan: React.FC = () => {
                       to={`/customer/pay/${invoice.id}`}
                       className="block w-full bg-indigo-600 text-white text-center py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors"
                     >
-                      Bayar Sekarang
+                      Konfirmasi Pembayaran
                     </Link>
                   </div>
                 )}

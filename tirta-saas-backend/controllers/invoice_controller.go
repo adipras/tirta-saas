@@ -277,88 +277,27 @@ func GenerateMonthlyInvoice(c *gin.Context) {
 
 	}
 
-	// Ambil semua WaterUsage bulan tsb yang belum dibuatkan Invoice
-	var usages []models.WaterUsage
-	if err := config.DB.
-		Where("usage_month = ? AND tenant_id = ?", req.UsageMonth, tenantID).
-		Find(&usages).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal ambil data water usage"})
+	service := services.NewInvoiceGenerationService()
+	result, err := service.GenerateInvoices(services.InvoiceGenerationRequest{
+		TenantID:   tenantID,
+		UsageMonth: req.UsageMonth,
+		DryRun:     false,
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "no water usage records found") {
+			c.JSON(http.StatusOK, gin.H{"message": "Tidak ada water usage untuk bulan tersebut"})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
-	}
-
-	if len(usages) == 0 {
-		c.JSON(http.StatusOK, gin.H{"message": "Tidak ada water usage untuk bulan tersebut"})
-		return
-	}
-
-	created := 0
-	skipped := 0
-
-	for _, usage := range usages {
-		// Cek apakah invoice sudah pernah dibuat
-		var existing models.Invoice
-		err := config.DB.Where("customer_id = ? AND usage_month = ? AND type = ?",
-			usage.CustomerID, usage.UsageMonth, "monthly").First(&existing).Error
-		if err == nil {
-			skipped++
-			continue
-		}
-
-		// Ambil data pelanggan & SubscriptionType
-		var customer models.Customer
-		if err := config.DB.Where("id = ? AND tenant_id = ?", usage.CustomerID, tenantID).First(&customer).Error; err != nil {
-			continue
-		}
-
-		var subType models.SubscriptionType
-		if err := config.DB.Where("id = ? AND tenant_id = ?", customer.SubscriptionID, tenantID).First(&subType).Error; err != nil {
-			continue
-		}
-
-		// Business rule validations
-		if usage.UsageM3 < 0 {
-			continue // Skip invalid usage records
-		}
-
-		if usage.AmountCalculated < 0 {
-			continue // Skip invalid calculated amounts
-		}
-
-		total := usage.AmountCalculated + subType.MonthlyFee + subType.MaintenanceFee
-
-		// Validate calculated total is reasonable
-		if total <= 0 || total > 999999 {
-			continue // Skip invoices with invalid totals
-		}
-
-		// Calculate price per m3 safely
-		pricePerM3 := 0.0
-		if usage.UsageM3 > 0 {
-			pricePerM3 = usage.AmountCalculated / usage.UsageM3
-		}
-
-		invoice := models.Invoice{
-			CustomerID:  usage.CustomerID,
-			UsageMonth:  usage.UsageMonth,
-			UsageM3:     usage.UsageM3,
-			Abonemen:    subType.MonthlyFee,
-			PricePerM3:  pricePerM3,
-			TotalAmount: total,
-			TotalPaid:   0,
-			IsPaid:      false,
-			TenantID:    tenantID,
-			Type:        "monthly",
-		}
-
-		if err := config.DB.Create(&invoice).Error; err == nil {
-			created++
-		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":       "Generate invoice selesai",
-		"created_count": created,
-		"skipped":       skipped,
+		"created_count": result.Success,
+		"skipped":       result.Skipped,
+		"failed":        result.Failed,
+		"errors":        result.Errors,
 	})
 }
 

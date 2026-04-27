@@ -243,8 +243,6 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  const prevPathnameRef = useRef(location.pathname);
-
   useEffect(() => {
     if (previousPathnameRef.current !== location.pathname && open) {
       onClose();

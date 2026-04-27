@@ -18,6 +18,11 @@ export interface PaymentProof {
   reference_number?: string;
   proof_image_url: string;
   notes?: string;
+  snapshot_sub_total: number;
+  snapshot_penalty_amount: number;
+  snapshot_total_amount: number;
+  snapshot_remaining_amount: number;
+  snapshot_captured_at: string;
   status: 'PENDING' | 'VERIFIED' | 'REJECTED';
   submitted_at: string;
   verified_by?: string;
