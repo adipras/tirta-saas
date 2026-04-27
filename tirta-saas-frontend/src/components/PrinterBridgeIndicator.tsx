@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { thermalPrinterService } from '../services/thermalPrinterService';
 
-const PrinterBridgeIndicator = () => {
+interface PrinterBridgeIndicatorProps {
+  className?: string;
+}
+
+const PrinterBridgeIndicator = ({ className = 'hidden sm:flex' }: PrinterBridgeIndicatorProps) => {
   const [statusLabel, setStatusLabel] = useState('Bridge tidak aktif');
   const [connected, setConnected] = useState(false);
 
@@ -49,7 +53,7 @@ const PrinterBridgeIndicator = () => {
   }
 
   return (
-    <div className="hidden items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600 sm:flex">
+    <div className={`${className} items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-600`}>
       <span className={`h-2 w-2 rounded-full ${connected ? 'bg-green-500' : 'bg-amber-400'}`} />
       <span>{statusLabel}</span>
     </div>

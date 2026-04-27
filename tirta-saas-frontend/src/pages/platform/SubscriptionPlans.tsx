@@ -1,12 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  PlusIcon,
-  PencilIcon,
   CheckCircleIcon,
+  PencilIcon,
+  PlusIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../services/apiClient';
-import { PageHeader, useToast } from '../../components';
+import {
+  DashboardStatCard,
+  FormCheckbox,
+  FormInput,
+  FormTextarea,
+  Modal,
+  PageHeader,
+  useToast,
+} from '../../components';
 
 interface SubscriptionPlan {
   id: string;
@@ -27,62 +35,82 @@ interface SubscriptionPlan {
   updated_at: string;
 }
 
+interface PlanFormState {
+  plan: string;
+  name: string;
+  description: string;
+  monthly_price: number;
+  yearly_price: number;
+  max_users: number;
+  max_customers: number;
+  max_storage_gb: number;
+  max_api_calls_per_day: number;
+  features: string;
+  trial_days: number;
+  display_order: number;
+  is_active: boolean;
+}
+
+const emptyFormState: PlanFormState = {
+  plan: '',
+  name: '',
+  description: '',
+  monthly_price: 0,
+  yearly_price: 0,
+  max_users: 0,
+  max_customers: 0,
+  max_storage_gb: 0,
+  max_api_calls_per_day: 0,
+  features: '',
+  trial_days: 0,
+  display_order: 0,
+  is_active: true,
+};
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    if (response?.data?.message) {
+      return response.data.message;
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 export default function SubscriptionPlans() {
   const toast = useToast();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
-  const [formData, setFormData] = useState({
-    plan: '',
-    name: '',
-    description: '',
-    monthly_price: 0,
-    yearly_price: 0,
-    max_users: 0,
-    max_customers: 0,
-    max_storage_gb: 0,
-    max_api_calls_per_day: 0,
-    features: '',
-    trial_days: 0,
-    display_order: 0,
-    is_active: true,
-  });
+  const [formData, setFormData] = useState<PlanFormState>(emptyFormState);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const fetchPlans = async () => {
+  const fetchPlans = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiClient.get('/platform/subscription-plans?include_inactive=true');
       setPlans(response.data || []);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to fetch plans:', error);
+      toast.error(getErrorMessage(error, 'Gagal memuat paket langganan.'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    void fetchPlans();
+  }, [fetchPlans]);
 
   const openCreateModal = () => {
     setEditingPlan(null);
-    setFormData({
-      plan: '',
-      name: '',
-      description: '',
-      monthly_price: 0,
-      yearly_price: 0,
-      max_users: 0,
-      max_customers: 0,
-      max_storage_gb: 0,
-      max_api_calls_per_day: 0,
-      features: '',
-      trial_days: 0,
-      display_order: 0,
-      is_active: true,
-    });
+    setFormData(emptyFormState);
     setShowModal(true);
   };
 
@@ -109,10 +137,25 @@ export default function SubscriptionPlans() {
   const closeModal = () => {
     setShowModal(false);
     setEditingPlan(null);
+    setFormData(emptyFormState);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTextChange = (field: keyof PlanFormState, value: string) => {
+    setFormData((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleNumberChange = (field: keyof PlanFormState, value: string) => {
+    setFormData((current) => ({
+      ...current,
+      [field]: Number(value),
+    }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setSubmitting(true);
 
     try {
@@ -120,412 +163,360 @@ export default function SubscriptionPlans() {
         ...formData,
         features: formData.features
           .split('\n')
-          .map((f) => f.trim())
-          .filter((f) => f),
+          .map((feature) => feature.trim())
+          .filter(Boolean),
       };
 
       if (editingPlan) {
         await apiClient.put(`/platform/subscription-plans/${editingPlan.id}`, payload);
+        toast.success('Paket langganan berhasil diperbarui.');
       } else {
         await apiClient.post('/platform/subscription-plans', payload);
+        toast.success('Paket langganan berhasil dibuat.');
       }
 
       await fetchPlans();
       closeModal();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save plan:', error);
-      toast.error(error.response?.data?.message || 'Gagal menyimpan plan');
+      toast.error(getErrorMessage(error, 'Gagal menyimpan paket langganan.'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
-  };
 
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('id-ID').format(num);
-  };
+  const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
+
+  const planStats = useMemo(
+    () => ({
+      total: plans.length,
+      active: plans.filter((plan) => plan.is_active).length,
+      inactive: plans.filter((plan) => !plan.is_active).length,
+    }),
+    [plans]
+  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       <PageHeader
         title="Paket Langganan"
-        subtitle="Manage platform subscription plans and pricing"
+        subtitle="Kelola katalog paket platform, harga, dan batas layanan dengan struktur yang lebih nyaman di mobile."
         actions={
           <button
+            type="button"
             onClick={openCreateModal}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
           >
             <PlusIcon className="h-5 w-5" />
-            Create Plan
+            Tambah Paket
           </button>
         }
       />
 
-      {/* Plans Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {plans.map((plan) => (
-          <div
-            key={plan.id}
-            className={`bg-white rounded-lg shadow-md border-2 ${
-              plan.is_active ? 'border-green-500' : 'border-gray-200'
-            } p-6`}
-          >
-            {/* Plan Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 capitalize">
-                  {plan.name}
-                </h3>
-                <p className="text-sm text-gray-500 uppercase mt-1">{plan.plan}</p>
-              </div>
-              {plan.is_active ? (
-                <CheckCircleIcon className="h-6 w-6 text-green-500" />
-              ) : (
-                <XCircleIcon className="h-6 w-6 text-gray-400" />
-              )}
-            </div>
-
-            {/* Description */}
-            <p className="text-gray-600 text-sm mb-4">{plan.description}</p>
-
-            {/* Pricing */}
-            <div className="mb-4">
-              <div className="text-3xl font-bold text-gray-900">
-                {formatCurrency(plan.monthly_price)}
-                <span className="text-sm font-normal text-gray-600">/month</span>
-              </div>
-              <div className="text-lg text-gray-700 mt-1">
-                {formatCurrency(plan.yearly_price)}
-                <span className="text-sm text-gray-600">/year</span>
-              </div>
-            </div>
-
-            {/* Limits */}
-            <div className="space-y-2 mb-4 border-t border-gray-200 pt-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Max Users</span>
-                <span className="font-medium text-gray-900">
-                  {formatNumber(plan.max_users)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Max Pelanggan</span>
-                <span className="font-medium text-gray-900">
-                  {formatNumber(plan.max_customers)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Storage</span>
-                <span className="font-medium text-gray-900">
-                  {plan.max_storage_gb} GB
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">API Calls/Day</span>
-                <span className="font-medium text-gray-900">
-                  {formatNumber(plan.max_api_calls_per_day)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Trial Period</span>
-                <span className="font-medium text-gray-900">
-                  {plan.trial_days} days
-                </span>
-              </div>
-            </div>
-
-            {/* Features */}
-            <div className="mb-4 border-t border-gray-200 pt-4">
-              <h4 className="text-sm font-semibold text-gray-900 mb-2">Features</h4>
-              <ul className="space-y-1">
-                {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
-                    <CheckCircleIcon className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Actions */}
-            <button
-              onClick={() => openEditModal(plan)}
-              className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
-            >
-              <PencilIcon className="h-4 w-4" />
-              Edit Plan
-            </button>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <DashboardStatCard
+          title="Total Paket"
+          value={formatNumber(planStats.total)}
+          helper="Seluruh katalog"
+          subtitle="Semua paket yang tersimpan di platform."
+          icon={PlusIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Paket Aktif"
+          value={formatNumber(planStats.active)}
+          helper="Tampil ke tenant"
+          subtitle="Paket yang dapat dipilih tenant saat ini."
+          icon={CheckCircleIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Paket Nonaktif"
+          value={formatNumber(planStats.inactive)}
+          helper="Draft / disembunyikan"
+          subtitle="Paket yang masih disiapkan atau tidak dipublikasikan."
+          icon={XCircleIcon}
+          tone="yellow"
+        />
       </div>
 
-      {/* Empty State */}
-      {plans.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No subscription plans found</p>
+      {plans.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center shadow-sm">
+          <p className="text-base font-medium text-gray-900">Belum ada paket langganan.</p>
+          <p className="mt-2 text-sm text-gray-500">
+            Buat paket pertama untuk mulai menawarkan pilihan subscription ke tenant.
+          </p>
           <button
+            type="button"
             onClick={openCreateModal}
-            className="mt-4 text-blue-600 hover:text-blue-700"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
           >
-            Create your first plan
+            <PlusIcon className="h-5 w-5" />
+            Buat Paket Pertama
           </button>
         </div>
-      )}
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                {editingPlan ? 'Edit Plan' : 'Create Plan'}
-              </h2>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Plan Code */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Plan Code *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.plan}
-                    onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    placeholder="e.g., basic, premium"
-                  />
-                </div>
-
-                {/* Plan Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Plan Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    placeholder="e.g., Basic Plan"
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    rows={3}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
-                </div>
-
-                {/* Pricing */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Monthly Price (IDR) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.monthly_price}
-                      onChange={(e) =>
-                        setFormData({ ...formData, monthly_price: Number(e.target.value) })
-                      }
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    />
+      ) : (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          {plans.map((plan) => (
+            <article
+              key={plan.id}
+              className={`rounded-2xl border bg-white p-5 shadow-sm ${
+                plan.is_active ? 'border-green-200' : 'border-gray-200'
+              }`}
+            >
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                        plan.is_active
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      {plan.is_active ? 'Aktif' : 'Nonaktif'}
+                    </span>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Yearly Price (IDR) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.yearly_price}
-                      onChange={(e) =>
-                        setFormData({ ...formData, yearly_price: Number(e.target.value) })
-                      }
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    />
-                  </div>
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    {plan.plan}
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-gray-500">
+                    {plan.description || 'Belum ada deskripsi paket.'}
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => openEditModal(plan)}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <PencilIcon className="h-4 w-4" />
+                  Edit
+                </button>
+              </div>
 
-                {/* Limits */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Max Users *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.max_users}
-                      onChange={(e) =>
-                        setFormData({ ...formData, max_users: Number(e.target.value) })
-                      }
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Max Pelanggan *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.max_customers}
-                      onChange={(e) =>
-                        setFormData({ ...formData, max_customers: Number(e.target.value) })
-                      }
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    />
-                  </div>
+              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-sm text-gray-500">Harga bulanan</p>
+                  <p className="mt-2 text-2xl font-semibold text-gray-900">
+                    {formatCurrency(plan.monthly_price)}
+                  </p>
                 </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-sm text-gray-500">Harga tahunan</p>
+                  <p className="mt-2 text-2xl font-semibold text-gray-900">
+                    {formatCurrency(plan.yearly_price)}
+                  </p>
+                </div>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Max Storage (GB) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.max_storage_gb}
-                      onChange={(e) =>
-                        setFormData({ ...formData, max_storage_gb: Number(e.target.value) })
-                      }
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Max API Calls/Day *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.max_api_calls_per_day}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          max_api_calls_per_day: Number(e.target.value),
-                        })
-                      }
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    />
-                  </div>
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-sm text-gray-500">Maks pengguna</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {formatNumber(plan.max_users)}
+                  </p>
                 </div>
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-sm text-gray-500">Maks pelanggan</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {formatNumber(plan.max_customers)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-sm text-gray-500">Storage</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {formatNumber(plan.max_storage_gb)} GB
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-sm text-gray-500">API calls / hari</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {formatNumber(plan.max_api_calls_per_day)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-sm text-gray-500">Trial</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    {formatNumber(plan.trial_days)} hari
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 p-4">
+                  <p className="text-sm text-gray-500">Urutan tampil</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">
+                    #{formatNumber(plan.display_order)}
+                  </p>
+                </div>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Trial Days *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.trial_days}
-                      onChange={(e) =>
-                        setFormData({ ...formData, trial_days: Number(e.target.value) })
-                      }
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Display Order *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.display_order}
-                      onChange={(e) =>
-                        setFormData({ ...formData, display_order: Number(e.target.value) })
-                      }
-                      className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    />
-                  </div>
-                </div>
-
-                {/* Features */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Features (one per line)
-                  </label>
-                  <textarea
-                    value={formData.features}
-                    onChange={(e) =>
-                      setFormData({ ...formData, features: e.target.value })
-                    }
-                    rows={6}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2"
-                    placeholder="Feature 1&#10;Feature 2&#10;Feature 3"
-                  />
-                </div>
-
-                {/* Active Status */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={formData.is_active}
-                    onChange={(e) =>
-                      setFormData({ ...formData, is_active: e.target.checked })
-                    }
-                    className="rounded border-gray-300"
-                  />
-                  <label htmlFor="is_active" className="text-sm text-gray-700">
-                    Active (visible to tenants)
-                  </label>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300"
-                    disabled={submitting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Saving...' : editingPlan ? 'Update Plan' : 'Create Plan'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+              <div className="mt-5 rounded-2xl border border-gray-200 p-4">
+                <h4 className="text-sm font-semibold text-gray-900">Fitur paket</h4>
+                {plan.features.length === 0 ? (
+                  <p className="mt-3 text-sm text-gray-500">Belum ada fitur yang dicantumkan.</p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {plan.features.map((feature, index) => (
+                      <li key={`${plan.id}-${index}`} className="flex items-start gap-2 text-sm text-gray-600">
+                        <CheckCircleIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </article>
+          ))}
         </div>
       )}
+
+      <Modal
+        isOpen={showModal}
+        onClose={closeModal}
+        title={editingPlan ? 'Edit Paket Langganan' : 'Tambah Paket Langganan'}
+        size="xl"
+        mobileFullscreen
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormInput
+              label="Kode paket"
+              required
+              value={formData.plan}
+              onChange={(event) => handleTextChange('plan', event.target.value)}
+              placeholder="contoh: basic"
+            />
+            <FormInput
+              label="Nama paket"
+              required
+              value={formData.name}
+              onChange={(event) => handleTextChange('name', event.target.value)}
+              placeholder="contoh: Basic Plan"
+            />
+          </div>
+
+          <FormTextarea
+            label="Deskripsi"
+            rows={3}
+            value={formData.description}
+            onChange={(event) => handleTextChange('description', event.target.value)}
+            placeholder="Ringkasan manfaat dan target tenant untuk paket ini."
+          />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormInput
+              label="Harga bulanan (IDR)"
+              type="number"
+              required
+              value={formData.monthly_price}
+              onChange={(event) => handleNumberChange('monthly_price', event.target.value)}
+            />
+            <FormInput
+              label="Harga tahunan (IDR)"
+              type="number"
+              required
+              value={formData.yearly_price}
+              onChange={(event) => handleNumberChange('yearly_price', event.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormInput
+              label="Maks pengguna"
+              type="number"
+              required
+              value={formData.max_users}
+              onChange={(event) => handleNumberChange('max_users', event.target.value)}
+            />
+            <FormInput
+              label="Maks pelanggan"
+              type="number"
+              required
+              value={formData.max_customers}
+              onChange={(event) => handleNumberChange('max_customers', event.target.value)}
+            />
+            <FormInput
+              label="Maks storage (GB)"
+              type="number"
+              required
+              value={formData.max_storage_gb}
+              onChange={(event) => handleNumberChange('max_storage_gb', event.target.value)}
+            />
+            <FormInput
+              label="Maks API calls / hari"
+              type="number"
+              required
+              value={formData.max_api_calls_per_day}
+              onChange={(event) => handleNumberChange('max_api_calls_per_day', event.target.value)}
+            />
+            <FormInput
+              label="Trial (hari)"
+              type="number"
+              required
+              value={formData.trial_days}
+              onChange={(event) => handleNumberChange('trial_days', event.target.value)}
+            />
+            <FormInput
+              label="Urutan tampil"
+              type="number"
+              required
+              value={formData.display_order}
+              onChange={(event) => handleNumberChange('display_order', event.target.value)}
+            />
+          </div>
+
+          <FormTextarea
+            label="Fitur paket"
+            rows={6}
+            value={formData.features}
+            onChange={(event) => handleTextChange('features', event.target.value)}
+            placeholder={'Fitur 1\nFitur 2\nFitur 3'}
+            helperText="Isi satu fitur per baris agar mudah dibaca tenant."
+          />
+
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <FormCheckbox
+              checked={formData.is_active}
+              onChange={(event) =>
+                setFormData((current) => ({ ...current, is_active: event.target.checked }))
+              }
+              label="Aktifkan paket ini agar terlihat oleh tenant"
+            />
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={submitting}
+              className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
+            >
+              {submitting ? 'Menyimpan...' : editingPlan ? 'Simpan Perubahan' : 'Buat Paket'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

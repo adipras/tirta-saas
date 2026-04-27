@@ -1,98 +1,104 @@
 import { useNavigate } from 'react-router-dom';
 import {
   ClipboardDocumentListIcon,
-  PlusIcon,
   ClockIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline';
-import { PageHeader } from '../../components';
+import {
+  DashboardStatCard,
+  PageHeader,
+  QuickActionCard,
+} from '../../components';
 
 export default function MeterReaderDashboard() {
   const navigate = useNavigate();
 
   const quickActions = [
     {
-      name: 'New Meter Reading',
-      description: 'Record new water meter reading',
+      title: 'Catat Pembacaan Baru',
+      description: 'Masukkan hasil pembacaan meter terbaru untuk pelanggan.',
       icon: PlusIcon,
-      color: 'blue',
-      onClick: () => navigate('/admin/usage/new'),
+      tone: 'blue' as const,
+      onClick: () => navigate('/admin/usage/create'),
     },
     {
-      name: 'View All Readings',
-      description: 'Browse all meter readings',
+      title: 'Lihat Semua Pembacaan',
+      description: 'Buka daftar pemakaian air untuk meninjau seluruh data meter.',
       icon: ClipboardDocumentListIcon,
-      color: 'green',
+      tone: 'green' as const,
       onClick: () => navigate('/admin/usage'),
     },
     {
-      name: 'Reading History',
-      description: 'View reading history',
+      title: 'Pantau Riwayat Pelanggan',
+      description: 'Gunakan daftar pemakaian untuk membuka histori pelanggan tertentu.',
       icon: ClockIcon,
-      color: 'purple',
-      onClick: () => navigate('/admin/usage/history'),
+      tone: 'indigo' as const,
+      onClick: () => navigate('/admin/usage'),
     },
   ];
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Meter Reader Dashboard" subtitle="Record and manage water meter readings" />
+      <PageHeader
+        title="Dashboard Petugas Meter"
+        subtitle="Akses cepat untuk mencatat pembacaan, membuka daftar pemakaian, dan meninjau histori pelanggan dari tampilan yang ringkas di mobile."
+      />
 
-      {/* Quick Actions Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <DashboardStatCard
+          title="Langkah Utama"
+          value="Input Meter"
+          helper="Mulai dari sini"
+          subtitle="Catat hasil pembacaan meter baru sebelum data digunakan pada proses tagihan."
+          icon={PlusIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Pemeriksaan"
+          value="Daftar Pemakaian"
+          helper="Cek ulang data"
+          subtitle="Tinjau pembacaan yang sudah masuk untuk memastikan data pelanggan sudah lengkap."
+          icon={ClipboardDocumentListIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Riwayat"
+          value="Histori Pelanggan"
+          helper="Pantau tren"
+          subtitle="Lihat pola pemakaian pelanggan saat perlu validasi atau tindak lanjut lapangan."
+          icon={ClockIcon}
+          tone="purple"
+        />
+      </div>
+
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {quickActions.map((action) => (
-          <button
-            key={action.name}
+          <QuickActionCard
+            key={action.title}
+            title={action.title}
+            description={action.description}
+            icon={action.icon}
+            tone={action.tone}
             onClick={action.onClick}
-            className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500 hover:shadow-lg transition-shadow rounded-lg border border-gray-200"
-          >
-            <div>
-              <span
-                className={`rounded-lg inline-flex p-3 ring-4 ring-white bg-${action.color}-50`}
-              >
-                <action.icon
-                  className={`h-6 w-6 text-${action.color}-600`}
-                  aria-hidden="true"
-                />
-              </span>
-            </div>
-            <div className="mt-8">
-              <h3 className="text-lg font-medium text-gray-900">
-                <span className="absolute inset-0" aria-hidden="true" />
-                {action.name}
-              </h3>
-              <p className="mt-2 text-sm text-gray-500">{action.description}</p>
-            </div>
-            <span
-              className="pointer-events-none absolute top-6 right-6 text-gray-300 group-hover:text-gray-400"
-              aria-hidden="true"
-            >
-              <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20 4h1a1 1 0 00-1-1v1zm-1 12a1 1 0 102 0h-2zM8 3a1 1 0 000 2V3zM3.293 19.293a1 1 0 101.414 1.414l-1.414-1.414zM19 4v12h2V4h-2zm1-1H8v2h12V3zm-.707.293l-16 16 1.414 1.414 16-16-1.414-1.414z" />
-              </svg>
-            </span>
-          </button>
+          />
         ))}
-      </div>
+      </section>
 
-      {/* Information Card */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="text-lg font-medium text-blue-900 mb-2">Welcome, Meter Reader!</h3>
-        <p className="text-sm text-blue-700">
-          Your role is to record water meter readings for customers. You can create new readings
-          and view the reading history. All readings you enter will be used to calculate customer
-          water usage and generate invoices.
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-blue-900">Panduan singkat petugas meter</h2>
+        <div className="mt-3 space-y-2 text-sm leading-6 text-blue-900">
+          <p>1. Catat pembacaan meter terbaru segera setelah kunjungan lapangan selesai.</p>
+          <p>2. Pastikan angka awal dan akhir meter masuk dengan benar sebelum menyimpan.</p>
+          <p>3. Gunakan daftar pemakaian untuk memeriksa histori bila ada lonjakan atau anomali.</p>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Aktivitas terbaru</h2>
+        <p className="mt-2 text-sm leading-6 text-gray-500">
+          Belum ada aktivitas terbaru yang perlu ditampilkan di dashboard ini.
         </p>
-      </div>
-
-      {/* Recent Activity - Can be enhanced later */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-5 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
-        </div>
-        <div className="px-6 py-4">
-          <p className="text-sm text-gray-500">No recent activity to display.</p>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

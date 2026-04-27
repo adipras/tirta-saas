@@ -1,27 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  MagnifyingGlassIcon,
   CheckCircleIcon,
-  XCircleIcon,
   ClockIcon,
-  EyeIcon,
-  BuildingOfficeIcon,
   DocumentIcon,
+  EyeIcon,
+  MagnifyingGlassIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { platformSubscriptionService } from '../../services/platformSubscriptionService';
 import type { SubscriptionPayment } from '../../services/platformSubscriptionService';
-import { useToast, PageHeader } from '../../components';
+import {
+  DashboardStatCard,
+  DataTable,
+  Modal,
+  PageHeader,
+  type Column,
+  useToast,
+} from '../../components';
+
+type ModalAction = 'verify' | 'reject' | 'view';
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: { error?: string } } }).response;
+    if (response?.data?.error) {
+      return response.data.error;
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
 
 export default function PlatformSubscriptionVerification() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
-  const [payments, setPembayaran] = useState<SubscriptionPayment[]>([]);
-  const [filteredPembayaran, setFilteredPembayaran] = useState<SubscriptionPayment[]>([]);
+  const [payments, setPayments] = useState<SubscriptionPayment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedPayment, setSelectedPayment] = useState<SubscriptionPayment | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [modalAction, setModalAction] = useState<'verify' | 'reject' | 'view'>('view');
+  const [modalAction, setModalAction] = useState<ModalAction>('view');
   const [notes, setNotes] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,22 +53,24 @@ export default function PlatformSubscriptionVerification() {
   const [isProofLoading, setIsProofLoading] = useState(false);
   const [proofError, setProofError] = useState('');
 
-  useEffect(() => {
-    loadPembayaran();
+  const loadPayments = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const statusFilter = filterStatus === 'all' ? undefined : filterStatus;
+      const data = await platformSubscriptionService.getSubscriptionPembayaran(statusFilter);
+      setPayments(data);
+    } catch (err: unknown) {
+      console.error('Failed to load payments:', err);
+      setError(getErrorMessage(err, 'Gagal memuat pembayaran langganan tenant.'));
+    } finally {
+      setLoading(false);
+    }
   }, [filterStatus]);
 
   useEffect(() => {
-    if (searchTerm) {
-      const filtered = payments.filter(
-        (p) =>
-          p.tenant?.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          p.tenant?.villageCode.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredPembayaran(filtered);
-    } else {
-      setFilteredPembayaran(payments);
-    }
-  }, [searchTerm, payments]);
+    void loadPayments();
+  }, [loadPayments]);
 
   useEffect(() => {
     if (!showModal || !selectedPayment?.proofUrl) {
@@ -64,6 +88,7 @@ export default function PlatformSubscriptionVerification() {
         setProofContentType('');
 
         const blob = await platformSubscriptionService.getPaymentProofBlob(selectedPayment.proofUrl);
+
         if (!active) {
           return;
         }
@@ -71,11 +96,12 @@ export default function PlatformSubscriptionVerification() {
         objectUrl = URL.createObjectURL(blob);
         setProofPreviewUrl(objectUrl);
         setProofContentType(blob.type || '');
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!active) {
           return;
         }
-        setProofError(err.message || 'Gagal memuat bukti pembayaran.');
+
+        setProofError(getErrorMessage(err, 'Gagal memuat bukti pembayaran.'));
       } finally {
         if (active) {
           setIsProofLoading(false);
@@ -93,23 +119,7 @@ export default function PlatformSubscriptionVerification() {
     };
   }, [showModal, selectedPayment?.id, selectedPayment?.proofUrl]);
 
-  const loadPembayaran = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const statusFilter = filterStatus === 'all' ? undefined : filterStatus;
-      const data = await platformSubscriptionService.getSubscriptionPembayaran(statusFilter);
-      setPembayaran(data);
-      setFilteredPembayaran(data);
-    } catch (err: any) {
-      console.error('Failed to load payments:', err);
-      setError(err.response?.data?.error || 'Failed to load subscription payments');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openModal = (payment: SubscriptionPayment, action: 'verify' | 'reject' | 'view') => {
+  const openModal = (payment: SubscriptionPayment, action: ModalAction) => {
     setSelectedPayment(payment);
     setModalAction(action);
     setNotes('');
@@ -128,60 +138,68 @@ export default function PlatformSubscriptionVerification() {
   };
 
   const handleAction = async () => {
-    if (!selectedPayment) return;
+    if (!selectedPayment) {
+      return;
+    }
 
     if (modalAction === 'reject' && !rejectionReason.trim()) {
-      setError('Please provide a reason for rejection');
+      setError('Alasan penolakan wajib diisi.');
       return;
     }
 
     setIsSubmitting(true);
     setError('');
-    
-      try {
-        if (modalAction === 'verify') {
-          await platformSubscriptionService.verifyPayment(selectedPayment.id, { notes });
-          toast.success('Pembayaran diverifikasi. Tenant sekarang siap diaktifkan dari tab Pending.');
-        } else if (modalAction === 'reject') {
-        await platformSubscriptionService.rejectPayment(selectedPayment.id, { reason: rejectionReason });
-        toast.success('Pembayaran ditolak. Tenant telah diberitahu.');
+
+    try {
+      if (modalAction === 'verify') {
+        await platformSubscriptionService.verifyPayment(selectedPayment.id, { notes: notes.trim() });
+        toast.success('Pembayaran diverifikasi. Tenant siap diaktifkan dari menu Tenant.');
+      } else if (modalAction === 'reject') {
+        await platformSubscriptionService.rejectPayment(selectedPayment.id, {
+          reason: rejectionReason.trim(),
+        });
+        toast.success('Pembayaran ditolak dan tenant sudah menerima status terbaru.');
       }
 
-      // Reload payments to get updated data
-      await loadPembayaran();
+      await loadPayments();
       closeModal();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Action failed:', err);
-      setError(err.response?.data?.error || 'Action failed. Please try again.');
+      setError(getErrorMessage(err, 'Aksi pembayaran gagal. Silakan coba lagi.'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
-  };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
     });
-  };
+
+  const formatBillingPeriod = (billingPeriod: number) => `${billingPeriod} bulan`;
 
   const getStatusBadge = (status: string) => {
     const config = {
       pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
-      verified: { bg: 'bg-green-100', text: 'text-green-800', label: 'Verified' },
-      rejected: { bg: 'bg-red-100', text: 'text-red-800', label: 'Rejected' },
+      verified: { bg: 'bg-green-100', text: 'text-green-800', label: 'Terverifikasi' },
+      rejected: { bg: 'bg-red-100', text: 'text-red-800', label: 'Ditolak' },
     };
     const { bg, text, label } = config[status as keyof typeof config] || config.pending;
-    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>{label}</span>;
+
+    return (
+      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${bg} ${text}`}>
+        {label}
+      </span>
+    );
   };
 
   const getPlanBadge = (plan: string) => {
@@ -191,327 +209,399 @@ export default function PlatformSubscriptionVerification() {
       ENTERPRISE: { bg: 'bg-orange-100', text: 'text-orange-800' },
     };
     const { bg, text } = config[plan as keyof typeof config] || config.BASIC;
-    return <span className={`px-2 py-1 rounded-full text-xs font-medium ${bg} ${text}`}>{plan}</span>;
+
+    return (
+      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${bg} ${text}`}>
+        {plan}
+      </span>
+    );
   };
 
-  const isPdfProof = proofContentType.includes('pdf') || selectedPayment?.proofUrl.toLowerCase().endsWith('.pdf');
+  const filteredPayments = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return payments;
+    }
+
+    return payments.filter((payment) => {
+      const organizationName = payment.tenant?.organizationName?.toLowerCase() || '';
+      const villageCode = payment.tenant?.villageCode?.toLowerCase() || '';
+
+      return (
+        organizationName.includes(normalizedSearch) || villageCode.includes(normalizedSearch)
+      );
+    });
+  }, [payments, searchTerm]);
+
+  const paymentStats = useMemo(
+    () => ({
+      pending: payments.filter((payment) => payment.status === 'pending').length,
+      verified: payments.filter((payment) => payment.status === 'verified').length,
+      rejected: payments.filter((payment) => payment.status === 'rejected').length,
+    }),
+    [payments]
+  );
+
+  const columns: Column<SubscriptionPayment>[] = [
+    {
+      key: 'tenant',
+      label: 'Tenant',
+      render: (_, payment) => (
+        <div className="min-w-0">
+          <p className="font-medium text-gray-900">
+            {payment.tenant?.organizationName || 'Tenant tidak tersedia'}
+          </p>
+          <p className="text-xs text-gray-500">{payment.tenant?.villageCode || '-'}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'subscriptionPlan',
+      label: 'Paket',
+      render: (value) => getPlanBadge(String(value)),
+    },
+    {
+      key: 'amount',
+      label: 'Nominal',
+      render: (value) => (
+        <span className="font-semibold text-gray-900">{formatCurrency(Number(value))}</span>
+      ),
+    },
+    {
+      key: 'billingPeriod',
+      label: 'Periode',
+      hideOnMobile: true,
+      render: (value) => formatBillingPeriod(Number(value)),
+    },
+    {
+      key: 'paymentDate',
+      label: 'Tanggal Bayar',
+      render: (value) => formatDate(String(value)),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (value) => getStatusBadge(String(value)),
+    },
+  ];
+
+  const isPdfProof =
+    proofContentType.includes('pdf') ||
+    Boolean(selectedPayment?.proofUrl && selectedPayment.proofUrl.toLowerCase().endsWith('.pdf'));
+
+  const modalTitle = {
+    view: 'Detail Pembayaran Langganan',
+    verify: 'Verifikasi Pembayaran',
+    reject: 'Tolak Pembayaran',
+  }[modalAction];
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Verifikasi Pembayaran Langganan Tenant" subtitle="Validasi bukti pembayaran langganan tenant sebelum tenant diaktifkan" />
+      <PageHeader
+        title="Verifikasi Pembayaran Langganan Tenant"
+        subtitle="Validasi bukti transfer tenant dengan tampilan list dan detail yang lebih nyaman di layar kecil."
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <ClockIcon className="h-8 w-8 text-yellow-500" />
-            <div className="ml-4">
-              <p className="text-sm text-gray-600">Pending Verification</p>
-              <p className="text-2xl font-bold">{payments.filter((p) => p.status === 'pending').length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <CheckCircleIcon className="h-8 w-8 text-green-500" />
-            <div className="ml-4">
-              <p className="text-sm text-gray-600">Verified</p>
-              <p className="text-2xl font-bold">{payments.filter((p) => p.status === 'verified').length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <XCircleIcon className="h-8 w-8 text-red-500" />
-            <div className="ml-4">
-              <p className="text-sm text-gray-600">Rejected</p>
-              <p className="text-2xl font-bold">{payments.filter((p) => p.status === 'rejected').length}</p>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <DashboardStatCard
+          title="Perlu Verifikasi"
+          value={paymentStats.pending.toLocaleString('id-ID')}
+          helper="Prioritas utama"
+          subtitle="Pembayaran baru yang masih menunggu keputusan."
+          icon={ClockIcon}
+          tone="yellow"
+        />
+        <DashboardStatCard
+          title="Terverifikasi"
+          value={paymentStats.verified.toLocaleString('id-ID')}
+          helper="Sudah aman"
+          subtitle="Pembayaran yang sudah lolos verifikasi platform."
+          icon={CheckCircleIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Ditolak"
+          value={paymentStats.rejected.toLocaleString('id-ID')}
+          helper="Butuh tindak lanjut tenant"
+          subtitle="Pembayaran yang perlu diajukan ulang oleh tenant."
+          icon={XCircleIcon}
+          tone="purple"
+        />
       </div>
 
-      {/* Search & Filter */}
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="flex-1 relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by tenant name or village code..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
+      <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+          <div className="flex-1">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Cari tenant atau kode desa
+            </label>
+            <div className="relative">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Contoh: Tirta Maju atau KDG01"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                className="w-full rounded-xl border border-gray-300 py-2.5 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
+            </div>
           </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="verified">Verified</option>
-            <option value="rejected">Rejected</option>
-          </select>
+          <div className="w-full lg:max-w-[220px]">
+            <label className="mb-2 block text-sm font-medium text-gray-700">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(event) => setFilterStatus(event.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="all">Semua status</option>
+              <option value="pending">Pending</option>
+              <option value="verified">Terverifikasi</option>
+              <option value="rejected">Ditolak</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
-
-      {/* Pembayaran List */}
-      <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        {error && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
           </div>
-        ) : filteredPembayaran.length === 0 ? (
-          <div className="p-8 text-center">
-            <BuildingOfficeIcon className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-600">No subscription payments found</p>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tenant</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plan</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredPembayaran.map((payment) => (
-                <tr key={payment.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{payment.tenant?.organizationName || 'N/A'}</p>
-                      <p className="text-xs text-gray-500">{payment.tenant?.villageCode || 'N/A'}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">{getPlanBadge(payment.subscriptionPlan)}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-900">{formatCurrency(payment.amount)}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {payment.billingPeriod} {payment.billingPeriod === 1 ? 'month' : 'months'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{formatDate(payment.paymentDate)}</td>
-                  <td className="px-6 py-4">{getStatusBadge(payment.status)}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                     <button
-                       onClick={() => openModal(payment, 'view')}
-                       className="inline-flex items-center justify-center rounded-md p-2 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
-                       title="Lihat detail"
-                       aria-label="Lihat detail"
-                     >
-                       <EyeIcon className="h-4 w-4" />
-                     </button>
-                     {payment.status === 'pending' && (
-                       <>
-                         <button
-                           onClick={() => openModal(payment, 'verify')}
-                           className="inline-flex items-center justify-center rounded-md p-2 text-green-600 hover:bg-green-50 hover:text-green-900"
-                           title="Verifikasi pembayaran"
-                           aria-label="Verifikasi pembayaran"
-                         >
-                           <CheckCircleIcon className="h-4 w-4" />
-                         </button>
-                         <button
-                           onClick={() => openModal(payment, 'reject')}
-                           className="inline-flex items-center justify-center rounded-md p-2 text-red-600 hover:bg-red-50 hover:text-red-900"
-                           title="Tolak pembayaran"
-                           aria-label="Tolak pembayaran"
-                         >
-                           <XCircleIcon className="h-4 w-4" />
-                         </button>
-                       </>
-                     )}
-                    </div>
-                   </td>
-                 </tr>
-               ))}
-            </tbody>
-          </table>
         )}
-      </div>
+      </section>
 
-      {/* Modal */}
-      {showModal && selectedPayment && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                {modalAction === 'view' && 'Subscription Payment Details'}
-                {modalAction === 'verify' && 'Verify Subscription Payment'}
-                {modalAction === 'reject' && 'Reject Subscription Payment'}
-              </h3>
-
-              <div className="space-y-4">
-                {/* Tenant Info */}
-                <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-600">
-                  <h4 className="font-semibold text-gray-900 mb-2">Tenant Information</h4>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <p className="text-sm text-gray-600">Tenant Name</p>
-                      <p className="font-medium">{selectedPayment.tenant?.organizationName || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Village Code</p>
-                      <p className="font-medium">{selectedPayment.tenant?.villageCode || 'N/A'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Subscription Info */}
-                <div className="grid grid-cols-1 gap-4 pb-4 border-b sm:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-gray-600">Subscription Plan</p>
-                    {getPlanBadge(selectedPayment.subscriptionPlan)}
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Amount</p>
-                    <p className="font-semibold text-lg text-blue-600">{formatCurrency(selectedPayment.amount)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Billing Period</p>
-                    <p className="font-medium">{selectedPayment.billingPeriod} {selectedPayment.billingPeriod === 1 ? 'month' : 'months'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Submitted Date</p>
-                    <p className="font-medium">{formatDate(selectedPayment.createdAt)}</p>
-                  </div>
-                </div>
-
-                {/* Payment Info */}
-                <div className="grid grid-cols-1 gap-4 pb-4 border-b sm:grid-cols-2">
-                  <div>
-                    <p className="text-sm text-gray-600">Payment Date</p>
-                    <p className="font-medium">{formatDate(selectedPayment.paymentDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Payment Method</p>
-                    <p className="font-medium capitalize">{selectedPayment.paymentMethod.replace('_', ' ')}</p>
-                  </div>
-                  {selectedPayment.accountNumber && (
-                    <div>
-                      <p className="text-sm text-gray-600">Account Number</p>
-                      <p className="font-medium">{selectedPayment.accountNumber}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-sm text-gray-600">Account Name</p>
-                    <p className="font-medium">{selectedPayment.accountName}</p>
-                  </div>
-                  {selectedPayment.referenceNumber && (
-                    <div className="col-span-2">
-                      <p className="text-sm text-gray-600">Reference Number</p>
-                      <p className="font-medium">{selectedPayment.referenceNumber}</p>
-                    </div>
-                  )}
-                  {selectedPayment.notes && (
-                    <div className="col-span-2">
-                      <p className="text-sm text-gray-600">Notes from Tenant</p>
-                      <p className="font-medium">{selectedPayment.notes}</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Payment Proof */}
-                <div>
-                  <p className="text-sm text-gray-600 mb-2">Payment Proof</p>
-                  <div className="border rounded-lg p-4 bg-gray-50 flex items-center justify-center">
-                    {isProofLoading ? (
-                      <div className="py-10 text-center">
-                        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
-                      </div>
-                    ) : proofError ? (
-                      <div className="text-center text-sm text-red-600">
-                        {proofError}
-                      </div>
-                    ) : !proofPreviewUrl ? (
-                      <div className="text-center text-sm text-gray-500">
-                        Preview bukti pembayaran tidak tersedia.
-                      </div>
-                    ) : isPdfProof ? (
-                      <div className="text-center">
-                        <DocumentIcon className="h-16 w-16 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-600 mb-2">PDF Document</p>
-                        <a
-                          href={proofPreviewUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                        >
-                          View PDF
-                        </a>
-                      </div>
-                    ) : (
-                      <img
-                        src={proofPreviewUrl}
-                        alt="Payment proof"
-                        className="max-h-96 mx-auto rounded"
-                      />
-                    )}
-                  </div>
-                </div>
-
-                {/* Notes Input */}
-                {modalAction !== 'view' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {modalAction === 'verify' ? 'Verification Notes (Optional)' : 'Rejection Reason *'}
-                    </label>
-                    <textarea
-                      value={modalAction === 'verify' ? notes : rejectionReason}
-                      onChange={(e) => modalAction === 'verify' ? setNotes(e.target.value) : setRejectionReason(e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder={modalAction === 'verify' ? 'Add notes...' : 'Enter rejection reason...'}
-                      required={modalAction === 'reject'}
-                    />
-                    {modalAction === 'verify' && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Setelah pembayaran diverifikasi, tenant akan siap diaktifkan dari menu Tenant.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={closeModal}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 border text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                {modalAction !== 'view' && (
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <DataTable
+          data={filteredPayments}
+          columns={columns}
+          loading={loading}
+          searchable={false}
+          emptyMessage="Belum ada pembayaran langganan yang cocok dengan filter saat ini."
+          actions={(payment) => (
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => openModal(payment, 'view')}
+                className="inline-flex items-center justify-center rounded-lg p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-800"
+                title="Lihat detail pembayaran"
+                aria-label="Lihat detail pembayaran"
+              >
+                <EyeIcon className="h-5 w-5" />
+              </button>
+              {payment.status === 'pending' && (
+                <>
                   <button
-                    onClick={handleAction}
-                    disabled={isSubmitting || (modalAction === 'reject' && !rejectionReason.trim())}
-                    className={`px-4 py-2 text-white rounded-lg disabled:opacity-50 ${
-                      modalAction === 'verify'
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-red-600 hover:bg-red-700'
-                    }`}
+                    type="button"
+                    onClick={() => openModal(payment, 'verify')}
+                    className="inline-flex items-center justify-center rounded-lg p-2.5 text-green-600 hover:bg-green-50 hover:text-green-800"
+                    title="Verifikasi pembayaran"
+                    aria-label="Verifikasi pembayaran"
                   >
-                    {isSubmitting ? 'Processing...' : modalAction === 'verify' ? 'Verify' : 'Reject Payment'}
+                    <CheckCircleIcon className="h-5 w-5" />
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => openModal(payment, 'reject')}
+                    className="inline-flex items-center justify-center rounded-lg p-2.5 text-red-600 hover:bg-red-50 hover:text-red-800"
+                    title="Tolak pembayaran"
+                    aria-label="Tolak pembayaran"
+                  >
+                    <XCircleIcon className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        />
+      </section>
+
+      <Modal
+        isOpen={showModal && Boolean(selectedPayment)}
+        onClose={closeModal}
+        title={modalTitle}
+        size="xl"
+        mobileFullscreen
+        bodyClassName="space-y-6"
+      >
+        {selectedPayment && (
+          <>
+            <section className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-blue-700">Tenant</p>
+                  <h3 className="mt-1 text-lg font-semibold text-gray-900">
+                    {selectedPayment.tenant?.organizationName || 'Tenant tidak tersedia'}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {selectedPayment.tenant?.villageCode || '-'}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {getPlanBadge(selectedPayment.subscriptionPlan)}
+                  {getStatusBadge(selectedPayment.status)}
+                </div>
+              </div>
+            </section>
+
+            <section className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-gray-900">Ringkasan pembayaran</h4>
+                <dl className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <dt className="text-gray-500">Nominal</dt>
+                    <dd className="mt-1 font-semibold text-blue-600">
+                      {formatCurrency(selectedPayment.amount)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Periode</dt>
+                    <dd className="mt-1 text-gray-900">
+                      {formatBillingPeriod(selectedPayment.billingPeriod)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Tanggal bayar</dt>
+                    <dd className="mt-1 text-gray-900">
+                      {formatDate(selectedPayment.paymentDate)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Tanggal submit</dt>
+                    <dd className="mt-1 text-gray-900">
+                      {formatDate(selectedPayment.createdAt)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-gray-900">Detail transfer</h4>
+                <dl className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <dt className="text-gray-500">Metode pembayaran</dt>
+                    <dd className="mt-1 text-gray-900 capitalize">
+                      {selectedPayment.paymentMethod.replace('_', ' ')}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Nama rekening</dt>
+                    <dd className="mt-1 text-gray-900">{selectedPayment.accountName || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Nomor rekening</dt>
+                    <dd className="mt-1 text-gray-900">{selectedPayment.accountNumber || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Nomor referensi</dt>
+                    <dd className="mt-1 text-gray-900">
+                      {selectedPayment.referenceNumber || '-'}
+                    </dd>
+                  </div>
+                  {selectedPayment.notes && (
+                    <div>
+                      <dt className="text-gray-500">Catatan tenant</dt>
+                      <dd className="mt-1 text-gray-900">{selectedPayment.notes}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-gray-200 bg-white p-4">
+              <p className="text-sm font-semibold text-gray-900">Bukti pembayaran</p>
+              <div className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4">
+                {isProofLoading ? (
+                  <div className="py-10 text-center">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+                  </div>
+                ) : proofError ? (
+                  <div className="text-center text-sm text-red-600">{proofError}</div>
+                ) : !proofPreviewUrl ? (
+                  <div className="text-center text-sm text-gray-500">
+                    Preview bukti pembayaran tidak tersedia.
+                  </div>
+                ) : isPdfProof ? (
+                  <div className="text-center">
+                    <DocumentIcon className="mx-auto mb-2 h-16 w-16 text-gray-400" />
+                    <p className="mb-2 text-sm text-gray-600">Dokumen PDF</p>
+                    <a
+                      href={proofPreviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                    >
+                      Buka PDF
+                    </a>
+                  </div>
+                ) : (
+                  <img
+                    src={proofPreviewUrl}
+                    alt="Bukti pembayaran"
+                    className="mx-auto max-h-96 rounded-xl object-contain"
+                  />
                 )}
               </div>
+            </section>
+
+            {modalAction !== 'view' && (
+              <section className="rounded-2xl border border-gray-200 bg-white p-4">
+                <label className="block text-sm font-semibold text-gray-900">
+                  {modalAction === 'verify' ? 'Catatan verifikasi (opsional)' : 'Alasan penolakan'}
+                </label>
+                <textarea
+                  value={modalAction === 'verify' ? notes : rejectionReason}
+                  onChange={(event) =>
+                    modalAction === 'verify'
+                      ? setNotes(event.target.value)
+                      : setRejectionReason(event.target.value)
+                  }
+                  rows={4}
+                  className="mt-3 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder={
+                    modalAction === 'verify'
+                      ? 'Tambahkan catatan verifikasi bila diperlukan.'
+                      : 'Jelaskan alasan pembayaran ini ditolak.'
+                  }
+                  required={modalAction === 'reject'}
+                />
+                {modalAction === 'verify' && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Setelah diverifikasi, tenant dapat dilanjutkan ke proses aktivasi.
+                  </p>
+                )}
+              </section>
+            )}
+
+            <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={isSubmitting}
+                className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
+              >
+                Batal
+              </button>
+              {modalAction !== 'view' && (
+                <button
+                  type="button"
+                  onClick={handleAction}
+                  disabled={isSubmitting || (modalAction === 'reject' && !rejectionReason.trim())}
+                  className={`inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 sm:w-auto ${
+                    modalAction === 'verify'
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                >
+                  {isSubmitting
+                    ? 'Memproses...'
+                    : modalAction === 'verify'
+                      ? 'Verifikasi Pembayaran'
+                      : 'Tolak Pembayaran'}
+                </button>
+              )}
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

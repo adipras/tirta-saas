@@ -1,18 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { reportService } from '../../services/reportService';
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from 'recharts';
-import { ArrowDownTrayIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { PageHeader } from '../../components';
+import {
+  ArrowDownTrayIcon,
+  ExclamationTriangleIcon,
+  UserGroupIcon,
+  CurrencyDollarIcon,
+} from '@heroicons/react/24/outline';
+import {
+  DashboardStatCard,
+  DataTable,
+  FormInput,
+  PageHeader,
+} from '../../components';
+import { reportService } from '../../services/reportService';
 import { exportToCSV, exportToExcel, formatIDR } from '../../utils/exportUtils';
 
 interface AgingBucket {
@@ -22,338 +31,334 @@ interface AgingBucket {
   percentage: number;
 }
 
+interface OutstandingInvoice {
+  customerId: number;
+  customerName: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string;
+  amount: number;
+  daysOverdue: number;
+}
+
 interface OutstandingReportData {
   totalOutstanding: number;
   totalPelanggan: number;
   overdueCount: number;
   agingBuckets: AgingBucket[];
-  outstandingTagihan: Array<{
-    customerId: number;
-    customerName: string;
-    invoiceNumber: string;
-    invoiceDate: string;
-    dueDate: string;
-    amount: number;
-    daysOverdue: number;
-  }>;
+  outstandingTagihan: OutstandingInvoice[];
 }
 
-const OutstandingReport: React.FC = () => {
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+export default function OutstandingReport() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<OutstandingReportData | null>(null);
   const [filters, setFilters] = useState({
-    startDate: searchParams.get('startDate') || new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
+    startDate:
+      searchParams.get('startDate') ||
+      new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
     endDate: searchParams.get('endDate') || new Date().toISOString().split('T')[0],
   });
 
-  useEffect(() => {
-    fetchReportData();
-  }, [filters]);
-
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await reportService.getOutstandingReport(filters);
+      const data = (await reportService.getOutstandingReport(filters)) as OutstandingReportData;
       setReportData(data);
     } catch (error) {
       console.error('Failed to fetch outstanding report:', error);
+      setReportData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    void fetchReportData();
+  }, [fetchReportData]);
 
   const handleExport = (format: 'csv' | 'excel') => {
-    if (!reportData) return;
-    const baseName = `outstanding_report_${filters.startDate}_${filters.endDate}`;
+    if (!reportData) {
+      return;
+    }
+
+    const baseName = `laporan_tunggakan_${filters.startDate}_${filters.endDate}`;
 
     const invoiceRows = (reportData.outstandingTagihan || []).map((item) => ({
-      'Customer': item.customerName,
-      'Invoice #': item.invoiceNumber,
-      'Invoice Date': item.invoiceDate,
-      'Due Date': item.dueDate,
-      'Amount (IDR)': item.amount,
-      'Amount': formatIDR(item.amount),
-      'Days Overdue': item.daysOverdue,
+      Pelanggan: item.customerName,
+      Invoice: item.invoiceNumber,
+      'Tanggal Invoice': item.invoiceDate,
+      'Jatuh Tempo': item.dueDate,
+      'Jumlah (IDR)': item.amount,
+      Jumlah: formatIDR(item.amount),
+      'Hari Terlambat': item.daysOverdue,
     }));
     const agingRows = (reportData.agingBuckets || []).map((item) => ({
-      'Aging Range': item.range,
-      'Count': item.count,
-      'Amount (IDR)': item.amount,
-      'Amount': formatIDR(item.amount),
-      'Percentage': `${item.percentage.toFixed(1)}%`,
+      'Rentang Aging': item.range,
+      Jumlah: item.count,
+      'Nominal (IDR)': item.amount,
+      Nominal: formatIDR(item.amount),
+      Persentase: `${item.percentage.toFixed(1)}%`,
     }));
 
     if (format === 'csv') {
-      exportToCSV(invoiceRows, `${baseName}_invoices.csv`);
-    } else {
-      exportToExcel(
-        [
-          { sheetName: 'Outstanding Tagihan', data: invoiceRows },
-          { sheetName: 'Aging Analysis', data: agingRows },
-        ],
-        `${baseName}.xlsx`
-      );
+      exportToCSV(invoiceRows, `${baseName}_invoice.csv`);
+      return;
     }
+
+    exportToExcel(
+      [
+        { sheetName: 'Tagihan Tertunggak', data: invoiceRows },
+        { sheetName: 'Analisis Aging', data: agingRows },
+      ],
+      `${baseName}.xlsx`
+    );
   };
 
-  const getAgingColor = (daysOverdue: number) => {
-    if (daysOverdue <= 0) return 'text-gray-900';
-    if (daysOverdue <= 30) return 'text-yellow-600';
-    if (daysOverdue <= 60) return 'text-orange-600';
-    return 'text-red-600';
-  };
+  const periodLabel = useMemo(
+    () => `${formatDate(filters.startDate)} - ${formatDate(filters.endDate)}`,
+    [filters.endDate, filters.startDate]
+  );
 
-  const getAgingBgColor = (daysOverdue: number) => {
-    if (daysOverdue <= 0) return '';
-    if (daysOverdue <= 30) return 'bg-yellow-50';
-    if (daysOverdue <= 60) return 'bg-orange-50';
-    return 'bg-red-50';
-  };
+  const sortedOutstanding = useMemo(
+    () => [...(reportData?.outstandingTagihan || [])].sort((a, b) => b.daysOverdue - a.daysOverdue),
+    [reportData?.outstandingTagihan]
+  );
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading report...</p>
-        </div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
       </div>
     );
   }
 
   if (!reportData) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-gray-600">No data available</p>
-        </div>
+      <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+        <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-gray-300" />
+        <h2 className="mt-4 text-base font-semibold text-gray-900">Laporan tunggakan belum tersedia</h2>
+        <p className="mt-2 text-sm text-gray-500">Silakan coba lagi beberapa saat lagi.</p>
+        <button
+          type="button"
+          onClick={() => void fetchReportData()}
+          className="mt-4 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          Muat Ulang
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
+    <div className="space-y-6">
       <PageHeader
-        title="Outstanding Report"
-        subtitle="Overdue invoices and aging analysis"
+        title="Laporan Tunggakan"
+        subtitle={`Analisis invoice overdue dan aging piutang untuk periode ${periodLabel}.`}
         actions={
-          <div className="flex space-x-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
+              type="button"
               onClick={() => navigate('/admin/reports')}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              Back
+              Kembali
             </button>
             <button
+              type="button"
               onClick={() => handleExport('csv')}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center"
+              className="inline-flex items-center justify-center rounded-xl bg-gray-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
             >
-              <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-              Export CSV
+              <ArrowDownTrayIcon className="mr-2 h-5 w-5" />
+              Ekspor CSV
             </button>
             <button
+              type="button"
               onClick={() => handleExport('excel')}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+              className="inline-flex items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
             >
-              <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-              Export Excel
+              <ArrowDownTrayIcon className="mr-2 h-5 w-5" />
+              Ekspor Excel
             </button>
           </div>
         }
       />
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
-            </label>
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={filters.startDate}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, startDate: e.target.value }))
-              }
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Date
-            </label>
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={filters.endDate}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, endDate: e.target.value }))
-              }
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Alert Banner */}
       {reportData.overdueCount > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center">
-          <ExclamationTriangleIcon className="h-6 w-6 text-red-600 mr-3" />
-          <div>
-            <div className="font-semibold text-red-900">
-              {reportData.overdueCount} Overdue Invoice(s)
-            </div>
-            <div className="text-sm text-red-700">
-              Immediate action required for overdue payments
+        <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <ExclamationTriangleIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-red-600" />
+            <div>
+              <h2 className="text-base font-semibold text-red-900">
+                {reportData.overdueCount} invoice sudah melewati jatuh tempo
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-red-900">
+                Prioritaskan penagihan pada invoice dengan hari keterlambatan tertinggi.
+              </p>
             </div>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg shadow p-6 text-white">
-          <div className="text-sm font-medium mb-2">Total Outstanding</div>
-          <div className="text-3xl font-bold">
-            Rp {reportData.totalOutstanding.toLocaleString('id-ID')}
-          </div>
-        </div>
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 rounded-lg shadow p-6 text-white">
-          <div className="text-sm font-medium mb-2">Pelanggan with Outstanding</div>
-          <div className="text-3xl font-bold">{reportData.totalPelanggan}</div>
-        </div>
-        <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg shadow p-6 text-white">
-          <div className="text-sm font-medium mb-2">Overdue Tagihan</div>
-          <div className="text-3xl font-bold">{reportData.overdueCount}</div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <DashboardStatCard
+          title="Total Outstanding"
+          value={formatIDR(reportData.totalOutstanding)}
+          helper="Saldo tertunggak"
+          subtitle="Nilai piutang outstanding pada periode laporan ini."
+          icon={CurrencyDollarIcon}
+          tone="yellow"
+        />
+        <DashboardStatCard
+          title="Pelanggan Terdampak"
+          value={`${reportData.totalPelanggan}`}
+          helper="Dengan tagihan tertunggak"
+          subtitle="Jumlah pelanggan yang memiliki outstanding invoice."
+          icon={UserGroupIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Invoice Overdue"
+          value={`${reportData.overdueCount}`}
+          helper="Perlu tindak lanjut cepat"
+          subtitle="Jumlah invoice yang sudah melewati jatuh tempo."
+          icon={ExclamationTriangleIcon}
+          tone="purple"
+        />
       </div>
 
-      {/* Aging Analysis Chart */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Aging Analysis
-        </h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={reportData.agingBuckets}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="range" />
-            <YAxis />
-            <Tooltip
-              formatter={(value: number) => `Rp ${value.toLocaleString('id-ID')}`}
-            />
-            <Legend />
-            <Bar dataKey="amount" fill="#EF4444" name="Outstanding Amount" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Aging Buckets Table */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Aging Breakdown
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Age Range
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Count
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Amount
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Percentage
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.agingBuckets.map((bucket, index) => (
-                <tr key={index}>
-                  <td className="px-4 py-2 text-sm text-gray-900 font-medium">
-                    {bucket.range}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                    {bucket.count}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900 text-right font-medium">
-                    Rp {bucket.amount.toLocaleString('id-ID')}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                    {bucket.percentage.toFixed(1)}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Filter periode</h2>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormInput
+            type="date"
+            label="Tanggal mulai"
+            value={filters.startDate}
+            onChange={(e) => setFilters((prev) => ({ ...prev, startDate: e.target.value }))}
+          />
+          <FormInput
+            type="date"
+            label="Tanggal selesai"
+            value={filters.endDate}
+            onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
+          />
         </div>
-      </div>
+      </section>
 
-      {/* Outstanding Tagihan Table */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Outstanding Tagihan Details
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Customer
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Invoice
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Invoice Date
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Due Date
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Amount
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Days Overdue
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.outstandingTagihan
-                .sort((a, b) => b.daysOverdue - a.daysOverdue)
-                .map((invoice, index) => (
-                  <tr key={index} className={getAgingBgColor(invoice.daysOverdue)}>
-                    <td className="px-4 py-2 text-sm text-gray-900">
-                      {invoice.customerName}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
-                      {invoice.invoiceNumber}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900">
-                      {new Date(invoice.invoiceDate).toLocaleDateString('id-ID')}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900">
-                      {new Date(invoice.dueDate).toLocaleDateString('id-ID')}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 text-right font-medium">
-                      Rp {invoice.amount.toLocaleString('id-ID')}
-                    </td>
-                    <td className={`px-4 py-2 text-sm text-right font-semibold ${getAgingColor(invoice.daysOverdue)}`}>
-                      {invoice.daysOverdue > 0 ? `+${invoice.daysOverdue}` : invoice.daysOverdue}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Analisis aging piutang</h2>
+        <div className="mt-4 h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={reportData.agingBuckets}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="range" />
+              <YAxis tickFormatter={(value) => `${Math.round(Number(value) / 1000000)} jt`} />
+              <Tooltip formatter={(value: number) => formatIDR(value)} />
+              <Bar dataKey="amount" fill="#EF4444" name="Nominal Outstanding" />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
-      </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Rincian aging bucket</h2>
+        <div className="mt-4">
+          <DataTable
+            data={reportData.agingBuckets}
+            searchable={false}
+            pageSize={8}
+            emptyMessage="Belum ada bucket aging."
+            columns={[
+              {
+                key: 'range',
+                label: 'Rentang',
+                sortable: true,
+              },
+              {
+                key: 'count',
+                label: 'Jumlah',
+                sortable: true,
+                align: 'right',
+              },
+              {
+                key: 'amount',
+                label: 'Nominal',
+                sortable: true,
+                align: 'right',
+                render: (value) => formatIDR(Number(value || 0)),
+              },
+              {
+                key: 'percentage',
+                label: 'Persentase',
+                sortable: true,
+                align: 'right',
+                render: (value) => `${Number(value || 0).toFixed(1)}%`,
+              },
+            ]}
+          />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Daftar invoice tertunggak</h2>
+        <div className="mt-4">
+          <DataTable
+            data={sortedOutstanding}
+            searchable={false}
+            pageSize={8}
+            emptyMessage="Tidak ada invoice tertunggak pada periode ini."
+            columns={[
+              {
+                key: 'customerName',
+                label: 'Pelanggan',
+                sortable: true,
+              },
+              {
+                key: 'invoiceNumber',
+                label: 'Invoice',
+                sortable: true,
+              },
+              {
+                key: 'invoiceDate',
+                label: 'Tanggal Invoice',
+                sortable: true,
+                render: (value) => formatDate(String(value || '')),
+              },
+              {
+                key: 'dueDate',
+                label: 'Jatuh Tempo',
+                sortable: true,
+                render: (value) => formatDate(String(value || '')),
+              },
+              {
+                key: 'amount',
+                label: 'Nominal',
+                sortable: true,
+                align: 'right',
+                render: (value) => formatIDR(Number(value || 0)),
+              },
+              {
+                key: 'daysOverdue',
+                label: 'Hari Terlambat',
+                sortable: true,
+                align: 'right',
+                render: (value) => {
+                  const days = Number(value || 0);
+                  return days > 0 ? `+${days}` : `${days}`;
+                },
+              },
+            ]}
+          />
+        </div>
+      </section>
     </div>
   );
-};
-
-export default OutstandingReport;
+}

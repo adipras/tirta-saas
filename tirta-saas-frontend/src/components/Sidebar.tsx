@@ -232,6 +232,7 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
 
 const Sidebar = ({ open, onClose }: SidebarProps) => {
   const location = useLocation();
+  const previousPathnameRef = useRef(location.pathname);
 
   // Close sidebar on Escape key
   useEffect(() => {
@@ -245,10 +246,11 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
   const prevPathnameRef = useRef(location.pathname);
 
   useEffect(() => {
-    if (prevPathnameRef.current !== location.pathname) {
-      prevPathnameRef.current = location.pathname;
-      if (open) onClose();
+    if (previousPathnameRef.current !== location.pathname && open) {
+      onClose();
     }
+
+    previousPathnameRef.current = location.pathname;
   }, [location.pathname, open, onClose]);
 
   useEffect(() => {

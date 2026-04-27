@@ -1,362 +1,346 @@
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { reportService } from '../../services/reportService';
-import type { PemakaianReport as PemakaianReportType } from '../../types/report';
 import {
-  LineChart,
-  Line,
-  AreaChart,
   Area,
+  AreaChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from 'recharts';
-import { ArrowDownTrayIcon, BeakerIcon } from '@heroicons/react/24/outline';
-import { PageHeader } from '../../components';
+import {
+  ArrowDownTrayIcon,
+  BeakerIcon,
+  ChartBarIcon,
+  UserGroupIcon,
+} from '@heroicons/react/24/outline';
+import {
+  DashboardStatCard,
+  DataTable,
+  FormInput,
+  PageHeader,
+} from '../../components';
+import { reportService } from '../../services/reportService';
+import type { PemakaianReport as PemakaianReportType } from '../../types/report';
 import { exportToCSV, exportToExcel } from '../../utils/exportUtils';
 
-const PemakaianReport: React.FC = () => {
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+export default function PemakaianReport() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<PemakaianReportType | null>(null);
   const [filters, setFilters] = useState({
-    startDate: searchParams.get('startDate') || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+    startDate:
+      searchParams.get('startDate') ||
+      new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
     endDate: searchParams.get('endDate') || new Date().toISOString().split('T')[0],
   });
 
-  useEffect(() => {
-    fetchReportData();
-  }, [filters]);
-
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await reportService.getPemakaianReport(filters);
       setReportData(data);
     } catch (error) {
       console.error('Failed to fetch usage report:', error);
+      setReportData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    void fetchReportData();
+  }, [fetchReportData]);
 
   const handleExport = (format: 'csv' | 'excel') => {
-    if (!reportData) return;
-    const baseName = `usage_report_${filters.startDate}_${filters.endDate}`;
+    if (!reportData) {
+      return;
+    }
+
+    const baseName = `laporan_pemakaian_${filters.startDate}_${filters.endDate}`;
 
     const trendsRows = (reportData.usageTrends || []).map((item) => ({
-      'Month': item.month,
-      'Year': item.year,
-      'Total Pemakaian (m³)': item.totalPemakaian,
-      'Average Pemakaian (m³)': item.averagePemakaian.toFixed(2),
-      'Customer Count': item.customerCount,
+      Bulan: item.month,
+      Tahun: item.year,
+      'Total Pemakaian (m3)': item.totalPemakaian,
+      'Rata-rata Pemakaian (m3)': item.averagePemakaian.toFixed(2),
+      'Jumlah Pelanggan': item.customerCount,
     }));
     const highRows = (reportData.highConsumers || []).map((item) => ({
-      'Customer': item.customerName,
-      'Meter #': item.meterNumber,
-      'Pemakaian (m³)': item.usage,
-      'Month': item.month,
-      'Year': item.year,
+      Pelanggan: item.customerName,
+      Meter: item.meterNumber,
+      'Pemakaian (m3)': item.usage,
+      Bulan: item.month,
+      Tahun: item.year,
     }));
 
     if (format === 'csv') {
-      exportToCSV(trendsRows, `${baseName}_trends.csv`);
-    } else {
-      exportToExcel(
-        [
-          { sheetName: 'Pemakaian Trends', data: trendsRows },
-          { sheetName: 'High Consumers', data: highRows },
-        ],
-        `${baseName}.xlsx`
-      );
+      exportToCSV(trendsRows, `${baseName}_tren.csv`);
+      return;
     }
+
+    exportToExcel(
+      [
+        { sheetName: 'Tren Pemakaian', data: trendsRows },
+        { sheetName: 'Konsumsi Tertinggi', data: highRows },
+      ],
+      `${baseName}.xlsx`
+    );
   };
+
+  const periodLabel = useMemo(
+    () => `${formatDate(filters.startDate)} - ${formatDate(filters.endDate)}`,
+    [filters.endDate, filters.startDate]
+  );
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading report...</p>
-        </div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
       </div>
     );
   }
 
   if (!reportData) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-gray-600">No data available</p>
-        </div>
+      <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+        <BeakerIcon className="mx-auto h-12 w-12 text-gray-300" />
+        <h2 className="mt-4 text-base font-semibold text-gray-900">Laporan pemakaian belum tersedia</h2>
+        <p className="mt-2 text-sm text-gray-500">Silakan coba lagi beberapa saat lagi.</p>
+        <button
+          type="button"
+          onClick={() => void fetchReportData()}
+          className="mt-4 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          Muat Ulang
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
+    <div className="space-y-6">
       <PageHeader
-        title="Pemakaian Air Report"
-        subtitle="Water consumption trends and analysis"
+        title="Laporan Pemakaian Air"
+        subtitle={`Analisis tren pemakaian air untuk periode ${periodLabel}.`}
         actions={
-          <div className="flex space-x-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
+              type="button"
               onClick={() => navigate('/admin/reports')}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              Back
+              Kembali
             </button>
             <button
+              type="button"
               onClick={() => handleExport('csv')}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center"
+              className="inline-flex items-center justify-center rounded-xl bg-gray-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
             >
-              <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-              Export CSV
+              <ArrowDownTrayIcon className="mr-2 h-5 w-5" />
+              Ekspor CSV
             </button>
             <button
+              type="button"
               onClick={() => handleExport('excel')}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+              className="inline-flex items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
             >
-              <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
-              Export Excel
+              <ArrowDownTrayIcon className="mr-2 h-5 w-5" />
+              Ekspor Excel
             </button>
           </div>
         }
       />
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
-            </label>
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={filters.startDate}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, startDate: e.target.value }))
-              }
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Date
-            </label>
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={filters.endDate}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, endDate: e.target.value }))
-              }
-            />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        <DashboardStatCard
+          title="Total Pemakaian"
+          value={`${reportData.totalPemakaian.toLocaleString('id-ID')} m3`}
+          helper="Akumulasi periode"
+          subtitle="Total volume air yang tercatat dalam laporan ini."
+          icon={BeakerIcon}
+          tone="cyan"
+        />
+        <DashboardStatCard
+          title="Rata-rata"
+          value={`${reportData.averagePemakaian.toFixed(2)} m3`}
+          helper="Per pelanggan"
+          subtitle="Rerata konsumsi air per pelanggan aktif."
+          icon={ChartBarIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Titik Tren"
+          value={`${reportData.usageTrends.length}`}
+          helper="Periode terukur"
+          subtitle="Jumlah titik data yang digunakan untuk membaca tren pemakaian."
+          icon={UserGroupIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Konsumsi Tinggi"
+          value={`${reportData.highConsumers.length}`}
+          helper="Perlu dipantau"
+          subtitle="Pelanggan dengan pemakaian paling tinggi pada periode laporan."
+          icon={BeakerIcon}
+          tone="purple"
+        />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-lg shadow p-8 text-white">
-          <div className="flex items-center mb-2">
-            <BeakerIcon className="h-8 w-8 mr-3" />
-            <div className="text-sm font-medium">Total Pemakaian Air</div>
-          </div>
-          <div className="text-4xl font-bold">
-            {reportData.totalPemakaian.toLocaleString('id-ID')} m³
-          </div>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Filter periode</h2>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormInput
+            type="date"
+            label="Tanggal mulai"
+            value={filters.startDate}
+            onChange={(e) => setFilters((prev) => ({ ...prev, startDate: e.target.value }))}
+          />
+          <FormInput
+            type="date"
+            label="Tanggal selesai"
+            value={filters.endDate}
+            onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
+          />
         </div>
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow p-8 text-white">
-          <div className="flex items-center mb-2">
-            <BeakerIcon className="h-8 w-8 mr-3" />
-            <div className="text-sm font-medium">Average Pemakaian per Customer</div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900">Tren total pemakaian</h2>
+          <div className="mt-4 h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={reportData.usageTrends}>
+                <defs>
+                  <linearGradient id="usageFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.5} />
+                    <stop offset="95%" stopColor="#06B6D4" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value: number) => `${value.toLocaleString('id-ID')} m3`} />
+                <Area
+                  type="monotone"
+                  dataKey="totalPemakaian"
+                  stroke="#06B6D4"
+                  fill="url(#usageFill)"
+                  name="Total Pemakaian"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-          <div className="text-4xl font-bold">
-            {reportData.averagePemakaian.toFixed(2)} m³
+        </section>
+
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900">Rata-rata per pelanggan</h2>
+          <div className="mt-4 h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={reportData.usageTrends}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value: number) => `${Number(value).toFixed(2)} m3`} />
+                <Line
+                  type="monotone"
+                  dataKey="averagePemakaian"
+                  stroke="#3B82F6"
+                  strokeWidth={2}
+                  name="Rata-rata"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Pemakaian Trend Chart */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Pemakaian Air Trends
-        </h2>
-        <ResponsiveContainer width="100%" height={350}>
-          <AreaChart data={reportData.usageTrends}>
-            <defs>
-              <linearGradient id="colorPemakaian" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip
-              formatter={(value: number) => `${value.toLocaleString('id-ID')} m³`}
-            />
-            <Legend />
-            <Area
-              type="monotone"
-              dataKey="totalPemakaian"
-              stroke="#06B6D4"
-              fillOpacity={1}
-              fill="url(#colorPemakaian)"
-              name="Total Pemakaian (m³)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Average Pemakaian per Customer Chart */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Average Pemakaian per Customer
-        </h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={reportData.usageTrends}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip
-              formatter={(value: number) => `${value.toFixed(2)} m³`}
-            />
-            <Legend />
-            <Line
-              type="monotone"
-              dataKey="averagePemakaian"
-              stroke="#3B82F6"
-              strokeWidth={2}
-              name="Average Pemakaian (m³)"
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* High Consumers Table */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Top Water Consumers
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Rank
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Customer
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Meter Number
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Pemakaian (m³)
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Period
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.highConsumers.map((consumer, index) => (
-                <tr key={index} className={index < 3 ? 'bg-yellow-50' : ''}>
-                  <td className="px-4 py-2 text-sm text-gray-900 font-semibold">
-                    #{index + 1}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900">
-                    {consumer.customerName}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900">
-                    {consumer.meterNumber}
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900 text-right font-medium">
-                    {consumer.usage.toLocaleString('id-ID')} m³
-                  </td>
-                  <td className="px-4 py-2 text-sm text-gray-900">
-                    {consumer.month} {consumer.year}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Pelanggan konsumsi tertinggi</h2>
+        <div className="mt-4">
+          <DataTable
+            data={reportData.highConsumers}
+            searchable={false}
+            pageSize={8}
+            emptyMessage="Belum ada data konsumsi tinggi."
+            columns={[
+              {
+                key: 'customerName',
+                label: 'Pelanggan',
+                sortable: true,
+              },
+              {
+                key: 'meterNumber',
+                label: 'Meter',
+                sortable: true,
+              },
+              {
+                key: 'usage',
+                label: 'Pemakaian',
+                sortable: true,
+                align: 'right',
+                render: (value) => `${Number(value || 0).toLocaleString('id-ID')} m3`,
+              },
+              {
+                key: 'period',
+                label: 'Periode',
+                render: (_value, item) => `${item.month} ${item.year}`,
+              },
+            ]}
+          />
         </div>
-      </div>
+      </section>
 
-      {/* Monthly Pemakaian Details */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Monthly Pemakaian Details
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Month
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Total Pemakaian (m³)
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Avg per Customer
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Active Pelanggan
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Change from Previous
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.usageTrends.map((item, index) => {
-                const prevPemakaian = index > 0 ? reportData.usageTrends[index - 1].totalPemakaian : 0;
-                const change = prevPemakaian > 0 ? ((item.totalPemakaian - prevPemakaian) / prevPemakaian) * 100 : 0;
-                return (
-                  <tr key={index}>
-                    <td className="px-4 py-2 text-sm text-gray-900">
-                      {item.month} {item.year}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 text-right font-medium">
-                      {item.totalPemakaian.toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                      {item.averagePemakaian.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                      {item.customerCount}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-right">
-                      {index > 0 && (
-                        <span
-                          className={`${
-                            change >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}
-                        >
-                          {change > 0 ? '+' : ''}
-                          {change.toFixed(1)}%
-                        </span>
-                      )}
-                      {index === 0 && <span className="text-gray-400">-</span>}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Rincian tren bulanan</h2>
+        <div className="mt-4">
+          <DataTable
+            data={reportData.usageTrends}
+            searchable={false}
+            pageSize={8}
+            emptyMessage="Belum ada tren pemakaian."
+            columns={[
+              {
+                key: 'month',
+                label: 'Bulan',
+                sortable: true,
+                render: (value, item) => `${String(value)} ${item.year}`,
+              },
+              {
+                key: 'totalPemakaian',
+                label: 'Total',
+                sortable: true,
+                align: 'right',
+                render: (value) => `${Number(value || 0).toLocaleString('id-ID')} m3`,
+              },
+              {
+                key: 'averagePemakaian',
+                label: 'Rata-rata',
+                sortable: true,
+                align: 'right',
+                render: (value) => `${Number(value || 0).toFixed(2)} m3`,
+              },
+              {
+                key: 'customerCount',
+                label: 'Pelanggan',
+                sortable: true,
+                align: 'right',
+              },
+            ]}
+          />
         </div>
-      </div>
+      </section>
     </div>
   );
-};
-
-export default PemakaianReport;
+}

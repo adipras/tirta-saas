@@ -1,14 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BuildingOfficeIcon,
+  ChartBarIcon,
   CheckCircleIcon,
   ClockIcon,
   CurrencyDollarIcon,
-  ChartBarIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../../services/apiClient';
-import { PageHeader } from '../../components';
+import {
+  DashboardStatCard,
+  PageHeader,
+  QuickActionCard,
+} from '../../components';
 
 interface PlatformAnalyticsOverview {
   total_tenants: number;
@@ -36,294 +41,285 @@ interface PendingTenant {
   subscription_plan?: string;
 }
 
-function PlatformOwnerDashboard() {
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+
+const formatCompactCurrency = (amount: number) => {
+  if (amount >= 1000000) {
+    return `Rp ${(amount / 1000000).toFixed(1)} Jt`;
+  }
+
+  return formatCurrency(amount);
+};
+
+const formatDate = (dateString: string) =>
+  new Date(dateString).toLocaleDateString('id-ID', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+
+export default function PlatformOwnerDashboard() {
   const navigate = useNavigate();
   const [overview, setOverview] = useState<PlatformAnalyticsOverview | null>(null);
   const [pendingTenants, setPendingTenants] = useState<PendingTenant[]>([]);
   const [tenantsByPlan, setTenantsByPlan] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
+      setError('');
       const [overviewRes, pendingRes, growthRes] = await Promise.all([
         apiClient.get('/platform/analytics/overview'),
         apiClient.get('/platform/tenants/pending'),
         apiClient.get('/platform/analytics/tenants?period=6months'),
       ]);
 
-      setOverview(overviewRes.data);
-      setPendingTenants(pendingRes.data?.slice(0, 3) || []);
-      setTenantsByPlan(growthRes.data?.tenants_by_plan || {});
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      const overviewData = overviewRes.data || overviewRes;
+      const pendingData = pendingRes.data || pendingRes;
+      const growthData = growthRes.data || growthRes;
+
+      setOverview(overviewData);
+      setPendingTenants((pendingData || []).slice(0, 3));
+      setTenantsByPlan(growthData?.tenants_by_plan || {});
+    } catch (fetchError) {
+      console.error('Failed to fetch platform owner dashboard data:', fetchError);
+      setError('Dashboard platform owner belum bisa dimuat. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  useEffect(() => {
+    void fetchDashboardData();
+  }, [fetchDashboardData]);
 
-  const formatCompactCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `Rp ${(amount / 1000000).toFixed(1)} Jt`;
-    }
-    return formatCurrency(amount);
-  };
+  const quickActions = [
+    {
+      title: 'Kelola Tenant',
+      description: 'Tinjau daftar tenant, approval, dan status organisasi yang terdaftar.',
+      icon: BuildingOfficeIcon,
+      tone: 'indigo' as const,
+      onClick: () => navigate('/admin/platform/tenants'),
+    },
+    {
+      title: 'Verifikasi Pembayaran',
+      description: 'Periksa pembayaran langganan tenant yang masih menunggu verifikasi.',
+      icon: CurrencyDollarIcon,
+      tone: 'green' as const,
+      onClick: () => navigate('/admin/platform/subscription-payments'),
+    },
+    {
+      title: 'Kelola Paket',
+      description: 'Atur paket subscription yang aktif dan siap ditawarkan ke tenant.',
+      icon: ChartBarIcon,
+      tone: 'blue' as const,
+      onClick: () => navigate('/admin/platform/subscription-plans'),
+    },
+    {
+      title: 'Buka Analitik',
+      description: 'Masuk ke analitik platform untuk melihat tren tenant dan kesehatan bisnis.',
+      icon: UserGroupIcon,
+      tone: 'yellow' as const,
+      onClick: () => navigate('/admin/platform/analytics'),
+    },
+  ];
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+  const planCards = useMemo(
+    () =>
+      Object.entries(tenantsByPlan).map(([plan, count]) => ({
+        plan,
+        count,
+        percentage: overview?.total_tenants ? ((count / overview.total_tenants) * 100).toFixed(1) : '0.0',
+      })),
+    [overview?.total_tenants, tenantsByPlan]
+  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
       </div>
     );
   }
 
   if (!overview) {
     return (
-      <div className="p-6">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-yellow-800">Failed to load dashboard data</p>
+      <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5 text-sm text-yellow-900 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <span>{error || 'Ringkasan platform belum tersedia.'}</span>
+          <button
+            type="button"
+            onClick={() => void fetchDashboardData()}
+            className="inline-flex w-full items-center justify-center rounded-xl bg-yellow-600 px-4 py-2.5 font-medium text-white hover:bg-yellow-700 sm:w-auto"
+          >
+            Muat Ulang
+          </button>
         </div>
       </div>
     );
   }
 
-  const stats = [
-    {
-      name: 'Total Tenant',
-      value: overview.total_tenants.toString(),
-      change: `+${overview.new_tenants_this_month}`,
-      changeType: 'increase',
-      icon: BuildingOfficeIcon,
-      color: 'bg-purple-500',
-    },
-    {
-      name: 'Tenant Aktif',
-      value: overview.active_tenants.toString(),
-      change: `${overview.growth_rate_percent.toFixed(1)}%`,
-      changeType: overview.growth_rate_percent >= 0 ? 'increase' : 'decrease',
-      icon: CheckCircleIcon,
-      color: 'bg-green-500',
-    },
-    {
-      name: 'Pending Activation',
-      value: pendingTenants.length.toString(),
-      change: `${overview.trial_tenants} tenant trial aktif`,
-      changeType: 'increase',
-      icon: ClockIcon,
-      color: 'bg-yellow-500',
-    },
-    {
-      name: 'Revenue Bulan Ini',
-      value: formatCompactCurrency(overview.monthly_revenue),
-      change: `Total: ${formatCompactCurrency(overview.total_revenue)}`,
-      changeType: 'increase',
-      icon: CurrencyDollarIcon,
-      color: 'bg-blue-500',
-    },
-  ];
-
   return (
     <div className="space-y-6">
-      <PageHeader title="Platform Owner Dashboard" subtitle="Overview pengelolaan tenant dan subscription platform" />
+      <PageHeader
+        title="Dashboard Platform Owner"
+        subtitle="Pantau pertumbuhan tenant, revenue, dan approval tenant dari layout yang lebih konsisten di mobile."
+      />
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <div key={stat.name} className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">{stat.name}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                <p className={`text-sm mt-2 ${
-                  stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.changeType === 'increase' ? '↑' : '↓'} {stat.change}
-                </p>
-              </div>
-              <div className={`${stat.color} p-3 rounded-lg`}>
-                <stat.icon className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        <DashboardStatCard
+          title="Total Tenant"
+          value={overview.total_tenants.toLocaleString('id-ID')}
+          helper={`+${overview.new_tenants_this_month} tenant baru`}
+          subtitle="Jumlah tenant terdaftar di platform pada periode berjalan."
+          icon={BuildingOfficeIcon}
+          tone="purple"
+        />
+        <DashboardStatCard
+          title="Tenant Aktif"
+          value={overview.active_tenants.toLocaleString('id-ID')}
+          helper={`${overview.growth_rate_percent.toFixed(1)}% growth`}
+          subtitle="Tenant aktif dibanding total tenant yang terdaftar."
+          icon={CheckCircleIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Pending Aktivasi"
+          value={pendingTenants.length.toLocaleString('id-ID')}
+          helper={`${overview.trial_tenants} tenant trial`}
+          subtitle="Tenant yang masih menunggu review atau proses aktivasi berikutnya."
+          icon={ClockIcon}
+          tone="yellow"
+        />
+        <DashboardStatCard
+          title="Revenue Bulan Ini"
+          value={formatCompactCurrency(overview.monthly_revenue)}
+          helper={`Total ${formatCompactCurrency(overview.total_revenue)}`}
+          subtitle="Ringkasan revenue platform untuk bulan berjalan."
+          icon={CurrencyDollarIcon}
+          tone="blue"
+        />
+      </div>
+
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        {quickActions.map((action) => (
+          <QuickActionCard
+            key={action.title}
+            title={action.title}
+            description={action.description}
+            icon={action.icon}
+            tone={action.tone}
+            onClick={action.onClick}
+          />
         ))}
-      </div>
+      </section>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Aksi Cepat</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button
-            onClick={() => navigate('/admin/platform/tenants')}
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors"
-          >
-            <BuildingOfficeIcon className="h-8 w-8 text-purple-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">Kelola Tenant</span>
-          </button>
-          <button
-            onClick={() => navigate('/admin/platform/subscription-payments')}
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors"
-          >
-            <CurrencyDollarIcon className="h-8 w-8 text-green-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">Verifikasi Pembayaran</span>
-          </button>
-          <button
-            onClick={() => navigate('/admin/platform/subscription-plans')}
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-          >
-            <ChartBarIcon className="h-8 w-8 text-blue-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">Paket Subscription</span>
-          </button>
-          <button
-            onClick={() => navigate('/admin/platform/analytics')}
-            className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors"
-          >
-            <ChartBarIcon className="h-8 w-8 text-orange-600 mb-2" />
-            <span className="text-sm font-medium text-gray-900">Analytics</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* System Statistics */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Statistik Sistem</h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b">
-              <span className="text-sm text-gray-600">Total Users</span>
-              <span className="text-lg font-semibold text-gray-900">{overview.total_users}</span>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900">Statistik sistem</h2>
+          <div className="mt-4 space-y-3 text-sm">
+            <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <span className="text-gray-600">Total user</span>
+              <span className="font-semibold text-gray-900">{overview.total_users.toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex items-center justify-between pb-3 border-b">
-              <span className="text-sm text-gray-600">Total Pelanggan</span>
-              <span className="text-lg font-semibold text-gray-900">{overview.total_customers}</span>
+            <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <span className="text-gray-600">Total pelanggan</span>
+              <span className="font-semibold text-gray-900">{overview.total_customers.toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex items-center justify-between pb-3 border-b">
-              <span className="text-sm text-gray-600">Storage Used</span>
-              <span className="text-lg font-semibold text-gray-900">
-                {overview.total_storage_used_gb.toFixed(2)} GB
-              </span>
+            <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <span className="text-gray-600">Storage terpakai</span>
+              <span className="font-semibold text-gray-900">{overview.total_storage_used_gb.toFixed(2)} GB</span>
             </div>
-            <div className="flex items-center justify-between pb-3 border-b">
-              <span className="text-sm text-gray-600">API Calls Today</span>
-              <span className="text-lg font-semibold text-gray-900">
-                {overview.total_api_calls_today.toLocaleString('id-ID')}
-              </span>
+            <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <span className="text-gray-600">API call hari ini</span>
+              <span className="font-semibold text-gray-900">{overview.total_api_calls_today.toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Suspended Tenants</span>
-              <span className="text-lg font-semibold text-red-600">{overview.suspended_tenants}</span>
+            <div className="flex items-center justify-between rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
+              <span className="text-red-700">Tenant suspended</span>
+              <span className="font-semibold text-red-700">{overview.suspended_tenants.toLocaleString('id-ID')}</span>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Pending Tenants */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Tenant Pending</h2>
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-gray-900">Tenant pending</h2>
             <button
+              type="button"
               onClick={() => navigate('/admin/platform/tenants')}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="text-sm font-medium text-blue-600 hover:text-blue-700"
             >
-              Lihat Semua →
+              Lihat Semua
             </button>
           </div>
+
           {pendingTenants.length > 0 ? (
-            <div className="space-y-3">
+            <div className="mt-4 space-y-3">
               {pendingTenants.map((tenant) => (
-                <div key={tenant.id} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{tenant.name}</p>
-                      <p className="text-xs text-gray-500 mt-1">Village: {tenant.village_code}</p>
-                      <p className="text-xs text-gray-500">Email: {tenant.email}</p>
+                <div key={tenant.id} className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">{tenant.name}</p>
+                      <p className="mt-1 text-xs text-gray-500">Kode wilayah: {tenant.village_code}</p>
+                      <p className="text-xs text-gray-500">{tenant.email}</p>
                     </div>
                     {tenant.subscription_plan && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium uppercase">
+                      <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium uppercase text-blue-800">
                         {tenant.subscription_plan}
                       </span>
                     )}
                   </div>
-                  <div className="mt-2 flex items-center justify-between">
+                  <div className="mt-3 flex items-center justify-between gap-4">
                     <p className="text-xs text-gray-500">{formatDate(tenant.registered_at)}</p>
                     <button
+                      type="button"
                       onClick={() => navigate('/admin/platform/tenants')}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      className="text-xs font-medium text-blue-600 hover:text-blue-700"
                     >
-                      Review →
+                      Review
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              <ClockIcon className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-              <p className="text-sm">Tidak ada tenant pending</p>
+            <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+              Tidak ada tenant pending saat ini.
             </div>
           )}
-        </div>
+        </section>
       </div>
 
-      {/* Subscription Stats */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Distribusi Tenant per Plan</h2>
-        {Object.keys(tenantsByPlan).length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {Object.entries(tenantsByPlan).map(([plan, count]) => {
-              const colors: Record<string, string> = {
-                basic: 'bg-blue-100 text-blue-800',
-                pro: 'bg-purple-100 text-purple-800',
-                premium: 'bg-purple-100 text-purple-800',
-                enterprise: 'bg-orange-100 text-orange-800',
-              };
-              const color = colors[plan.toLowerCase()] || 'bg-gray-100 text-gray-800';
-              
-              return (
-                <div key={plan} className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold uppercase ${color}`}>
-                      {plan}
-                    </span>
-                    <span className="text-2xl font-bold text-gray-900">{count}</span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    <span className="font-medium">
-                      {((count / overview.total_tenants) * 100).toFixed(1)}%
-                    </span> dari total tenant
-                  </div>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Distribusi tenant per plan</h2>
+        {planCards.length > 0 ? (
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {planCards.map((item) => (
+              <div key={item.plan} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold uppercase text-gray-700 ring-1 ring-gray-200">
+                    {item.plan}
+                  </span>
+                  <span className="text-2xl font-semibold text-gray-900">{item.count}</span>
                 </div>
-              );
-            })}
+                <p className="mt-3 text-sm text-gray-500">{item.percentage}% dari total tenant</p>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <ChartBarIcon className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-            <p className="text-sm">Belum ada data distribusi tenant</p>
+          <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+            Belum ada data distribusi tenant per plan.
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
-
-export default PlatformOwnerDashboard;

@@ -9,36 +9,36 @@ import { tenantRegistrationService } from '../../services/tenantRegistrationServ
 const schema = yup.object({
   organization_name: yup
     .string()
-    .required('Organization name is required')
-    .min(3, 'Organization name must be at least 3 characters'),
+    .required('Nama organisasi wajib diisi')
+    .min(3, 'Nama organisasi minimal 3 karakter'),
   village_code: yup
     .string()
-    .required('Village code is required')
-    .min(3, 'Village code must be at least 3 characters')
-    .max(20, 'Village code must not exceed 20 characters'),
-  address: yup.string().required('Address is required'),
-  phone: yup.string().required('Phone is required'),
+    .required('Kode wilayah wajib diisi')
+    .min(3, 'Kode wilayah minimal 3 karakter')
+    .max(20, 'Kode wilayah maksimal 20 karakter'),
+  address: yup.string().required('Alamat wajib diisi'),
+  phone: yup.string().required('Nomor telepon wajib diisi'),
   email: yup
     .string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
+    .email('Masukkan alamat email yang valid')
+    .required('Email wajib diisi'),
   admin_name: yup
     .string()
-    .required('Admin name is required')
-    .min(3, 'Admin name must be at least 3 characters'),
+    .required('Nama admin wajib diisi')
+    .min(3, 'Nama admin minimal 3 karakter'),
   admin_email: yup
     .string()
-    .email('Please enter a valid email address')
-    .required('Admin email is required'),
-  admin_phone: yup.string().required('Admin phone is required'),
+    .email('Masukkan alamat email yang valid')
+    .required('Email admin wajib diisi'),
+  admin_phone: yup.string().required('Nomor telepon admin wajib diisi'),
   admin_password: yup
     .string()
-    .required('Password is required')
-    .min(6, 'Password must be at least 6 characters'),
+    .required('Password wajib diisi')
+    .min(6, 'Password minimal 6 karakter'),
   confirm_password: yup
     .string()
-    .required('Please confirm your password')
-    .oneOf([yup.ref('admin_password')], 'Passwords must match'),
+    .required('Konfirmasi password wajib diisi')
+    .oneOf([yup.ref('admin_password')], 'Konfirmasi password harus sama'),
 });
 
 interface RegistrationForm {
@@ -53,6 +53,17 @@ interface RegistrationForm {
   admin_password: string;
   confirm_password: string;
 }
+
+const getErrorMessage = (error: unknown) => {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === 'string') {
+      return message;
+    }
+  }
+
+  return 'Pendaftaran gagal. Silakan coba lagi.';
+};
 
 const TenantRegistration = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -120,8 +131,17 @@ const TenantRegistration = () => {
     setSuccessMessage('');
 
     try {
-      // Remove confirm_password before sending
-      const { confirm_password: _confirm, ...registrationData } = data;
+      const registrationData = {
+        organization_name: data.organization_name,
+        village_code: data.village_code,
+        address: data.address,
+        phone: data.phone,
+        email: data.email,
+        admin_name: data.admin_name,
+        admin_email: data.admin_email,
+        admin_phone: data.admin_phone,
+        admin_password: data.admin_password,
+      };
       const result = await tenantRegistrationService.register({
         ...registrationData,
         logo: logoFile,
@@ -129,15 +149,15 @@ const TenantRegistration = () => {
 
       setSuccessMessage(
         result.message ||
-          'Registration successful! Your trial period has started. You can now login with your admin credentials.'
+          'Pendaftaran berhasil. Masa trial Anda sudah dimulai dan akun admin bisa langsung digunakan untuk masuk.'
       );
 
       // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate('/admin/login');
       }, 3000);
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Registration failed. Please try again.');
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -150,10 +170,10 @@ const TenantRegistration = () => {
           {/* Header */}
           <div className="bg-blue-600 px-8 py-6">
             <h1 className="text-3xl font-bold text-white text-center">
-              Tirta SaaS - Tenant Registration
+              Tirta SaaS - Pendaftaran Tenant
             </h1>
             <p className="text-blue-100 text-center mt-2">
-              Register your organization and start your 14-day free trial
+              Daftarkan organisasi Anda dan mulai masa trial 14 hari
             </p>
           </div>
 
@@ -209,13 +229,13 @@ const TenantRegistration = () => {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {/* Organization Information */}
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Organization Information
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    Informasi Organisasi
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Organization Name <span className="text-red-500">*</span>
+                      Nama Organisasi <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -232,7 +252,7 @@ const TenantRegistration = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Village Code <span className="text-red-500">*</span>
+                      Kode Wilayah <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -249,7 +269,7 @@ const TenantRegistration = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone <span className="text-red-500">*</span>
+                      Nomor Telepon <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
@@ -279,13 +299,13 @@ const TenantRegistration = () => {
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Address <span className="text-red-500">*</span>
+                      Alamat <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       {...register('address')}
                       rows={3}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Full address of your organization"
+                      placeholder="Alamat lengkap organisasi Anda"
                     />
                     {errors.address && (
                       <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>
@@ -294,7 +314,7 @@ const TenantRegistration = () => {
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tenant Logo
+                      Logo Tenant
                     </label>
                     <div className="rounded-lg border-2 border-dashed border-gray-300 p-4">
                       {logoPreviewUrl ? (
@@ -323,7 +343,7 @@ const TenantRegistration = () => {
                           <CloudArrowUpIcon className="mx-auto h-10 w-10 text-gray-400" />
                           <label htmlFor="tenant-logo-upload" className="mt-2 inline-block cursor-pointer">
                             <span className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-                              Upload Logo
+                              Unggah Logo
                             </span>
                             <input
                               id="tenant-logo-upload"
@@ -346,12 +366,12 @@ const TenantRegistration = () => {
               {/* Admin User Information */}
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  Administrator Information
+                  Informasi Administrator
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Admin Name <span className="text-red-500">*</span>
+                      Nama Admin <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -368,7 +388,7 @@ const TenantRegistration = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Admin Email <span className="text-red-500">*</span>
+                      Email Admin <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"
@@ -385,7 +405,7 @@ const TenantRegistration = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Admin Phone <span className="text-red-500">*</span>
+                      Nomor Telepon Admin <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
@@ -409,7 +429,7 @@ const TenantRegistration = () => {
                         type={showPassword ? 'text' : 'password'}
                         {...register('admin_password')}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
-                        placeholder="Min. 6 characters"
+                        placeholder="Minimal 6 karakter"
                       />
                       <button
                         type="button"
@@ -432,14 +452,14 @@ const TenantRegistration = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Confirm Password <span className="text-red-500">*</span>
+                      Konfirmasi Password <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
                         type={showConfirmPassword ? 'text' : 'password'}
                         {...register('confirm_password')}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
-                        placeholder="Confirm your password"
+                        placeholder="Ulangi password Anda"
                       />
                       <button
                         type="button"
@@ -465,13 +485,13 @@ const TenantRegistration = () => {
               {/* Trial Information */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="text-sm font-semibold text-blue-900 mb-2">
-                  🎉 14-Day Free Trial
+                  🎉 Trial Gratis 14 Hari
                 </h3>
                 <ul className="text-sm text-blue-800 space-y-1">
-                  <li>✓ Full access to all features</li>
-                  <li>✓ No credit card required</li>
-                  <li>✓ Platform owner will review your registration</li>
-                  <li>✓ You can start using the system immediately</li>
+                  <li>✓ Akses penuh ke fitur inti platform</li>
+                  <li>✓ Tidak perlu kartu kredit</li>
+                  <li>✓ Pendaftaran akan direview oleh platform owner</li>
+                  <li>✓ Tenant bisa langsung mulai menyiapkan sistem</li>
                 </ul>
               </div>
 
@@ -481,14 +501,14 @@ const TenantRegistration = () => {
                   to="/admin/login"
                   className="text-sm text-blue-600 hover:text-blue-800"
                 >
-                  Already have an account? Login
+                  Sudah punya akun? Masuk
                 </Link>
                 <button
                   type="submit"
                   disabled={isLoading}
                   className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {isLoading ? 'Registering...' : 'Register Now'}
+                  {isLoading ? 'Sedang mendaftar...' : 'Daftar Sekarang'}
                 </button>
               </div>
             </form>
@@ -498,13 +518,13 @@ const TenantRegistration = () => {
         {/* Footer */}
         <div className="text-center mt-6 text-gray-600 text-sm">
           <p>
-            By registering, you agree to our{' '}
+            Dengan mendaftar, Anda menyetujui{' '}
             <a href="#" className="text-blue-600 hover:underline">
-              Terms of Service
+              Syarat Layanan
             </a>{' '}
             and{' '}
             <a href="#" className="text-blue-600 hover:underline">
-              Privacy Policy
+              Kebijakan Privasi
             </a>
           </p>
         </div>

@@ -1,17 +1,28 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  PlusIcon,
+  BuildingLibraryIcon,
+  CloudArrowUpIcon,
   PencilIcon,
+  PlusIcon,
+  QrCodeIcon,
   TrashIcon,
   XMarkIcon,
-  BuildingLibraryIcon,
-  QrCodeIcon,
-  CloudArrowUpIcon,
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../services/apiClient';
 import { platformQrCodeService } from '../../services/platformQrCodeService';
 import type { QRCode } from '../../services/qrCodeService';
-import { PageHeader, Modal, ConfirmModal, ImageCropModal, useToast } from '../../components';
+import {
+  ConfirmModal,
+  DashboardStatCard,
+  FormCheckbox,
+  FormInput,
+  FormSelect,
+  FormTextarea,
+  ImageCropModal,
+  Modal,
+  PageHeader,
+  useToast,
+} from '../../components';
 
 interface PlatformBankAccount {
   id: string;
@@ -36,32 +47,86 @@ interface RawBankAccount {
   notes?: string;
 }
 
+type QRCodeType = 'QRIS' | 'DANA' | 'GOPAY' | 'OVO' | 'SHOPEEPAY';
+
+interface BankFormState {
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  bankCode: string;
+  description: string;
+  isActive: boolean;
+  isPrimary: boolean;
+}
+
+interface QRFormState {
+  type: QRCodeType;
+  notes: string;
+  imageFile: File | null;
+  isActive: boolean;
+  isPrimary: boolean;
+}
+
+const qrTypeOptions = [
+  { value: 'QRIS', label: 'QRIS (semua e-wallet)' },
+  { value: 'GOPAY', label: 'GoPay' },
+  { value: 'OVO', label: 'OVO' },
+  { value: 'DANA', label: 'DANA' },
+  { value: 'SHOPEEPAY', label: 'ShopeePay' },
+];
+
+const emptyBankForm: BankFormState = {
+  bankName: '',
+  accountNumber: '',
+  accountName: '',
+  bankCode: '',
+  description: '',
+  isActive: true,
+  isPrimary: false,
+};
+
+const emptyQRForm: QRFormState = {
+  type: 'QRIS',
+  notes: '',
+  imageFile: null,
+  isActive: true,
+  isPrimary: false,
+};
+
 function extractBankList(payload: unknown): RawBankAccount[] {
   if (Array.isArray(payload)) {
     return payload as RawBankAccount[];
   }
 
-  if (payload && typeof payload === 'object' && Array.isArray((payload as { data?: unknown }).data)) {
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    Array.isArray((payload as { data?: unknown }).data)
+  ) {
     return (payload as { data: RawBankAccount[] }).data;
   }
 
   return [];
 }
 
-type QRCodeType = 'QRIS' | 'DANA' | 'GOPAY' | 'OVO' | 'SHOPEEPAY';
-
-function mapBank(b: RawBankAccount): PlatformBankAccount {
+function mapBank(bank: RawBankAccount): PlatformBankAccount {
   return {
-    id: b.id,
-    bankName: b.bank_name,
-    accountNumber: b.account_number,
-    accountName: b.account_name,
-    bankCode: b.swift_code || b.bank_branch || '',
-    isActive: b.is_active,
-    isPrimary: b.is_primary,
-    description: b.notes || '',
+    id: bank.id,
+    bankName: bank.bank_name,
+    accountNumber: bank.account_number,
+    accountName: bank.account_name,
+    bankCode: bank.swift_code || bank.bank_branch || '',
+    isActive: bank.is_active,
+    isPrimary: bank.is_primary,
+    description: bank.notes || '',
   };
 }
+
+const revokeBlobUrl = (url: string | null) => {
+  if (url?.startsWith('blob:')) {
+    URL.revokeObjectURL(url);
+  }
+};
 
 export default function PlatformPaymentSettings() {
   const toast = useToast();
@@ -73,31 +138,11 @@ export default function PlatformPaymentSettings() {
   const [editingQR, setEditingQR] = useState<QRCode | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [qrCropSrc, setQrCropSrc] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'bank' | 'qr'; id: string } | null>(null);
-
-  const [bankForm, setBankForm] = useState({
-    bankName: '',
-    accountNumber: '',
-    accountName: '',
-    bankCode: '',
-    description: '',
-    isActive: true,
-    isPrimary: false,
-  });
-
-  const [qrForm, setQRForm] = useState<{
-    type: QRCodeType;
-    notes: string;
-    imageFile: File | null;
-    isActive: boolean;
-    isPrimary: boolean;
-  }>({
-    type: 'QRIS',
-    notes: '',
-    imageFile: null,
-    isActive: true,
-    isPrimary: false,
-  });
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'bank' | 'qr'; id: string } | null>(
+    null
+  );
+  const [bankForm, setBankForm] = useState<BankFormState>(emptyBankForm);
+  const [qrForm, setQRForm] = useState<QRFormState>(emptyQRForm);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -105,21 +150,41 @@ export default function PlatformPaymentSettings() {
         apiClient.get<unknown>('/platform/payment-methods/bank-accounts'),
         platformQrCodeService.getQRCodes(),
       ]);
+
       if (bankRes.status === 'fulfilled') {
         const list = extractBankList(bankRes.value);
         setBankAccounts(list.map(mapBank));
       }
+
       if (qrRes.status === 'fulfilled') {
         setQRCodes(qrRes.value);
       }
     } catch (error) {
-      console.error('Failed to load settings:', error);
+      console.error('Failed to load platform payment settings:', error);
+      toast.error('Gagal memuat pengaturan pembayaran platform.');
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     void loadSettings();
   }, [loadSettings]);
+
+  useEffect(() => {
+    return () => {
+      revokeBlobUrl(previewUrl);
+      revokeBlobUrl(qrCropSrc);
+    };
+  }, [previewUrl, qrCropSrc]);
+
+  const stats = useMemo(
+    () => ({
+      banks: bankAccounts.length,
+      activeBanks: bankAccounts.filter((bank) => bank.isActive).length,
+      qrCodes: qrCodes.length,
+      activeQrCodes: qrCodes.filter((qr) => qr.is_active).length,
+    }),
+    [bankAccounts, qrCodes]
+  );
 
   const openBankModal = (bank?: PlatformBankAccount) => {
     if (bank) {
@@ -135,26 +200,21 @@ export default function PlatformPaymentSettings() {
       });
     } else {
       setEditingBank(null);
-      setBankForm({
-        bankName: '',
-        accountNumber: '',
-        accountName: '',
-        bankCode: '',
-        description: '',
-        isActive: true,
-        isPrimary: false,
-      });
+      setBankForm(emptyBankForm);
     }
+
     setShowBankModal(true);
   };
 
   const closeBankModal = () => {
     setShowBankModal(false);
     setEditingBank(null);
+    setBankForm(emptyBankForm);
   };
 
-  const handleBankSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleBankSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     try {
       const payload = {
         bank_name: bankForm.bankName,
@@ -165,11 +225,15 @@ export default function PlatformPaymentSettings() {
         is_primary: bankForm.isPrimary,
         is_active: bankForm.isActive,
       };
+
       if (editingBank) {
         await apiClient.put(`/platform/payment-methods/bank-accounts/${editingBank.id}`, payload);
+        toast.success('Rekening bank platform berhasil diperbarui.');
       } else {
         await apiClient.post('/platform/payment-methods/bank-accounts', payload);
+        toast.success('Rekening bank platform berhasil ditambahkan.');
       }
+
       await loadSettings();
       closeBankModal();
     } catch (error) {
@@ -178,11 +242,9 @@ export default function PlatformPaymentSettings() {
     }
   };
 
-  const handleDeleteBank = (id: string) => {
-    setDeleteTarget({ type: 'bank', id });
-  };
-
   const openQRModal = (qr?: QRCode) => {
+    revokeBlobUrl(previewUrl);
+
     if (qr) {
       setEditingQR(qr);
       setQRForm({
@@ -192,46 +254,49 @@ export default function PlatformPaymentSettings() {
         isActive: qr.is_active,
         isPrimary: qr.is_primary,
       });
-      setPreviewUrl(qr.imageDisplayUrl || '');
+      setPreviewUrl(qr.imageDisplayUrl || null);
     } else {
       setEditingQR(null);
-      setQRForm({
-        type: 'QRIS',
-        notes: '',
-        imageFile: null,
-        isActive: true,
-        isPrimary: false,
-      });
+      setQRForm(emptyQRForm);
       setPreviewUrl(null);
     }
+
     setShowQRModal(true);
   };
 
   const closeQRModal = () => {
     setShowQRModal(false);
     setEditingQR(null);
+    revokeBlobUrl(previewUrl);
     setPreviewUrl(null);
+    setQRForm(emptyQRForm);
   };
 
-  const handleQRFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        toast.warning('Harap pilih file gambar');
-        return;
-      }
-      if (file.size > 2 * 1024 * 1024) {
-        toast.warning('Ukuran file tidak boleh lebih dari 2MB');
-        return;
-      }
-      // Open crop modal (1:1 for QR)
-      setQrCropSrc(URL.createObjectURL(file));
+  const handleQRFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) {
+      return;
     }
+
+    if (!file.type.startsWith('image/')) {
+      toast.warning('Harap pilih file gambar untuk QR code.');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.warning('Ukuran file QR code tidak boleh lebih dari 2MB.');
+      return;
+    }
+
+    revokeBlobUrl(qrCropSrc);
+    setQrCropSrc(URL.createObjectURL(file));
   };
 
-  const handleQRSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleQRSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     try {
       if (editingQR) {
         await platformQrCodeService.updateQRCode(editingQR.id, {
@@ -241,6 +306,7 @@ export default function PlatformPaymentSettings() {
           notes: qrForm.notes,
           image: qrForm.imageFile || undefined,
         });
+        toast.success('QR code platform berhasil diperbarui.');
       } else {
         await platformQrCodeService.createQRCode({
           type: qrForm.type,
@@ -249,7 +315,9 @@ export default function PlatformPaymentSettings() {
           notes: qrForm.notes,
           image: qrForm.imageFile || undefined,
         });
+        toast.success('QR code platform berhasil ditambahkan.');
       }
+
       await loadSettings();
       closeQRModal();
     } catch (error) {
@@ -258,474 +326,465 @@ export default function PlatformPaymentSettings() {
     }
   };
 
-  const handleDeleteQR = (id: string) => {
-    setDeleteTarget({ type: 'qr', id });
-  };
-
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget) {
+      return;
+    }
+
     try {
       if (deleteTarget.type === 'bank') {
         await apiClient.delete(`/platform/payment-methods/bank-accounts/${deleteTarget.id}`);
-        setBankAccounts((prev) => prev.filter((b) => b.id !== deleteTarget.id));
+        toast.success('Rekening bank berhasil dihapus.');
       } else {
         await platformQrCodeService.deleteQRCode(deleteTarget.id);
-        setQRCodes((prev) => prev.filter((q) => q.id !== deleteTarget.id));
+        toast.success('QR code berhasil dihapus.');
       }
+
       setDeleteTarget(null);
+      await loadSettings();
     } catch (error) {
-      console.error('Failed to delete:', error);
+      console.error('Failed to delete payment setting:', error);
+      toast.error('Gagal menghapus data pembayaran.');
     }
   };
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Platform Pengaturan Pembayaran" subtitle="Manage bank accounts and QR codes for tenant subscription payments" />
+      <PageHeader
+        title="Pengaturan Pembayaran Platform"
+        subtitle="Kelola rekening bank dan QR code yang ditampilkan ke tenant saat proses langganan atau perpanjangan."
+      />
 
-      {/* Info Banner */}
-      <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg">
-        <p className="text-sm text-blue-800">
-          <strong>Note:</strong> These payment methods will be shown to tenants when they subscribe or renew their subscription.
-        </p>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        <DashboardStatCard
+          title="Rekening Bank"
+          value={stats.banks.toLocaleString('id-ID')}
+          helper="Metode transfer"
+          subtitle="Total rekening tujuan pembayaran tenant."
+          icon={BuildingLibraryIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Bank Aktif"
+          value={stats.activeBanks.toLocaleString('id-ID')}
+          helper="Sedang dipublikasikan"
+          subtitle="Rekening yang saat ini tampil pada flow pembayaran tenant."
+          icon={BuildingLibraryIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="QR Code"
+          value={stats.qrCodes.toLocaleString('id-ID')}
+          helper="Pembayaran digital"
+          subtitle="Total QR code yang tersedia untuk tenant."
+          icon={QrCodeIcon}
+          tone="purple"
+        />
+        <DashboardStatCard
+          title="QR Aktif"
+          value={stats.activeQrCodes.toLocaleString('id-ID')}
+          helper="Siap dipakai"
+          subtitle="QR code aktif yang dapat dipilih tenant."
+          icon={QrCodeIcon}
+          tone="green"
+        />
       </div>
 
-      {/* Bank Accounts Section */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
+      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+        <p className="text-sm leading-6 text-blue-900">
+          Metode pembayaran di halaman ini akan muncul pada alur langganan tenant. Pastikan rekening
+          dan QR code yang aktif memang siap menerima pembayaran.
+        </p>
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center">
-              <BuildingLibraryIcon className="h-6 w-6 text-blue-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">Bank Accounts</h2>
+            <div className="flex items-center gap-2">
+              <BuildingLibraryIcon className="h-6 w-6 text-blue-600" />
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Rekening bank</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Rekening transfer manual yang tersedia untuk tenant.
+                </p>
+              </div>
             </div>
             <button
+              type="button"
               onClick={() => openBankModal()}
-              className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
             >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Add Bank Account
+              <PlusIcon className="h-5 w-5" />
+              Tambah Rekening
             </button>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-5">
           {bankAccounts.length === 0 ? (
-            <div className="text-center py-8">
-              <BuildingLibraryIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">No bank accounts configured</p>
-              <button
-                onClick={() => openBankModal()}
-                className="mt-3 text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Add your first bank account
-              </button>
+            <div className="rounded-2xl border border-dashed border-gray-300 px-4 py-10 text-center">
+              <BuildingLibraryIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <p className="mt-3 text-sm font-medium text-gray-900">
+                Belum ada rekening bank platform.
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                Tambahkan rekening pertama agar tenant bisa melakukan transfer bank.
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
               {bankAccounts.map((bank) => (
-                <div
+                <article
                   key={bank.id}
-                  className={`border rounded-lg p-4 ${
-                    bank.isActive ? 'border-gray-200' : 'border-gray-100 bg-gray-50'
+                  className={`rounded-2xl border p-4 ${
+                    bank.isActive ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'
                   }`}
                 >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                     <div className="flex items-start space-x-4">
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <BuildingLibraryIcon className="h-6 w-6 text-blue-600" />
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
+                        <BuildingLibraryIcon className="h-6 w-6" />
                       </div>
-                      <div>
-                        <div className="flex items-center space-x-2 mb-1">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-semibold text-gray-900">{bank.bankName}</h3>
                           {bank.isPrimary && (
-                            <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded-full font-medium">
-                              Primary
+                            <span className="rounded-full bg-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700">
+                              Utama
                             </span>
                           )}
                           {!bank.isActive && (
-                            <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full font-medium">
-                              Inactive
+                            <span className="rounded-full bg-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700">
+                              Nonaktif
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600">Account Name: {bank.accountName}</p>
-                        <p className="text-base font-mono font-semibold text-gray-900 mt-1">
+                        <p className="mt-2 text-sm text-gray-600">{bank.accountName}</p>
+                        <p className="mt-1 break-all font-mono text-base font-semibold text-gray-900">
                           {bank.accountNumber}
                         </p>
+                        <p className="mt-1 text-sm text-gray-500">Kode / cabang: {bank.bankCode}</p>
                         {bank.description && (
-                          <p className="text-sm text-gray-500 mt-1">{bank.description}</p>
+                          <p className="mt-2 text-sm text-gray-500">{bank.description}</p>
                         )}
                       </div>
                     </div>
-                     <div className="flex items-center space-x-2 self-end sm:self-auto">
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
                       <button
+                        type="button"
                         onClick={() => openBankModal(bank)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                        title="Edit"
+                        className="inline-flex items-center justify-center rounded-lg p-2.5 text-blue-600 hover:bg-blue-50"
+                        aria-label="Edit rekening bank"
                       >
                         <PencilIcon className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteBank(bank.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                        title="Delete"
+                        type="button"
+                        onClick={() => setDeleteTarget({ type: 'bank', id: bank.id })}
+                        className="inline-flex items-center justify-center rounded-lg p-2.5 text-red-600 hover:bg-red-50"
+                        aria-label="Hapus rekening bank"
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
                     </div>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* QR Codes Section */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
+      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center">
-              <QrCodeIcon className="h-6 w-6 text-green-600 mr-2" />
-              <h2 className="text-lg font-semibold text-gray-900">QR Codes</h2>
+            <div className="flex items-center gap-2">
+              <QrCodeIcon className="h-6 w-6 text-green-600" />
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">QR code pembayaran</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  QRIS dan QR e-wallet yang dapat dipakai tenant untuk membayar langganan.
+                </p>
+              </div>
             </div>
             <button
+              type="button"
               onClick={() => openQRModal()}
-              className="inline-flex w-full items-center justify-center rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
             >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              Add QR Code
+              <PlusIcon className="h-5 w-5" />
+              Tambah QR Code
             </button>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-5">
           {qrCodes.length === 0 ? (
-            <div className="text-center py-8">
-              <QrCodeIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">No QR codes configured</p>
-              <button
-                onClick={() => openQRModal()}
-                className="mt-3 text-green-600 hover:text-green-700 font-medium"
-              >
-                Add your first QR code
-              </button>
+            <div className="rounded-2xl border border-dashed border-gray-300 px-4 py-10 text-center">
+              <QrCodeIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <p className="mt-3 text-sm font-medium text-gray-900">Belum ada QR code pembayaran.</p>
+              <p className="mt-1 text-sm text-gray-500">
+                Tambahkan QR pertama agar tenant bisa membayar lewat kanal digital.
+              </p>
             </div>
           ) : (
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {qrCodes.map((qr) => (
-                <div
+                <article
                   key={qr.id}
-                  className={`border rounded-lg p-4 ${
-                    qr.is_active ? 'border-gray-200' : 'border-gray-100 bg-gray-50'
+                  className={`rounded-2xl border p-4 ${
+                    qr.is_active ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'
                   }`}
                 >
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                    <div>
-                      <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded font-medium">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
                         {qr.type}
                       </span>
                       {qr.is_primary && (
-                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded font-medium">
-                          Primary
+                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
+                          Utama
                         </span>
                       )}
                       {!qr.is_active && (
-                        <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded font-medium">
-                          Inactive
+                        <span className="rounded-full bg-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700">
+                          Nonaktif
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center gap-1">
                       <button
+                        type="button"
                         onClick={() => openQRModal(qr)}
-                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                        title="Edit"
+                        className="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50"
+                        aria-label="Edit QR code"
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteQR(qr.id)}
-                        className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                        title="Delete"
+                        type="button"
+                        onClick={() => setDeleteTarget({ type: 'qr', id: qr.id })}
+                        className="rounded-lg p-1.5 text-red-600 hover:bg-red-50"
+                        aria-label="Hapus QR code"
                       >
                         <TrashIcon className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
-                  <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden mb-2">
+
+                  <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-gray-100">
                     {qr.imageDisplayUrl ? (
                       <img
                         src={qr.imageDisplayUrl}
-                        alt={`${qr.type} QR Code`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        alt={`QR ${qr.type}`}
+                        className="h-full w-full object-cover"
+                        onError={(event) => {
+                          (event.currentTarget as HTMLImageElement).style.display = 'none';
                         }}
                       />
                     ) : (
                       <QrCodeIcon className="h-20 w-20 text-gray-400" />
                     )}
                   </div>
-                  {qr.notes && (
-                    <p className="text-xs text-gray-600 text-center">{qr.notes}</p>
-                  )}
-                </div>
+
+                  {qr.notes && <p className="mt-3 text-sm text-gray-500">{qr.notes}</p>}
+                </article>
               ))}
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      {/* Bank Account Modal - Similar to Tenant version but with description */}
       <Modal
         isOpen={showBankModal}
         onClose={closeBankModal}
-        title={editingBank ? 'Edit Bank Account' : 'Add Bank Account'}
+        title={editingBank ? 'Edit Rekening Bank' : 'Tambah Rekening Bank'}
         size="md"
         mobileFullscreen
-        bodyClassName="p-0"
       >
-        <form onSubmit={handleBankSubmit} className="flex min-h-full flex-col">
-          <div className="flex-1 space-y-4 p-4 sm:p-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Bank Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={bankForm.bankName}
-                      onChange={(e) => setBankForm({ ...bankForm, bankName: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., Bank BCA"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Account Number <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={bankForm.accountNumber}
-                      onChange={(e) => setBankForm({ ...bankForm, accountNumber: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., 9876543210"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Account Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={bankForm.accountName}
-                      onChange={(e) => setBankForm({ ...bankForm, accountName: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., PT Tirta SaaS Indonesia"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Bank Code <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={bankForm.bankCode}
-                      onChange={(e) => setBankForm({ ...bankForm, bankCode: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., BCA, MANDIRI"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
-                    </label>
-                    <input
-                      type="text"
-                      value={bankForm.description}
-                      onChange={(e) => setBankForm({ ...bankForm, description: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="e.g., For subscription payments"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:space-x-4">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={bankForm.isActive}
-                        onChange={(e) => setBankForm({ ...bankForm, isActive: e.target.checked })}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">Active</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={bankForm.isPrimary}
-                        onChange={(e) => setBankForm({ ...bankForm, isPrimary: e.target.checked })}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">Primary</span>
-                    </label>
-                  </div>
+        <form onSubmit={handleBankSubmit} className="space-y-4">
+          <FormInput
+            label="Nama bank"
+            required
+            value={bankForm.bankName}
+            onChange={(event) =>
+              setBankForm((current) => ({ ...current, bankName: event.target.value }))
+            }
+            placeholder="Contoh: Bank BCA"
+          />
+          <FormInput
+            label="Nomor rekening"
+            required
+            value={bankForm.accountNumber}
+            onChange={(event) =>
+              setBankForm((current) => ({ ...current, accountNumber: event.target.value }))
+            }
+            placeholder="Contoh: 9876543210"
+          />
+          <FormInput
+            label="Nama pemilik rekening"
+            required
+            value={bankForm.accountName}
+            onChange={(event) =>
+              setBankForm((current) => ({ ...current, accountName: event.target.value }))
+            }
+            placeholder="Contoh: PT Tirta SaaS Indonesia"
+          />
+          <FormInput
+            label="Kode / cabang bank"
+            required
+            value={bankForm.bankCode}
+            onChange={(event) =>
+              setBankForm((current) => ({ ...current, bankCode: event.target.value }))
+            }
+            placeholder="Contoh: BCA atau KCP Sudirman"
+          />
+          <FormTextarea
+            label="Deskripsi"
+            rows={3}
+            value={bankForm.description}
+            onChange={(event) =>
+              setBankForm((current) => ({ ...current, description: event.target.value }))
+            }
+            placeholder="Catatan tambahan untuk tenant, misalnya khusus pembayaran langganan."
+          />
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+            <FormCheckbox
+              checked={bankForm.isActive}
+              onChange={(event) =>
+                setBankForm((current) => ({ ...current, isActive: event.target.checked }))
+              }
+              label="Aktifkan rekening ini untuk tenant"
+            />
+            <FormCheckbox
+              checked={bankForm.isPrimary}
+              onChange={(event) =>
+                setBankForm((current) => ({ ...current, isPrimary: event.target.checked }))
+              }
+              label="Jadikan rekening utama"
+            />
           </div>
-
-          <div className="border-t border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={closeBankModal}
-                className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
-              >
-                {editingBank ? 'Update' : 'Add'} Bank Account
-              </button>
-            </div>
+          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={closeBankModal}
+              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
+            >
+              {editingBank ? 'Simpan Perubahan' : 'Tambah Rekening'}
+            </button>
           </div>
         </form>
       </Modal>
 
-      {/* QR Code Modal - Similar structure with description field */}
       <Modal
         isOpen={showQRModal}
         onClose={closeQRModal}
-        title={editingQR ? 'Edit QR Code' : 'Add QR Code'}
+        title={editingQR ? 'Edit QR Code' : 'Tambah QR Code'}
         size="md"
         mobileFullscreen
-        bodyClassName="p-0"
       >
-        <form onSubmit={handleQRSubmit} className="flex min-h-full flex-col">
-          <div className="flex-1 space-y-4 p-4 sm:p-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Type <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={qrForm.type}
-                      onChange={(e) => setQRForm({ ...qrForm, type: e.target.value as QRCodeType })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-                      required
-                    >
-                      <option value="QRIS">QRIS (All E-Wallets)</option>
-                      <option value="GOPAY">GoPay</option>
-                      <option value="OVO">OVO</option>
-                      <option value="DANA">DANA</option>
-                      <option value="SHOPEEPAY">ShopeePay</option>
-                    </select>
-                  </div>
+        <form onSubmit={handleQRSubmit} className="space-y-4">
+          <FormSelect
+            label="Tipe QR"
+            required
+            value={qrForm.type}
+            onChange={(event) =>
+              setQRForm((current) => ({ ...current, type: event.target.value as QRCodeType }))
+            }
+            options={qrTypeOptions}
+          />
+          <FormTextarea
+            label="Catatan"
+            rows={3}
+            value={qrForm.notes}
+            onChange={(event) =>
+              setQRForm((current) => ({ ...current, notes: event.target.value }))
+            }
+            placeholder="Contoh: QRIS utama untuk pembayaran langganan tenant."
+          />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Notes
-                    </label>
+          <div className="rounded-2xl border border-gray-200 p-4">
+            <label className="block text-sm font-medium text-gray-700">
+              Gambar QR code {editingQR ? '(opsional jika tidak diganti)' : '*'}
+            </label>
+            <div className="mt-3 rounded-2xl border-2 border-dashed border-gray-300 p-4">
+              {previewUrl ? (
+                <div className="relative">
+                  <img
+                    src={previewUrl}
+                    alt="Preview QR code"
+                    className="mx-auto max-h-72 rounded-xl"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      revokeBlobUrl(previewUrl);
+                      setPreviewUrl(null);
+                      setQRForm((current) => ({ ...current, imageFile: null }));
+                    }}
+                    className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white"
+                    aria-label="Hapus preview QR"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
+                  <label className="mt-3 inline-flex cursor-pointer items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700">
+                    Upload Gambar
                     <input
-                      type="text"
-                      value={qrForm.notes}
-                      onChange={(e) => setQRForm({ ...qrForm, notes: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
-                      placeholder="e.g., QRIS for subscription"
+                      type="file"
+                      className="sr-only"
+                      accept="image/*"
+                      onChange={handleQRFileChange}
+                      required={!editingQR}
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      QR Code Image <span className="text-red-500">*</span>
-                    </label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                      {previewUrl ? (
-                        <div className="relative">
-                          <img
-                            src={previewUrl}
-                            alt="QR Preview"
-                            className="w-full rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPreviewUrl(null);
-                              setQRForm({ ...qrForm, imageFile: null });
-                            }}
-                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
-                          >
-                            <XMarkIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
-                          <label htmlFor="qr-upload" className="mt-2 inline-block cursor-pointer">
-                            <span className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 inline-block">
-                              Upload Image
-                            </span>
-                            <input
-                              id="qr-upload"
-                              type="file"
-                              className="sr-only"
-                              accept="image/*"
-                              onChange={handleQRFileChange}
-                              required={!editingQR}
-                            />
-                          </label>
-                          <p className="mt-1 text-xs text-gray-500">PNG or JPG, max 2MB</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={qrForm.isActive}
-                        onChange={(e) => setQRForm({ ...qrForm, isActive: e.target.checked })}
-                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">Active</span>
-                    </label>
-                  </div>
-
-                  <div>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={qrForm.isPrimary}
-                        onChange={(e) => setQRForm({ ...qrForm, isPrimary: e.target.checked })}
-                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">Set as Primary</span>
-                    </label>
-                  </div>
+                  </label>
+                  <p className="mt-2 text-xs text-gray-500">JPG atau PNG, maksimal 2MB.</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="border-t border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={closeQRModal}
-                className="w-full rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100 sm:w-auto"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 sm:w-auto"
-              >
-                {editingQR ? 'Update' : 'Add'} QR Code
-              </button>
-            </div>
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+            <FormCheckbox
+              checked={qrForm.isActive}
+              onChange={(event) =>
+                setQRForm((current) => ({ ...current, isActive: event.target.checked }))
+              }
+              label="Aktifkan QR code ini"
+            />
+            <FormCheckbox
+              checked={qrForm.isPrimary}
+              onChange={(event) =>
+                setQRForm((current) => ({ ...current, isPrimary: event.target.checked }))
+              }
+              label="Jadikan QR code utama"
+            />
+          </div>
+
+          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={closeQRModal}
+              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              className="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
+            >
+              {editingQR ? 'Simpan Perubahan' : 'Tambah QR Code'}
+            </button>
           </div>
         </form>
       </Modal>
@@ -737,8 +796,8 @@ export default function PlatformPaymentSettings() {
         title={deleteTarget?.type === 'bank' ? 'Hapus Rekening Bank' : 'Hapus QR Code'}
         message={
           deleteTarget?.type === 'bank'
-            ? 'Apakah kamu yakin ingin menghapus rekening bank ini? Tindakan ini tidak dapat dibatalkan.'
-            : 'Apakah kamu yakin ingin menghapus QR code ini? Tindakan ini tidak dapat dibatalkan.'
+            ? 'Rekening bank ini akan dihapus dari pilihan pembayaran tenant. Tindakan ini tidak dapat dibatalkan.'
+            : 'QR code ini akan dihapus dari pilihan pembayaran tenant. Tindakan ini tidak dapat dibatalkan.'
         }
         confirmText="Hapus"
         cancelText="Batal"
@@ -748,15 +807,17 @@ export default function PlatformPaymentSettings() {
       {qrCropSrc && (
         <ImageCropModal
           src={qrCropSrc}
-          filename="qr.png"
+          filename="platform-qr.png"
           aspect={1}
           onConfirm={(croppedFile) => {
-            setQRForm((prev) => ({ ...prev, imageFile: croppedFile }));
+            revokeBlobUrl(previewUrl);
+            setQRForm((current) => ({ ...current, imageFile: croppedFile }));
             setPreviewUrl(URL.createObjectURL(croppedFile));
+            revokeBlobUrl(qrCropSrc);
             setQrCropSrc(null);
           }}
           onCancel={() => {
-            URL.revokeObjectURL(qrCropSrc);
+            revokeBlobUrl(qrCropSrc);
             setQrCropSrc(null);
           }}
         />

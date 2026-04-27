@@ -160,22 +160,26 @@ export default function WaterRateForm() {
         className="flex items-center text-sm text-gray-500 hover:text-gray-700"
       >
         <ArrowLeftIcon className="mr-2 h-4 w-4" />
-        Back to Tarif Air
+        Kembali ke Tarif Air
       </button>
       <PageHeader
-        title={isEditMode ? 'Edit Water Rate' : 'Create Water Rate'}
-        subtitle={isEditMode ? 'Update the water rate per cubic meter' : 'Set a new water rate per cubic meter for a subscription type'}
+        title={isEditMode ? 'Edit Tarif Air' : 'Buat Tarif Air'}
+        subtitle={
+          isEditMode
+            ? 'Perbarui tarif air per meter kubik untuk golongan langganan yang dipilih.'
+            : 'Tetapkan tarif air baru per meter kubik untuk golongan langganan.'
+        }
       />
 
       <div className="bg-white shadow rounded-lg">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Rate Information */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Rate Information</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Tarif</h3>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div>
                 <label htmlFor="subscriptionId" className="block text-sm font-medium text-gray-700">
-                  Subscription Type <span className="text-red-500">*</span>
+                  Golongan Langganan <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="subscriptionId"
@@ -189,7 +193,7 @@ export default function WaterRateForm() {
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   } ${isEditMode ? 'bg-gray-100' : ''}`}
                 >
-                  <option value="">Select subscription type</option>
+                  <option value="">Pilih golongan langganan</option>
                   {subscriptionTypes.map((type) => (
                     <option key={type.id} value={type.id}>
                       {type.name}
@@ -201,7 +205,7 @@ export default function WaterRateForm() {
                 )}
                 {isEditMode && (
                   <p className="mt-1 text-sm text-gray-500">
-                    Subscription type cannot be changed after creation
+                    Golongan langganan tidak dapat diubah setelah tarif dibuat
                   </p>
                 )}
               </div>
@@ -229,13 +233,13 @@ export default function WaterRateForm() {
                   <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
                 )}
                 <p className="mt-1 text-sm text-gray-500">
-                  Price charged per cubic meter of water usage
+                  Tarif yang dibebankan untuk setiap meter kubik pemakaian air
                 </p>
               </div>
 
               <div>
                 <label htmlFor="effectiveDate" className="block text-sm font-medium text-gray-700">
-                  Effective Date <span className="text-red-500">*</span>
+                  Tanggal Berlaku <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -253,13 +257,13 @@ export default function WaterRateForm() {
                   <p className="mt-1 text-sm text-red-600">{errors.effectiveDate}</p>
                 )}
                 <p className="mt-1 text-sm text-gray-500">
-                  Date when this rate becomes active
+                  Tanggal saat tarif ini mulai aktif digunakan
                 </p>
               </div>
 
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                  Description
+                  Deskripsi
                 </label>
                 <textarea
                   id="description"
@@ -268,7 +272,7 @@ export default function WaterRateForm() {
                   value={formData.description}
                   onChange={handleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Optional description or notes about this rate"
+                  placeholder="Catatan atau keterangan opsional untuk tarif ini"
                 />
               </div>
             </div>
@@ -293,8 +297,8 @@ export default function WaterRateForm() {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-yellow-700">
-                  <strong>Important:</strong> Setting a new rate will not automatically deactivate 
-                  existing rates. Make sure to deactivate old rates if needed.
+                  <strong>Penting:</strong> Membuat tarif baru tidak otomatis menonaktifkan tarif lama.
+                  Pastikan tarif sebelumnya dinonaktifkan bila memang sudah tidak dipakai.
                 </p>
               </div>
             </div>
@@ -307,14 +311,14 @@ export default function WaterRateForm() {
               onClick={() => navigate('/admin/water-rates')}
               className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
             >
-              Cancel
+              Batal
             </button>
             <button
               type="submit"
               disabled={loading}
               className="w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
-              {loading ? 'Saving...' : isEditMode ? 'Update Rate' : 'Create Rate'}
+              {loading ? 'Menyimpan...' : isEditMode ? 'Perbarui Tarif' : 'Buat Tarif'}
             </button>
           </div>
         </form>

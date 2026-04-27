@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CheckIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { DashboardStatCard, PageHeader } from '../../components';
 
 interface SubscriptionPlan {
   id: string;
@@ -10,18 +11,24 @@ interface SubscriptionPlan {
   recommended?: boolean;
 }
 
+interface BillingOption {
+  months: number;
+  discountRate: number;
+  label: string;
+}
+
 const plans: SubscriptionPlan[] = [
   {
     id: 'BASIC',
     name: 'Basic',
     price: 500000,
     features: [
-      'Up to 100 customers',
-      'Basic water usage tracking',
-      'Invoice generation',
-      'Payment tracking',
-      'Email support',
-      'Monthly reports',
+      'Hingga 100 pelanggan',
+      'Pencatatan pemakaian dasar',
+      'Pembuatan invoice',
+      'Pelacakan pembayaran',
+      'Dukungan email',
+      'Laporan bulanan',
     ],
   },
   {
@@ -29,14 +36,14 @@ const plans: SubscriptionPlan[] = [
     name: 'Pro',
     price: 1500000,
     features: [
-      'Up to 500 customers',
-      'Advanced water usage analytics',
-      'Automated invoice generation',
-      'Payment reminders',
+      'Hingga 500 pelanggan',
+      'Analitik pemakaian lanjutan',
+      'Invoice otomatis',
+      'Pengingat pembayaran',
       'Priority support',
-      'Advanced reporting',
-      'Mobile meter reading app',
-      'Custom notifications',
+      'Laporan lanjutan',
+      'Mobile meter reading',
+      'Notifikasi khusus',
     ],
     recommended: true,
   },
@@ -45,17 +52,24 @@ const plans: SubscriptionPlan[] = [
     name: 'Enterprise',
     price: 3000000,
     features: [
-      'Unlimited customers',
-      'Full water management system',
-      'Advanced analytics & BI',
-      'Automated workflows',
+      'Pelanggan tanpa batas',
+      'Sistem manajemen air lengkap',
+      'Analitik & BI tingkat lanjut',
+      'Workflow otomatis',
       'Dedicated support',
-      'Custom integrations',
-      'Mobile app for all users',
+      'Integrasi khusus',
+      'Aplikasi mobile untuk seluruh peran',
       'White-label branding',
-      'SLA guarantee',
+      'Jaminan SLA',
     ],
   },
+];
+
+const billingOptions: BillingOption[] = [
+  { months: 1, discountRate: 0, label: '1 bulan' },
+  { months: 3, discountRate: 0.05, label: '3 bulan • hemat 5%' },
+  { months: 6, discountRate: 0.1, label: '6 bulan • hemat 10%' },
+  { months: 12, discountRate: 0.15, label: '12 bulan • hemat 15%' },
 ];
 
 const PlanSelectionPage = () => {
@@ -63,160 +77,212 @@ const PlanSelectionPage = () => {
   const [selectedPlan, setSelectedPlan] = useState<string>('PRO');
   const [billingPeriod, setBillingPeriod] = useState<number>(1);
 
-  const handleSelectPlan = (planId: string) => {
-    setSelectedPlan(planId);
-  };
+  const currentPlan = useMemo(
+    () => plans.find((plan) => plan.id === selectedPlan) ?? plans[0],
+    [selectedPlan]
+  );
+
+  const currentBillingOption = useMemo(
+    () => billingOptions.find((option) => option.months === billingPeriod) ?? billingOptions[0],
+    [billingPeriod]
+  );
 
   const handleContinue = () => {
-    const plan = plans.find((p) => p.id === selectedPlan);
-    if (plan) {
-      navigate('/subscription/payment', {
-        state: {
-          plan: plan.id,
-          planName: plan.name,
-          basePrice: plan.price,
-          billingPeriod,
-          totalAmount: plan.price * billingPeriod,
-        },
-      });
-    }
+    navigate('/subscription/payment', {
+      state: {
+        plan: currentPlan.id,
+        planName: currentPlan.name,
+        basePrice: currentPlan.price,
+        billingPeriod,
+        totalAmount: calculateTotal(currentPlan.price, billingPeriod, currentBillingOption.discountRate),
+      },
+    });
   };
 
-  const calculateTotal = () => {
-    const plan = plans.find((p) => p.id === selectedPlan);
-    if (!plan) return 0;
-    return plan.price * billingPeriod;
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
-  };
+
+  const calculateTotal = (basePrice: number, months: number, discountRate: number) =>
+    Math.round(basePrice * months * (1 - discountRate));
+
+  const totalAmount = calculateTotal(
+    currentPlan.price,
+    billingPeriod,
+    currentBillingOption.discountRate
+  );
+
+  const totalSavings = Math.round(currentPlan.price * billingPeriod * currentBillingOption.discountRate);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6">
-      <div className="text-center mb-10">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2 sm:text-3xl">Upgrade Your Subscription</h1>
-        <p className="text-base text-gray-600 sm:text-lg">Choose the plan that fits your needs</p>
+    <div className="space-y-6">
+      <PageHeader
+        title="Pilih Paket Langganan"
+        subtitle="Bandingkan paket dan pilih kombinasi periode yang paling cocok untuk kebutuhan tenant."
+      />
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <DashboardStatCard
+          title="Paket Dipilih"
+          value={currentPlan.name}
+          helper="Siap diproses"
+          subtitle="Paket yang akan dibawa ke langkah pembayaran."
+          icon={CheckIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Periode Billing"
+          value={`${billingPeriod} bulan`}
+          helper={currentBillingOption.discountRate > 0 ? `Hemat ${Math.round(currentBillingOption.discountRate * 100)}%` : 'Harga normal'}
+          subtitle="Durasi pembayaran yang dipilih tenant."
+          icon={CheckIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Total Pembayaran"
+          value={formatCurrency(totalAmount)}
+          helper={totalSavings > 0 ? `Hemat ${formatCurrency(totalSavings)}` : 'Tanpa diskon'}
+          subtitle="Estimasi total yang akan diteruskan ke halaman pembayaran."
+          icon={CheckIcon}
+          tone="purple"
+        />
       </div>
 
-      {/* Billing Period Selector */}
-      <div className="max-w-md mx-auto mb-8">
-        <label htmlFor="billing-period" className="block text-sm font-medium text-gray-700 mb-2">
-          Billing Period
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <label htmlFor="billing-period" className="block text-sm font-semibold text-gray-900">
+          Periode langganan
         </label>
+        <p className="mt-1 text-sm text-gray-500">
+          Semakin panjang periode, total pembayaran makin hemat.
+        </p>
         <select
           id="billing-period"
           value={billingPeriod}
-          onChange={(e) => setBillingPeriod(Number(e.target.value))}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          onChange={(event) => setBillingPeriod(Number(event.target.value))}
+          className="mt-4 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         >
-          <option value={1}>1 Month</option>
-          <option value={3}>3 Months (Save 5%)</option>
-          <option value={6}>6 Months (Save 10%)</option>
-          <option value={12}>12 Months (Save 15%)</option>
+          {billingOptions.map((option) => (
+            <option key={option.months} value={option.months}>
+              {option.label}
+            </option>
+          ))}
         </select>
-      </div>
+      </section>
 
-      {/* Plan Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {plans.map((plan) => (
-          <div
-            key={plan.id}
-            className={`relative bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-200 cursor-pointer ${
-              selectedPlan === plan.id
-                ? 'ring-2 ring-blue-600 md:scale-105'
-                : 'hover:shadow-xl'
-            }`}
-            onClick={() => handleSelectPlan(plan.id)}
-          >
-            {plan.recommended && (
-              <div className="absolute top-0 right-0 bg-blue-600 text-white px-3 py-1 text-xs font-bold rounded-bl-lg">
-                RECOMMENDED
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        {plans.map((plan) => {
+          const isSelected = selectedPlan === plan.id;
+          const planTotal = calculateTotal(plan.price, billingPeriod, currentBillingOption.discountRate);
+
+          return (
+            <article
+              key={plan.id}
+              className={`rounded-2xl border bg-white p-5 shadow-sm transition ${
+                isSelected
+                  ? 'border-blue-500 ring-2 ring-blue-100'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-xl font-semibold text-gray-900">{plan.name}</h2>
+                    {plan.recommended && (
+                      <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                        Rekomendasi
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-3 text-3xl font-bold text-gray-900">
+                    {formatCurrency(plan.price)}
+                    <span className="ml-1 text-sm font-normal text-gray-500">/bulan</span>
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-blue-700">
+                    Total {billingPeriod} bulan: {formatCurrency(planTotal)}
+                  </p>
+                </div>
               </div>
-            )}
 
-            <div className="p-6">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-              <div className="mb-4">
-                <span className="text-4xl font-bold text-gray-900">
-                  {formatCurrency(plan.price)}
-                </span>
-                <span className="text-gray-600">/month</span>
-              </div>
-
-              <ul className="space-y-3 mb-6">
+              <ul className="mt-5 space-y-3">
                 {plan.features.map((feature, index) => (
-                  <li key={index} className="flex items-start">
-                    <CheckIcon className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span className="text-sm text-gray-700">{feature}</span>
+                  <li key={`${plan.id}-${index}`} className="flex items-start gap-2 text-sm text-gray-700">
+                    <CheckIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500" />
+                    <span>{feature}</span>
                   </li>
                 ))}
               </ul>
 
               <button
-                onClick={() => handleSelectPlan(plan.id)}
-                className={`w-full py-2 px-4 rounded-lg font-medium transition-colors duration-200 ${
-                  selectedPlan === plan.id
-                    ? 'bg-blue-600 text-white'
+                type="button"
+                onClick={() => setSelectedPlan(plan.id)}
+                className={`mt-6 inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+                  isSelected
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {selectedPlan === plan.id ? 'Selected' : 'Select Plan'}
+                {isSelected ? 'Paket Terpilih' : 'Pilih Paket'}
               </button>
-            </div>
-          </div>
-        ))}
+            </article>
+          );
+        })}
       </div>
 
-      {/* Summary and Continue */}
-      <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
-        <div className="space-y-2 mb-4">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Selected Plan:</span>
-            <span className="font-medium text-gray-900">
-              {plans.find((p) => p.id === selectedPlan)?.name}
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 className="text-base font-semibold text-gray-900">Ringkasan pesanan</h3>
+        <div className="mt-4 space-y-3 text-sm">
+          <div className="flex items-start justify-between gap-4">
+            <span className="text-gray-500">Paket</span>
+            <span className="text-right font-medium text-gray-900">{currentPlan.name}</span>
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <span className="text-gray-500">Periode</span>
+            <span className="text-right font-medium text-gray-900">{billingPeriod} bulan</span>
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <span className="text-gray-500">Harga per bulan</span>
+            <span className="text-right font-medium text-gray-900">
+              {formatCurrency(currentPlan.price)}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Billing Period:</span>
-            <span className="font-medium text-gray-900">
-              {billingPeriod} {billingPeriod === 1 ? 'Month' : 'Months'}
+          <div className="flex items-start justify-between gap-4">
+            <span className="text-gray-500">Diskon periode</span>
+            <span className="text-right font-medium text-gray-900">
+              {currentBillingOption.discountRate > 0
+                ? `${Math.round(currentBillingOption.discountRate * 100)}%`
+                : 'Tidak ada'}
             </span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Price per Month:</span>
-            <span className="font-medium text-gray-900">
-              {formatCurrency(plans.find((p) => p.id === selectedPlan)?.price || 0)}
-            </span>
-          </div>
-          <div className="border-t border-gray-200 pt-2 mt-2">
-            <div className="flex justify-between">
-              <span className="text-base font-semibold text-gray-900">Total Amount:</span>
-              <span className="text-xl font-bold text-blue-600">{formatCurrency(calculateTotal())}</span>
+          <div className="border-t border-gray-200 pt-3">
+            <div className="flex items-start justify-between gap-4">
+              <span className="text-base font-semibold text-gray-900">Total pembayaran</span>
+              <span className="text-right text-xl font-bold text-blue-600">
+                {formatCurrency(totalAmount)}
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row">
           <button
+            type="button"
             onClick={() => navigate(-1)}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-6 rounded-lg transition-colors duration-200"
+            className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancel
+            Batal
           </button>
           <button
+            type="button"
             onClick={handleContinue}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200"
+            className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
           >
-            Continue to Payment
+            Lanjut ke Pembayaran
           </button>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

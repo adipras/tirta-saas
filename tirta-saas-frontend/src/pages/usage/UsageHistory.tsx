@@ -1,196 +1,182 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ChartBarIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
 import type { PemakaianHistory } from '../../types/usage';
 import type { Customer } from '../../types/customer';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
-import { PageHeader } from '../../components';
+import {
+  DashboardStatCard,
+  DataTable,
+  PageHeader,
+} from '../../components';
+import type { Column } from '../../components';
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount);
+
+const formatMonth = (month: string) => {
+  const [year, monthNum] = month.split('-');
+  const date = new Date(Number(year), Number(monthNum) - 1);
+  return date.toLocaleDateString('id-ID', {
+    year: 'numeric',
+    month: 'long',
+  });
+};
 
 export default function PemakaianHistoryPage() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   const { customerId } = useParams<{ customerId: string }>();
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [history, setHistory] = useState<PemakaianHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const fetchCustomer = useCallback(async () => {
-    if (!customerId) return;
-    
+    if (!customerId) {
+      return;
+    }
+
     try {
       const data = await customerService.getCustomerById(customerId);
       setCustomer(data);
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch customer',
-      }));
-      console.error('Error fetching customer:', error);
+    } catch (fetchError) {
+      console.error('Error fetching customer:', fetchError);
+      setError('Profil pelanggan belum bisa dimuat. Silakan coba lagi.');
     }
-  }, [customerId, dispatch]);
+  }, [customerId]);
 
   const fetchHistory = useCallback(async () => {
-    if (!customerId) return;
+    if (!customerId) {
+      return;
+    }
 
     try {
       setLoading(true);
+      setError('');
       const data = await usageService.getCustomerPemakaianHistoryById(customerId);
-      setHistory(data as any);
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch usage history',
-      }));
-      console.error('Error fetching usage history:', error);
+      setHistory(data);
+    } catch (fetchError) {
+      console.error('Error fetching usage history:', fetchError);
+      setError('Riwayat pemakaian belum bisa dimuat. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
-  }, [customerId, dispatch]);
+  }, [customerId]);
 
   useEffect(() => {
-    fetchCustomer();
-    fetchHistory();
+    void fetchCustomer();
+    void fetchHistory();
   }, [fetchCustomer, fetchHistory]);
-
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatMonth = (month: string): string => {
-    const [year, monthNum] = month.split('-');
-    const date = new Date(parseInt(year), parseInt(monthNum) - 1);
-    return date.toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'long',
-    });
-  };
 
   const totalPemakaian = history.reduce((sum, item) => sum + item.usageM3, 0);
   const totalAmount = history.reduce((sum, item) => sum + item.amount, 0);
   const averagePemakaian = history.length > 0 ? totalPemakaian / history.length : 0;
 
+  const columns: Column<PemakaianHistory>[] = [
+    {
+      key: 'month',
+      label: 'Periode',
+      sortable: true,
+      render: (_value, item) => formatMonth(item.month),
+    },
+    {
+      key: 'meterStart',
+      label: 'Meter Awal',
+      sortable: true,
+      align: 'right',
+      render: (value) => Number(value || 0).toFixed(2),
+    },
+    {
+      key: 'meterEnd',
+      label: 'Meter Akhir',
+      sortable: true,
+      align: 'right',
+      render: (value) => Number(value || 0).toFixed(2),
+    },
+    {
+      key: 'usageM3',
+      label: 'Pemakaian',
+      sortable: true,
+      align: 'right',
+      render: (value) => `${Number(value || 0).toFixed(2)} m3`,
+    },
+    {
+      key: 'amount',
+      label: 'Nominal',
+      sortable: true,
+      align: 'right',
+      render: (value) => formatCurrency(Number(value || 0)),
+    },
+  ];
+
   return (
-    <div className="p-6">
-      <button
-          onClick={() => navigate('/admin/usage')}
-          className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-2" />
-          Back to Pemakaian Air
-        </button>
+    <div className="space-y-6">
       <PageHeader
-        title="Pemakaian History"
-        subtitle={customer ? `${customer.name} (${customer.meter_number})` : undefined}
+        title="Riwayat Pemakaian"
+        subtitle={customer ? `${customer.name} (${customer.meter_number})` : 'Pantau histori pemakaian pelanggan dari daftar yang lebih nyaman di mobile.'}
+        actions={
+          <button
+            type="button"
+            onClick={() => navigate('/admin/usage')}
+            className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
+          >
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
+            Kembali ke Pemakaian Air
+          </button>
+        }
       />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-6">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <dt className="text-sm font-medium text-gray-500 truncate">
-              Total Pemakaian
-            </dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">
-              {totalPemakaian.toFixed(2)} m³
-            </dd>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <dt className="text-sm font-medium text-gray-500 truncate">
-              Average Pemakaian
-            </dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">
-              {averagePemakaian.toFixed(2)} m³
-            </dd>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <dt className="text-sm font-medium text-gray-500 truncate">
-              Total Amount
-            </dt>
-            <dd className="mt-1 text-3xl font-semibold text-gray-900">
-              {formatCurrency(totalAmount)}
-            </dd>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <DashboardStatCard
+          title="Total Pemakaian"
+          value={`${totalPemakaian.toFixed(2)} m3`}
+          helper={`${history.length} periode`}
+          subtitle="Akumulasi pemakaian air dari histori pelanggan yang berhasil dimuat."
+          icon={ChartBarIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Rata-rata Pemakaian"
+          value={`${averagePemakaian.toFixed(2)} m3`}
+          helper="Per periode"
+          subtitle="Rerata pemakaian air pelanggan pada tiap periode histori."
+          icon={ChartBarIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Total Nominal"
+          value={formatCurrency(totalAmount)}
+          helper="Akumulasi tagihan"
+          subtitle="Total nominal dari seluruh riwayat pemakaian yang tampil."
+          icon={CurrencyDollarIcon}
+          tone="purple"
+        />
       </div>
 
-      {/* History Table */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Monthly History</h3>
+      {error && (
+        <section className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+          {error}
+        </section>
+      )}
+
+      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-200 px-5 py-4">
+          <h2 className="text-base font-semibold text-gray-900">Histori bulanan</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Period
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Previous Reading
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Current Reading
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Pemakaian (m³)
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Amount
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
-                    Memuat...
-                  </td>
-                </tr>
-              ) : history.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
-                    No usage history available
-                  </td>
-                </tr>
-              ) : (
-                history.map((item) => (
-                  <tr key={item.month} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatMonth(item.month)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                      {item.meterStart.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
-                      {item.meterEnd.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                      {item.usageM3.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      {formatCurrency(item.amount)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <DataTable
+          data={history}
+          columns={columns}
+          loading={loading}
+          searchable={false}
+          emptyMessage="Belum ada riwayat pemakaian untuk pelanggan ini."
+        />
+      </section>
     </div>
   );
 }

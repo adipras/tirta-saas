@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  UserGroupIcon,
+  ArrowTrendingDownIcon,
+  ArrowTrendingUpIcon,
   CurrencyDollarIcon,
   ServerIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../services/apiClient';
-import { PageHeader } from '../../components';
+import {
+  DashboardStatCard,
+  DataTable,
+  PageHeader,
+  type Column,
+} from '../../components';
 
 interface PlatformAnalyticsOverview {
   total_tenants: number;
@@ -52,6 +57,27 @@ interface TenantGrowthAnalytics {
   tenants_by_status: Record<string, number>;
 }
 
+const periodOptions = [
+  { value: '3months', label: '3 bulan terakhir' },
+  { value: '6months', label: '6 bulan terakhir' },
+  { value: '12months', label: '12 bulan terakhir' },
+];
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === 'object' && error !== null && 'response' in error) {
+    const response = (error as { response?: { data?: { message?: string } } }).response;
+    if (response?.data?.message) {
+      return response.data.message;
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 export default function PlatformAnalytics() {
   const [overview, setOverview] = useState<PlatformAnalyticsOverview | null>(null);
   const [tenantGrowth, setTenantGrowth] = useState<TenantGrowthAnalytics | null>(null);
@@ -59,11 +85,7 @@ export default function PlatformAnalytics() {
   const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('6months');
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [selectedPeriod]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -75,331 +97,322 @@ export default function PlatformAnalytics() {
 
       setOverview(overviewRes.data);
       setTenantGrowth(growthRes.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load analytics');
+    } catch (err: unknown) {
       console.error('Error fetching analytics:', err);
+      setError(getErrorMessage(err, 'Gagal memuat analitik platform.'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedPeriod]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+  useEffect(() => {
+    void fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
-  };
 
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('id-ID').format(num);
-  };
+  const formatNumber = (num: number) => new Intl.NumberFormat('id-ID').format(num);
 
-  const formatPercentage = (num: number) => {
-    return `${num.toFixed(2)}%`;
-  };
+  const formatPercentage = (num: number) => `${num.toFixed(2)}%`;
+
+  const monthlyBreakdownColumns: Column<MonthlyTenantStats>[] = useMemo(
+    () => [
+      {
+        key: 'period',
+        label: 'Periode',
+        render: (_, stat) => `${stat.month} ${stat.year}`,
+      },
+      {
+        key: 'new_tenants',
+        label: 'Tenant Baru',
+        render: (value) => <span className="font-medium text-green-600">+{formatNumber(Number(value))}</span>,
+      },
+      {
+        key: 'churned_tenants',
+        label: 'Churn',
+        render: (value) => <span className="font-medium text-red-600">-{formatNumber(Number(value))}</span>,
+      },
+      {
+        key: 'total_tenants',
+        label: 'Total',
+        render: (value) => formatNumber(Number(value)),
+      },
+      {
+        key: 'growth_rate_percent',
+        label: 'Growth',
+        render: (value) => {
+          const growth = Number(value);
+          return (
+            <span className={`font-medium ${growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatPercentage(growth)}
+            </span>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  const planDistribution = useMemo(
+    () => (tenantGrowth ? Object.entries(tenantGrowth.tenants_by_plan) : []),
+    [tenantGrowth]
+  );
+
+  const statusDistribution = useMemo(
+    () => (tenantGrowth ? Object.entries(tenantGrowth.tenants_by_status) : []),
+    [tenantGrowth]
+  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
-        </div>
+      <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm">
+        {error}
       </div>
     );
   }
 
   if (!overview || !tenantGrowth) {
     return (
-      <div className="p-6">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-yellow-800">No analytics data available</p>
-        </div>
+      <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-yellow-800 shadow-sm">
+        Data analitik platform belum tersedia.
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <PageHeader title="Analitik Platform" subtitle="Overview of platform performance and tenant statistics" />
+    <div className="space-y-6">
+      <PageHeader
+        title="Analitik Platform"
+        subtitle="Ringkasan tenant, pertumbuhan, dan kesehatan platform dengan tampilan yang lebih nyaman di mobile."
+        actions={
+          <div className="flex flex-col gap-2 sm:min-w-[220px]">
+            <label className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Periode analitik
+            </label>
+            <select
+              value={selectedPeriod}
+              onChange={(event) => setSelectedPeriod(event.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              {periodOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        }
+      />
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Total Tenants */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Tenants</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                {formatNumber(overview.total_tenants)}
-              </p>
-            </div>
-            <div className="bg-blue-100 rounded-full p-3">
-              <UserGroupIcon className="h-8 w-8 text-blue-600" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center text-sm">
-            <span className="text-green-600 font-medium">
-              {formatNumber(overview.active_tenants)} Active
-            </span>
-            <span className="text-gray-400 mx-2">•</span>
-            <span className="text-yellow-600">
-              {formatNumber(overview.trial_tenants)} Trial
-            </span>
-          </div>
-        </div>
-
-        {/* Monthly Revenue */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                {formatCurrency(overview.monthly_revenue)}
-              </p>
-            </div>
-            <div className="bg-green-100 rounded-full p-3">
-              <CurrencyDollarIcon className="h-8 w-8 text-green-600" />
-            </div>
-          </div>
-          <div className="mt-4 text-sm">
-            <span className="text-gray-600">Total: </span>
-            <span className="text-gray-900 font-medium">
-              {formatCurrency(overview.total_revenue)}
-            </span>
-          </div>
-        </div>
-
-        {/* Growth Rate */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Growth Rate</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                {formatPercentage(overview.growth_rate_percent)}
-              </p>
-            </div>
-            <div className={`rounded-full p-3 ${
-              overview.growth_rate_percent >= 0 ? 'bg-green-100' : 'bg-red-100'
-            }`}>
-              {overview.growth_rate_percent >= 0 ? (
-                <ArrowTrendingUpIcon className="h-8 w-8 text-green-600" />
-              ) : (
-                <ArrowTrendingDownIcon className="h-8 w-8 text-red-600" />
-              )}
-            </div>
-          </div>
-          <div className="mt-4 text-sm">
-            <span className="text-green-600">
-              +{formatNumber(overview.new_tenants_this_month)} new
-            </span>
-            <span className="text-gray-400 mx-2">•</span>
-            <span className="text-red-600">
-              -{formatNumber(overview.churned_tenants_this_month)} churned
-            </span>
-          </div>
-        </div>
-
-        {/* System Health */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">System Uptime</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
-                {formatPercentage(overview.uptime_percent)}
-              </p>
-            </div>
-            <div className="bg-purple-100 rounded-full p-3">
-              <ServerIcon className="h-8 w-8 text-purple-600" />
-            </div>
-          </div>
-          <div className="mt-4 text-sm">
-            <span className="text-gray-600">Error Rate: </span>
-            <span className="text-gray-900 font-medium">
-              {formatPercentage(overview.error_rate_percent)}
-            </span>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        <DashboardStatCard
+          title="Total Tenant"
+          value={formatNumber(overview.total_tenants)}
+          helper={`${formatNumber(overview.active_tenants)} aktif`}
+          subtitle={`${formatNumber(overview.trial_tenants)} trial • ${formatNumber(overview.suspended_tenants)} nonaktif`}
+          icon={UserGroupIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Pendapatan Bulanan"
+          value={formatCurrency(overview.monthly_revenue)}
+          helper="Recurring bulan ini"
+          subtitle={`Total akumulasi ${formatCurrency(overview.total_revenue)}`}
+          icon={CurrencyDollarIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Growth Tenant"
+          value={formatPercentage(overview.growth_rate_percent)}
+          helper={`+${formatNumber(overview.new_tenants_this_month)} baru`}
+          subtitle={`-${formatNumber(overview.churned_tenants_this_month)} churn pada bulan berjalan`}
+          icon={overview.growth_rate_percent >= 0 ? ArrowTrendingUpIcon : ArrowTrendingDownIcon}
+          tone={overview.growth_rate_percent >= 0 ? 'green' : 'yellow'}
+        />
+        <DashboardStatCard
+          title="Uptime Sistem"
+          value={formatPercentage(overview.uptime_percent)}
+          helper={`Error ${formatPercentage(overview.error_rate_percent)}`}
+          subtitle={`Outstanding revenue ${formatCurrency(overview.outstanding_revenue)}`}
+          icon={ServerIcon}
+          tone="purple"
+        />
       </div>
 
-      {/* Pemakaian Statistics */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Platform Pemakaian</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div>
-            <p className="text-sm text-gray-600">Total Users</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-gray-900">Utilisasi platform</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Ringkasan resource dan beban operasional lintas tenant.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm text-gray-500">Total pengguna</p>
+            <p className="mt-2 text-2xl font-semibold text-gray-900">
               {formatNumber(overview.total_users)}
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">Total Pelanggan</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm text-gray-500">Total pelanggan</p>
+            <p className="mt-2 text-2xl font-semibold text-gray-900">
               {formatNumber(overview.total_customers)}
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">Storage Used</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm text-gray-500">Storage terpakai</p>
+            <p className="mt-2 text-2xl font-semibold text-gray-900">
               {overview.total_storage_used_gb.toFixed(2)} GB
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">API Calls Today</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm text-gray-500">API call hari ini</p>
+            <p className="mt-2 text-2xl font-semibold text-gray-900">
               {formatNumber(overview.total_api_calls_today)}
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Tenant Growth */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Tenant Growth</h2>
-          <select
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 text-sm"
-          >
-            <option value="3months">Last 3 Months</option>
-            <option value="6months">Last 6 Months</option>
-            <option value="12months">Last 12 Months</option>
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5">
           <div>
-            <p className="text-sm text-gray-600">Growth Rate</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">
-              {formatPercentage(tenantGrowth.growth_rate_percent)}
+            <h2 className="text-base font-semibold text-gray-900">Pertumbuhan tenant</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Summary first untuk lihat momentum tenant sebelum masuk rincian bulanan.
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">Churn Rate</p>
-            <p className="text-3xl font-bold text-gray-900 mt-1">
-              {formatPercentage(tenantGrowth.churn_rate_percent)}
-            </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm text-gray-500">Growth rate</p>
+              <p className="mt-2 text-3xl font-semibold text-gray-900">
+                {formatPercentage(tenantGrowth.growth_rate_percent)}
+              </p>
+              <p className="mt-2 text-sm text-gray-500">
+                {formatNumber(tenantGrowth.new_tenants)} tenant baru dalam periode ini.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm text-gray-500">Churn rate</p>
+              <p className="mt-2 text-3xl font-semibold text-gray-900">
+                {formatPercentage(tenantGrowth.churn_rate_percent)}
+              </p>
+              <p className="mt-2 text-sm text-gray-500">
+                {formatNumber(tenantGrowth.churned_tenants)} tenant berhenti dalam periode ini.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Monthly Breakdown Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Period
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  New Tenants
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Churned
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Growth Rate
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {tenantGrowth.monthly_breakdown.map((stat, index) => (
-                <tr key={index}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {stat.month} {stat.year}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
-                    +{formatNumber(stat.new_tenants)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
-                    -{formatNumber(stat.churned_tenants)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {formatNumber(stat.total_tenants)}
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                    stat.growth_rate_percent >= 0 ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {formatPercentage(stat.growth_rate_percent)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          data={tenantGrowth.monthly_breakdown}
+          columns={monthlyBreakdownColumns}
+          searchable={false}
+          emptyMessage="Belum ada breakdown pertumbuhan tenant."
+        />
+      </section>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-base font-semibold text-gray-900">Distribusi paket tenant</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Paket mana yang paling banyak dipakai tenant saat ini.
+          </p>
+          <div className="mt-4 space-y-3">
+            {planDistribution.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-gray-300 px-4 py-5 text-sm text-gray-500">
+                Belum ada data distribusi paket.
+              </p>
+            ) : (
+              planDistribution.map(([plan, count]) => (
+                <div
+                  key={plan}
+                  className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3"
+                >
+                  <span className="text-sm font-medium capitalize text-gray-700">{plan}</span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {formatNumber(count)} tenant
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+          <h2 className="text-base font-semibold text-gray-900">Distribusi status tenant</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Sebaran tenant berdasarkan status operasional.
+          </p>
+          <div className="mt-4 space-y-3">
+            {statusDistribution.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-gray-300 px-4 py-5 text-sm text-gray-500">
+                Belum ada data distribusi status.
+              </p>
+            ) : (
+              statusDistribution.map(([status, count]) => (
+                <div
+                  key={status}
+                  className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3"
+                >
+                  <span className="text-sm font-medium capitalize text-gray-700">
+                    {status.toLowerCase()}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {formatNumber(count)} tenant
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
       </div>
 
-      {/* Tenants by Plan */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Tenants by Plan</h2>
-          <div className="space-y-3">
-            {Object.entries(tenantGrowth.tenants_by_plan).map(([plan, count]) => (
-              <div key={plan} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 capitalize">{plan}</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {formatNumber(count)} tenants
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Tenants by Status</h2>
-          <div className="space-y-3">
-            {Object.entries(tenantGrowth.tenants_by_status).map(([status, count]) => (
-              <div key={status} className="flex items-center justify-between">
-                <span className="text-sm text-gray-600 capitalize">{status.toLowerCase()}</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {formatNumber(count)} tenants
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Performance Metrics */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h2>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-          <div>
-            <p className="text-sm text-gray-600">Avg Response Time</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <h2 className="text-base font-semibold text-gray-900">Kesehatan performa</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Metrik teknis inti untuk bantu pantau kualitas layanan.
+        </p>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm text-gray-500">Respons rata-rata</p>
+            <p className="mt-2 text-2xl font-semibold text-gray-900">
               {overview.avg_response_time_ms.toFixed(2)} ms
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">Error Rate</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm text-gray-500">Error rate</p>
+            <p className="mt-2 text-2xl font-semibold text-gray-900">
               {formatPercentage(overview.error_rate_percent)}
             </p>
           </div>
-          <div>
-            <p className="text-sm text-gray-600">System Uptime</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm text-gray-500">Uptime</p>
+            <p className="mt-2 text-2xl font-semibold text-gray-900">
               {formatPercentage(overview.uptime_percent)}
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Last Updated */}
-      <div className="text-right text-sm text-gray-500">
-        Last updated: {new Date(overview.last_updated).toLocaleString('id-ID')}
-      </div>
+      <p className="text-right text-xs text-gray-500">
+        Terakhir diperbarui:{' '}
+        {new Date(overview.last_updated).toLocaleString('id-ID')}
+      </p>
     </div>
   );
 }

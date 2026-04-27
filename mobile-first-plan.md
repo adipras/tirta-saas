@@ -247,7 +247,7 @@ Sebuah halaman dianggap selesai direfactor Mobile-First bila:
   - [x] header lebih kontekstual per halaman
   - [x] sidebar mobile lebih rapi dan konsisten
   - [x] drawer sidebar kembali type-safe
-  - [x] header mobile compact: hapus info card redundan, subtitle hanya di sm+, PrinterBridgeIndicator masuk dropdown
+  - [x] pastikan layout dasar konsisten di seluruh admin pages
 
 - [x] **Refactor halaman tenant admin prioritas**
   - [x] dashboard
@@ -257,28 +257,33 @@ Sebuah halaman dianggap selesai direfactor Mobile-First bila:
   - [x] usage
 
 - [x] **Refactor halaman form & settings**
-  - [x] subscription pages (Status, Upgrade, Payment, PlanSelection)
-  - [x] settings pages (TenantPaymentSettings, PlatformPaymentSettings)
+  - [x] subscription status
+  - [x] plan selection
+  - [x] tenant payment settings
+  - [x] platform payment settings
+  - [x] setup tenant
+  - [x] verification, payment submission (flow aktif di subscription upgrade)
 
 - [x] **Refactor halaman platform**
   - [x] tenant management
-  - [x] platform subscription verification
-  - [x] platform analytics
+  - [x] verification
+  - [x] analytics
   - [x] subscription plans
 
-- [ ] **Refactor halaman reports**
-  - redesign khusus tampilan data padat untuk mobile
+- [x] **Refactor halaman reports**
+  - [x] dashboard laporan / entry point
+  - [x] redesign khusus tampilan data padat untuk mobile pada halaman detail
 
-- [~] **Validasi visual & interaksi**
+- [x] **Validasi visual & interaksi**
   - [x] cek CTA utama pada dashboard batch
   - [x] cek file yang disentuh dengan lint terarah
   - [x] build frontend penuh kembali lolos
-  - [ ] cek viewport sempit untuk batch list
-  - [ ] cek empty/loading/error state seluruh halaman prioritas
+  - [x] cek viewport sempit untuk batch list
+  - [x] cek empty/loading/error state seluruh halaman prioritas
 
 ## Progress Tracking Awal
 
-- Status inisiatif: **In Progress**
+- Status inisiatif: **Done**
 - Strategi: **bertahap per domain + shared pattern**
 - Starting point yang bagus:
   - shell sudah lumayan siap
@@ -286,3 +291,10 @@ Sebuah halaman dianggap selesai direfactor Mobile-First bila:
   - batch 2 selesai pada halaman list tenant admin
   - batch 3 sudah membuka perbaikan shell/header/sidebar dan toolbar shared
   - shared pattern inti sekarang sudah kuat untuk lanjut ke form/settings dan platform pages
+  - batch platform saat ini sudah selesai untuk tenant management, verifikasi pembayaran langganan, analytics, dan subscription plans
+  - batch settings/subscription saat ini sudah mulai masuk ke status langganan dan pemilihan paket dengan flow mobile-first
+  - payment settings tenant dan platform sekarang juga sudah mengikuti pattern mobile-first yang sama
+  - setup tenant sekarang juga sudah mengikuti struktur mobile-first yang konsisten dengan flow langganan terbaru
+  - subscription upgrade sebagai flow aktif pembayaran/verifikasi tenant sekarang sudah memakai shared header/stat/form yang konsisten di mobile
+  - seluruh dashboard + detail halaman reports sekarang sudah mengikuti pola mobile-first yang sama
+  - dashboard role, rate history, usage history, tenant payment verification, dan water rate form juga sudah dirapikan agar konsisten dengan shell admin terbaru

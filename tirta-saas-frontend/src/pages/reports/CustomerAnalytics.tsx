@@ -1,350 +1,397 @@
-import React, { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { reportService } from '../../services/reportService';
-import type { CustomerAnalytics as CustomerAnalyticsType } from '../../types/report';
 import {
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
+  CartesianGrid,
   Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from 'recharts';
-import { PageHeader } from '../../components';
-import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowDownTrayIcon,
+  ChartBarIcon,
+  UserGroupIcon,
+  UserIcon,
+  ExclamationTriangleIcon,
+} from '@heroicons/react/24/outline';
+import {
+  DashboardStatCard,
+  DataTable,
+  FormInput,
+  PageHeader,
+} from '../../components';
+import { reportService } from '../../services/reportService';
+import type { CustomerAnalytics as CustomerAnalyticsType } from '../../types/report';
 import { exportToCSV, exportToExcel, formatIDR } from '../../utils/exportUtils';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
-const CustomerAnalytics: React.FC = () => {
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+export default function CustomerAnalytics() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<CustomerAnalyticsType | null>(null);
   const [filters, setFilters] = useState({
-    startDate: searchParams.get('startDate') || new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
+    startDate:
+      searchParams.get('startDate') ||
+      new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0],
     endDate: searchParams.get('endDate') || new Date().toISOString().split('T')[0],
   });
 
-  useEffect(() => {
-    fetchReportData();
-  }, [filters]);
-
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await reportService.getCustomerAnalytics(filters);
       setReportData(data);
     } catch (error) {
       console.error('Failed to fetch customer analytics:', error);
+      setReportData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    void fetchReportData();
+  }, [fetchReportData]);
 
   const handleExport = (format: 'csv' | 'excel') => {
-    if (!reportData) return;
-    const baseName = `customer_analytics_${filters.startDate}_${filters.endDate}`;
+    if (!reportData) {
+      return;
+    }
+
+    const baseName = `analitik_pelanggan_${filters.startDate}_${filters.endDate}`;
 
     const topRows = (reportData.topPelanggan || []).map((item) => ({
-      'Rank': item.rank,
-      'Customer': item.customerName,
-      'Total Pemakaian (m³)': item.totalPemakaian,
+      Rank: item.rank,
+      Pelanggan: item.customerName,
+      'Total Pemakaian (m3)': item.totalPemakaian,
       'Total Revenue (IDR)': item.totalRevenue,
       'Total Revenue': formatIDR(item.totalRevenue),
     }));
     const growthRows = (reportData.customerGrowth || []).map((item) => ({
-      'Month': item.month,
-      'Year': item.year,
-      'New Pelanggan': item.newPelanggan,
+      Bulan: item.month,
+      Tahun: item.year,
+      'Pelanggan Baru': item.newPelanggan,
       'Total Pelanggan': item.totalPelanggan,
     }));
     const statusRows = (reportData.statusDistribution || []).map((item) => ({
-      'Status': item.status,
-      'Count': item.count,
-      'Percentage': `${item.percentage.toFixed(1)}%`,
+      Status: item.status,
+      Jumlah: item.count,
+      Persentase: `${item.percentage.toFixed(1)}%`,
     }));
 
     if (format === 'csv') {
-      exportToCSV(topRows, `${baseName}_top_customers.csv`);
-    } else {
-      exportToExcel(
-        [
-          { sheetName: 'Top Pelanggan', data: topRows },
-          { sheetName: 'Customer Growth', data: growthRows },
-          { sheetName: 'Status Distribution', data: statusRows },
-        ],
-        `${baseName}.xlsx`
-      );
+      exportToCSV(topRows, `${baseName}_top_pelanggan.csv`);
+      return;
     }
+
+    exportToExcel(
+      [
+        { sheetName: 'Top Pelanggan', data: topRows },
+        { sheetName: 'Pertumbuhan Pelanggan', data: growthRows },
+        { sheetName: 'Distribusi Status', data: statusRows },
+      ],
+      `${baseName}.xlsx`
+    );
   };
+
+  const periodLabel = useMemo(
+    () => `${formatDate(filters.startDate)} - ${formatDate(filters.endDate)}`,
+    [filters.endDate, filters.startDate]
+  );
+
+  const activeRate = useMemo(() => {
+    if (!reportData?.totalPelanggan) {
+      return 0;
+    }
+
+    return (reportData.activePelanggan / reportData.totalPelanggan) * 100;
+  }, [reportData]);
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading analytics...</p>
-        </div>
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
       </div>
     );
   }
 
   if (!reportData) {
     return (
-      <div className="p-6">
-        <div className="text-center py-12">
-          <p className="text-gray-600">No data available</p>
-        </div>
+      <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
+        <UserGroupIcon className="mx-auto h-12 w-12 text-gray-300" />
+        <h2 className="mt-4 text-base font-semibold text-gray-900">Analitik pelanggan belum tersedia</h2>
+        <p className="mt-2 text-sm text-gray-500">Silakan coba lagi beberapa saat lagi.</p>
+        <button
+          type="button"
+          onClick={() => void fetchReportData()}
+          className="mt-4 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          Muat Ulang
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
+    <div className="space-y-6">
       <PageHeader
-        title="Customer Analytics"
-        subtitle="Comprehensive customer insights and trends"
+        title="Analitik Pelanggan"
+        subtitle={`Ringkasan pertumbuhan dan distribusi pelanggan untuk periode ${periodLabel}.`}
         actions={
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
-              onClick={() => handleExport('csv')}
-              disabled={!reportData}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
-              CSV
-            </button>
-            <button
-              onClick={() => handleExport('excel')}
-              disabled={!reportData}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
-              Excel
-            </button>
-            <button
+              type="button"
               onClick={() => navigate('/admin/reports')}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              Back
+              Kembali
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExport('csv')}
+              className="inline-flex items-center justify-center rounded-xl bg-gray-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
+            >
+              <ArrowDownTrayIcon className="mr-2 h-5 w-5" />
+              Ekspor CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => handleExport('excel')}
+              className="inline-flex items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
+            >
+              <ArrowDownTrayIcon className="mr-2 h-5 w-5" />
+              Ekspor Excel
             </button>
           </div>
         }
       />
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Start Date
-            </label>
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={filters.startDate}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, startDate: e.target.value }))
-              }
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              End Date
-            </label>
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={filters.endDate}
-              onChange={(e) =>
-                setFilters((prev) => ({ ...prev, endDate: e.target.value }))
-              }
-            />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        <DashboardStatCard
+          title="Total Pelanggan"
+          value={`${reportData.totalPelanggan}`}
+          helper="Basis pelanggan"
+          subtitle="Jumlah pelanggan yang masuk dalam cakupan laporan ini."
+          icon={UserGroupIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Pelanggan Aktif"
+          value={`${reportData.activePelanggan}`}
+          helper={`${activeRate.toFixed(1)}% aktif`}
+          subtitle="Pelanggan dengan status aktif dibanding total pelanggan."
+          icon={UserIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Tidak Aktif"
+          value={`${reportData.inactivePelanggan}`}
+          helper="Perlu tindak lanjut"
+          subtitle="Pelanggan nonaktif yang perlu dipantau ulang."
+          icon={ChartBarIcon}
+          tone="yellow"
+        />
+        <DashboardStatCard
+          title="Ditangguhkan"
+          value={`${reportData.suspendedPelanggan}`}
+          helper="Kasus prioritas"
+          subtitle="Jumlah pelanggan dengan status suspend pada periode ini."
+          icon={ExclamationTriangleIcon}
+          tone="purple"
+        />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm font-medium text-gray-600 mb-2">Total Pelanggan</div>
-          <div className="text-3xl font-bold text-gray-900">
-            {reportData.totalPelanggan}
-          </div>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Filter periode</h2>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormInput
+            type="date"
+            label="Tanggal mulai"
+            value={filters.startDate}
+            onChange={(e) => setFilters((prev) => ({ ...prev, startDate: e.target.value }))}
+          />
+          <FormInput
+            type="date"
+            label="Tanggal selesai"
+            value={filters.endDate}
+            onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
+          />
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm font-medium text-gray-600 mb-2">Active</div>
-          <div className="text-3xl font-bold text-green-600">
-            {reportData.activePelanggan}
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm font-medium text-gray-600 mb-2">Inactive</div>
-          <div className="text-3xl font-bold text-yellow-600">
-            {reportData.inactivePelanggan}
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm font-medium text-gray-600 mb-2">Suspended</div>
-          <div className="text-3xl font-bold text-red-600">
-            {reportData.suspendedPelanggan}
-          </div>
-        </div>
-      </div>
+      </section>
 
-      {/* Customer Growth Chart */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Customer Growth</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={reportData.customerGrowth}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line
-              type="monotone"
-              dataKey="newPelanggan"
-              stroke="#10B981"
-              name="New Pelanggan"
-              strokeWidth={2}
-            />
-            <Line
-              type="monotone"
-              dataKey="totalPelanggan"
-              stroke="#3B82F6"
-              name="Total Pelanggan"
-              strokeWidth={2}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Status Distribution & Top Pelanggan */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Status Distribution */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Customer Status Distribution
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={reportData.statusDistribution}
-                dataKey="count"
-                nameKey="status"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label={(entry) => `${entry.status}: ${entry.percentage}%`}
-              >
-                {reportData.statusDistribution.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[Number(index) % COLORS.length]} />
-                ))}
-              </Pie>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Tren pertumbuhan pelanggan</h2>
+        <div className="mt-4 h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={reportData.customerGrowth}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
               <Tooltip />
-            </PieChart>
+              <Line
+                type="monotone"
+                dataKey="newPelanggan"
+                stroke="#10B981"
+                name="Pelanggan Baru"
+                strokeWidth={2}
+              />
+              <Line
+                type="monotone"
+                dataKey="totalPelanggan"
+                stroke="#3B82F6"
+                name="Total Pelanggan"
+                strokeWidth={2}
+              />
+            </LineChart>
           </ResponsiveContainer>
         </div>
+      </section>
 
-        {/* Top Pelanggan by Revenue */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Top Pelanggan by Revenue
-          </h2>
-          <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900">Distribusi status pelanggan</h2>
+          <div className="mt-4 h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={reportData.statusDistribution}
+                  dataKey="count"
+                  nameKey="status"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={105}
+                >
+                  {reportData.statusDistribution.map((_entry, index) => (
+                    <Cell key={`status-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-gray-900">Pelanggan kontribusi tertinggi</h2>
+          <div className="mt-4 space-y-3">
             {reportData.topPelanggan.slice(0, 5).map((customer) => (
-              <div
-                key={customer.customerId}
-                className="flex justify-between items-center p-3 bg-gray-50 rounded-md"
-              >
-                <div>
-                  <div className="font-medium text-gray-900">
-                    #{customer.rank}. {customer.customerName}
+              <div key={`${customer.customerId}-${customer.rank}`} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">
+                      #{customer.rank} {customer.customerName}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Pemakaian {customer.totalPemakaian.toLocaleString('id-ID')} m3
+                    </p>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    Pemakaian: {customer.totalPemakaian.toLocaleString()} m³
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold text-gray-900">
-                    Rp {customer.totalRevenue.toLocaleString('id-ID')}
-                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-sm font-medium text-gray-700 ring-1 ring-gray-200">
+                    {formatIDR(customer.totalRevenue)}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Growth Details Table */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Monthly Growth Details
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                  Month
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  New Pelanggan
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Total Pelanggan
-                </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                  Growth Rate
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {reportData.customerGrowth.map((item, index) => {
-                const prevTotal =
-                  index > 0 ? reportData.customerGrowth[index - 1].totalPelanggan : 0;
-                const growthRate =
-                  prevTotal > 0
-                    ? ((item.totalPelanggan - prevTotal) / prevTotal) * 100
-                    : 0;
-                return (
-                  <tr key={index}>
-                    <td className="px-4 py-2 text-sm text-gray-900">
-                      {item.month} {item.year}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                      {item.newPelanggan}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                      {item.totalPelanggan}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-right">
-                      <span
-                        className={`${
-                          growthRate >= 0 ? 'text-green-600' : 'text-red-600'
-                        }`}
-                      >
-                        {growthRate > 0 ? '+' : ''}
-                        {growthRate.toFixed(1)}%
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Rincian pertumbuhan bulanan</h2>
+        <div className="mt-4">
+          <DataTable
+            data={reportData.customerGrowth}
+            searchable={false}
+            pageSize={8}
+            emptyMessage="Belum ada data pertumbuhan pelanggan."
+            columns={[
+              {
+                key: 'month',
+                label: 'Bulan',
+                sortable: true,
+                render: (value, item) => `${String(value)} ${item.year}`,
+              },
+              {
+                key: 'newPelanggan',
+                label: 'Pelanggan Baru',
+                sortable: true,
+                align: 'right',
+              },
+              {
+                key: 'totalPelanggan',
+                label: 'Total Pelanggan',
+                sortable: true,
+                align: 'right',
+              },
+              {
+                key: 'growth_rate',
+                label: 'Growth',
+                align: 'right',
+                render: (_value, item) => {
+                  const index = reportData.customerGrowth.findIndex(
+                    (growthItem) => growthItem.month === item.month && growthItem.year === item.year
+                  );
+                  const prevTotal = index > 0 ? reportData.customerGrowth[index - 1].totalPelanggan : 0;
+                  const growthRate = prevTotal > 0 ? ((item.totalPelanggan - prevTotal) / prevTotal) * 100 : 0;
+                  return `${growthRate > 0 ? '+' : ''}${growthRate.toFixed(1)}%`;
+                },
+              },
+            ]}
+          />
         </div>
-      </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Rincian top pelanggan</h2>
+        <div className="mt-4">
+          <DataTable
+            data={reportData.topPelanggan}
+            searchable={false}
+            pageSize={8}
+            emptyMessage="Belum ada data top pelanggan."
+            columns={[
+              {
+                key: 'rank',
+                label: 'Rank',
+                sortable: true,
+                align: 'right',
+              },
+              {
+                key: 'customerName',
+                label: 'Pelanggan',
+                sortable: true,
+              },
+              {
+                key: 'totalPemakaian',
+                label: 'Pemakaian',
+                sortable: true,
+                align: 'right',
+                render: (value) => `${Number(value || 0).toLocaleString('id-ID')} m3`,
+              },
+              {
+                key: 'totalRevenue',
+                label: 'Revenue',
+                sortable: true,
+                align: 'right',
+                render: (value) => formatIDR(Number(value || 0)),
+              },
+            ]}
+          />
+        </div>
+      </section>
     </div>
   );
-};
-
-export default CustomerAnalytics;
+}

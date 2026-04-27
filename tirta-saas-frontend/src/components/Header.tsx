@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../hooks/redux';
 import { logoutAsync } from '../store/slices/authSlice';
 import PrinterBridgeIndicator from './PrinterBridgeIndicator';
+import { thermalPrinterService } from '../services/thermalPrinterService';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -94,6 +95,12 @@ const Header = ({ onMenuClick }: HeaderProps) => {
     return import.meta.env.VITE_APP_NAME || 'Tirta SaaS';
   }, [user?.tenant_name]);
 
+  const roleLabel = useMemo(() => {
+    return user?.role?.replace(/_/g, ' ') || 'admin';
+  }, [user?.role]);
+
+  const showPrinterBridge = thermalPrinterService.shouldUseBridge();
+
   const handleLogout = () => {
     setMenuOpen(false);
     dispatch(logoutAsync());
@@ -137,18 +144,12 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             <p className="truncate text-base font-semibold text-gray-900 sm:text-lg">
               {pageMeta.title}
             </p>
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0">
-              {/* Subtitle hanya tampil di sm+ */}
-              <p className="hidden truncate text-xs text-gray-500 sm:block">
+            <div className="mt-1 space-y-1">
+              <p className="truncate text-xs text-gray-500 sm:max-w-xl">
                 {pageMeta.subtitle}
               </p>
-              <span className="hidden text-gray-300 sm:inline">•</span>
-              <p className="truncate text-xs font-medium text-blue-700">
+              <p className="hidden truncate text-xs font-medium text-blue-700 sm:block">
                 {accountLabel}
-              </p>
-              <span className="text-gray-300">·</span>
-              <p className="truncate text-xs text-gray-500 uppercase tracking-wide">
-                {user?.role?.replace('_', ' ') || 'admin'}
               </p>
             </div>
           </div>
@@ -172,7 +173,6 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             >
               <div className="hidden text-right sm:block">
                 <p className="text-sm font-medium text-gray-900">{user?.name || 'Pengguna Admin'}</p>
-                <p className="text-xs text-gray-500 capitalize">{user?.role || 'admin'}</p>
               </div>
               <UserCircleIcon className="h-8 w-8 flex-shrink-0 text-gray-400" />
               <ChevronDownIcon className={`hidden h-4 w-4 text-gray-400 transition sm:block ${menuOpen ? 'rotate-180' : ''}`} />
@@ -181,7 +181,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
               <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
                 <div className="border-b border-gray-100 px-4 py-3">
                   <p className="truncate text-sm font-semibold text-gray-900">{user?.name || 'Pengguna Admin'}</p>
-                  <p className="truncate text-xs text-gray-500 capitalize">{user?.role || 'admin'}</p>
+                  <p className="truncate text-xs text-gray-500 capitalize">{roleLabel}</p>
                   <p className="mt-1 truncate text-xs font-medium text-blue-700">{accountLabel}</p>
                 </div>
                 {/* Printer indicator di dropdown untuk mobile */}
@@ -197,6 +197,16 @@ const Header = ({ onMenuClick }: HeaderProps) => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+      <div className="px-4 pb-3 sm:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-medium text-blue-700">{accountLabel}</p>
+          </div>
+          {showPrinterBridge && (
+            <PrinterBridgeIndicator className="inline-flex shrink-0" />
+          )}
         </div>
       </div>
     </header>

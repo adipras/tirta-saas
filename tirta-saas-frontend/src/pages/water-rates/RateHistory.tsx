@@ -1,14 +1,48 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
-import { DataTable, type Column } from '../../components/DataTable';
-import { PageHeader } from '../../components';
+import {
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CurrencyDollarIcon,
+  XCircleIcon,
+} from '@heroicons/react/24/outline';
+import { useAppDispatch } from '../../hooks/redux';
+import { addNotification } from '../../store/slices/uiSlice';
 import { waterRateService } from '../../services/waterRateService';
 import { subscriptionService } from '../../services/subscriptionService';
 import type { RateHistory } from '../../types/waterRate';
 import type { SubscriptionType } from '../../types/subscription';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
+import {
+  DashboardStatCard,
+  DataTable,
+  FormSelect,
+  PageHeader,
+} from '../../components';
+import type { Column } from '../../components';
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount);
+
+const formatDate = (date: string) =>
+  new Date(date).toLocaleDateString('id-ID', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+const formatDateTime = (date: string) =>
+  new Date(date).toLocaleString('id-ID', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
 export default function RateHistory() {
   const navigate = useNavigate();
@@ -18,7 +52,7 @@ export default function RateHistory() {
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedSubscription, setSelectedSubscription] = useState<string>('');
+  const [selectedSubscription, setSelectedSubscription] = useState('');
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -30,10 +64,12 @@ export default function RateHistory() {
       );
       setHistory(response.data);
     } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch rate history',
-      }));
+      dispatch(
+        addNotification({
+          type: 'error',
+          message: 'Riwayat tarif air belum bisa dimuat',
+        })
+      );
       console.error('Error fetching rate history:', error);
     } finally {
       setLoading(false);
@@ -50,196 +86,174 @@ export default function RateHistory() {
   }, []);
 
   useEffect(() => {
-    fetchHistory();
+    void fetchHistory();
   }, [fetchHistory]);
 
   useEffect(() => {
-    fetchSubscriptionTypes();
+    void fetchSubscriptionTypes();
   }, [fetchSubscriptionTypes]);
 
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatDate = (date: string): string => {
-    return new Date(date).toLocaleDateString('id-ID', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
-
-  const formatDateTime = (date: string): string => {
-    return new Date(date).toLocaleString('id-ID', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const activeCount = history.filter((item) => item.active).length;
+  const inactiveCount = history.filter((item) => !item.active).length;
+  const latestRate = history[0]?.amount || 0;
 
   const columns: Column<RateHistory>[] = [
     {
-      key: 'subscriptionName',
-      label: 'Subscription Type',
+      key: 'subscription_name',
+      label: 'Golongan Langganan',
       sortable: true,
     },
     {
       key: 'amount',
-      label: 'Rate per m³',
-      render: (_value: unknown, row: RateHistory) => formatCurrency(row.amount),
-      align: 'right' as const,
+      label: 'Tarif per m3',
+      render: (_value, row) => formatCurrency(row.amount),
+      align: 'right',
       sortable: true,
     },
     {
-      key: 'effectiveDate',
-      label: 'Effective Date',
-      render: (_value: unknown, row: RateHistory) => formatDate(row.effective_date),
+      key: 'effective_date',
+      label: 'Mulai Berlaku',
+      render: (_value, row) => formatDate(row.effective_date),
       sortable: true,
     },
     {
-      key: 'createdAt',
-      label: 'Created At',
-      render: (_value: unknown, row: RateHistory) => formatDateTime(row.created_at),
+      key: 'created_at',
+      label: 'Dibuat',
+      render: (_value, row) => formatDateTime(row.created_at),
       sortable: true,
     },
     {
       key: 'active',
       label: 'Status',
-      render: (_value: unknown, row: RateHistory) => (
+      render: (_value, row) => (
         <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            row.active
-              ? 'bg-green-100 text-green-800'
-              : 'bg-gray-100 text-gray-800'
+          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+            row.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
           }`}
         >
           {row.active ? (
             <>
-              <CheckCircleIcon className="w-4 h-4 mr-1" />
-              Active
+              <CheckCircleIcon className="mr-1 h-4 w-4" />
+              Aktif
             </>
           ) : (
             <>
-              <XCircleIcon className="w-4 h-4 mr-1" />
-              Inactive
+              <XCircleIcon className="mr-1 h-4 w-4" />
+              Nonaktif
             </>
           )}
         </span>
       ),
-      align: 'center' as const,
+      align: 'center',
     },
   ];
 
+  const subscriptionOptions = useMemo(
+    () => [
+      { value: '', label: 'Semua golongan langganan' },
+      ...subscriptionTypes.map((type) => ({ value: type.id, label: type.name })),
+    ],
+    [subscriptionTypes]
+  );
+
   return (
     <div className="space-y-6">
-      <div>
-        <button
-          onClick={() => navigate('/admin/water-rates')}
-          className="flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-2" />
-          Back to Tarif Air
-        </button>
-        <PageHeader title="Rate History" subtitle="View historical water rate changes over time" />
+      <PageHeader
+        title="Riwayat Tarif Air"
+        subtitle="Pantau perubahan tarif air dari waktu ke waktu dengan filter yang lebih ringkas dan daftar yang mobile-friendly."
+        actions={
+          <button
+            type="button"
+            onClick={() => navigate('/admin/water-rates')}
+            className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
+          >
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
+            Kembali ke Tarif Air
+          </button>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <DashboardStatCard
+          title="Riwayat Tampil"
+          value={loading ? '...' : history.length.toLocaleString('id-ID')}
+          helper={selectedSubscription ? 'Sudah difilter' : 'Semua data pada halaman'}
+          subtitle="Jumlah riwayat tarif yang sedang tampil pada daftar aktif."
+          icon={ClockIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Tarif Aktif"
+          value={loading ? '...' : activeCount.toLocaleString('id-ID')}
+          helper={`${inactiveCount.toLocaleString('id-ID')} nonaktif`}
+          subtitle="Membantu memantau berapa entri tarif yang masih aktif digunakan."
+          icon={CheckCircleIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Tarif Terbaru"
+          value={loading ? '...' : formatCurrency(latestRate)}
+          helper="Entri teratas"
+          subtitle="Nilai tarif paling baru dari hasil daftar riwayat yang tampil."
+          icon={CurrencyDollarIcon}
+          tone="purple"
+        />
       </div>
 
-      {/* Filter */}
-      <div className="mb-4 bg-white p-4 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Filter by Subscription Type
-            </label>
-            <select
-              value={selectedSubscription}
-              onChange={(e) => {
-                setSelectedSubscription(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            >
-              <option value="">All Golongan Langganan</option>
-              {subscriptionTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Filter riwayat</h2>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:max-w-lg">
+          <FormSelect
+            label="Golongan langganan"
+            value={selectedSubscription}
+            onChange={(e) => {
+              setSelectedSubscription(e.target.value);
+              setCurrentPage(1);
+            }}
+            options={subscriptionOptions}
+          />
         </div>
-      </div>
+      </section>
 
-      {/* Timeline View */}
-      <div className="bg-white shadow rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Rate Changes Timeline</h3>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900">Timeline perubahan tarif</h2>
         {history.length > 0 ? (
-          <div className="space-y-4">
-            {history.slice(0, 5).map((rate, index) => (
-              <div key={rate.id} className="flex items-start">
-                <div className="flex-shrink-0">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      rate.active ? 'bg-green-100' : 'bg-gray-100'
-                    }`}
-                  >
-                    {rate.active ? (
-                      <CheckCircleIcon className="w-5 h-5 text-green-600" />
-                    ) : (
-                      <XCircleIcon className="w-5 h-5 text-gray-600" />
-                    )}
+          <div className="mt-4 space-y-4">
+            {history.slice(0, 5).map((rate) => (
+              <div key={rate.id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{rate.subscription_name}</p>
+                    <p className="mt-1 text-sm text-gray-500">{formatDate(rate.effective_date)}</p>
+                    <p className="mt-1 text-xs text-gray-500">Dibuat {formatDateTime(rate.created_at)}</p>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <p className="text-lg font-semibold text-gray-900">{formatCurrency(rate.amount)}</p>
+                    <p className="text-xs text-gray-500">per m3</p>
                   </div>
                 </div>
-                <div className="ml-4 flex-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {rate.subscription_name}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {formatDate(rate.effective_date)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-gray-900">
-                        {formatCurrency(rate.amount)}
-                      </p>
-                      <p className="text-xs text-gray-500">per m³</p>
-                    </div>
-                  </div>
-                </div>
-                {index < 4 && history.length > 1 && (
-                  <div className="absolute left-4 top-8 h-full w-0.5 bg-gray-200" />
-                )}
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-500 text-center py-4">
-            No rate history available
-          </p>
+          <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+            Belum ada riwayat tarif yang tersedia.
+          </div>
         )}
-      </div>
+      </section>
 
-      {/* Full History Table */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Complete History</h3>
+      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b border-gray-200 px-5 py-4">
+          <h2 className="text-base font-semibold text-gray-900">Riwayat lengkap</h2>
         </div>
         <DataTable
           columns={columns}
           data={history}
           loading={loading}
-          
-          
-          
+          searchable={false}
+          emptyMessage="Belum ada riwayat tarif yang cocok dengan filter."
         />
-      </div>
+      </section>
     </div>
   );
 }

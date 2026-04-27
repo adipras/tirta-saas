@@ -1,15 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
+  BuildingOfficeIcon,
   CheckCircleIcon,
   ClockIcon,
-  UserGroupIcon,
-  BuildingOfficeIcon,
   EyeIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { API_ENDPOINTS } from '../../constants/api';
 import { apiClient } from '../../services/apiClient';
-import { PageHeader, useToast } from '../../components';
+import {
+  DashboardStatCard,
+  DataTable,
+  Modal,
+  PageHeader,
+  type Column,
+  useToast,
+} from '../../components';
 
 interface Tenant {
   id: string;
@@ -43,33 +49,34 @@ interface TenantManagementStats {
 }
 
 type TabType = 'pending' | 'all';
+type ModalAction = 'approve' | 'activate' | 'suspend' | 'view';
 
 const statusColors: Record<string, { bg: string; text: string; label: string }> = {
   TRIAL: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Trial' },
   PENDING_PAYMENT: {
     bg: 'bg-yellow-100',
     text: 'text-yellow-800',
-    label: 'Pending Payment',
+    label: 'Menunggu Pembayaran',
   },
   PENDING_VERIFICATION: {
     bg: 'bg-orange-100',
     text: 'text-orange-800',
-    label: 'Pending Verification',
+    label: 'Menunggu Verifikasi',
   },
-  ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: 'Active' },
-  SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: 'Suspended' },
-  EXPIRED: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Expired' },
-  INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Inactive' },
+  ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
+  SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: 'Dinonaktifkan' },
+  EXPIRED: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Berakhir' },
+  INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Tidak Aktif' },
 };
 
 const subscriptionStatusColors: Record<string, { bg: string; text: string; label: string }> = {
-  VERIFIED: { bg: 'bg-green-100', text: 'text-green-800', label: 'Payment Verified' },
+  VERIFIED: { bg: 'bg-green-100', text: 'text-green-800', label: 'Pembayaran Terverifikasi' },
   PENDING_VERIFICATION: {
     bg: 'bg-yellow-100',
     text: 'text-yellow-800',
     label: 'Menunggu Verifikasi Pembayaran',
   },
-  ACTIVE: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Subscription Active' },
+  ACTIVE: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Langganan Aktif' },
   TRIAL: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Trial' },
 };
 
@@ -85,20 +92,13 @@ const TenantManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [modalAction, setModalAction] = useState<'approve' | 'activate' | 'suspend' | 'view'>('view');
+  const [modalAction, setModalAction] = useState<ModalAction>('view');
   const [actionReason, setActionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadTenants();
-  }, [activeTab]);
-
-  useEffect(() => {
-    loadTenantStats();
-  }, []);
-
-  const loadTenants = async () => {
+  const loadTenants = useCallback(async () => {
     setIsLoading(true);
+
     try {
       const endpoint =
         activeTab === 'pending'
@@ -108,30 +108,40 @@ const TenantManagement = () => {
       setTenants(response.data || []);
     } catch (error) {
       console.error('Failed to load tenants:', error);
+      toast.error('Gagal memuat data tenant.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeTab, toast]);
 
-  const loadTenantStats = async () => {
+  const loadTenantStats = useCallback(async () => {
     try {
       const response = await apiClient.get<{ data?: TenantManagementStats }>(
         API_ENDPOINTS.PLATFORM.TENANT_STATS
       );
-      setTenantStats(response.data ?? {
-        pending_tenants: 0,
-        active_tenants: 0,
-        total_tenants: 0,
-      });
+
+      setTenantStats(
+        response.data ?? {
+          pending_tenants: 0,
+          active_tenants: 0,
+          total_tenants: 0,
+        }
+      );
     } catch (error) {
       console.error('Failed to load tenant stats:', error);
+      toast.error('Gagal memuat ringkasan tenant.');
     }
-  };
+  }, [toast]);
 
-  const openModal = (
-    tenant: Tenant,
-    action: 'approve' | 'activate' | 'suspend' | 'view'
-  ) => {
+  useEffect(() => {
+    void loadTenants();
+  }, [loadTenants]);
+
+  useEffect(() => {
+    void loadTenantStats();
+  }, [loadTenantStats]);
+
+  const openModal = (tenant: Tenant, action: ModalAction) => {
     setSelectedTenant(tenant);
     setModalAction(action);
     setActionReason('');
@@ -145,29 +155,34 @@ const TenantManagement = () => {
   };
 
   const handleAction = async () => {
-    if (!selectedTenant) return;
+    if (!selectedTenant) {
+      return;
+    }
+
+    let endpoint = '';
+    let payload: Record<string, string> = {};
+
+    switch (modalAction) {
+      case 'approve':
+        endpoint = `/platform/tenants/${selectedTenant.id}/approve`;
+        payload = actionReason.trim() ? { notes: actionReason.trim() } : {};
+        break;
+      case 'activate':
+        endpoint = `/platform/tenants/${selectedTenant.id}/activate`;
+        break;
+      case 'suspend':
+        endpoint = `/platform/tenants/${selectedTenant.id}/suspend`;
+        payload = { reason: actionReason.trim() };
+        break;
+      default:
+        return;
+    }
 
     setIsSubmitting(true);
+
     try {
-      let endpoint = '';
-      let payload: any = {};
-
-        switch (modalAction) {
-          case 'approve':
-            endpoint = `/platform/tenants/${selectedTenant.id}/approve`;
-            payload = { notes: actionReason };
-            break;
-          case 'activate':
-            endpoint = `/platform/tenants/${selectedTenant.id}/activate`;
-            payload = {};
-            break;
-          case 'suspend':
-            endpoint = `/platform/tenants/${selectedTenant.id}/suspend`;
-            payload = { reason: actionReason };
-            break;
-        }
-
       await apiClient.post(endpoint, payload);
+
       if (modalAction === 'activate') {
         toast.success('Tenant berhasil diaktifkan kembali.');
       } else if (modalAction === 'suspend') {
@@ -175,18 +190,22 @@ const TenantManagement = () => {
       } else if (modalAction === 'approve') {
         toast.success('Tenant berhasil diaktifkan setelah pembayaran terverifikasi.');
       }
+
       await Promise.all([loadTenants(), loadTenantStats()]);
       closeModal();
     } catch (error) {
       console.error('Action failed:', error);
-      toast.error('Aksi gagal. Silakan coba lagi.');
+      toast.error('Aksi tenant gagal. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
+    if (!dateString) {
+      return '-';
+    }
+
     return new Date(dateString).toLocaleDateString('id-ID', {
       year: 'numeric',
       month: 'short',
@@ -204,9 +223,10 @@ const TenantManagement = () => {
 
   const getStatusBadge = (status: string) => {
     const config = statusColors[status] || statusColors.INACTIVE;
+
     return (
       <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${config.bg} ${config.text}`}
       >
         {config.label}
       </span>
@@ -214,15 +234,19 @@ const TenantManagement = () => {
   };
 
   const getSubscriptionStatusBadge = (status?: string) => {
-    if (!status) return <span className="text-xs text-gray-400">-</span>;
+    if (!status) {
+      return <span className="text-xs text-gray-400">Belum ada</span>;
+    }
+
     const config = subscriptionStatusColors[status] || {
       bg: 'bg-gray-100',
       text: 'text-gray-800',
       label: status,
     };
+
     return (
       <span
-        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${config.bg} ${config.text}`}
       >
         {config.label}
       </span>
@@ -232,318 +256,317 @@ const TenantManagement = () => {
   const canApproveTenant = (tenant: Tenant) =>
     tenant.status === 'PENDING_VERIFICATION' && tenant.subscription_status === 'VERIFIED';
 
+  const columns: Column<Tenant>[] = [
+    {
+      key: 'name',
+      label: 'Organisasi',
+      render: (_, tenant) => (
+        <div className="min-w-0">
+          <p className="font-medium text-gray-900">{tenant.name}</p>
+          <p className="text-xs text-gray-500">{tenant.village_code}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'admin_name',
+      label: 'Admin',
+      hideOnMobile: true,
+      render: (_, tenant) => (
+        <div className="min-w-0">
+          <p className="text-sm text-gray-900">{tenant.admin_name}</p>
+          <p className="text-xs text-gray-500">{tenant.admin_email}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status Tenant',
+      render: (value) => getStatusBadge(String(value)),
+    },
+    {
+      key: 'subscription_status',
+      label: 'Status Pembayaran',
+      render: (value) => getSubscriptionStatusBadge(value as string | undefined),
+    },
+    {
+      key: 'registered_at',
+      label: 'Terdaftar',
+      hideOnMobile: true,
+      render: (value) => formatDate(String(value)),
+    },
+    {
+      key: 'ends_at',
+      label: 'Berakhir',
+      render: (_, tenant) => formatDate(getEndDate(tenant)),
+    },
+  ];
+
+  const modalTitle = {
+    view: 'Detail Tenant',
+    approve: 'Aktivasi Tenant',
+    activate: 'Aktifkan Tenant',
+    suspend: 'Nonaktifkan Tenant',
+  }[modalAction];
+
+  const tabButtonClass = (tab: TabType) =>
+    `inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+      activeTab === tab
+        ? 'bg-blue-600 text-white shadow-sm'
+        : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+    }`;
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Tenant Management" subtitle="Kelola tenant pending, aktif, dan status langganannya" />
+      <PageHeader
+        title="Manajemen Tenant"
+        subtitle="Kelola tenant pending, tenant aktif, dan kesiapan langganannya dari satu alur yang lebih nyaman di mobile."
+      />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <ClockIcon className="h-8 w-8 text-yellow-500" />
-            </div>
-            <div className="ml-4">
-               <p className="text-sm font-medium text-gray-600">Pending Tenants</p>
-               <p className="text-2xl font-bold text-gray-900">
-                 {tenantStats.pending_tenants}
-               </p>
-             </div>
-           </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <CheckCircleIcon className="h-8 w-8 text-green-500" />
-            </div>
-            <div className="ml-4">
-               <p className="text-sm font-medium text-gray-600">Active Tenants</p>
-               <p className="text-2xl font-bold text-gray-900">
-                 {tenantStats.active_tenants}
-               </p>
-             </div>
-           </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <BuildingOfficeIcon className="h-8 w-8 text-blue-500" />
-            </div>
-            <div className="ml-4">
-               <p className="text-sm font-medium text-gray-600">Total Tenants</p>
-               <p className="text-2xl font-bold text-gray-900">{tenantStats.total_tenants}</p>
-             </div>
-           </div>
-         </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <DashboardStatCard
+          title="Tenant Pending"
+          value={tenantStats.pending_tenants.toLocaleString('id-ID')}
+          helper="Butuh tindak lanjut"
+          subtitle="Tenant yang masih menunggu aktivasi atau verifikasi."
+          icon={ClockIcon}
+          tone="yellow"
+        />
+        <DashboardStatCard
+          title="Tenant Aktif"
+          value={tenantStats.active_tenants.toLocaleString('id-ID')}
+          helper="Sudah berjalan"
+          subtitle="Tenant yang sudah dapat beroperasi normal di platform."
+          icon={CheckCircleIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Total Tenant"
+          value={tenantStats.total_tenants.toLocaleString('id-ID')}
+          helper="Seluruh tenant"
+          subtitle="Gabungan tenant aktif, trial, pending, dan nonaktif."
+          icon={BuildingOfficeIcon}
+          tone="blue"
+        />
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex">
-            <button
-              onClick={() => setActiveTab('pending')}
-              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                activeTab === 'pending'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Pending
-            </button>
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${
-                activeTab === 'all'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              All Tenants
-            </button>
-          </nav>
-        </div>
-
-        {/* Tenant List */}
-        <div className="overflow-x-auto">
-          {isLoading ? (
-            <div className="p-8 text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="mt-2 text-gray-600">Memuat data tenant...</p>
+      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Daftar tenant</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Gunakan tab untuk fokus ke tenant yang perlu aksi segera.
+              </p>
             </div>
-          ) : tenants.length === 0 ? (
-            <div className="p-8 text-center">
-              <UserGroupIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-2 text-gray-600">Tidak ada tenant ditemukan</p>
-            </div>
-          ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Organization
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Admin
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Registered
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ends At
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {tenants.map((tenant) => (
-                  <tr key={tenant.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{tenant.name}</div>
-                        <div className="text-sm text-gray-500">{tenant.village_code}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm text-gray-900">{tenant.admin_name}</div>
-                        <div className="text-sm text-gray-500">{tenant.admin_email}</div>
-                      </div>
-                     </td>
-                     <td className="px-6 py-4">{getStatusBadge(tenant.status)}</td>
-                     <td className="px-6 py-4">{getSubscriptionStatusBadge(tenant.subscription_status)}</td>
-                     <td className="px-6 py-4 text-sm text-gray-500">
-                       {formatDate(tenant.registered_at)}
-                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                       {formatDate(getEndDate(tenant))}
-                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openModal(tenant, 'view')}
-                        className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
-                        title="Lihat detail"
-                        aria-label="Lihat detail"
-                      >
-                        <EyeIcon className="h-5 w-5" />
-                      </button>
-                      {canApproveTenant(tenant) && (
-                        <button
-                          onClick={() => openModal(tenant, 'approve')}
-                          className="inline-flex items-center justify-center rounded-md p-2.5 text-green-600 hover:bg-green-50 hover:text-green-900"
-                          title="Approve & activate"
-                          aria-label="Approve & activate"
-                        >
-                          <CheckCircleIcon className="h-5 w-5" />
-                        </button>
-                      )}
-                      {tenant.status === 'ACTIVE' && (
-                        <button
-                          onClick={() => openModal(tenant, 'suspend')}
-                          className="inline-flex items-center justify-center rounded-md p-2.5 text-orange-600 hover:bg-orange-50 hover:text-orange-900"
-                          title="Nonaktifkan tenant"
-                          aria-label="Nonaktifkan tenant"
-                        >
-                          <XCircleIcon className="h-5 w-5" />
-                        </button>
-                      )}
-                      {tenant.status === 'SUSPENDED' && (
-                        <button
-                          onClick={() => openModal(tenant, 'activate')}
-                          className="inline-flex items-center justify-center rounded-md p-2.5 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-900"
-                          title="Aktifkan tenant"
-                          aria-label="Aktifkan tenant"
-                        >
-                          <CheckCircleIcon className="h-5 w-5" />
-                        </button>
-                      )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-
-      {/* Modal */}
-      {showModal && selectedTenant && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 p-4">
-          <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              {/* Modal Header */}
-              <div className="mb-4 pb-4 border-b">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {modalAction === 'view' && 'Tenant Details'}
-                  {modalAction === 'approve' && 'Activate Tenant'}
-                  {modalAction === 'activate' && 'Aktifkan Tenant'}
-                  {modalAction === 'suspend' && 'Nonaktifkan Tenant'}
-                </h3>
-              </div>
-
-              {/* Tenant Information */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Organization Name</p>
-                    <p className="text-sm text-gray-900">{selectedTenant.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Village Code</p>
-                    <p className="text-sm text-gray-900">{selectedTenant.village_code}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Email</p>
-                    <p className="text-sm text-gray-900">{selectedTenant.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Phone</p>
-                    <p className="text-sm text-gray-900">{selectedTenant.phone}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-sm font-medium text-gray-500">Address</p>
-                    <p className="text-sm text-gray-900">{selectedTenant.address}</p>
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                    Administrator
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Name</p>
-                      <p className="text-sm text-gray-900">{selectedTenant.admin_name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Email</p>
-                      <p className="text-sm text-gray-900">{selectedTenant.admin_email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Phone</p>
-                      <p className="text-sm text-gray-900">{selectedTenant.admin_phone}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Status</p>
-                      {getStatusBadge(selectedTenant.status)}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Payment Status</p>
-                      {getSubscriptionStatusBadge(selectedTenant.subscription_status)}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Input */}
-                {modalAction !== 'view' && modalAction !== 'activate' && (
-                  <div className="border-t pt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {modalAction === 'approve' && 'Activation Notes (Optional)'}
-                      {modalAction === 'suspend' && 'Alasan nonaktifkan tenant *'}
-                    </label>
-                    <textarea
-                      value={actionReason}
-                      onChange={(e) => setActionReason(e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder={
-                          modalAction === 'approve'
-                            ? 'Tambah catatan aktivasi...'
-                            : 'Masukkan alasan penonaktifan tenant...'
-                        }
-                       required={modalAction === 'suspend'}
-                     />
-                  </div>
-                )}
-              </div>
-
-              {/* Modal Actions */}
-              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <div className="rounded-2xl bg-gray-100 p-1">
+              <div className="grid grid-cols-2 gap-1">
                 <button
-                  onClick={closeModal}
-                  disabled={isSubmitting}
-                  className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 disabled:opacity-50 sm:w-auto"
+                  type="button"
+                  onClick={() => setActiveTab('pending')}
+                  className={tabButtonClass('pending')}
                 >
-                  Cancel
+                  Pending
                 </button>
-                {modalAction !== 'view' && (
-                  <button
-                    onClick={handleAction}
-                    disabled={
-                      isSubmitting || (modalAction === 'suspend' && !actionReason.trim())
-                    }
-                    className={`w-full px-4 py-2 text-white rounded-md disabled:opacity-50 sm:w-auto ${
-                      modalAction === 'approve' || modalAction === 'activate'
-                        ? 'bg-green-600 hover:bg-green-700'
-                        : 'bg-orange-600 hover:bg-orange-700'
-                    }`}
-                  >
-                    {isSubmitting
-                      ? 'Processing...'
-                      : modalAction === 'approve'
-                        ? 'Approve & Activate'
-                        : modalAction === 'activate'
-                          ? 'Aktifkan Tenant'
-                          : 'Nonaktifkan Tenant'}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('all')}
+                  className={tabButtonClass('all')}
+                >
+                  Semua
+                </button>
               </div>
             </div>
           </div>
         </div>
-      )}
+
+        <DataTable
+          data={tenants}
+          columns={columns}
+          loading={isLoading}
+          searchable={false}
+          emptyMessage={
+            activeTab === 'pending'
+              ? 'Belum ada tenant yang menunggu tindak lanjut.'
+              : 'Belum ada tenant yang terdaftar.'
+          }
+          actions={(tenant) => (
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => openModal(tenant, 'view')}
+                className="inline-flex items-center justify-center rounded-lg p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-800"
+                title="Lihat detail tenant"
+                aria-label="Lihat detail tenant"
+              >
+                <EyeIcon className="h-5 w-5" />
+              </button>
+              {canApproveTenant(tenant) && (
+                <button
+                  type="button"
+                  onClick={() => openModal(tenant, 'approve')}
+                  className="inline-flex items-center justify-center rounded-lg p-2.5 text-green-600 hover:bg-green-50 hover:text-green-800"
+                  title="Aktivasi tenant"
+                  aria-label="Aktivasi tenant"
+                >
+                  <CheckCircleIcon className="h-5 w-5" />
+                </button>
+              )}
+              {tenant.status === 'ACTIVE' && (
+                <button
+                  type="button"
+                  onClick={() => openModal(tenant, 'suspend')}
+                  className="inline-flex items-center justify-center rounded-lg p-2.5 text-orange-600 hover:bg-orange-50 hover:text-orange-800"
+                  title="Nonaktifkan tenant"
+                  aria-label="Nonaktifkan tenant"
+                >
+                  <XCircleIcon className="h-5 w-5" />
+                </button>
+              )}
+              {tenant.status === 'SUSPENDED' && (
+                <button
+                  type="button"
+                  onClick={() => openModal(tenant, 'activate')}
+                  className="inline-flex items-center justify-center rounded-lg p-2.5 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-800"
+                  title="Aktifkan tenant"
+                  aria-label="Aktifkan tenant"
+                >
+                  <CheckCircleIcon className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+          )}
+        />
+      </section>
+
+      <Modal
+        isOpen={showModal && Boolean(selectedTenant)}
+        onClose={closeModal}
+        title={modalTitle}
+        size="xl"
+        mobileFullscreen
+        bodyClassName="space-y-6"
+      >
+        {selectedTenant && (
+          <>
+            <section className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-blue-700">Tenant</p>
+                  <h3 className="mt-1 text-lg font-semibold text-gray-900">{selectedTenant.name}</h3>
+                  <p className="mt-1 text-sm text-gray-600">{selectedTenant.village_code}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {getStatusBadge(selectedTenant.status)}
+                  {getSubscriptionStatusBadge(selectedTenant.subscription_status)}
+                </div>
+              </div>
+            </section>
+
+            <section className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-gray-900">Informasi organisasi</h4>
+                <dl className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <dt className="text-gray-500">Email</dt>
+                    <dd className="mt-1 text-gray-900">{selectedTenant.email || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Telepon</dt>
+                    <dd className="mt-1 text-gray-900">{selectedTenant.phone || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Alamat</dt>
+                    <dd className="mt-1 text-gray-900">{selectedTenant.address || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Terdaftar</dt>
+                    <dd className="mt-1 text-gray-900">{formatDate(selectedTenant.registered_at)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Berakhir</dt>
+                    <dd className="mt-1 text-gray-900">{formatDate(getEndDate(selectedTenant))}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-4">
+                <h4 className="text-sm font-semibold text-gray-900">Administrator tenant</h4>
+                <dl className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <dt className="text-gray-500">Nama</dt>
+                    <dd className="mt-1 text-gray-900">{selectedTenant.admin_name || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Email</dt>
+                    <dd className="mt-1 text-gray-900">{selectedTenant.admin_email || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Telepon</dt>
+                    <dd className="mt-1 text-gray-900">{selectedTenant.admin_phone || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Paket langganan</dt>
+                    <dd className="mt-1 text-gray-900">{selectedTenant.subscription_plan || '-'}</dd>
+                  </div>
+                </dl>
+              </div>
+            </section>
+
+            {modalAction !== 'view' && modalAction !== 'activate' && (
+              <section className="rounded-2xl border border-gray-200 bg-white p-4">
+                <label className="block text-sm font-semibold text-gray-900">
+                  {modalAction === 'approve'
+                    ? 'Catatan aktivasi (opsional)'
+                    : 'Alasan penonaktifan tenant'}
+                </label>
+                <textarea
+                  value={actionReason}
+                  onChange={(event) => setActionReason(event.target.value)}
+                  rows={4}
+                  className="mt-3 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  placeholder={
+                    modalAction === 'approve'
+                      ? 'Tambahkan catatan untuk tenant ini bila diperlukan.'
+                      : 'Jelaskan alasan tenant dinonaktifkan.'
+                  }
+                  required={modalAction === 'suspend'}
+                />
+              </section>
+            )}
+
+            <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={isSubmitting}
+                className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
+              >
+                Batal
+              </button>
+              {modalAction !== 'view' && (
+                <button
+                  type="button"
+                  onClick={handleAction}
+                  disabled={isSubmitting || (modalAction === 'suspend' && !actionReason.trim())}
+                  className={`inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 sm:w-auto ${
+                    modalAction === 'approve' || modalAction === 'activate'
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-orange-600 hover:bg-orange-700'
+                  }`}
+                >
+                  {isSubmitting
+                    ? 'Memproses...'
+                    : modalAction === 'approve'
+                      ? 'Aktivasi Tenant'
+                      : modalAction === 'activate'
+                        ? 'Aktifkan Tenant'
+                        : 'Nonaktifkan Tenant'}
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </Modal>
     </div>
   );
 };
