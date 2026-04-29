@@ -82,11 +82,17 @@ class AuthService {
       }
 
       const response = await apiClient.post(API_ENDPOINTS.AUTH.REFRESH, {
-        refreshToken
+        refresh_token: refreshToken
       });
 
-      const { token, refreshToken: newRefreshToken } = response;
+      const token = response.token || response.access_token || response.accessToken;
+      const newRefreshToken = response.refreshToken || response.refresh_token || refreshToken;
+
       this.setTokens(token, newRefreshToken);
+
+      if (response.user) {
+        this.setUser(response.user);
+      }
       
       return token;
     } catch {

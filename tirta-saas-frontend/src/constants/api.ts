@@ -47,6 +47,7 @@ export const PRINTER_BRIDGE_BASE_URL =
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
+    ME: '/auth/me',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
     REGISTER_ACCOUNT: '/auth/register-account',

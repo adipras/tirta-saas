@@ -45,17 +45,23 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		tenantIDStr, ok := claims["tenant_id"].(string)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid tenant_id in token"})
 			c.Abort()
 			return
 		}
-		
+
 		role, ok := claims["role"].(string)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid role in token"})
+			c.Abort()
+			return
+		}
+
+		if tokenType, _ := claims["token_type"].(string); tokenType != "" && tokenType != "access" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token type"})
 			c.Abort()
 			return
 		}
@@ -124,7 +130,13 @@ func CustomerJWTAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
+		if tokenType, _ := claims["token_type"].(string); tokenType != "" && tokenType != "access" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token type"})
+			c.Abort()
+			return
+		}
+
 		if role != "customer" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Akses ditolak. Endpoint khusus customer"})
 			c.Abort()
@@ -137,7 +149,7 @@ func CustomerJWTAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		
+
 		tenantIDStr, ok := claims["tenant_id"].(string)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid tenant_id in token"})

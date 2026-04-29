@@ -1,18 +1,20 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"os"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/adipras/tirta-saas-backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
-
 
 type RegisterInput struct {
 	TenantName    string `json:"tenant_name" binding:"required"`
@@ -108,44 +110,119 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := utils.GenerateJWT(user.ID, user.TenantID, user.Role)
+	authService := services.NewAuthService(config.DB)
+	authPayload, err := authService.CreateSession(user, c.ClientIP(), c.GetHeader("User-Agent"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat sesi login"})
 		return
 	}
 
-	// Include tenant_id, tenant branding info, trial info, and tenant status so frontend knows state
-	var tenantIDStr *string
-	var tenantName interface{}
-	var tenantLogoURL interface{}
-	var trialEndsAt interface{}
-	var tenantStatus interface{}
-	if user.TenantID != nil {
-		s := user.TenantID.String()
-		tenantIDStr = &s
+	c.JSON(http.StatusOK, authPayload)
+}
 
-		// Load tenant info
-		var tenant models.Tenant
-		if err := config.DB.Select("name, trial_ends_at, status").First(&tenant, "id = ?", user.TenantID).Error; err == nil {
-			tenantName = tenant.Name
-			trialEndsAt = tenant.TrialEndsAt
-			tenantStatus = string(tenant.Status)
-		}
+type refreshTokenInput struct {
+	RefreshToken string `json:"refresh_token"`
+}
 
-		var settings models.TenantSettings
-		if err := config.DB.Select("logo_url").First(&settings, "tenant_id = ?", user.TenantID).Error; err == nil && settings.LogoURL != "" {
-			tenantLogoURL = settings.LogoURL
+func Refresh(c *gin.Context) {
+	var payload map[string]string
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	input := refreshTokenInput{
+		RefreshToken: payload["refresh_token"],
+	}
+	if input.RefreshToken == "" {
+		input.RefreshToken = payload["refreshToken"]
+	}
+
+	if input.RefreshToken == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "refresh_token wajib diisi"})
+		return
+	}
+
+	authService := services.NewAuthService(config.DB)
+	authPayload, err := authService.RefreshSession(input.RefreshToken, c.ClientIP(), c.GetHeader("User-Agent"))
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrInvalidRefreshToken):
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token tidak valid"})
+		case errors.Is(err, services.ErrSessionExpired):
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Sesi login sudah berakhir"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui sesi login"})
 		}
+		return
+	}
+
+	c.JSON(http.StatusOK, authPayload)
+}
+
+func Logout(c *gin.Context) {
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak terautentikasi"})
+		return
+	}
+
+	userID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak terautentikasi"})
+		return
+	}
+
+	authService := services.NewAuthService(config.DB)
+	if err := authService.InvalidateUserSessions(userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal logout"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"token":           token,
-		"role":            user.Role,
-		"tenant_id":       tenantIDStr,
-		"tenant_name":     tenantName,
-		"tenant_logo_url": tenantLogoURL,
-		"trial_ends_at":   trialEndsAt,
-		"tenant_status":   tenantStatus,
+		"message": "Logout berhasil",
+	})
+}
+
+func Me(c *gin.Context) {
+	userIDValue, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak terautentikasi"})
+		return
+	}
+
+	userID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User tidak terautentikasi"})
+		return
+	}
+
+	var user models.User
+	if err := config.DB.First(&user, "id = ?", userID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User tidak ditemukan"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil profil user"})
+		return
+	}
+
+	authService := services.NewAuthService(config.DB)
+	profile, err := authService.BuildUserProfile(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil profil user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user":            profile,
+		"role":            profile.Role,
+		"tenant_id":       profile.TenantID,
+		"tenant_name":     profile.TenantName,
+		"tenant_logo_url": profile.TenantLogoURL,
+		"trial_ends_at":   profile.TrialEndsAt,
+		"tenant_status":   profile.TenantStatus,
 	})
 }
 
@@ -255,10 +332,10 @@ func CreateCustomerAccount(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":            "Akun customer berhasil dibuat",
-		"meter_number":       customer.MeterNumber,
-		"registration_fee":   subscription.RegistrationFee,
-		"invoice_id":        invoice.ID,
+		"message":          "Akun customer berhasil dibuat",
+		"meter_number":     customer.MeterNumber,
+		"registration_fee": subscription.RegistrationFee,
+		"invoice_id":       invoice.ID,
 	})
 }
 
@@ -307,16 +384,16 @@ func CustomerLogin(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"token":       token,
+		"token":        token,
 		"meter_number": customer.MeterNumber,
-		"name":        customer.Name,
+		"name":         customer.Name,
 	})
 }
 
 type PlatformOwnerRegisterInput struct {
-	Name     string `json:"name" binding:"required,min=3"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Name      string `json:"name" binding:"required,min=3"`
+	Email     string `json:"email" binding:"required,email"`
+	Password  string `json:"password" binding:"required,min=6"`
 	SecretKey string `json:"secret_key" binding:"required"`
 }
 

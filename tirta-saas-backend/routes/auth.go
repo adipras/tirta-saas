@@ -12,6 +12,7 @@ func AuthRoutes(r *gin.Engine) {
 		// Admin/Operator authentication
 		auth.POST("/register", controllers.Register)
 		auth.POST("/login", controllers.Login)
+		auth.POST("/refresh", controllers.Refresh)
 
 		// Step-1 of the two-step registration flow: create user account only (no tenant)
 		auth.POST("/register-account", controllers.RegisterAccount)
@@ -21,6 +22,13 @@ func AuthRoutes(r *gin.Engine) {
 		
 		// Customer authentication
 		auth.POST("/customer/login", controllers.CustomerLogin)
+	}
+
+	protectedAuth := r.Group("/api/auth")
+	protectedAuth.Use(middleware.JWTAuthMiddleware())
+	{
+		protectedAuth.POST("/logout", controllers.Logout)
+		protectedAuth.GET("/me", controllers.Me)
 	}
 	
 	// Admin-only endpoint to create customer accounts

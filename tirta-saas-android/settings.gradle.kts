@@ -18,7 +18,11 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "tirta-saas-android"
-include(":printer-bridge")
-// Keep the legacy :app task path working for tooling that still calls :app:assembleDebug.
 include(":app")
-project(":app").projectDir = file("printer-bridge")
+include(":core:common")
+include(":core:designsystem")
+include(":core:network")
+include(":core:database")
+include(":core:security")
+include(":feature-auth")
+include(":printer-bridge")

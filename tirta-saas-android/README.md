@@ -1,12 +1,21 @@
 # Tirta SaaS Android
 
-Repo Android sekarang fokus pada satu modul:
+Repo Android sekarang punya dua jalur utama:
 
-1. `printer-bridge/` → **app bridge printer thermal** tanpa WebView dan tanpa Android PrintManager
+1. `app/` → **app mobile native utama** berbasis Jetpack Compose untuk roadmap operasional
+2. `printer-bridge/` → **app bridge printer thermal** tanpa WebView dan tanpa Android PrintManager
 
 ## Modul yang direkomendasikan
 
-Gunakan **`printer-bridge`** untuk migrasi kasir keliling terbaru:
+Gunakan **`app`** untuk pengembangan mobile native utama, dan **`printer-bridge`** untuk flow thermal printer existing:
+
+- `app/`
+  - Compose + Hilt + Navigation
+  - `core/common`, `core/designsystem`, `core/network`, `core/database`, `core/security`
+  - `feature-auth` sebagai feature awal
+  - default API dev: `http://10.0.2.2:8081/api/`
+
+- `printer-bridge/`
 
 - host HTTP lokal di `http://127.0.0.1:3000`
 - endpoint:
@@ -24,29 +33,30 @@ Dokumen ringkas perubahan ada di:
 
 ## Status migrasi
 
-Modul legacy WebView sudah dihapus. Integrasi Android kini sepenuhnya menggunakan bridge HTTP lokal dari modul `printer-bridge`.
+- modul legacy WebView sudah dihapus
+- integrasi printer tetap memakai bridge HTTP lokal dari modul `printer-bridge`
+- shell aplikasi native utama sudah dibuat untuk Phase 1 roadmap mobile
 
 ## Build cepat
 
 1. Buka folder `tirta-saas-android/` di Android Studio
 2. Tunggu Gradle Sync
-3. Build modul bridge:
-
-```powershell
-.\gradlew.bat :printer-bridge:assembleDebug
-```
-
-Untuk kompatibilitas dengan tooling lama, task legacy berikut juga tetap tersedia:
+3. Build app mobile utama:
 
 ```powershell
 .\gradlew.bat :app:assembleDebug
 ```
 
-Alias `:app` memakai source yang sama dengan `:printer-bridge`, tetapi output build dipisah ke folder legacy agar tidak bentrok.
+4. Build modul bridge printer:
+
+```powershell
+.\gradlew.bat :printer-bridge:assembleDebug
+```
 
 APK debug hasil build:
 
 ```text
+app\build\outputs\apk\debug\app-debug.apk
 printer-bridge\build\outputs\apk\debug\printer-bridge-debug.apk
 ```
 

@@ -40,9 +40,9 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 
 ### Backend
 
-- [ ] Tambah `POST /api/auth/refresh`
-- [ ] Tambah `POST /api/auth/logout`
-- [ ] Tambah `GET /api/auth/me`
+- [x] Tambah `POST /api/auth/refresh`
+- [x] Tambah `POST /api/auth/logout`
+- [x] Tambah `GET /api/auth/me`
 - [ ] Samakan response backend ke format standar
 - [ ] Rapikan permission untuk `meter_reader` dan `finance`
 - [ ] Standarkan pagination, filtering, dan sorting
@@ -209,13 +209,13 @@ Checklist:
 
 ### Phase 1 - Setup Android Project
 
-- [ ] Buat modul app utama
-- [ ] Setup Compose
-- [ ] Setup Hilt
-- [ ] Setup Retrofit
-- [ ] Setup Room
-- [ ] Setup navigation
-- [ ] Setup base design system
+- [x] Buat modul app utama
+- [x] Setup Compose
+- [x] Setup Hilt
+- [x] Setup Retrofit
+- [x] Setup Room
+- [x] Setup navigation
+- [x] Setup base design system
 
 ### Phase 2 - Core API Integration
 
@@ -269,6 +269,9 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 
 - [x] Planning awal mobile native selesai
 - [x] Aturan parity backend-frontend disepakati
-- [ ] Setup project Android dimulai
-- [ ] Refactor backend untuk mobile-readiness dimulai
+- [x] Setup project Android dimulai
+- [x] Struktur modular awal Android (`app`, `core/*`, `feature-auth`) sudah dibuat
+- [x] Fondasi Compose + Hilt + Retrofit + Room + secure session shell sudah dipasang
+- [ ] Validasi build lokal menunggu environment yang punya JDK + Android SDK
+- [x] Refactor backend auth untuk mobile-readiness dimulai
 - [ ] Penyesuaian frontend akibat perubahan backend dimulai

@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.TirtaSaasMobile" parent="@android:style/Theme.DeviceDefault.DayNight.NoActionBar" />
+</resources>
