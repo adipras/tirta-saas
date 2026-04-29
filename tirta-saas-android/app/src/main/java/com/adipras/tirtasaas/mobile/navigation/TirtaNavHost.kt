@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +18,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.adipras.tirtasaas.feature.auth.LoginDestination
 import com.adipras.tirtasaas.feature.auth.loginScreen
+import com.adipras.tirtasaas.feature.customer.CustomerListDestination
+import com.adipras.tirtasaas.feature.customer.customerListScreen
 
 private const val DASHBOARD_ROUTE = "dashboard"
 
@@ -34,6 +35,9 @@ fun TirtaNavHost(
     ) {
         loginGraph(navController)
         dashboardGraph(navController)
+        customerListScreen(
+            onCustomerClick = { /* TODO: navigate to detail */ },
+        )
     }
 }
 
@@ -52,6 +56,9 @@ private fun NavGraphBuilder.loginGraph(navController: NavHostController) {
 private fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
     composable(route = DASHBOARD_ROUTE) {
         DashboardRoute(
+            onNavigateToCustomers = {
+                navController.navigate(CustomerListDestination.route)
+            },
             onLogout = {
                 navController.navigate(LoginDestination.route) {
                     popUpTo(DASHBOARD_ROUTE) {
@@ -64,7 +71,10 @@ private fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
 }
 
 @Composable
-private fun DashboardRoute(onLogout: () -> Unit) {
+private fun DashboardRoute(
+    onNavigateToCustomers: () -> Unit,
+    onLogout: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -72,30 +82,14 @@ private fun DashboardRoute(onLogout: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = "Dashboard Mobile",
+            text = "Dashboard",
             style = MaterialTheme.typography.headlineSmall,
         )
-        Text(
-            text = "Login berhasil. Fitur dashboard akan tersedia pada fase berikutnya.",
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Card {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text("Modul awal")
-                ModuleRow("app")
-                ModuleRow("core/common")
-                ModuleRow("core/designsystem")
-                ModuleRow("core/network")
-                ModuleRow("core/database")
-                ModuleRow("core/security")
-                ModuleRow("feature-auth")
-            }
+        Button(onClick = onNavigateToCustomers, modifier = Modifier.fillMaxSize().weight(1f, false)) {
+            Text("Daftar Pelanggan")
         }
         Button(onClick = onLogout) {
-            Text("Keluar dari sesi demo")
+            Text("Keluar")
         }
     }
 }
@@ -108,7 +102,8 @@ private fun ModuleRow(name: String) {
     }
 }
 
-fun topBarTitleForRoute(route: String?): String = when (route) {
-    DASHBOARD_ROUTE -> "Dashboard Mobile"
+fun topBarTitleForRoute(route: String?): String = when {
+    route == DASHBOARD_ROUTE -> "Dashboard"
+    route?.startsWith(CustomerListDestination.route) == true -> "Pelanggan"
     else -> "Masuk"
 }
