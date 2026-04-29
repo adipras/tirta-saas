@@ -222,10 +222,10 @@ Checklist:
 
 - [x] Auth (login, logout, refresh, JWT Bearer interceptor)
 - [x] Token refresh interceptor (auto-refresh saat 401 via TokenAuthenticator)
-- [ ] Session
-- [ ] Tenant list/detail
+- [x] Session (ApiResponse/PagedApiResponse wrapper untuk semua endpoint)
+- [x] Tenant list/detail (GET /api/platform/tenants, approve/reject/suspend/activate)
 - [ ] Tenant settings
-- [ ] Tenant user CRUD
+- [x] Tenant user CRUD (GET/POST/PUT/DELETE /api/tenant-users)
 - [x] Customer list/detail (CustomerListScreen + CustomerRepository)
 
 ### Phase 3 - Operasional User
