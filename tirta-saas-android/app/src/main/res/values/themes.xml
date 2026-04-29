@@ -1,3 +1,4 @@
 <resources>
-    <style name="Theme.TirtaSaasMobile" parent="@android:style/Theme.DeviceDefault.DayNight.NoActionBar" />
+    <!-- Base activity theme for Compose; actual theming is handled by MaterialTheme in Compose -->
+    <style name="Theme.TirtaSaasMobile" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>
