@@ -62,6 +62,7 @@ class LoginViewModel @Inject constructor(
 }
 
 private fun Throwable.toLoginErrorMessage(): String = when (this) {
+    is TenantAccessBlockedException -> message ?: "Akses tenant tidak tersedia."
     is HttpException -> when (code()) {
         401 -> "Email atau password salah."
         403 -> "Akun tidak memiliki akses."

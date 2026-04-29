@@ -23,7 +23,9 @@ import com.adipras.tirtasaas.feature.customer.CustomerDetailDestination
 import com.adipras.tirtasaas.feature.customer.CustomerListDestination
 import com.adipras.tirtasaas.feature.customer.customerDetailScreen
 import com.adipras.tirtasaas.feature.customer.customerListScreen
+import com.adipras.tirtasaas.feature.tenant.TenantDetailDestination
 import com.adipras.tirtasaas.feature.tenant.TenantListDestination
+import com.adipras.tirtasaas.feature.tenant.tenantDetailScreen
 import com.adipras.tirtasaas.feature.tenant.tenantListScreen
 import com.adipras.tirtasaas.feature.user.UserListDestination
 import com.adipras.tirtasaas.feature.user.userListScreen
@@ -34,6 +36,7 @@ private const val DASHBOARD_ROUTE = "dashboard"
 fun TirtaNavHost(
     navController: NavHostController,
     innerPadding: PaddingValues,
+    onLogout: () -> Unit,
 ) {
     NavHost(
         navController = navController,
@@ -41,7 +44,7 @@ fun TirtaNavHost(
         modifier = Modifier.padding(innerPadding),
     ) {
         loginGraph(navController)
-        dashboardGraph(navController)
+        dashboardGraph(navController, onLogout)
         customerListScreen(
             onCustomerClick = { customerId ->
                 navController.navigate(CustomerDetailDestination.createRoute(customerId))
@@ -51,7 +54,12 @@ fun TirtaNavHost(
             onBack = { navController.popBackStack() },
         )
         tenantListScreen(
-            onTenantClick = { /* TODO: navigate to detail */ },
+            onTenantClick = { tenantId ->
+                navController.navigate(TenantDetailDestination.createRoute(tenantId))
+            },
+        )
+        tenantDetailScreen(
+            onBack = { navController.popBackStack() },
         )
         userListScreen()
     }
@@ -69,7 +77,10 @@ private fun NavGraphBuilder.loginGraph(navController: NavHostController) {
     )
 }
 
-private fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
+private fun NavGraphBuilder.dashboardGraph(
+    navController: NavHostController,
+    onLogout: () -> Unit,
+) {
     composable(route = DASHBOARD_ROUTE) {
         DashboardRoute(
             onNavigateToCustomers = {
@@ -81,13 +92,7 @@ private fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
             onNavigateToUsers = {
                 navController.navigate(UserListDestination.route)
             },
-            onLogout = {
-                navController.navigate(LoginDestination.route) {
-                    popUpTo(DASHBOARD_ROUTE) {
-                        inclusive = true
-                    }
-                }
-            },
+            onLogout = onLogout,
         )
     }
 }
@@ -142,6 +147,7 @@ fun topBarTitleForRoute(route: String?): String = when {
     route == DASHBOARD_ROUTE -> "Dashboard"
     route?.startsWith(CustomerDetailDestination.routeBase + "/") == true -> "Detail Pelanggan"
     route?.startsWith(CustomerListDestination.route) == true -> "Pelanggan"
+    route?.startsWith(TenantDetailDestination.routeBase + "/") == true -> "Detail Tenant"
     route?.startsWith(TenantListDestination.route) == true -> "Manajemen Tenant"
     route?.startsWith(UserListDestination.route) == true -> "Pengguna"
     else -> "Masuk"

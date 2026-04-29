@@ -3,6 +3,7 @@ package com.adipras.tirtasaas.core.security.session
 import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -14,11 +15,23 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class SessionState(
+    val isAuthenticated: Boolean = false,
+    val tenantStatus: String? = null,
+)
+
 @Singleton
 class SessionStorage @Inject constructor(
     private val securePreferences: SharedPreferences,
     private val dataStore: DataStore<Preferences>,
 ) : TokenProvider {
+    val sessionState: Flow<SessionState> = dataStore.safeData.map { preferences ->
+        SessionState(
+            isAuthenticated = preferences[Keys.IS_AUTHENTICATED] ?: (getAccessToken() != null),
+            tenantStatus = preferences[Keys.TENANT_STATUS],
+        )
+    }
+
     val tenantStatus: Flow<String?> = dataStore.safeData.map { preferences ->
         preferences[Keys.TENANT_STATUS]
     }
@@ -38,6 +51,7 @@ class SessionStorage @Inject constructor(
             .apply()
 
         dataStore.edit { preferences ->
+            preferences[Keys.IS_AUTHENTICATED] = true
             if (tenantStatus.isNullOrBlank()) {
                 preferences.remove(Keys.TENANT_STATUS)
             } else {
@@ -49,6 +63,7 @@ class SessionStorage @Inject constructor(
     suspend fun clearSession() {
         securePreferences.edit().clear().apply()
         dataStore.edit { preferences ->
+            preferences[Keys.IS_AUTHENTICATED] = false
             preferences.remove(Keys.TENANT_STATUS)
         }
     }
@@ -65,6 +80,7 @@ class SessionStorage @Inject constructor(
     private object Keys {
         const val ACCESS_TOKEN_NAME = "access_token"
         const val REFRESH_TOKEN_NAME = "refresh_token"
+        val IS_AUTHENTICATED = booleanPreferencesKey("is_authenticated")
         val TENANT_STATUS = stringPreferencesKey("tenant_status")
     }
 }

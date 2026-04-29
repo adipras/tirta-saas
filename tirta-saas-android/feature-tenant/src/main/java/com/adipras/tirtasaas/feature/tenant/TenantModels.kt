@@ -20,6 +20,7 @@ data class TenantDto(
     @SerialName("subscription_plan") val subscriptionPlan: String = "",
     @SerialName("subscription_status") val subscriptionStatus: String = "",
     @SerialName("subscription_ends_at") val subscriptionEndsAt: String? = null,
+    @SerialName("trial_ends_at") val trialEndsAt: String? = null,
     @SerialName("total_users") val totalUsers: Int = 0,
     @SerialName("total_customers") val totalCustomers: Int = 0,
     @SerialName("storage_used_gb") val storageUsedGb: Double = 0.0,

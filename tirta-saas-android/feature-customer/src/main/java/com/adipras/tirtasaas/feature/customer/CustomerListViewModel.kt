@@ -17,6 +17,9 @@ data class CustomerListUiState(
     val errorMessage: String? = null,
     val searchQuery: String = "",
     val currentPage: Int = 1,
+    val isSaving: Boolean = false,
+    val showCreateDialog: Boolean = false,
+    val subscriptionTypes: List<SubscriptionTypeDto> = emptyList(),
 )
 
 @HiltViewModel
@@ -29,6 +32,7 @@ class CustomerListViewModel @Inject constructor(
 
     init {
         loadCustomers()
+        loadSubscriptionTypes()
     }
 
     fun loadCustomers(page: Int = 1, reset: Boolean = true) {
@@ -64,6 +68,55 @@ class CustomerListViewModel @Inject constructor(
 
     fun dismissError() {
         _uiState.update { it.copy(errorMessage = null) }
+    }
+
+    fun showCreateDialog() {
+        if (_uiState.value.subscriptionTypes.isEmpty()) {
+            loadSubscriptionTypes()
+        }
+        _uiState.update { it.copy(showCreateDialog = true) }
+    }
+
+    fun dismissCreateDialog() {
+        _uiState.update { it.copy(showCreateDialog = false) }
+    }
+
+    fun createCustomer(request: CreateCustomerRequest) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isSaving = true, errorMessage = null) }
+            repository.createCustomer(request)
+                .onSuccess {
+                    loadCustomers(reset = true)
+                    _uiState.update { state ->
+                        state.copy(
+                            isSaving = false,
+                            showCreateDialog = false,
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            isSaving = false,
+                            errorMessage = error.message ?: "Gagal membuat pelanggan",
+                        )
+                    }
+                }
+        }
+    }
+
+    private fun loadSubscriptionTypes() {
+        viewModelScope.launch {
+            repository.getSubscriptionTypes()
+                .onSuccess { types ->
+                    _uiState.update { it.copy(subscriptionTypes = types) }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(errorMessage = error.message ?: "Gagal memuat paket langganan")
+                    }
+                }
+        }
     }
 
     fun toggleActive(customer: CustomerDto) {
