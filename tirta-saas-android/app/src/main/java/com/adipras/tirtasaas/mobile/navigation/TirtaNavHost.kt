@@ -19,7 +19,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.adipras.tirtasaas.feature.auth.LoginDestination
 import com.adipras.tirtasaas.feature.auth.loginScreen
+import com.adipras.tirtasaas.feature.customer.CustomerDetailDestination
 import com.adipras.tirtasaas.feature.customer.CustomerListDestination
+import com.adipras.tirtasaas.feature.customer.customerDetailScreen
 import com.adipras.tirtasaas.feature.customer.customerListScreen
 import com.adipras.tirtasaas.feature.tenant.TenantListDestination
 import com.adipras.tirtasaas.feature.tenant.tenantListScreen
@@ -41,7 +43,12 @@ fun TirtaNavHost(
         loginGraph(navController)
         dashboardGraph(navController)
         customerListScreen(
-            onCustomerClick = { /* TODO: navigate to detail */ },
+            onCustomerClick = { customerId ->
+                navController.navigate(CustomerDetailDestination.createRoute(customerId))
+            },
+        )
+        customerDetailScreen(
+            onBack = { navController.popBackStack() },
         )
         tenantListScreen(
             onTenantClick = { /* TODO: navigate to detail */ },
@@ -68,6 +75,12 @@ private fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
             onNavigateToCustomers = {
                 navController.navigate(CustomerListDestination.route)
             },
+            onNavigateToTenants = {
+                navController.navigate(TenantListDestination.route)
+            },
+            onNavigateToUsers = {
+                navController.navigate(UserListDestination.route)
+            },
             onLogout = {
                 navController.navigate(LoginDestination.route) {
                     popUpTo(DASHBOARD_ROUTE) {
@@ -82,6 +95,8 @@ private fun NavGraphBuilder.dashboardGraph(navController: NavHostController) {
 @Composable
 private fun DashboardRoute(
     onNavigateToCustomers: () -> Unit,
+    onNavigateToTenants: () -> Unit,
+    onNavigateToUsers: () -> Unit,
     onLogout: () -> Unit,
 ) {
     Column(
@@ -94,17 +109,17 @@ private fun DashboardRoute(
             text = "Dashboard",
             style = MaterialTheme.typography.headlineSmall,
         )
-        Button(onClick = onNavigateToCustomers, modifier = Modifier.fillMaxSize().weight(1f, false)) {
+        Button(onClick = onNavigateToCustomers, modifier = Modifier.fillMaxWidth()) {
             Text("Daftar Pelanggan")
         }
         Button(
-            onClick = { },
+            onClick = onNavigateToTenants,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Daftar Tenant")
         }
         Button(
-            onClick = { },
+            onClick = onNavigateToUsers,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Manajemen Pengguna")
@@ -125,6 +140,7 @@ private fun ModuleRow(name: String) {
 
 fun topBarTitleForRoute(route: String?): String = when {
     route == DASHBOARD_ROUTE -> "Dashboard"
+    route?.startsWith(CustomerDetailDestination.routeBase + "/") == true -> "Detail Pelanggan"
     route?.startsWith(CustomerListDestination.route) == true -> "Pelanggan"
     route?.startsWith(TenantListDestination.route) == true -> "Manajemen Tenant"
     route?.startsWith(UserListDestination.route) == true -> "Pengguna"

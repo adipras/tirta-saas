@@ -1,5 +1,6 @@
 package com.adipras.tirtasaas.core.network
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Standard wrapped response: { status, message, data } */
@@ -21,8 +22,8 @@ data class PagedApiResponse<T>(
 
 @Serializable
 data class PaginationMeta(
-    val currentPage: Int = 1,
-    val pageSize: Int = 20,
-    val totalPages: Int = 1,
-    val totalItems: Int = 0,
+    @SerialName("current_page") val currentPage: Int = 1,
+    @SerialName("page_size") val pageSize: Int = 20,
+    @SerialName("total_pages") val totalPages: Int = 1,
+    @SerialName("total_items") val totalItems: Int = 0,
 )

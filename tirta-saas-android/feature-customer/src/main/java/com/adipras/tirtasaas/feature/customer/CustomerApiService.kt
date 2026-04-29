@@ -29,6 +29,9 @@ interface CustomerApiService {
         @Body request: UpdateCustomerRequest,
     ): CustomerDetailResponse
 
+    @GET("subscription-types")
+    suspend fun getSubscriptionTypes(): List<SubscriptionTypeDto>
+
     @DELETE("customers/{id}")
     suspend fun deleteCustomer(@Path("id") id: String)
 

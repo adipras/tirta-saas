@@ -32,6 +32,10 @@ class CustomerRepository @Inject constructor(
             ?: error("Gagal memperbarui pelanggan")
     }
 
+    suspend fun getSubscriptionTypes(): Result<List<SubscriptionTypeDto>> = runCatching {
+        customerApiService.getSubscriptionTypes()
+    }
+
     suspend fun deleteCustomer(id: String): Result<Unit> = runCatching {
         customerApiService.deleteCustomer(id)
     }
