@@ -69,10 +69,6 @@ private fun LoginScreen(
             text = "Login operasional Tirta SaaS",
             style = MaterialTheme.typography.headlineSmall,
         )
-        Text(
-            text = "Shell ini sudah siap untuk disambungkan ke endpoint auth backend pada fase integrasi API.",
-            style = MaterialTheme.typography.bodyLarge,
-        )
         Card {
             Column(
                 modifier = Modifier.padding(16.dp),

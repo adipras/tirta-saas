@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt)
 }
@@ -38,6 +39,11 @@ kapt {
 
 dependencies {
     implementation(project(":core:designsystem"))
+    implementation(project(":core:network"))
+    implementation(project(":core:security"))
+
+    implementation(libs.retrofit)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.lifecycle.viewmodel.compose)

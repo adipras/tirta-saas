@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.adipras.tirtasaas.core.common.TokenProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -17,14 +18,14 @@ import javax.inject.Singleton
 class SessionStorage @Inject constructor(
     private val securePreferences: SharedPreferences,
     private val dataStore: DataStore<Preferences>,
-) {
+) : TokenProvider {
     val tenantStatus: Flow<String?> = dataStore.safeData.map { preferences ->
         preferences[Keys.TENANT_STATUS]
     }
 
-    fun getAccessToken(): String? = securePreferences.getString(Keys.ACCESS_TOKEN_NAME, null)
+    override fun getAccessToken(): String? = securePreferences.getString(Keys.ACCESS_TOKEN_NAME, null)
 
-    fun getRefreshToken(): String? = securePreferences.getString(Keys.REFRESH_TOKEN_NAME, null)
+    override fun getRefreshToken(): String? = securePreferences.getString(Keys.REFRESH_TOKEN_NAME, null)
 
     suspend fun saveSession(
         accessToken: String,

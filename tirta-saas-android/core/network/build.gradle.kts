@@ -30,6 +30,7 @@ kapt {
 }
 
 dependencies {
+    implementation(project(":core:common"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.hilt.android)
     implementation(libs.retrofit)

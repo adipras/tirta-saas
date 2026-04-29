@@ -11,9 +11,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.net.ConnectException
+import java.net.UnknownHostException
 
 @HiltViewModel
-class LoginViewModel @Inject constructor() : ViewModel() {
+class LoginViewModel @Inject constructor(
+    private val authRepository: AuthRepository,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
@@ -42,12 +47,29 @@ class LoginViewModel @Inject constructor() : ViewModel() {
             else -> {
                 viewModelScope.launch {
                     _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
-                    eventChannel.send(LoginEvent.LoginSuccess)
+                    authRepository.login(state.email, state.password)
+                        .onSuccess {
+                            eventChannel.send(LoginEvent.LoginSuccess)
+                        }
+                        .onFailure { throwable ->
+                            _uiState.update { it.copy(errorMessage = throwable.toLoginErrorMessage()) }
+                        }
                     _uiState.update { it.copy(isSubmitting = false) }
                 }
             }
         }
     }
+}
+
+private fun Throwable.toLoginErrorMessage(): String = when (this) {
+    is HttpException -> when (code()) {
+        401 -> "Email atau password salah."
+        403 -> "Akun tidak memiliki akses."
+        else -> "Terjadi kesalahan server (${code()})."
+    }
+    is UnknownHostException, is ConnectException ->
+        "Tidak dapat terhubung ke server. Periksa koneksi internet."
+    else -> message ?: "Terjadi kesalahan yang tidak diketahui."
 }
 
 sealed interface LoginEvent {

@@ -72,11 +72,11 @@ private fun DashboardRoute(onLogout: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = "Fondasi mobile native sudah aktif.",
+            text = "Dashboard Mobile",
             style = MaterialTheme.typography.headlineSmall,
         )
         Text(
-            text = "Phase 1 menyiapkan Compose, Hilt, Retrofit, Room, navigation, dan secure session untuk fase integrasi API berikutnya.",
+            text = "Login berhasil. Fitur dashboard akan tersedia pada fase berikutnya.",
             style = MaterialTheme.typography.bodyLarge,
         )
         Card {

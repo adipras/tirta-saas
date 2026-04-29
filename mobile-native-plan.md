@@ -185,10 +185,11 @@ Checklist:
 
 Checklist:
 
-- [ ] Login dengan JWT
-- [ ] Simpan token di EncryptedSharedPreferences
-- [ ] Simpan preference non-sensitif di DataStore
-- [ ] Tambah token refresh interceptor
+- [x] Login dengan JWT
+- [x] Simpan token di EncryptedSharedPreferences
+- [x] Simpan preference non-sensitif di DataStore
+- [x] Tambah token interceptor (Bearer header otomatis via AuthInterceptor)
+- [ ] Tambah token refresh interceptor (auto-refresh saat 401)
 - [ ] Tambah forced logout jika tenant suspended/expired
 - [ ] Hindari logging data sensitif
 
@@ -219,7 +220,7 @@ Checklist:
 
 ### Phase 2 - Core API Integration
 
-- [ ] Auth
+- [x] Auth
 - [ ] Session
 - [ ] Tenant list/detail
 - [ ] Tenant settings
@@ -275,3 +276,5 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [ ] Validasi build lokal menunggu environment yang punya JDK + Android SDK
 - [x] Refactor backend auth untuk mobile-readiness dimulai
 - [ ] Penyesuaian frontend akibat perubahan backend dimulai
+- [x] Phase 2 auth API integration: `AuthApiService`, `AuthRepository`, `AuthInterceptor`, `TokenProvider` sudah terhubung ke backend
+- [ ] Phase 2 lanjutan: tenant, customer, usage, invoice, payment
