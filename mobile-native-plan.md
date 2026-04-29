@@ -69,12 +69,12 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 
 ### Core
 
-- [ ] Login dan session management
+- [x] Login dan session management
 - [ ] Dashboard role-based
-- [ ] Tenant management untuk `platform_owner`
+- [x] Tenant management untuk `platform_owner` (list + detail + actions)
 - [ ] Tenant settings untuk `tenant_admin`
-- [ ] Tenant user management
-- [ ] Customer list/detail/create/activation
+- [x] Tenant user management (CRUD)
+- [x] Customer list/detail/create/activation
 - [ ] Input dan update water usage
 - [ ] Monitoring invoice
 - [ ] Input payment
@@ -190,7 +190,7 @@ Checklist:
 - [x] Simpan preference non-sensitif di DataStore
 - [x] Tambah token interceptor (Bearer header otomatis via AuthInterceptor)
 - [x] Tambah token refresh interceptor (auto-refresh saat 401, TokenAuthenticator)
-- [ ] Tambah forced logout jika tenant suspended/expired
+- [x] Tambah forced logout jika tenant suspended/expired (session tenant guard + auto-redirect to login)
 - [ ] Hindari logging data sensitif
 
 ## Stack Final
@@ -222,7 +222,7 @@ Checklist:
 
 - [x] Auth (login, logout, refresh, JWT Bearer interceptor)
 - [x] Token refresh interceptor (auto-refresh saat 401 via TokenAuthenticator)
-- [x] Session (ApiResponse/PagedApiResponse wrapper untuk semua endpoint)
+- [x] Session (ApiResponse/PagedApiResponse wrapper + tenant status guard)
 - [x] Tenant list/detail (GET /api/platform/tenants, approve/reject/suspend/activate)
 - [ ] Tenant settings
 - [x] Tenant user CRUD (GET/POST/PUT/DELETE /api/tenant-users)
@@ -274,8 +274,9 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [x] Setup project Android dimulai
 - [x] Struktur modular awal Android (`app`, `core/*`, `feature-auth`) sudah dibuat
 - [x] Fondasi Compose + Hilt + Retrofit + Room + secure session shell sudah dipasang
-- [ ] Validasi build lokal menunggu environment yang punya JDK + Android SDK
-- [x] Refactor backend auth untuk mobile-readiness dimulai
-- [ ] Penyesuaian frontend akibat perubahan backend dimulai
-- [x] Phase 2 auth API integration: `AuthApiService`, `AuthRepository`, `AuthInterceptor`, `TokenProvider` sudah terhubung ke backend
-- [ ] Phase 2 lanjutan: tenant, customer, usage, invoice, payment
+- [x] Validasi build lokal: BUILD SUCCESSFUL di environment lokal
+- [x] Refactor backend auth untuk mobile-readiness selesai
+- [ ] Penyesuaian frontend akibat perubahan backend masih berjalan (tbd)
+- [x] Phase 2 auth API integration: login, refresh, logout, TokenAuthenticator, ApiResponse wrapper
+- [x] Phase 2 lanjutan: tenant list/detail, tenant actions, customer list/detail/create, user CRUD, session tenant guard
+- [ ] Remaining Phase 2: tenant settings, usage, invoice, payment
