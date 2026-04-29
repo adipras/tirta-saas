@@ -189,7 +189,7 @@ Checklist:
 - [x] Simpan token di EncryptedSharedPreferences
 - [x] Simpan preference non-sensitif di DataStore
 - [x] Tambah token interceptor (Bearer header otomatis via AuthInterceptor)
-- [ ] Tambah token refresh interceptor (auto-refresh saat 401)
+- [x] Tambah token refresh interceptor (auto-refresh saat 401, TokenAuthenticator)
 - [ ] Tambah forced logout jika tenant suspended/expired
 - [ ] Hindari logging data sensitif
 
@@ -220,12 +220,13 @@ Checklist:
 
 ### Phase 2 - Core API Integration
 
-- [x] Auth
+- [x] Auth (login, logout, refresh, JWT Bearer interceptor)
+- [x] Token refresh interceptor (auto-refresh saat 401 via TokenAuthenticator)
 - [ ] Session
 - [ ] Tenant list/detail
 - [ ] Tenant settings
 - [ ] Tenant user CRUD
-- [ ] Customer list/detail
+- [x] Customer list/detail (CustomerListScreen + CustomerRepository)
 
 ### Phase 3 - Operasional User
 
