@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +21,10 @@ import com.adipras.tirtasaas.feature.auth.LoginDestination
 import com.adipras.tirtasaas.feature.auth.loginScreen
 import com.adipras.tirtasaas.feature.customer.CustomerListDestination
 import com.adipras.tirtasaas.feature.customer.customerListScreen
+import com.adipras.tirtasaas.feature.tenant.TenantListDestination
+import com.adipras.tirtasaas.feature.tenant.tenantListScreen
+import com.adipras.tirtasaas.feature.user.UserListDestination
+import com.adipras.tirtasaas.feature.user.userListScreen
 
 private const val DASHBOARD_ROUTE = "dashboard"
 
@@ -38,6 +43,10 @@ fun TirtaNavHost(
         customerListScreen(
             onCustomerClick = { /* TODO: navigate to detail */ },
         )
+        tenantListScreen(
+            onTenantClick = { /* TODO: navigate to detail */ },
+        )
+        userListScreen()
     }
 }
 
@@ -88,6 +97,18 @@ private fun DashboardRoute(
         Button(onClick = onNavigateToCustomers, modifier = Modifier.fillMaxSize().weight(1f, false)) {
             Text("Daftar Pelanggan")
         }
+        Button(
+            onClick = { },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Daftar Tenant")
+        }
+        Button(
+            onClick = { },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Manajemen Pengguna")
+        }
         Button(onClick = onLogout) {
             Text("Keluar")
         }
@@ -105,5 +126,7 @@ private fun ModuleRow(name: String) {
 fun topBarTitleForRoute(route: String?): String = when {
     route == DASHBOARD_ROUTE -> "Dashboard"
     route?.startsWith(CustomerListDestination.route) == true -> "Pelanggan"
+    route?.startsWith(TenantListDestination.route) == true -> "Manajemen Tenant"
+    route?.startsWith(UserListDestination.route) == true -> "Pengguna"
     else -> "Masuk"
 }

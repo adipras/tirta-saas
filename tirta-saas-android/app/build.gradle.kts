@@ -74,6 +74,8 @@ dependencies {
     implementation(project(":core:security"))
     implementation(project(":feature-auth"))
     implementation(project(":feature-customer"))
+    implementation(project(":feature-tenant"))
+    implementation(project(":feature-user"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)

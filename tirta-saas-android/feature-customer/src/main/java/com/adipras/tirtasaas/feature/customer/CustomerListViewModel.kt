@@ -47,8 +47,7 @@ class CustomerListViewModel @Inject constructor(
                             currentPage = page,
                         )
                     }
-                }
-                .onFailure { error ->
+                }                .onFailure { error ->
                     _uiState.update {
                         it.copy(isLoading = false, errorMessage = error.message ?: "Gagal memuat data pelanggan")
                     }

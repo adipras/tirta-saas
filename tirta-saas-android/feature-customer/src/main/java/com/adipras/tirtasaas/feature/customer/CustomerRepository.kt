@@ -12,20 +12,24 @@ class CustomerRepository @Inject constructor(
         limit: Int = 20,
         search: String? = null,
         isActive: Boolean? = null,
-    ): Result<CustomerListResponse> = runCatching {
-        customerApiService.getCustomers(page, limit, search, isActive)
+    ): Result<CustomerListData> = runCatching {
+        val response = customerApiService.getCustomers(page, limit, search, isActive)
+        response.data ?: CustomerListData()
     }
 
     suspend fun getCustomer(id: String): Result<CustomerDto> = runCatching {
-        customerApiService.getCustomer(id)
+        customerApiService.getCustomer(id).data
+            ?: error("Customer tidak ditemukan")
     }
 
     suspend fun createCustomer(request: CreateCustomerRequest): Result<CustomerDto> = runCatching {
-        customerApiService.createCustomer(request)
+        customerApiService.createCustomer(request).data
+            ?: error("Gagal membuat pelanggan")
     }
 
     suspend fun updateCustomer(id: String, request: UpdateCustomerRequest): Result<CustomerDto> = runCatching {
-        customerApiService.updateCustomer(id, request)
+        customerApiService.updateCustomer(id, request).data
+            ?: error("Gagal memperbarui pelanggan")
     }
 
     suspend fun deleteCustomer(id: String): Result<Unit> = runCatching {
@@ -33,7 +37,8 @@ class CustomerRepository @Inject constructor(
     }
 
     suspend fun setActive(id: String, active: Boolean): Result<CustomerDto> = runCatching {
-        if (active) customerApiService.activateCustomer(id)
+        val response = if (active) customerApiService.activateCustomer(id)
         else customerApiService.deactivateCustomer(id)
+        response.data ?: error("Gagal mengubah status pelanggan")
     }
 }

@@ -18,23 +18,23 @@ interface CustomerApiService {
     ): CustomerListResponse
 
     @GET("customers/{id}")
-    suspend fun getCustomer(@Path("id") id: String): CustomerDto
+    suspend fun getCustomer(@Path("id") id: String): CustomerDetailResponse
 
     @POST("customers")
-    suspend fun createCustomer(@Body request: CreateCustomerRequest): CustomerDto
+    suspend fun createCustomer(@Body request: CreateCustomerRequest): CustomerDetailResponse
 
     @PUT("customers/{id}")
     suspend fun updateCustomer(
         @Path("id") id: String,
         @Body request: UpdateCustomerRequest,
-    ): CustomerDto
+    ): CustomerDetailResponse
 
     @DELETE("customers/{id}")
     suspend fun deleteCustomer(@Path("id") id: String)
 
     @POST("customers/{id}/activate")
-    suspend fun activateCustomer(@Path("id") id: String): CustomerDto
+    suspend fun activateCustomer(@Path("id") id: String): CustomerDetailResponse
 
     @POST("customers/{id}/deactivate")
-    suspend fun deactivateCustomer(@Path("id") id: String): CustomerDto
+    suspend fun deactivateCustomer(@Path("id") id: String): CustomerDetailResponse
 }

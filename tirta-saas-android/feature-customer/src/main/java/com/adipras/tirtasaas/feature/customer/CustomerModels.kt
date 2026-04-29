@@ -1,5 +1,6 @@
 package com.adipras.tirtasaas.feature.customer
 
+import com.adipras.tirtasaas.core.network.ApiResponse
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -24,11 +25,15 @@ data class SubscriptionTypeDto(
     val description: String = "",
 )
 
+/** Inner data object inside { status, message, data: { customers, total } } */
 @Serializable
-data class CustomerListResponse(
-    val customers: List<CustomerDto>,
-    val total: Int,
+data class CustomerListData(
+    val customers: List<CustomerDto> = emptyList(),
+    val total: Int = 0,
 )
+
+typealias CustomerListResponse = ApiResponse<CustomerListData>
+typealias CustomerDetailResponse = ApiResponse<CustomerDto>
 
 @Serializable
 data class CreateCustomerRequest(
