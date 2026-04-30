@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.adipras.tirtasaas.core.database.TirtaDatabase
 import com.adipras.tirtasaas.core.database.dao.SyncQueueDao
+import com.adipras.tirtasaas.core.database.dao.TenantSettingsDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,4 +27,10 @@ object DatabaseModule {
 
     @Provides
     fun provideSyncQueueDao(database: TirtaDatabase): SyncQueueDao = database.syncQueueDao()
+
+    @Provides
+    fun provideTenantSettingsDao(database: TirtaDatabase): TenantSettingsDao = database.tenantSettingsDao()
+
+    @Provides
+    fun provideDraftUsageDao(database: TirtaDatabase): com.adipras.tirtasaas.core.database.dao.DraftUsageDao = database.draftUsageDao()
 }

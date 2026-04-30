@@ -46,3 +46,69 @@ data class UpdateTenantRequest(
 data class RejectTenantRequest(
     val reason: String,
 )
+
+@Serializable
+data class TenantPrinterPreferenceDto(
+    @SerialName("default_printer_name") val defaultPrinterName: String? = null,
+    @SerialName("paper_width_mm") val paperWidthMm: Int? = null,
+)
+
+@Serializable
+data class TenantSettingsDto(
+    @SerialName("tenant_id") val tenantId: String,
+
+    // Business Information
+    @SerialName("company_name") val companyName: String? = null,
+    @SerialName("address") val address: String? = null,
+    @SerialName("phone") val phone: String? = null,
+    @SerialName("email") val email: String? = null,
+    @SerialName("website") val website: String? = null,
+
+    // Branding
+    @SerialName("logo_url") val logoUrl: String? = null,
+    @SerialName("primary_color") val primaryColor: String? = null,
+    @SerialName("secondary_color") val secondaryColor: String? = null,
+
+    // Invoice
+    @SerialName("invoice_generation_day") val invoiceGenerationDay: Int = 5,
+    @SerialName("invoice_due_day") val invoiceDueDay: Int = 25,
+    @SerialName("invoice_prefix") val invoicePrefix: String? = null,
+    @SerialName("invoice_number_format") val invoiceNumberFormat: String? = null,
+    @SerialName("invoice_due_days") val invoiceDueDays: Int = 20,
+    @SerialName("invoice_footer_text") val invoiceFooterText: String? = null,
+
+    // Payment
+    @SerialName("late_penalty_percent") val latePenaltyPercent: Double = 0.0,
+    @SerialName("late_penalty_max_cap") val latePenaltyMaxCap: Double? = null,
+    @SerialName("grace_period_days") val gracePeriodDays: Int = 0,
+    @SerialName("minimum_bill_amount") val minimumBillAmount: Double = 0.0,
+    @SerialName("payment_methods") val paymentMethods: List<String> = emptyList(),
+
+    // Bank
+    @SerialName("bank_name") val bankName: String? = null,
+    @SerialName("bank_account_name") val bankAccountName: String? = null,
+    @SerialName("bank_account_no") val bankAccountNo: String? = null,
+
+    // Operational
+    @SerialName("operating_hours") val operatingHours: String? = null,
+    @SerialName("service_area") val serviceArea: String? = null,
+    @SerialName("timezone") val timezone: String? = null,
+    @SerialName("language") val language: String? = null,
+    @SerialName("currency") val currency: String? = null,
+
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+
+    // Flexible/custom settings (may contain mobile preferences)
+    @SerialName("custom_settings") val customSettings: String? = null,
+)
+
+@Serializable
+data class TenantSettingsUpdateRequest(
+    @SerialName("company_name") val companyName: String? = null,
+    @SerialName("address") val address: String? = null,
+    @SerialName("phone") val phone: String? = null,
+    @SerialName("email") val email: String? = null,
+    @SerialName("website") val website: String? = null,
+    @SerialName("timezone") val timezone: String? = null,
+)

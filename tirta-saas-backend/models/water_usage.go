@@ -13,7 +13,8 @@ type WaterUsage struct {
 	UsageM3          float64   `json:"usage_m3"`
 	AmountCalculated float64   `json:"amount_calculated"` // hasil UsageM3 * tarif
 	TenantID         uuid.UUID `gorm:"type:char(36);not null;index" json:"tenant_id"`
-	
+	IsDraft          bool      `gorm:"default:false" json:"is_draft"`
+
 	// Additional fields for Phase 6
 	MeterID           *uuid.UUID        `gorm:"type:char(36);index" json:"meter_id"`
 	Meter             *Meter            `gorm:"foreignKey:MeterID" json:"meter,omitempty"`

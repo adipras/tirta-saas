@@ -30,11 +30,8 @@ func CreateWaterUsage(c *gin.Context) {
 	tenantID, err := helpers.RequireTenantID(c)
 
 	if err != nil {
-
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-
 		return
-
 	}
 
 	var req requests.CreateWaterUsageRequest
@@ -106,6 +103,26 @@ func CreateWaterUsage(c *gin.Context) {
 		return
 	}
 
+	// If client provided an ID, check for existing record to ensure idempotency
+	if req.ID != nil {
+		var existing models.WaterUsage
+		if err := config.DB.Where("id = ? AND tenant_id = ?", *req.ID, tenantID).First(&existing).Error; err == nil {
+			// Return existing record — idempotent create
+			response := responses.WaterUsageResponse{
+				ID:               existing.ID,
+				CustomerID:       existing.CustomerID,
+				UsageMonth:       existing.UsageMonth,
+				MeterStart:       existing.MeterStart,
+				MeterEnd:         existing.MeterEnd,
+				UsageM3:          existing.UsageM3,
+				AmountCalculated: existing.AmountCalculated,
+				CreatedAt:        existing.CreatedAt,
+			}
+			c.JSON(http.StatusOK, response)
+			return
+		}
+	}
+
 	usage := models.WaterUsage{
 		CustomerID:       req.CustomerID,
 		UsageMonth:       req.UsageMonth,
@@ -114,6 +131,12 @@ func CreateWaterUsage(c *gin.Context) {
 		UsageM3:          UsageM3,
 		AmountCalculated: UsageM3 * rate.Amount,
 		TenantID:         tenantID,
+		IsDraft:           req.IsDraft,
+	}
+
+	// Accept client-generated ID for idempotent sync
+	if req.ID != nil {
+		usage.ID = *req.ID
 	}
 
 	if err := config.DB.Create(&usage).Error; err != nil {
@@ -135,15 +158,18 @@ func CreateWaterUsage(c *gin.Context) {
 }
 
 // GetWaterUsages godoc
-// @Summary List water usage records
-// @Description Get all water usage records for the tenant
+// @Summary List water usage records (paged)
+// @Description Get water usage records for the tenant. Supports pagination and filters.
 // @Tags Water Usage
 // @Accept json
 // @Produce json
 // @Param customer_id query string false "Filter by customer ID"
-// @Param period query string false "Filter by period (YYYY-MM)"
+// @Param usage_month query string false "Filter by usage month (YYYY-MM)"
+// @Param include_drafts query bool false "Include draft records"
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Page size" default(20)
 // @Security BearerAuth
-// @Success 200 {array} responses.WaterUsageResponse
+// @Success 200 {object} responses.PaginatedResponse
 // @Failure 401 {object} map[string]interface{}
 // @Router /api/water-usage [get]
 func GetWaterUsages(c *gin.Context) {
@@ -153,9 +179,31 @@ func GetWaterUsages(c *gin.Context) {
 		return
 	}
 
+	// Pagination defaults
+	page := 1
+	pageSize := 20
+	if p := c.Query("page"); p != "" {
+		fmt.Sscanf(p, "%d", &page)
+	}
+	if ps := c.Query("page_size"); ps != "" {
+		fmt.Sscanf(ps, "%d", &pageSize)
+	}
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	includeDrafts := false
+	if c.Query("include_drafts") == "true" {
+		includeDrafts = true
+	}
+
+	var total int64
 	var records []models.WaterUsage
-	query := config.DB.Preload("Customer")
-	
+	query := config.DB.Preload("Customer").Model(&models.WaterUsage{})
+
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
@@ -167,11 +215,24 @@ func GetWaterUsages(c *gin.Context) {
 	if usageMonth := c.Query("usage_month"); usageMonth != "" {
 		query = query.Where("usage_month = ?", usageMonth)
 	}
-	
-	if err := query.Order("usage_month DESC").Find(&records).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
+
+	if !includeDrafts {
+		query = query.Where("is_draft = ?", false)
+	}
+
+	// Count total
+	if err := query.Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung data"})
 		return
 	}
+
+	// Fetch page
+	offset := (page - 1) * pageSize
+tq := query.Order("usage_month DESC, created_at DESC").Offset(offset).Limit(pageSize)
+if err := tq.Find(&records).Error; err != nil {
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
+	return
+}
 
 	// Convert to response format
 	usageResponses := make([]responses.WaterUsageResponse, len(records))
@@ -197,11 +258,19 @@ func GetWaterUsages(c *gin.Context) {
 		usageResponses[i] = r
 	}
 
-	response := responses.WaterUsageListResponse{
-		UsageRecords: usageResponses,
-		Total:        len(usageResponses),
+	meta := responses.PaginationMeta{
+		CurrentPage: page,
+		PageSize:    pageSize,
+		TotalPages:  int((total + int64(pageSize) - 1) / int64(pageSize)),
+		TotalItems:  int(total),
 	}
-	c.JSON(http.StatusOK, response)
+
+	c.JSON(http.StatusOK, responses.PaginatedResponse{
+		Status:  "success",
+		Message: "Water usages retrieved successfully",
+		Data:    usageResponses,
+		Meta:    meta,
+	})
 }
 
 func GetWaterUsageByID(c *gin.Context) {
@@ -242,15 +311,14 @@ func UpdateWaterUsage(c *gin.Context) {
 	tenantID, err := helpers.RequireTenantID(c)
 
 	if err != nil {
-
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-
 		return
-
 	}
 
 	var input struct {
-		MeterEnd float64 `json:"meter_end"`
+		MeterEnd *float64 `json:"meter_end,omitempty"`
+		Notes    *string  `json:"notes,omitempty"`
+		IsDraft  *bool    `json:"is_draft,omitempty"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -264,52 +332,69 @@ func UpdateWaterUsage(c *gin.Context) {
 		return
 	}
 
-	// Business rule validations
-	if input.MeterEnd < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Meter akhir tidak boleh bernilai negatif"})
-		return
+	// If updating meter end
+	if input.MeterEnd != nil {
+		if *input.MeterEnd < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Meter akhir tidak boleh bernilai negatif"})
+			return
+		}
+		if *input.MeterEnd > 99999999 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nilai meter melebihi batas maksimum yang diizinkan"})
+			return
+		}
+		if *input.MeterEnd < usage.MeterStart {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Meter akhir tidak boleh lebih kecil dari awal"})
+			return
+		}
+
+		// Ambil data customer
+		var customer models.Customer
+		if err := config.DB.Where("id = ? AND tenant_id = ?", usage.CustomerID, tenantID).First(&customer).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Pelanggan tidak ditemukan"})
+			return
+		}
+
+		// Ambil tarif aktif untuk subscription pelanggan
+		var rate models.WaterRate
+		if err := config.DB.
+			Where("subscription_id = ? AND active = ? AND tenant_id = ?", customer.SubscriptionID, true, tenantID).
+			Order("effective_date DESC").
+			First(&rate).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan untuk tipe langganan pelanggan ini. Silakan tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air."})
+			return
+		}
+
+		UsageM3 := *input.MeterEnd - usage.MeterStart
+
+		// Business rule validation: Check reasonable usage amount
+		if UsageM3 > 1000 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Jumlah pemakaian melebihi batas wajar (1000 m3/bulan)"})
+			return
+		}
+
+		usage.MeterEnd = *input.MeterEnd
+		usage.UsageM3 = UsageM3
+		usage.AmountCalculated = UsageM3 * rate.Amount
 	}
 
-	if input.MeterEnd > 99999999 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Nilai meter melebihi batas maksimum yang diizinkan"})
-		return
+	// Handle draft flag changes: if finalizing (IsDraft=false) ensure no existing finalized record for same customer/month
+	if input.IsDraft != nil {
+		if usage.IsDraft && !*input.IsDraft {
+			// finalizing
+			var existing models.WaterUsage
+			if err := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ? AND is_draft = ?", usage.CustomerID, usage.UsageMonth, tenantID, false).First(&existing).Error; err == nil {
+				c.JSON(http.StatusConflict, gin.H{"error": "Terdapat data final yang sudah ada untuk pelanggan dan periode ini. Batalkan draft atau hapus data tersebut terlebih dahulu."})
+				return
+			}
+		}
+		usage.IsDraft = *input.IsDraft
 	}
 
-	if input.MeterEnd < usage.MeterStart {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Meter akhir tidak boleh lebih kecil dari awal"})
-		return
+	if input.Notes != nil {
+		usage.Notes = *input.Notes
 	}
 
-	// Ambil data customer
-	var customer models.Customer
-	if err := config.DB.Where("id = ? AND tenant_id = ?", usage.CustomerID, tenantID).First(&customer).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Pelanggan tidak ditemukan"})
-		return
-	}
-
-	// Ambil tarif aktif untuk subscription pelanggan
-	var rate models.WaterRate
-	if err := config.DB.
-		Where("subscription_id = ? AND active = ? AND tenant_id = ?", customer.SubscriptionID, true, tenantID).
-		Order("effective_date DESC").
-		First(&rate).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan untuk tipe langganan pelanggan ini. Silakan tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air."})
-		return
-	}
-
-	UsageM3 := input.MeterEnd - usage.MeterStart
-
-	// Business rule validation: Check reasonable usage amount
-	if UsageM3 > 1000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Jumlah pemakaian melebihi batas wajar (1000 m3/bulan)"})
-		return
-	}
-
-	usage.MeterEnd = input.MeterEnd
-	usage.UsageM3 = UsageM3
-	usage.AmountCalculated = UsageM3 * rate.Amount
-
-	if err := config.DB.Model(&usage).Select("MeterEnd", "UsageM3", "AmountCalculated").Updates(&usage).Error; err != nil {
+	if err := config.DB.Model(&usage).Select("MeterEnd", "UsageM3", "AmountCalculated", "IsDraft", "Notes").Updates(&usage).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui data"})
 		return
 	}

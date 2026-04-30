@@ -15,6 +15,9 @@ type BaseModel struct {
 }
 
 func (base *BaseModel) BeforeCreate(tx *gorm.DB) (err error) {
-	base.ID = uuid.New()
+	// Only generate a new UUID if one is not already provided by the client.
+	if base.ID == uuid.Nil {
+		base.ID = uuid.New()
+	}
 	return
 }

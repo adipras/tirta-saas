@@ -18,6 +18,7 @@ import java.net.UnknownHostException
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val tenantSettingsRepository: com.adipras.tirtasaas.feature.tenant.TenantSettingsRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -48,7 +49,12 @@ class LoginViewModel @Inject constructor(
                 viewModelScope.launch {
                     _uiState.update { it.copy(isSubmitting = true, errorMessage = null) }
                     authRepository.login(state.email, state.password)
-                        .onSuccess {
+                        .onSuccess { response ->
+                            // fetch and cache tenant settings if tenant id available
+                            val tenantId = response.tenantId ?: response.user.tenantId
+                            if (!tenantId.isNullOrBlank()) {
+                                runCatching { tenantSettingsRepository.fetchAndCache(tenantId) }
+                            }
                             eventChannel.send(LoginEvent.LoginSuccess)
                         }
                         .onFailure { throwable ->

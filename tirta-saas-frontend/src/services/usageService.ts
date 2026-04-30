@@ -42,9 +42,32 @@ class PemakaianService {
     });
     const raw = response.data || response;
 
-    // Backend returns { usage_records: [...], total: N }
-    const records: any[] = raw.usage_records || (Array.isArray(raw) ? raw : []);
-    const total: number = raw.total || records.length;
+    // Support both old shape ({ usage_records: [...] , total }) and new PaginatedResponse { status, message, data: [...], meta }
+    let records: any[] = [];
+    let total = 0;
+    let page = 1;
+    let limit = 10;
+
+    if (Array.isArray(raw)) {
+      records = raw;
+      total = raw.length;
+    } else if (raw.usage_records && Array.isArray(raw.usage_records)) {
+      records = raw.usage_records;
+      total = raw.total || records.length;
+    } else if (raw.data && Array.isArray(raw.data)) {
+      records = raw.data;
+      if (raw.meta) {
+        total = raw.meta.total_items ?? raw.meta.total || records.length;
+        page = raw.meta.current_page ?? page;
+        limit = raw.meta.page_size ?? limit;
+      } else {
+        total = records.length;
+      }
+    } else {
+      // fallback
+      records = [];
+      total = 0;
+    }
 
     const mapped: WaterPemakaian[] = records.map((u: any) => ({
       id: u.id,
