@@ -79,6 +79,30 @@ func buildInvoiceResponse(invoice models.Invoice, tenantSettings models.TenantSe
 		}
 	}
 
+	// Build frozen receipt payload for mobile thermal printer rendering.
+	// Populated with data already in scope — no extra DB call needed here.
+	receipt := &responses.ReceiptPayload{
+		InvoiceNumber: invoice.InvoiceNumber,
+		CustomerName:  response.CustomerName,
+		MeterNumber:   response.MeterNumber,
+		UsageMonth:    invoice.UsageMonth,
+		UsageM3:       invoice.UsageM3,
+		WaterCharge:   invoice.WaterCharge,
+		Abonemen:      invoice.Abonemen,
+		PenaltyAmount: snapshot.PenaltyAmount,
+		TotalAmount:   snapshot.TotalAmount,
+		TotalPaid:     invoice.TotalPaid,
+		DueDate:       invoice.DueDate,
+		CompanyName:   tenantSettings.CompanyName,
+		CompanyPhone:  tenantSettings.Phone,
+		CompanyEmail:  tenantSettings.Email,
+		FooterText:    tenantSettings.InvoiceFooterText,
+	}
+	if invoice.Customer.ID != uuid.Nil {
+		receipt.Address = invoice.Customer.Address
+	}
+	response.Receipt = receipt
+
 	return response
 }
 
@@ -99,6 +123,12 @@ func attachInvoiceUsageReadings(response *responses.InvoiceResponse, tenantID uu
 	meterEnd := usage.MeterEnd
 	response.MeterStart = &meterStart
 	response.MeterEnd = &meterEnd
+
+	// Sync meter readings into the receipt payload as well
+	if response.Receipt != nil {
+		response.Receipt.MeterStart = usage.MeterStart
+		response.Receipt.MeterEnd = usage.MeterEnd
+	}
 }
 
 func buildInvoiceListStats(invoices []responses.InvoiceResponse) responses.InvoiceListStats {

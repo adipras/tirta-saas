@@ -18,8 +18,3 @@ type UpdateWaterUsageRequest struct {
 	MeterEnd float64 `json:"meter_end" binding:"required,gte=0" minimum:"0" doc:"Meter end reading in m³" example:"155.0"`
 	Notes    string  `json:"notes,omitempty" maxLength:"500" doc:"Additional notes" example:"Corrected reading"`
 }
-
-type UpdateWaterUsageRequest struct {
-	MeterEnd float64 `json:"meter_end" binding:"required,gte=0" minimum:"0" doc:"Meter end reading in m³" example:"155.0"`
-	Notes    string  `json:"notes,omitempty" maxLength:"500" doc:"Additional notes" example:"Corrected reading"`
-}

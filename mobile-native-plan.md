@@ -47,7 +47,7 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 - [ ] Rapikan permission untuk `meter_reader` dan `finance`
 - [ ] Standarkan pagination, filtering, dan sorting
 - [ ] Tambah dukungan sync-friendly untuk operasional mobile
-- [ ] Bekukan contract receipt untuk printer thermal
+- [x] Bekukan contract receipt untuk printer thermal (ReceiptPayload sudah ditambah ke InvoiceResponse)
 
 ### Frontend
 
@@ -59,10 +59,10 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 
 ### Android
 
-- [ ] Inisialisasi app native utama
-- [ ] Pasang base architecture Kotlin + Clean Architecture + MVVM
-- [ ] Pasang networking, local DB, DI, dan session handling
-- [ ] Implement fitur MVP operasional
+- [x] Inisialisasi app native utama
+- [x] Pasang base architecture Kotlin + Clean Architecture + MVVM
+- [x] Pasang networking, local DB, DI, dan session handling
+- [x] Implement fitur MVP operasional (usage, invoice, payment screens + navigation)
 - [ ] Implement modul printer Bluetooth thermal
 
 ## Scope MVP Mobile
@@ -72,15 +72,15 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 - [x] Login dan session management
 - [ ] Dashboard role-based
 - [x] Tenant management untuk `platform_owner` (list + detail + actions)
-- [ ] Tenant settings untuk `tenant_admin`
+- [x] Tenant settings untuk `tenant_admin` (Android: endpoint fix + TenantSettingsRepository fix)
 - [x] Tenant user management (CRUD)
 - [x] Customer list/detail/create/activation
-- [ ] Input dan update water usage
+- [x] Input dan update water usage
   - [x] Backend: idempotent create, draft support, pagination/listing, finalize conflict handling (DONE)
   - [ ] Frontend: adapt to paginated response & draft workflow (IN_PROGRESS)
-  - [x] Android: DraftUsage Room/DAO/Repository/Worker skeleton created (IN_PROGRESS)
-- [ ] Monitoring invoice
-- [ ] Input payment
+  - [x] Android: UsageApiService, UsageRepository, UsageListViewModel, UsageFormViewModel, UsageListScreen, UsageFormScreen, DI (DONE)
+- [x] Monitoring invoice (Android: InvoiceApiService, InvoiceRepository, InvoiceListViewModel, InvoiceDetailViewModel, InvoiceListScreen, InvoiceDetailScreen, DI)
+- [x] Input payment (Android: PaymentApiService, PaymentRepository, PaymentViewModel, PaymentInputScreen, DI)
 - [ ] Print receipt ke thermal printer
 - [ ] Monitoring operasional dasar
 

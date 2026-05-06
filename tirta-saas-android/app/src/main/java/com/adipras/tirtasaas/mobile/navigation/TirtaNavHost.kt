@@ -29,6 +29,16 @@ import com.adipras.tirtasaas.feature.tenant.tenantDetailScreen
 import com.adipras.tirtasaas.feature.tenant.tenantListScreen
 import com.adipras.tirtasaas.feature.user.UserListDestination
 import com.adipras.tirtasaas.feature.user.userListScreen
+import com.adipras.tirtasaas.feature.usage.UsageListDestination
+import com.adipras.tirtasaas.feature.usage.UsageFormDestination
+import com.adipras.tirtasaas.feature.usage.usageListScreen
+import com.adipras.tirtasaas.feature.usage.usageFormScreen
+import com.adipras.tirtasaas.feature.invoice.InvoiceListDestination
+import com.adipras.tirtasaas.feature.invoice.InvoiceDetailDestination
+import com.adipras.tirtasaas.feature.invoice.invoiceListScreen
+import com.adipras.tirtasaas.feature.invoice.invoiceDetailScreen
+import com.adipras.tirtasaas.feature.payment.PaymentInputDestination
+import com.adipras.tirtasaas.feature.payment.paymentInputScreen
 
 private const val DASHBOARD_ROUTE = "dashboard"
 
@@ -62,6 +72,27 @@ fun TirtaNavHost(
             onBack = { navController.popBackStack() },
         )
         userListScreen()
+        usageListScreen(
+            onNavigateToForm = { usageId ->
+                navController.navigate(UsageFormDestination.createRoute(usageId))
+            },
+        )
+        usageFormScreen(
+            onSaved = { navController.popBackStack() },
+            onBack = { navController.popBackStack() },
+        )
+        invoiceListScreen(
+            onNavigateToDetail = { invoiceId ->
+                navController.navigate(InvoiceDetailDestination.createRoute(invoiceId))
+            },
+        )
+        invoiceDetailScreen(
+            onBack = { navController.popBackStack() },
+        )
+        paymentInputScreen(
+            onSaved = { navController.popBackStack() },
+            onBack = { navController.popBackStack() },
+        )
     }
 }
 
@@ -92,6 +123,12 @@ private fun NavGraphBuilder.dashboardGraph(
             onNavigateToUsers = {
                 navController.navigate(UserListDestination.route)
             },
+            onNavigateToUsages = {
+                navController.navigate(UsageListDestination.route)
+            },
+            onNavigateToInvoices = {
+                navController.navigate(InvoiceListDestination.route)
+            },
             onLogout = onLogout,
         )
     }
@@ -102,6 +139,8 @@ private fun DashboardRoute(
     onNavigateToCustomers: () -> Unit,
     onNavigateToTenants: () -> Unit,
     onNavigateToUsers: () -> Unit,
+    onNavigateToUsages: () -> Unit,
+    onNavigateToInvoices: () -> Unit,
     onLogout: () -> Unit,
 ) {
     Column(
@@ -129,6 +168,18 @@ private fun DashboardRoute(
         ) {
             Text("Manajemen Pengguna")
         }
+        Button(
+            onClick = onNavigateToUsages,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Pemakaian Air")
+        }
+        Button(
+            onClick = onNavigateToInvoices,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Tagihan")
+        }
         Button(onClick = onLogout) {
             Text("Keluar")
         }
@@ -150,5 +201,10 @@ fun topBarTitleForRoute(route: String?): String = when {
     route?.startsWith(TenantDetailDestination.routeBase + "/") == true -> "Detail Tenant"
     route?.startsWith(TenantListDestination.route) == true -> "Manajemen Tenant"
     route?.startsWith(UserListDestination.route) == true -> "Pengguna"
+    route?.startsWith(UsageListDestination.route) == true -> "Pemakaian Air"
+    route?.startsWith(UsageFormDestination.route) == true -> "Form Pemakaian"
+    route?.startsWith(InvoiceListDestination.route) == true -> "Tagihan"
+    route?.startsWith(InvoiceDetailDestination.routeBase + "/") == true -> "Detail Tagihan"
+    route?.startsWith(PaymentInputDestination.routeBase + "/") == true -> "Input Pembayaran"
     else -> "Masuk"
 }

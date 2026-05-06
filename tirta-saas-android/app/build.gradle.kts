@@ -76,6 +76,9 @@ dependencies {
     implementation(project(":feature-customer"))
     implementation(project(":feature-tenant"))
     implementation(project(":feature-user"))
+    implementation(project(":feature-usage"))
+    implementation(project(":feature-invoice"))
+    implementation(project(":feature-payment"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)

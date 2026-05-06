@@ -35,6 +35,31 @@ type InvoiceResponse struct {
 	DueDate             *time.Time       `json:"due_date,omitempty"`
 	PaidDate            *time.Time       `json:"paid_date,omitempty"`
 	CreatedAt           time.Time        `json:"created_at"`
+	Receipt             *ReceiptPayload  `json:"receipt,omitempty"`
+}
+
+// ReceiptPayload is a frozen, self-contained snapshot of billing data
+// used by mobile clients to render a thermal printer receipt without
+// making additional API calls.
+type ReceiptPayload struct {
+	InvoiceNumber string     `json:"invoice_number"`
+	CustomerName  string     `json:"customer_name"`
+	MeterNumber   string     `json:"meter_number"`
+	Address       string     `json:"address"`
+	UsageMonth    string     `json:"usage_month"`
+	MeterStart    float64    `json:"meter_start"`
+	MeterEnd      float64    `json:"meter_end"`
+	UsageM3       float64    `json:"usage_m3"`
+	WaterCharge   float64    `json:"water_charge"`
+	Abonemen      float64    `json:"abonemen"`
+	PenaltyAmount float64    `json:"penalty_amount"`
+	TotalAmount   float64    `json:"total_amount"`
+	TotalPaid     float64    `json:"total_paid"`
+	DueDate       *time.Time `json:"due_date,omitempty"`
+	CompanyName   string     `json:"company_name"`
+	CompanyPhone  string     `json:"company_phone"`
+	CompanyEmail  string     `json:"company_email"`
+	FooterText    string     `json:"footer_text"`
 }
 
 type InvoiceItem struct {

@@ -14,7 +14,7 @@ class TenantSettingsRepository @Inject constructor(
 ) {
     suspend fun fetchAndCache(tenantId: String?): Result<TenantSettingsDto> = runCatching {
         val id = tenantId ?: error("Tenant id kosong")
-        val response = tenantApiService.getTenantSettings(id)
+        val response = tenantApiService.getTenantSettings()
         val settings = response.data ?: error("Tenant settings tidak ditemukan")
         // persist to local db (map subset of fields)
         withContext(Dispatchers.IO) {

@@ -47,12 +47,12 @@ interface TenantApiService {
     @DELETE("platform/tenants/{id}")
     suspend fun deleteTenant(@Path("id") id: String)
 
-    @GET("platform/tenants/{id}/settings")
-    suspend fun getTenantSettings(@Path("id") id: String): com.adipras.tirtasaas.core.network.ApiResponse<TenantSettingsDto>
+    // Tenant settings — no path ID, resolved from JWT context on server
+    @GET("tenant/settings")
+    suspend fun getTenantSettings(): com.adipras.tirtasaas.core.network.ApiResponse<TenantSettingsDto>
 
-    @PUT("platform/tenants/{id}/settings")
+    @PUT("tenant/settings")
     suspend fun updateTenantSettings(
-        @Path("id") id: String,
         @Body request: TenantSettingsUpdateRequest,
     ): com.adipras.tirtasaas.core.network.ApiResponse<TenantSettingsDto>
 }
