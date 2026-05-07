@@ -15,4 +15,8 @@ type PaymentResponse struct {
 	ReferenceNumber string    `json:"reference_number,omitempty"`
 	Notes           string    `json:"notes,omitempty"`
 	Status          string    `json:"status,omitempty"`
+	InvoiceNumber   string    `json:"invoice_number,omitempty"`
+	CustomerName    string    `json:"customer_name,omitempty"`
+	ProofURL        string    `json:"proof_url,omitempty"`
+	ProofStatus     string    `json:"proof_status,omitempty"`
 }

@@ -3,8 +3,11 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/adipras/tirta-saas-backend/utils"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/helpers"
@@ -42,6 +45,33 @@ func loadPaymentWithRelations(paymentID uuid.UUID, tenantID uuid.UUID) (*models.
 	}
 
 	return &payment, nil
+}
+
+func buildPaymentResponse(payment models.Payment) responses.PaymentResponse {
+	paymentMethod := payment.PaymentMethodType
+	if paymentMethod == "" && payment.PaymentMethod != nil {
+		paymentMethod = payment.PaymentMethod.Type
+	}
+
+	res := responses.PaymentResponse{
+		ID:              payment.ID,
+		InvoiceID:       payment.InvoiceID,
+		Amount:          payment.Amount,
+		PaidAt:          payment.PaidAt,
+		PaymentMethod:   paymentMethod,
+		ReferenceNumber: payment.ReferenceNumber,
+		Notes:           payment.Notes,
+		Status:          payment.Status,
+		ProofURL:        payment.ProofImageURL,
+	}
+	if payment.Invoice.ID != uuid.Nil {
+		res.InvoiceNumber = payment.Invoice.InvoiceNumber
+		if payment.Invoice.Customer.ID != uuid.Nil {
+			res.CustomerName = payment.Invoice.Customer.Name
+		}
+	}
+
+	return res
 }
 
 func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
@@ -212,24 +242,40 @@ func maxFloat(value, min float64) float64 {
 // @Router /api/payments [post]
 func CreatePayment(c *gin.Context) {
 	var req requests.CreatePaymentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	invoiceIDStr := c.PostForm("invoice_id")
+	if invoiceIDStr != "" {
+		invoiceID, err := uuid.Parse(invoiceIDStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invoice_id tidak valid"})
+			return
+		}
+
+		amountStr := c.PostForm("amount")
+		amount, err := strconv.ParseFloat(amountStr, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "amount tidak valid"})
+			return
+		}
+
+		req.InvoiceID = invoiceID
+		req.Amount = amount
+		req.PaymentMethod = c.PostForm("payment_method")
+		req.PaymentDate = c.PostForm("payment_date")
+		req.ReferenceNumber = c.PostForm("reference_number")
+		req.Notes = c.PostForm("notes")
+	} else if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	tenantID, err := helpers.RequireTenantID(c)
-
 	if err != nil {
-
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-
 		return
-
 	}
 
-	// Ambil invoice terkait
 	var invoice models.Invoice
-	if err := config.DB.Where("id = ? AND tenant_id = ?", req.InvoiceID, tenantID).
+	if err := config.DB.Preload("Customer").Where("id = ? AND tenant_id = ?", req.InvoiceID, tenantID).
 		First(&invoice).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice tidak ditemukan"})
 		return
@@ -252,13 +298,11 @@ func CreatePayment(c *gin.Context) {
 		return
 	}
 
-	// Business rule validations
 	if req.Amount <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Payment amount must be greater than zero"})
 		return
 	}
-
-	if req.Amount > 999999 { // Max payment amount validation
+	if req.Amount > 999999 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Payment amount exceeds maximum allowed limit"})
 		return
 	}
@@ -325,18 +369,17 @@ func CreatePayment(c *gin.Context) {
 		return
 	}
 
-	// Kirim response
-	res := responses.PaymentResponse{
-		ID:              payment.ID,
-		InvoiceID:       payment.InvoiceID,
-		Amount:          payment.Amount,
-		PaidAt:          payment.PaidAt,
-		PaymentMethod:   normalizedPaymentMethod,
-		ReferenceNumber: payment.ReferenceNumber,
-		Notes:           payment.Notes,
-		Status:          payment.Status,
+	if file, fileErr := c.FormFile("proof"); fileErr == nil && file != nil {
+		uploadConfig := utils.DefaultProofUploadConfig()
+		uploadConfig.UploadDir = fmt.Sprintf("storage/private/payment-proofs/%s", tenantID.String())
+		if uploadPath, err := utils.SaveUploadedFile(file, uploadConfig); err == nil {
+			config.DB.Model(&payment).Update("proof_image_url", uploadPath)
+			payment.ProofImageURL = uploadPath
+		}
 	}
-	c.JSON(http.StatusCreated, res)
+
+	payment.Invoice = invoice
+	helpers.RespondCreated(c, "Pembayaran berhasil dicatat", buildPaymentResponse(payment))
 }
 
 // GetPaymentHistoryByCustomerID godoc
@@ -397,30 +440,53 @@ func GetAllPayments(c *gin.Context) {
 		return
 	}
 
+	page := 1
+	pageSize := 20
+	if p, err := strconv.Atoi(c.Query("page")); err == nil && p > 0 {
+		page = p
+	}
+	if ps, err := strconv.Atoi(c.Query("page_size")); err == nil && ps > 0 {
+		pageSize = ps
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
 	var payments []models.Payment
-	query := config.DB.Preload("Invoice.Customer").Preload("PaymentMethod")
+	var total int64
+	query := config.DB.Model(&models.Payment{})
 
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
+	if invoiceID := c.Query("invoice_id"); invoiceID != "" {
+		query = query.Where("invoice_id = ?", invoiceID)
+	}
 
-	if err := query.Order("created_at desc").Find(&payments).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung data pembayaran"})
+		return
+	}
+
+	offset := (page - 1) * pageSize
+	if err := query.Preload("Invoice.Customer").Preload("PaymentMethod").Order("created_at desc").Offset(offset).Limit(pageSize).Find(&payments).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data pembayaran"})
 		return
 	}
 
-	c.JSON(http.StatusOK, payments)
+	paymentResponses := make([]responses.PaymentResponse, len(payments))
+	for i, payment := range payments {
+		paymentResponses[i] = buildPaymentResponse(payment)
+	}
+
+	helpers.RespondPaginated(c, "Pembayaran berhasil diambil", paymentResponses, page, pageSize, int(total))
 }
 
 func GetPayment(c *gin.Context) {
 	tenantID, err := helpers.RequireTenantID(c)
-
 	if err != nil {
-
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-
 		return
-
 	}
 	id := c.Param("id")
 
@@ -431,14 +497,14 @@ func GetPayment(c *gin.Context) {
 	}
 
 	var payment models.Payment
-	if err := config.DB.Preload("Invoice").
+	if err := config.DB.Preload("Invoice.Customer").Preload("PaymentMethod").
 		Where("id = ? AND tenant_id = ?", paymentID, tenantID).
 		First(&payment).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Pembayaran tidak ditemukan"})
 		return
 	}
 
-	c.JSON(http.StatusOK, payment)
+	helpers.RespondSuccess(c, "Pembayaran ditemukan", buildPaymentResponse(payment))
 }
 
 func UpdatePayment(c *gin.Context) {

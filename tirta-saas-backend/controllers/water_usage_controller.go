@@ -117,9 +117,10 @@ func CreateWaterUsage(c *gin.Context) {
 				MeterEnd:         existing.MeterEnd,
 				UsageM3:          existing.UsageM3,
 				AmountCalculated: existing.AmountCalculated,
+				IsDraft:          existing.IsDraft,
 				CreatedAt:        existing.CreatedAt,
 			}
-			c.JSON(http.StatusOK, response)
+			helpers.RespondSuccess(c, "Data pencatatan meter sudah ada", response)
 			return
 		}
 	}
@@ -132,7 +133,7 @@ func CreateWaterUsage(c *gin.Context) {
 		UsageM3:          UsageM3,
 		AmountCalculated: UsageM3 * rate.Amount,
 		TenantID:         tenantID,
-		IsDraft:           req.IsDraft,
+		IsDraft:          req.IsDraft,
 	}
 
 	// Accept client-generated ID for idempotent sync
@@ -153,9 +154,10 @@ func CreateWaterUsage(c *gin.Context) {
 		MeterEnd:         usage.MeterEnd,
 		UsageM3:          usage.UsageM3,
 		AmountCalculated: usage.AmountCalculated,
+		IsDraft:          usage.IsDraft,
 		CreatedAt:        usage.CreatedAt,
 	}
-	c.JSON(http.StatusCreated, response)
+	helpers.RespondCreated(c, "Pencatatan meter berhasil disimpan", response)
 }
 
 // GetWaterUsages godoc
@@ -229,11 +231,11 @@ func GetWaterUsages(c *gin.Context) {
 
 	// Fetch page
 	offset := (page - 1) * pageSize
-tq := query.Order("usage_month DESC, created_at DESC").Offset(offset).Limit(pageSize)
-if err := tq.Find(&records).Error; err != nil {
-	c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
-	return
-}
+	tq := query.Order("usage_month DESC, created_at DESC").Offset(offset).Limit(pageSize)
+	if err := tq.Find(&records).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
+		return
+	}
 
 	// Convert to response format
 	usageResponses := make([]responses.WaterUsageResponse, len(records))
@@ -246,6 +248,7 @@ if err := tq.Find(&records).Error; err != nil {
 			MeterEnd:         record.MeterEnd,
 			UsageM3:          record.UsageM3,
 			AmountCalculated: record.AmountCalculated,
+			IsDraft:          record.IsDraft,
 			CreatedAt:        record.CreatedAt,
 		}
 		if record.Customer.ID != uuid.Nil {
@@ -302,6 +305,7 @@ func GetWaterUsageByID(c *gin.Context) {
 		MeterEnd:         usage.MeterEnd,
 		UsageM3:          usage.UsageM3,
 		AmountCalculated: usage.AmountCalculated,
+		IsDraft:          usage.IsDraft,
 		CreatedAt:        usage.CreatedAt,
 	}
 	c.JSON(http.StatusOK, response)
@@ -408,9 +412,10 @@ func UpdateWaterUsage(c *gin.Context) {
 		MeterEnd:         usage.MeterEnd,
 		UsageM3:          usage.UsageM3,
 		AmountCalculated: usage.AmountCalculated,
+		IsDraft:          usage.IsDraft,
 		CreatedAt:        usage.CreatedAt,
 	}
-	c.JSON(http.StatusOK, response)
+	helpers.RespondSuccess(c, "Data pencatatan meter berhasil diperbarui", response)
 }
 
 func DeleteWaterUsage(c *gin.Context) {

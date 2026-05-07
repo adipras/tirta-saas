@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -398,19 +399,37 @@ func GetInvoices(c *gin.Context) {
 		return
 	}
 
+	page := 1
+	pageSize := 20
+	if p, err := strconv.Atoi(c.Query("page")); err == nil && p > 0 {
+		page = p
+	}
+	if ps, err := strconv.Atoi(c.Query("page_size")); err == nil && ps > 0 {
+		pageSize = ps
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
 	var invoices []models.Invoice
-	query := config.DB.Preload("Customer").Preload("Customer.Subscription")
+	var total int64
+	query := config.DB.Model(&models.Invoice{})
 
 	if hasSpecificTenant {
 		query = query.Where("invoices.tenant_id = ?", tenantID)
 	}
 
-	statusFilter := strings.TrimSpace(strings.ToLower(c.Query("status")))
+	if statusFilter := strings.TrimSpace(strings.ToLower(c.Query("status"))); statusFilter != "" {
+		query = query.Where("LOWER(invoices.payment_status) = ?", statusFilter)
+	}
 	if invoiceType := c.Query("type"); invoiceType != "" {
 		query = query.Where("invoices.type = ?", invoiceType)
 	}
 	if customerID := c.Query("customer_id"); customerID != "" {
 		query = query.Where("invoices.customer_id = ?", customerID)
+	}
+	if usageMonth := c.Query("usage_month"); usageMonth != "" {
+		query = query.Where("invoices.usage_month = ?", usageMonth)
 	}
 	if search := c.Query("search"); search != "" {
 		query = query.Joins("LEFT JOIN customers ON customers.id = invoices.customer_id").
@@ -422,12 +441,17 @@ func GetInvoices(c *gin.Context) {
 			)
 	}
 
-	if err := query.Find(&invoices).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung data"})
+		return
+	}
+
+	offset := (page - 1) * pageSize
+	if err := query.Preload("Customer").Preload("Customer.Subscription").Order("invoices.created_at desc").Offset(offset).Limit(pageSize).Find(&invoices).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
 		return
 	}
 
-	// Convert to response format
 	invoiceResponses := make([]responses.InvoiceResponse, len(invoices))
 	for i, invoice := range invoices {
 		invoiceTenantSettings := services.LoadTenantSettings(invoice.TenantID)
@@ -437,22 +461,7 @@ func GetInvoices(c *gin.Context) {
 		invoiceResponses[i] = buildInvoiceResponse(invoice, invoiceTenantSettings, time.Time{})
 	}
 
-	if statusFilter != "" {
-		filteredResponses := make([]responses.InvoiceResponse, 0, len(invoiceResponses))
-		for _, invoiceResponse := range invoiceResponses {
-			if invoiceResponse.PaymentStatus == statusFilter {
-				filteredResponses = append(filteredResponses, invoiceResponse)
-			}
-		}
-		invoiceResponses = filteredResponses
-	}
-
-	response := responses.InvoiceListResponse{
-		Invoices: invoiceResponses,
-		Total:    len(invoiceResponses),
-		Stats:    buildInvoiceListStats(invoiceResponses),
-	}
-	c.JSON(http.StatusOK, response)
+	helpers.RespondPaginated(c, "Invoice berhasil diambil", invoiceResponses, page, pageSize, int(total))
 }
 
 // GetInvoice godoc

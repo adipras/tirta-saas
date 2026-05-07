@@ -23,7 +23,7 @@ func main() {
 	// Check if subscription plans already exist
 	var count int64
 	config.DB.Model(&models.SubscriptionPlanDetails{}).Count(&count)
-	
+
 	if count > 0 {
 		fmt.Printf("⚠️  Found %d existing subscription plans. Do you want to continue? (y/n): ", count)
 		var response string
@@ -158,7 +158,7 @@ func main() {
 		// Check if plan already exists
 		var existing models.SubscriptionPlanDetails
 		result := config.DB.Where("plan = ?", plan.Plan).First(&existing)
-		
+
 		if result.Error == nil {
 			fmt.Printf("⚠️  Plan '%s' already exists, updating...\n", plan.Name)
 			// Update existing plan
@@ -179,14 +179,14 @@ func main() {
 
 		// Display plan details
 		fmt.Printf("   📦 Plan Code: %s\n", plan.Plan)
-		fmt.Printf("   💰 Monthly: Rp %s | Yearly: Rp %s\n", 
-			formatRupiah(plan.MonthlyPrice), 
+		fmt.Printf("   💰 Monthly: Rp %s | Yearly: Rp %s\n",
+			formatRupiah(plan.MonthlyPrice),
 			formatRupiah(plan.YearlyPrice))
-		fmt.Printf("   👥 Max Users: %d | Max Customers: %d\n", 
-			plan.MaxUsers, 
+		fmt.Printf("   👥 Max Users: %d | Max Customers: %d\n",
+			plan.MaxUsers,
 			plan.MaxCustomers)
-		fmt.Printf("   💾 Storage: %d GB | API Calls: %s/day\n", 
-			plan.MaxStorageGB, 
+		fmt.Printf("   💾 Storage: %d GB | API Calls: %s/day\n",
+			plan.MaxStorageGB,
 			formatNumber(plan.MaxAPICallsPerDay))
 		fmt.Printf("   🎁 Trial Days: %d\n", plan.TrialDays)
 		fmt.Println("   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -197,11 +197,11 @@ func main() {
 	fmt.Println("\n📝 Summary:")
 	config.DB.Model(&models.SubscriptionPlanDetails{}).Count(&count)
 	fmt.Printf("   Total Plans: %d\n", count)
-	
+
 	var activeCount int64
 	config.DB.Model(&models.SubscriptionPlanDetails{}).Where("is_active = ?", true).Count(&activeCount)
 	fmt.Printf("   Active Plans: %d\n", activeCount)
-	
+
 	fmt.Println("\n💡 Tips:")
 	fmt.Println("   - Akses plans di: http://localhost:5174/admin/platform/subscription-plans")
 	fmt.Println("   - Landing page akan otomatis menampilkan plans yang aktif")

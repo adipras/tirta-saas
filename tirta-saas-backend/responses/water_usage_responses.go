@@ -1,8 +1,8 @@
 package responses
 
 import (
-	"time"
 	"github.com/google/uuid"
+	"time"
 )
 
 type WaterUsageCustomer struct {
@@ -21,6 +21,7 @@ type WaterUsageResponse struct {
 	MeterEnd         float64             `json:"meter_end"`
 	UsageM3          float64             `json:"usage_m3"`
 	AmountCalculated float64             `json:"amount_calculated"`
+	IsDraft          bool                `json:"is_draft"`
 	CreatedAt        time.Time           `json:"created_at"`
 }
 

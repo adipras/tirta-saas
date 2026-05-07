@@ -70,7 +70,7 @@ cd tirta-saas-backend
 ### Metode 2: Langsung dengan Go
 ```bash
 cd tirta-saas-backend
-go run scripts/seed_subscription_plans.go
+go run ./scripts/seed_subscription_plans
 ```
 
 ## Catatan Penting
@@ -122,5 +122,5 @@ sudo systemctl status mysql
 DELETE FROM subscription_plan_details;
 
 -- Jalankan seeder lagi
-go run scripts/seed_subscription_plans.go
+go run ./scripts/seed_subscription_plans
 ```

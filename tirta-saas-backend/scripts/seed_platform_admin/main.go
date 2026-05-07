@@ -24,10 +24,10 @@ func main() {
 	// Check if platform admin already exists
 	var count int64
 	config.DB.Model(&models.User{}).Where("role = ?", string(constants.RolePlatformOwner)).Count(&count)
-	
+
 	if count > 0 {
 		fmt.Println("✅ Platform admin already exists")
-		
+
 		// Show existing platform admin
 		var admin models.User
 		config.DB.Where("role = ?", string(constants.RolePlatformOwner)).First(&admin)

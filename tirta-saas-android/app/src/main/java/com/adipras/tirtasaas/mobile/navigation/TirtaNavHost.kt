@@ -25,8 +25,10 @@ import com.adipras.tirtasaas.feature.customer.customerDetailScreen
 import com.adipras.tirtasaas.feature.customer.customerListScreen
 import com.adipras.tirtasaas.feature.tenant.TenantDetailDestination
 import com.adipras.tirtasaas.feature.tenant.TenantListDestination
+import com.adipras.tirtasaas.feature.tenant.TenantSettingsDestination
 import com.adipras.tirtasaas.feature.tenant.tenantDetailScreen
 import com.adipras.tirtasaas.feature.tenant.tenantListScreen
+import com.adipras.tirtasaas.feature.tenant.tenantSettingsScreen
 import com.adipras.tirtasaas.feature.user.UserListDestination
 import com.adipras.tirtasaas.feature.user.userListScreen
 import com.adipras.tirtasaas.feature.usage.UsageListDestination
@@ -69,6 +71,9 @@ fun TirtaNavHost(
             },
         )
         tenantDetailScreen(
+            onBack = { navController.popBackStack() },
+        )
+        tenantSettingsScreen(
             onBack = { navController.popBackStack() },
         )
         userListScreen()
@@ -129,6 +134,9 @@ private fun NavGraphBuilder.dashboardGraph(
             onNavigateToInvoices = {
                 navController.navigate(InvoiceListDestination.route)
             },
+            onNavigateToSettings = {
+                navController.navigate(TenantSettingsDestination.route)
+            },
             onLogout = onLogout,
         )
     }
@@ -141,6 +149,7 @@ private fun DashboardRoute(
     onNavigateToUsers: () -> Unit,
     onNavigateToUsages: () -> Unit,
     onNavigateToInvoices: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
     Column(
@@ -180,6 +189,12 @@ private fun DashboardRoute(
         ) {
             Text("Tagihan")
         }
+        Button(
+            onClick = onNavigateToSettings,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Pengaturan")
+        }
         Button(onClick = onLogout) {
             Text("Keluar")
         }
@@ -206,5 +221,6 @@ fun topBarTitleForRoute(route: String?): String = when {
     route?.startsWith(InvoiceListDestination.route) == true -> "Tagihan"
     route?.startsWith(InvoiceDetailDestination.routeBase + "/") == true -> "Detail Tagihan"
     route?.startsWith(PaymentInputDestination.routeBase + "/") == true -> "Input Pembayaran"
+    route?.startsWith(TenantSettingsDestination.route) == true -> "Pengaturan"
     else -> "Masuk"
 }
