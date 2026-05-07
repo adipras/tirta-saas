@@ -373,3 +373,5 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [ ] Remaining Phase 2: tenant settings, usage, invoice, payment
 - [x] Android: Tenant settings caching implemented (Room entity/DAO, repository, login hook)
 - [x] Work resumed: 2026-04-30T12:55:23+07:00 — Melanjutkan Phase 2 (tenant settings -> usage -> invoice -> payment)
+- [x] Work resumed: 2026-05-07 — Phase 2 backend gaps diselesaikan: invoice pagination, payment pagination+multipart, water usage response wrapping, is_draft field
+- [x] Android: TenantSettingsScreen + TenantSettingsViewModel + navigasi dashboard selesai

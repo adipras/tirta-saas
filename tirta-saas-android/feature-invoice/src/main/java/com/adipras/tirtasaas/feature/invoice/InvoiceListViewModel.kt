@@ -47,7 +47,7 @@ class InvoiceListViewModel @Inject constructor(
                 status = filterStatus,
             ).onSuccess { response ->
                 _invoices.value = response.data ?: emptyList()
-                _currentPage.value = response.meta?.page ?: 1
+                _currentPage.value = response.meta?.currentPage ?: 1
                 _totalPages.value = response.meta?.totalPages ?: 1
             }.onFailure {
                 _error.value = it.message
