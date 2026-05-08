@@ -26,7 +26,7 @@ class PemakaianService {
   ): Promise<PaginatedResponse<WaterPemakaian>> {
     const params: Record<string, string | number | boolean | undefined> = {
       page,
-      limit,
+      page_size: limit,
     };
 
     if (filters) {
@@ -40,31 +40,33 @@ class PemakaianService {
     const response = await apiClient.get(API_ENDPOINTS.WATER_USAGE.LIST, {
       params,
     });
-    const raw = response.data || response;
+    // response is the full backend body: { status, message, data: [...], meta: {...} }
+    const raw = response;
 
     // Support both old shape ({ usage_records: [...] , total }) and new PaginatedResponse { status, message, data: [...], meta }
     let records: any[] = [];
     let total = 0;
-    let page = 1;
-    let limit = 10;
+    let resolvedPage = page;
+    let resolvedLimit = limit;
 
     if (Array.isArray(raw)) {
       records = raw;
       total = raw.length;
     } else if (raw.usage_records && Array.isArray(raw.usage_records)) {
+      // legacy format
       records = raw.usage_records;
       total = raw.total || records.length;
     } else if (raw.data && Array.isArray(raw.data)) {
+      // standard paginated format: { status, message, data: [...], meta: {...} }
       records = raw.data;
       if (raw.meta) {
-        total = raw.meta.total_items ?? raw.meta.total || records.length;
-        page = raw.meta.current_page ?? page;
-        limit = raw.meta.page_size ?? limit;
+        total = raw.meta.total_items ?? raw.meta.total ?? records.length;
+        resolvedPage = raw.meta.current_page ?? resolvedPage;
+        resolvedLimit = raw.meta.page_size ?? resolvedLimit;
       } else {
         total = records.length;
       }
     } else {
-      // fallback
       records = [];
       total = 0;
     }
@@ -97,9 +99,9 @@ class PemakaianService {
     return {
       data: mapped,
       total,
-      totalPages: Math.ceil(total / limit) || 1,
-      page,
-      limit,
+      totalPages: Math.ceil(total / resolvedLimit) || 1,
+      page: resolvedPage,
+      limit: resolvedLimit,
     };
   }
 
@@ -112,12 +114,12 @@ class PemakaianService {
 
   async getCustomerPemakaianHistoryById(customerId: string): Promise<PemakaianHistory[]> {
     const response = await apiClient.get(API_ENDPOINTS.WATER_USAGE.LIST, {
-      params: { customer_id: customerId, limit: 12 },
+      params: { customer_id: customerId, page_size: 12 },
     });
     
-    const data = response.data || response;
-    // Backend returns { usage_records: [...], total: N }
-    const usageArray: any[] = data.usage_records || (Array.isArray(data) ? data : []);
+    const data = response;
+    // Backend returns paginated format: { status, message, data: [...], meta: {...} }
+    const usageArray: any[] = data.data || data.usage_records || (Array.isArray(data) ? data : []);
     
     // Transform to PemakaianHistory format, already sorted DESC by usage_month from backend
     return usageArray.map((usage: any) => ({

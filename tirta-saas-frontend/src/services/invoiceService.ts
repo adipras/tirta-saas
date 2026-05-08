@@ -94,6 +94,12 @@ interface InvoiceListApiResponse {
   data?: RawInvoice[];
   total?: number;
   pagination?: PaginatedResponse<Invoice>['pagination'];
+  meta?: {
+    current_page?: number;
+    page_size?: number;
+    total_pages?: number;
+    total_items?: number;
+  };
   stats?: {
     total_invoices?: number;
     paid_count?: number;
@@ -254,7 +260,7 @@ class InvoiceService {
   ): Promise<InvoiceListResult> {
     const params = {
       page,
-      limit,
+      page_size: limit,
       status: filters?.status,
       type: filters?.type,
       customer_id: filters?.customerId,
@@ -273,16 +279,24 @@ class InvoiceService {
     
     // Map backend fields to frontend format
     const mappedTagihan = invoicesArray.map(mapInvoice);
+
+    const meta = responseData.meta;
     
     return {
       data: mappedTagihan,
-      pagination: responseData.pagination || {
+      pagination: responseData.pagination || (meta ? {
+        total: meta.total_items ?? mappedTagihan.length,
+        page: meta.current_page ?? page,
+        limit: meta.page_size ?? limit,
+        totalPages: meta.total_pages ?? Math.ceil((meta.total_items ?? mappedTagihan.length) / (meta.page_size ?? limit)),
+        currentPage: meta.current_page ?? page,
+      } : {
         total: responseData.total || mappedTagihan.length,
-        page: page,
-        limit: limit,
+        page,
+        limit,
         totalPages: Math.ceil((responseData.total || mappedTagihan.length) / limit),
         currentPage: page,
-      },
+      }),
       stats: mapInvoiceListStats(responseData.stats) || buildInvoiceListStats(mappedTagihan),
     };
   }

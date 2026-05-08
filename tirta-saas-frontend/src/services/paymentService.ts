@@ -62,7 +62,7 @@ class PaymentService {
   ): Promise<PaginatedResponse<Payment>> {
     const params = {
       page,
-      limit,
+      page_size: limit,
       ...filters,
     };
 
@@ -71,12 +71,10 @@ class PaymentService {
       { params }
     );
     
-    const raw = response.data || response;
+    // response is the full backend body: { status, message, data: [...], meta: {...} }
+    const raw = response;
     
-    // Backend returns a raw array
-    const rawList: any[] = Array.isArray(raw)
-      ? raw
-      : raw?.payments || raw?.data || [];
+    const rawList: any[] = raw?.data || raw?.payments || (Array.isArray(raw) ? raw : []);
 
     const mapped: Payment[] = rawList.map((p: any) => ({
       id: p.id,
@@ -94,14 +92,15 @@ class PaymentService {
       updatedAt: p.updated_at || '',
     }));
 
+    const meta = raw?.meta;
     return {
       data: mapped,
       pagination: {
-        total: raw?.total || mapped.length,
-        page: page,
-        limit: limit,
-        totalPages: Math.ceil((raw?.total || mapped.length) / limit) || 1,
-        currentPage: page,
+        total: meta?.total_items ?? raw?.total ?? mapped.length,
+        page: meta?.current_page ?? page,
+        limit: meta?.page_size ?? limit,
+        totalPages: meta?.total_pages ?? (Math.ceil((meta?.total_items ?? raw?.total ?? mapped.length) / (meta?.page_size ?? limit)) || 1),
+        currentPage: meta?.current_page ?? page,
       }
     };
   }
