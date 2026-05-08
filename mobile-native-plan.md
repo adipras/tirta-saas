@@ -43,10 +43,10 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 - [x] Tambah `POST /api/auth/refresh`
 - [x] Tambah `POST /api/auth/logout`
 - [x] Tambah `GET /api/auth/me`
-- [ ] Samakan response backend ke format standar
-- [ ] Rapikan permission untuk `meter_reader` dan `finance`
-- [ ] Standarkan pagination, filtering, dan sorting
-- [ ] Tambah dukungan sync-friendly untuk operasional mobile
+- [ ] Samakan response backend ke format standar _(PARTIAL: `customer_controller`, `invoice_controller`, `payment_controller`, `water_usage_controller`, `water_rate_controller`, `subscription_payment_controller` sudah pakai `helpers.RespondSuccess/Paginated/Created`; 18 controller lainnya masih pakai raw `c.JSON`)_
+- [ ] Rapikan permission untuk `meter_reader` dan `finance` _(BELUM: semua route operasional water-usage/invoice/payment masih pakai `AdminOnly()` yang hanya izinkan `tenant_admin` + `platform_owner`; `meter_reader` dan `finance` belum punya akses)_
+- [ ] Standarkan pagination, filtering, dan sorting _(PARTIAL: invoice, payment, water-usage sudah; endpoint lain belum)_
+- [x] Tambah dukungan sync-friendly untuk operasional mobile _(Backend water-usage sudah ada idempotent create: jika client kirim ID, backend cek duplikat dan kembalikan record existing)_
 - [x] Bekukan contract receipt untuk printer thermal (ReceiptPayload sudah ditambah ke InvoiceResponse)
 
 ### Frontend
@@ -63,14 +63,14 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 - [x] Pasang base architecture Kotlin + Clean Architecture + MVVM
 - [x] Pasang networking, local DB, DI, dan session handling
 - [x] Implement fitur MVP operasional (usage, invoice, payment screens + navigation)
-- [ ] Implement modul printer Bluetooth thermal
+- [x] Implement modul printer Bluetooth thermal (feature-printer)
 
 ## Scope MVP Mobile
 
 ### Core
 
 - [x] Login dan session management
-- [ ] Dashboard role-based
+- [ ] Dashboard role-based _(BELUM: dashboard saat ini tampilkan semua tombol tanpa filter berdasarkan role)_
 - [x] Tenant management untuk `platform_owner` (list + detail + actions)
 - [x] Tenant settings untuk `tenant_admin` (Android: endpoint fix + TenantSettingsRepository fix)
 - [x] Tenant user management (CRUD)
@@ -81,13 +81,13 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
   - [x] Android: UsageApiService, UsageRepository, UsageListViewModel, UsageFormViewModel, UsageListScreen, UsageFormScreen, DI (DONE)
 - [x] Monitoring invoice (Android: InvoiceApiService, InvoiceRepository, InvoiceListViewModel, InvoiceDetailViewModel, InvoiceListScreen, InvoiceDetailScreen, DI)
 - [x] Input payment (Android: PaymentApiService, PaymentRepository, PaymentViewModel, PaymentInputScreen, DI)
-- [ ] Print receipt ke thermal printer
-- [ ] Monitoring operasional dasar
+- [x] Print receipt ke thermal printer (feature-printer: BluetoothPrinterManager, EscPosRenderer, PrintQueueManager, PrinterScreen)
+- [ ] Monitoring operasional dasar _(BELUM: modul `feature-monitoring` belum dibuat)_
 
 ### Enhancement
 
-- [ ] Offline draft water usage
-- [ ] Sync queue untuk input lapangan
+- [x] Offline draft water usage (DraftUsageEntity, DraftUsageDao, DraftUsageRepository)
+- [x] Sync queue untuk input lapangan (SyncQueueEntity, SyncQueueDao, DraftUsageSyncWorker + HiltWorkerFactory)
 - [ ] Filter customer by service area / route
 - [ ] Upload foto meter
 - [ ] Reprint receipt dari riwayat
@@ -129,7 +129,7 @@ tirta-saas-android/
 │   ├── network/
 │   ├── database/
 │   ├── security/
-│   └── testing/
+│   └── testing/          ← belum dibuat
 ├── feature-auth/
 ├── feature-tenant/
 ├── feature-user/
@@ -137,9 +137,9 @@ tirta-saas-android/
 ├── feature-usage/
 ├── feature-invoice/
 ├── feature-payment/
-├── feature-monitoring/
+├── feature-monitoring/   ← belum dibuat
 ├── feature-printer/
-├── printer-core/
+├── printer-core/         ← belum dibuat (printer-bridge berdiri sendiri)
 └── printer-bridge/
 ```
 
@@ -159,11 +159,11 @@ Keputusan awal:
 
 Checklist:
 
-- [ ] Tambah Room database
+- [x] Tambah Room database (TirtaDatabase v3: SyncQueueEntity, TenantSettingsEntity, DraftUsageEntity)
 - [ ] Tambah entity cache customer
-- [ ] Tambah entity draft water usage
-- [ ] Tambah sync queue
-- [ ] Tambah worker untuk retry sync
+- [x] Tambah entity draft water usage (DraftUsageEntity + DraftUsageDao)
+- [x] Tambah sync queue (SyncQueueEntity + SyncQueueDao)
+- [x] Tambah worker untuk retry sync (DraftUsageSyncWorker + @HiltWorker + HiltWorkerFactory)
 - [ ] Definisikan conflict resolution untuk data usage
 
 ## Modul Bluetooth Printer
@@ -176,13 +176,13 @@ UI -> Print Manager -> Print Queue -> Bluetooth Service -> Device
 
 Checklist:
 
-- [ ] Scan paired printer Bluetooth Classic
-- [ ] Permission handling Android 12+
-- [ ] Connect / reconnect printer
-- [ ] Render receipt ke ESC/POS bytes
-- [ ] Queue print job
-- [ ] Retry gagal cetak
-- [ ] Simpan preferred printer
+- [x] Scan paired printer Bluetooth Classic (BluetoothPrinterManager.getPairedPrinters)
+- [x] Permission handling Android 12+ (BLUETOOTH_CONNECT, BLUETOOTH_SCAN di AndroidManifest + runtime request di PrinterScreen)
+- [x] Connect / reconnect printer (BluetoothPrinterManager.connect via SPP UUID)
+- [x] Render receipt ke ESC/POS bytes (EscPosRenderer, 58mm / 32 chars wide)
+- [x] Queue print job (PrintQueueManager.enqueue + processNext)
+- [x] Retry gagal cetak (PrintQueueManager: max 3 retries)
+- [x] Simpan preferred printer (PrinterPreferenceRepository via DataStore)
 
 ## Authentication dan Security
 
@@ -227,115 +227,48 @@ Checklist:
 - [x] Token refresh interceptor (auto-refresh saat 401 via TokenAuthenticator)
 - [x] Session (ApiResponse/PagedApiResponse wrapper + tenant status guard)
 - [x] Tenant list/detail (GET /api/platform/tenants, approve/reject/suspend/activate)
-- [ ] Tenant settings
-  - [ ] Backend: implement GET /api/tenants/{tenantId}/settings and PUT /api/tenants/{tenantId}/settings returning standardized ApiResponse (pending)
+- [x] Tenant settings
+  - [x] Backend: GET /api/tenant/settings dan PUT /api/tenant/settings — menggunakan tenant dari JWT (bukan path param), response ApiResponse terstandar
   - [ ] Frontend: implement tenant settings UI and mapper to backend contract (pending)
-  - [x] Android: TenantSettings cache implemented (fetched on login, cached in Room) — DONE
-  - Notes: Android cached fields (receipt_template/printer_preference) may need backend mapping; coordinate with backend team.
-    - Contract (example):
-
-      GET /api/tenants/{tenantId}/settings
-      Response 200
-      {
-        "success": true,
-        "data": {
-          "tenant_id": "uuid",
-          "billing_cycle_day": 25,
-          "time_zone": "Asia/Jakarta",
-          "receipt_template_version": "v1",
-          "printer_preference": {
-            "default_printer_name": "MyPrinter",
-            "paper_width_mm": 58
-          },
-          "features": {
-            "allow_offline_usage": true,
-            "require_photo_meter": false
-          }
-        },
-        "error": null
-      }
-
-      PUT /api/tenants/{tenantId}/settings
-      Request body (partial update allowed):
-      {
-        "billing_cycle_day": 1,
-        "receipt_template_version": "v1",
-        "features": { "allow_offline_usage": true }
-      }
-
-      Response 200: standardized ApiResponse with updated data
-
-    - Validation: server must reject invalid values (e.g., billing_cycle_day not in 1..28) with error.code and HTTP 422
-    - Idempotency: PUT must be idempotent; return current resource after successful update
-  - [ ] Backend: validate permission scope for tenant_admin and tenant_owner (platform_owner may read any tenant)
-  - [ ] Backend: include tenant settings schema in API docs (swag) and add examples for mobile clients
-  - [ ] Frontend: update constants endpoint, service, and mapper for new contract (handle missing optional fields)
-  - [ ] Android: implement TenantSettingsScreen, TenantSettingsRepository, and offline cache (Room). Sync notes:
-    - Read settings on login and cache locally
-    - Settings change should invalidate cached receipt template/version used for printing
-    - Provide UI fallback when optional fields missing (e.g., printer_preference)
+  - [x] Android: TenantSettingsRepository (Room cache, fetch on login), TenantSettingsScreen, TenantSettingsViewModel — DONE
 - [x] Tenant user CRUD (GET/POST/PUT/DELETE /api/tenant-users)
-- [x] Customer list/detail (CustomerListScreen + CustomerRepository)
-- [ ] Usage (Water Usage)
-  - [ ] Backend: provide GET /api/water-usage (paged, filter by usage_month/customer_id/tenant), POST /api/water-usage for create, PUT /api/water-usage/{id} for update
-    - Contract highlights for mobile sync:
-
-      POST /api/water-usage
-      Request body:
-      {
-        "id": "optional-client-uuid",
-        "customer_id": "uuid",
-        "usage_month": "YYYY-MM",
-        "meter_end": 123.45,
-        "notes": "...",
-        "is_draft": true
-      }
-
-      Responses:
-      - 201 Created: when a new record was created
-      - 200 OK: when a record with provided id already exists (idempotent)
-      - 400 Bad Request: validation errors (meter_end < previous, unreasonable meters)
-      - 409 Conflict: when server detects sync conflict and requires manual merge (future enhancement)
-
-    - Server behavior:
-      - Accept optional client-generated id and use it as primary key if provided (idempotent create)
-      - Store drafts (is_draft=true) and exclude them from billing/invoice generation until finalized
-      - Return existing record on duplicate id to support retries
-      - Validate meter_end against previous month's meter to prevent regressions
-  - [ ] Backend: document conflict resolution rules (prefer server merge policy; return 409 when manual resolution needed)
+- [x] Customer list/detail/create (CustomerListScreen, CustomerDetailScreen, CustomerRepository)
+- [x] Usage (Water Usage)
+  - [x] Backend: GET /api/water-usage (paged, filter usage_month/customer_id), POST create dengan is_draft, PUT update, response is_draft field — DONE
   - [ ] Frontend: adapt services/normalizers if response is standardized
-  - [ ] Android: implement UsageListScreen, UsageFormScreen, DraftUsage entity, Room DAO, and enqueue sync jobs (WorkManager)
-- [ ] Invoice
-  - [ ] Backend: provide GET /api/tenants/{tenantId}/invoices (paged) and GET /api/invoices/{id} with standardized ApiResponse
-  - [ ] Backend: add "receipt" payload in invoice detail (frozen contract for printer rendering)
-  - [ ] Backend: ensure invoice endpoints include customer summary and last meter reading
-  - [ ] Android: implement InvoiceListScreen, InvoiceDetailScreen, and reprint-from-history flow using receipt payload
+  - [x] Android: UsageApiService, UsageRepository, UsageListViewModel, UsageFormViewModel, UsageListScreen, UsageFormScreen, DraftUsageRepository, DraftUsageSyncWorker (@HiltWorker), DI — DONE
+- [x] Invoice
+  - [x] Backend: GET /api/invoices (paged, filter usage_month/status/customer_id), GET /api/invoices/{id} dengan receipt payload, response ApiResponse terstandar — DONE
+  - [x] Android: InvoiceApiService, InvoiceRepository, InvoiceListViewModel (pagination fix: currentPage), InvoiceDetailViewModel, InvoiceListScreen, InvoiceDetailScreen (FAB cetak struk), DI — DONE
   - [ ] Frontend: ensure invoice preview/print compatibility with frozen receipt contract
-- [ ] Payment
-  - [ ] Backend: implement POST /api/tenants/{tenantId}/payments supporting multipart file upload for payment proof and returning standardized ApiResponse
-  - [ ] Backend: expose payment status endpoints and optional webhook for external payment verification
-  - [ ] Backend: validate permissions for finance and tenant_admin roles on payment verification
-  - [ ] Android: implement PaymentInputScreen, camera/photo upload, local pending payments queue, and retry policy
+- [x] Payment
+  - [x] Backend: POST /api/payments multipart (invoice_id, amount, method, notes, proof file opsional), GET /api/payments paged + invoice_id filter, GET /api/payments/{id} wrapped — DONE
+  - [x] Android: PaymentApiService (@Multipart), PaymentRepository, PaymentViewModel, PaymentInputScreen, DI — DONE
   - [ ] Frontend: update payment service and UI flows if contract changes
 
 
 ### Phase 3 - Operasional User
 
-- [ ] Water usage list
-- [ ] Water usage create/update
-- [ ] Offline draft
-- [ ] Sync queue
-- [ ] Invoice monitoring
-- [ ] Payment input
+- [x] Water usage list (UsageListScreen + UsageListViewModel)
+- [x] Water usage create/update (UsageFormScreen + UsageFormViewModel)
+- [x] Offline draft (DraftUsageEntity + DraftUsageRepository)
+- [x] Sync queue (SyncQueueEntity + DraftUsageSyncWorker + HiltWorkerFactory)
+- [x] Invoice monitoring (InvoiceListScreen + InvoiceDetailScreen)
+- [x] Payment input (PaymentInputScreen)
+- [x] Fix pagination bug: InvoiceListViewModel meta?.page → meta?.currentPage
 
 ### Phase 4 - Printer Integration
 
-- [ ] Permission Bluetooth
-- [ ] Device discovery / paired list
-- [ ] Connect / disconnect
-- [ ] Receipt rendering
-- [ ] Print queue
-- [ ] Reprint flow
+- [x] Permission Bluetooth (BLUETOOTH_CONNECT, BLUETOOTH_SCAN — manifest + runtime request)
+- [x] Device discovery / paired list (BluetoothPrinterManager.getPairedPrinters)
+- [x] Connect / disconnect (BluetoothPrinterManager.connect via SPP UUID + PrinterScreen UI)
+- [x] Receipt rendering (EscPosRenderer: ReceiptPayloadDto → ESC/POS bytes, 58mm/32 char)
+- [x] Print queue (PrintQueueManager: enqueue + processNext)
+- [x] Retry gagal cetak (PrintQueueManager max 3 retries)
+- [x] Simpan preferred printer (PrinterPreferenceRepository via DataStore)
+- [x] PrinterScreen dengan FAB cetak + daftar paired devices + status koneksi
+- [x] InvoiceDetailScreen: FAB "Cetak Struk" → navigate ke PrinterScreen
+- [ ] Reprint flow dari riwayat pembayaran (belum)
 
 ### Phase 5 - Stabilization
 
@@ -370,8 +303,9 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [ ] Penyesuaian frontend akibat perubahan backend masih berjalan (tbd)
 - [x] Phase 2 auth API integration: login, refresh, logout, TokenAuthenticator, ApiResponse wrapper
 - [x] Phase 2 lanjutan: tenant list/detail, tenant actions, customer list/detail/create, user CRUD, session tenant guard
-- [ ] Remaining Phase 2: tenant settings, usage, invoice, payment
 - [x] Android: Tenant settings caching implemented (Room entity/DAO, repository, login hook)
 - [x] Work resumed: 2026-04-30T12:55:23+07:00 — Melanjutkan Phase 2 (tenant settings -> usage -> invoice -> payment)
 - [x] Work resumed: 2026-05-07 — Phase 2 backend gaps diselesaikan: invoice pagination, payment pagination+multipart, water usage response wrapping, is_draft field
 - [x] Android: TenantSettingsScreen + TenantSettingsViewModel + navigasi dashboard selesai
+- [x] Phase 3 selesai: InvoiceListViewModel pagination bug fix (meta?.currentPage), DraftUsageSyncWorker @HiltWorker, TirtaSaasMobileApp Configuration.Provider, WorkManager auto-init disabled
+- [x] Phase 4 selesai (2026-05-08): feature-printer module — BluetoothPrinterManager, EscPosRenderer (58mm ESC/POS), PrintQueueManager (retry max 3), PrinterPreferenceRepository (DataStore), PrinterViewModel, PrinterScreen, Bluetooth permission handling Android 12+
