@@ -41,6 +41,8 @@ import com.adipras.tirtasaas.feature.invoice.invoiceListScreen
 import com.adipras.tirtasaas.feature.invoice.invoiceDetailScreen
 import com.adipras.tirtasaas.feature.payment.PaymentInputDestination
 import com.adipras.tirtasaas.feature.payment.paymentInputScreen
+import com.adipras.tirtasaas.feature.printer.PrinterDestination
+import com.adipras.tirtasaas.feature.printer.printerScreen
 
 private const val DASHBOARD_ROUTE = "dashboard"
 
@@ -93,9 +95,15 @@ fun TirtaNavHost(
         )
         invoiceDetailScreen(
             onBack = { navController.popBackStack() },
+            onNavigateToPrinter = { invoiceId ->
+                navController.navigate(PrinterDestination.createRoute(invoiceId))
+            },
         )
         paymentInputScreen(
             onSaved = { navController.popBackStack() },
+            onBack = { navController.popBackStack() },
+        )
+        printerScreen(
             onBack = { navController.popBackStack() },
         )
     }
@@ -221,6 +229,7 @@ fun topBarTitleForRoute(route: String?): String = when {
     route?.startsWith(InvoiceListDestination.route) == true -> "Tagihan"
     route?.startsWith(InvoiceDetailDestination.routeBase + "/") == true -> "Detail Tagihan"
     route?.startsWith(PaymentInputDestination.routeBase + "/") == true -> "Input Pembayaran"
+    route?.startsWith(PrinterDestination.routeBase + "/") == true -> "Cetak Struk"
     route?.startsWith(TenantSettingsDestination.route) == true -> "Pengaturan"
     else -> "Masuk"
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,12 +25,18 @@ object InvoiceDetailDestination {
     fun createRoute(invoiceId: String) = "$routeBase/$invoiceId"
 }
 
-fun NavGraphBuilder.invoiceDetailScreen(onBack: () -> Unit) {
+fun NavGraphBuilder.invoiceDetailScreen(
+    onBack: () -> Unit,
+    onNavigateToPrinter: (String) -> Unit,
+) {
     composable(
         route = InvoiceDetailDestination.route,
         arguments = listOf(navArgument(InvoiceDetailDestination.ARG) { type = NavType.StringType }),
     ) {
-        InvoiceDetailScreen(onBack = onBack)
+        InvoiceDetailScreen(
+            onBack = onBack,
+            onNavigateToPrinter = onNavigateToPrinter,
+        )
     }
 }
 
@@ -37,6 +44,7 @@ fun NavGraphBuilder.invoiceDetailScreen(onBack: () -> Unit) {
 @Composable
 fun InvoiceDetailScreen(
     onBack: () -> Unit,
+    onNavigateToPrinter: (String) -> Unit,
     viewModel: InvoiceDetailViewModel = hiltViewModel(),
 ) {
     val invoice by viewModel.invoice.collectAsState()
@@ -53,6 +61,13 @@ fun InvoiceDetailScreen(
                     }
                 },
             )
+        },
+        floatingActionButton = {
+            invoice?.takeIf { it.receipt != null }?.let { currentInvoice ->
+                FloatingActionButton(onClick = { onNavigateToPrinter(currentInvoice.id) }) {
+                    Icon(Icons.Default.Print, contentDescription = "Cetak Struk")
+                }
+            }
         },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {

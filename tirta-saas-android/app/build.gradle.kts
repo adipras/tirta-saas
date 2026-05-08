@@ -79,6 +79,7 @@ dependencies {
     implementation(project(":feature-usage"))
     implementation(project(":feature-invoice"))
     implementation(project(":feature-payment"))
+    implementation(project(":feature-printer"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
