@@ -51,9 +51,9 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 
 ### Frontend
 
-- [ ] Sesuaikan service jika contract backend berubah
+- [x] Sesuaikan service jika contract backend berubah _(DONE: invoice/usage/payment services disesuaikan dengan paginated response backend)_
 - [ ] Sesuaikan constants endpoint jika route berubah
-- [ ] Sesuaikan mapper/normalizer jika response backend dirapikan
+- [x] Sesuaikan mapper/normalizer jika response backend dirapikan _(DONE: fix query param `limit` → `page_size`, fix response unwrapping agar `meta` tidak hilang)_
 - [ ] Pastikan auth flow web tetap jalan setelah perubahan backend
 - [ ] Pastikan flow tenant, customer, usage, invoice, payment, dan receipt tetap kompatibel
 
@@ -77,7 +77,7 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 - [x] Customer list/detail/create/activation
 - [x] Input dan update water usage
   - [x] Backend: idempotent create, draft support, pagination/listing, finalize conflict handling (DONE)
-  - [ ] Frontend: adapt to paginated response & draft workflow (IN_PROGRESS)
+  - [x] Frontend: fix query param `limit` → `page_size`, fix response unwrapping (`response` bukan `response.data`), fix pagination dari `meta.total_items/current_page/page_size/total_pages` — DONE
   - [x] Android: UsageApiService, UsageRepository, UsageListViewModel, UsageFormViewModel, UsageListScreen, UsageFormScreen, DI (DONE)
 - [x] Monitoring invoice (Android: InvoiceApiService, InvoiceRepository, InvoiceListViewModel, InvoiceDetailViewModel, InvoiceListScreen, InvoiceDetailScreen, DI)
 - [x] Input payment (Android: PaymentApiService, PaymentRepository, PaymentViewModel, PaymentInputScreen, DI)
@@ -300,7 +300,7 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [x] Fondasi Compose + Hilt + Retrofit + Room + secure session shell sudah dipasang
 - [x] Validasi build lokal: BUILD SUCCESSFUL di environment lokal
 - [x] Refactor backend auth untuk mobile-readiness selesai
-- [ ] Penyesuaian frontend akibat perubahan backend masih berjalan (tbd)
+- [ ] Penyesuaian frontend akibat perubahan backend masih berjalan (tbd) _(PARTIAL: usage/invoice/payment service sudah fix; auth flow, tenant, customer, receipt belum diverifikasi)_
 - [x] Phase 2 auth API integration: login, refresh, logout, TokenAuthenticator, ApiResponse wrapper
 - [x] Phase 2 lanjutan: tenant list/detail, tenant actions, customer list/detail/create, user CRUD, session tenant guard
 - [x] Android: Tenant settings caching implemented (Room entity/DAO, repository, login hook)
@@ -309,3 +309,5 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [x] Android: TenantSettingsScreen + TenantSettingsViewModel + navigasi dashboard selesai
 - [x] Phase 3 selesai: InvoiceListViewModel pagination bug fix (meta?.currentPage), DraftUsageSyncWorker @HiltWorker, TirtaSaasMobileApp Configuration.Provider, WorkManager auto-init disabled
 - [x] Phase 4 selesai (2026-05-08): feature-printer module — BluetoothPrinterManager, EscPosRenderer (58mm ESC/POS), PrintQueueManager (retry max 3), PrinterPreferenceRepository (DataStore), PrinterViewModel, PrinterScreen, Bluetooth permission handling Android 12+
+- [x] feature-printer code refined (2026-05-08): cleanup build.gradle.kts, slim down BluetoothPrinterManager/EscPosRenderer/PrinterScreen
+- [x] Frontend service fix (2026-05-08): invoiceService/usageService/paymentService — query param limit→page_size, response unwrapping fix, pagination dari meta field

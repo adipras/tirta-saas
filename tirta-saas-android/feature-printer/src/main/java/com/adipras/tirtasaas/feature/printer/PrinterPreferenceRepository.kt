@@ -10,31 +10,25 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-private val Context.printerDataStore by preferencesDataStore(name = "printer_preferences")
+private val Context.printerDataStore by preferencesDataStore(name = "printer_prefs")
+private val KEY_ADDRESS = stringPreferencesKey("preferred_printer_address")
+private val KEY_NAME    = stringPreferencesKey("preferred_printer_name")
 
 @Singleton
 class PrinterPreferenceRepository @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
 ) {
-    companion object {
-        private val KEY_ADDRESS = stringPreferencesKey("preferred_printer_address")
-        private val KEY_NAME = stringPreferencesKey("preferred_printer_name")
-    }
+    val preferredAddress: Flow<String?> = context.printerDataStore.data.map { it[KEY_ADDRESS] }
+    val preferredName: Flow<String?> = context.printerDataStore.data.map { it[KEY_NAME] }
 
-    val preferredPrinterAddress: Flow<String?> = context.printerDataStore.data
-        .map { prefs -> prefs[KEY_ADDRESS] }
-
-    val preferredPrinterName: Flow<String?> = context.printerDataStore.data
-        .map { prefs -> prefs[KEY_NAME] }
-
-    suspend fun savePreferredPrinter(address: String, name: String) {
+    suspend fun save(address: String, name: String) {
         context.printerDataStore.edit { prefs ->
             prefs[KEY_ADDRESS] = address
             prefs[KEY_NAME] = name
         }
     }
 
-    suspend fun clearPreferredPrinter() {
+    suspend fun clear() {
         context.printerDataStore.edit { prefs ->
             prefs.remove(KEY_ADDRESS)
             prefs.remove(KEY_NAME)

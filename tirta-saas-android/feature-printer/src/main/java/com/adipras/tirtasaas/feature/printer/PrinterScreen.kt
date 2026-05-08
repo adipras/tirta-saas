@@ -9,30 +9,31 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.BluetoothDisabled
 import androidx.compose.material.icons.filled.Print
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -56,25 +57,16 @@ import androidx.navigation.navArgument
 object PrinterDestination {
     const val routeBase = "printer"
     const val ARG = "invoiceId"
-    val route = "$routeBase/{$ARG}"
-
+    const val route = "$routeBase/{$ARG}"
     fun createRoute(invoiceId: String) = "$routeBase/$invoiceId"
 }
 
 fun NavGraphBuilder.printerScreen(onBack: () -> Unit) {
     composable(
         route = PrinterDestination.route,
-        arguments = listOf(navArgument(PrinterDestination.ARG) { type = NavType.StringType })
+        arguments = listOf(navArgument(PrinterDestination.ARG) { type = NavType.StringType }),
     ) {
         PrinterScreen(onBack = onBack)
-    }
-}
-
-private fun safeDeviceName(device: BluetoothDevice): String {
-    return try {
-        device.name ?: device.address
-    } catch (e: SecurityException) {
-        device.address
     }
 }
 
@@ -82,40 +74,33 @@ private fun safeDeviceName(device: BluetoothDevice): String {
 @Composable
 fun PrinterScreen(
     onBack: () -> Unit,
-    viewModel: PrinterViewModel = hiltViewModel()
+    viewModel: PrinterViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val permissionsToRequest = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        arrayOf(
-            Manifest.permission.BLUETOOTH_CONNECT,
-            Manifest.permission.BLUETOOTH_SCAN
-        )
+        arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
     } else {
-        arrayOf(
-            Manifest.permission.BLUETOOTH,
-            Manifest.permission.BLUETOOTH_ADMIN
-        )
+        @Suppress("DEPRECATION")
+        arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN)
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
+        ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
-        if (results.values.all { it }) {
-            viewModel.refreshPairedDevices()
-        }
+        if (results.values.all { it }) viewModel.refreshPairedDevices()
     }
 
-    LaunchedEffect(state.successMessage) {
-        state.successMessage?.let {
+    LaunchedEffect(state.message) {
+        state.message?.let {
             snackbarHostState.showSnackbar(it)
             viewModel.clearMessage()
         }
     }
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let {
-            snackbarHostState.showSnackbar(it)
+    LaunchedEffect(state.error) {
+        state.error?.let {
+            snackbarHostState.showSnackbar("Error: $it")
             viewModel.clearError()
         }
     }
@@ -126,129 +111,104 @@ fun PrinterScreen(
                 title = { Text("Cetak Struk") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Kembali")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                     }
-                }
+                },
+                actions = {
+                    IconButton(onClick = viewModel::refreshPairedDevices) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Segarkan")
+                    }
+                },
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            if (state.connectedDeviceAddress != null) {
+            if (state.connectedDeviceName != null) {
                 ExtendedFloatingActionButton(
-                    onClick = { viewModel.print() },
-                    icon = { Icon(Icons.Filled.Print, contentDescription = null) },
-                    text = { Text(if (state.isPrinting) "Mencetak..." else "Cetak Struk") },
-                    expanded = !state.isPrinting
+                    onClick = { if (!state.isPrinting) viewModel.print() },
+                    icon = {
+                        if (state.isPrinting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Icon(Icons.Default.Print, contentDescription = null)
+                        }
+                    },
+                    text = { Text(if (state.isPrinting) "Mencetak…" else "Cetak Struk") },
                 )
             }
-        }
-    ) { paddingValues ->
+        },
+    ) { padding ->
         Column(
             modifier = Modifier
+                .padding(padding)
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (state.isLoading || state.isPrinting) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-            }
-
-            state.connectedDeviceName?.let { name ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    if (state.connectedDeviceName != null) {
                         Icon(
-                            Icons.Filled.BluetoothConnected,
+                            Icons.Default.BluetoothConnected,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
                         )
-                        Spacer(Modifier.width(12.dp))
-                        Column(Modifier.weight(1f)) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Terhubung",
+                                "Terhubung",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
                             )
-                            Text(
-                                text = name,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                            Text(state.connectedDeviceName!!, style = MaterialTheme.typography.bodyLarge)
                         }
-                        TextButton(onClick = { viewModel.disconnect() }) {
-                            Text("Putuskan")
-                        }
+                        TextButton(onClick = viewModel::disconnect) { Text("Putus") }
+                    } else {
+                        Icon(
+                            Icons.Default.BluetoothDisabled,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.outline,
+                        )
+                        Text("Belum terhubung ke printer", color = MaterialTheme.colorScheme.outline)
                     }
                 }
-                Spacer(Modifier.height(16.dp))
             }
 
             if (!state.bluetoothEnabled) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
+                OutlinedCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(
-                            Icons.Filled.BluetoothDisabled,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Bluetooth tidak aktif atau izin belum diberikan",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Spacer(Modifier.height(8.dp))
+                        Text("Bluetooth tidak aktif atau izin belum diberikan.")
                         Button(onClick = { permissionLauncher.launch(permissionsToRequest) }) {
-                            Text("Minta Izin / Aktifkan")
+                            Text("Izinkan Bluetooth")
                         }
                     }
                 }
             } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Printer Bluetooth Tersedia",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(onClick = { viewModel.refreshPairedDevices() }) {
-                        Icon(Icons.Filled.Bluetooth, contentDescription = "Refresh")
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-
+                Text("Printer Tersimpan (Bluetooth)", style = MaterialTheme.typography.titleSmall)
                 if (state.pairedDevices.isEmpty()) {
                     Text(
-                        "Tidak ada perangkat Bluetooth yang dipasangkan.",
+                        "Tidak ada printer yang dipasangkan. Pasangkan printer via pengaturan Bluetooth perangkat, lalu segarkan.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(state.pairedDevices, key = { it.address }) { device ->
-                            val isConnected = device.address == state.connectedDeviceAddress
                             PrinterDeviceCard(
-                                device = device,
-                                isConnected = isConnected,
-                                onConnect = { viewModel.connect(device) }
+                                name = safeDeviceName(device),
+                                address = device.address,
+                                isConnected = device.address == state.connectedDeviceAddress,
+                                isConnecting = state.isConnecting,
+                                onConnect = { viewModel.connect(device) },
                             )
                         }
                     }
@@ -260,58 +220,44 @@ fun PrinterScreen(
 
 @Composable
 private fun PrinterDeviceCard(
-    device: BluetoothDevice,
+    name: String,
+    address: String,
     isConnected: Boolean,
-    onConnect: () -> Unit
+    isConnecting: Boolean,
+    onConnect: () -> Unit,
 ) {
-    val deviceName = safeDeviceName(device)
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !isConnected, onClick = onConnect),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isConnected) {
-                MaterialTheme.colorScheme.secondaryContainer
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        )
+            .clickable(enabled = !isConnected && !isConnecting, onClick = onConnect),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
-                if (isConnected) Icons.Filled.BluetoothConnected else Icons.Filled.Bluetooth,
+                if (isConnected) Icons.Default.BluetoothConnected else Icons.Default.BluetoothDisabled,
                 contentDescription = null,
-                tint = if (isConnected) {
-                    MaterialTheme.colorScheme.secondary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
+                tint = if (isConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
             )
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(deviceName, style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    device.address,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(name, style = MaterialTheme.typography.bodyLarge)
+                Text(address, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (isConnected) {
-                Text(
-                    "Terhubung",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.secondary
-                )
+                Text("Terhubung", color = MaterialTheme.colorScheme.primary)
             } else {
-                TextButton(onClick = onConnect) {
-                    Text("Hubungkan")
+                TextButton(onClick = onConnect, enabled = !isConnecting) {
+                    Text(if (isConnecting) "Menghubungkan…" else "Hubungkan")
                 }
             }
         }
     }
+}
+
+private fun safeDeviceName(device: BluetoothDevice): String = try {
+    device.name ?: device.address
+} catch (e: SecurityException) {
+    device.address
 }

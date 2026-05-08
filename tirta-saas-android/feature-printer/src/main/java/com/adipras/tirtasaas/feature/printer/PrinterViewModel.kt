@@ -1,6 +1,8 @@
 package com.adipras.tirtasaas.feature.printer
 
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -11,20 +13,18 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import javax.inject.Inject
 
 data class PrinterUiState(
-    val isLoading: Boolean = false,
-    val bluetoothEnabled: Boolean = false,
     val pairedDevices: List<BluetoothDevice> = emptyList(),
     val connectedDeviceName: String? = null,
     val connectedDeviceAddress: String? = null,
+    val isConnecting: Boolean = false,
     val isPrinting: Boolean = false,
-    val successMessage: String? = null,
-    val errorMessage: String? = null
+    val bluetoothEnabled: Boolean = false,
+    val message: String? = null,
+    val error: String? = null,
 )
 
 @HiltViewModel
@@ -32,136 +32,102 @@ class PrinterViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val printerManager: BluetoothPrinterManager,
     private val queueManager: PrintQueueManager,
-    private val escPosRenderer: EscPosRenderer,
-    private val preferenceRepository: PrinterPreferenceRepository,
+    private val renderer: EscPosRenderer,
+    private val prefRepository: PrinterPreferenceRepository,
     private val invoiceRepository: InvoiceRepository,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val invoiceId: String = checkNotNull(savedStateHandle["invoiceId"])
+    val invoiceId: String = checkNotNull(savedStateHandle["invoiceId"])
 
     private val _uiState = MutableStateFlow(PrinterUiState())
     val uiState: StateFlow<PrinterUiState> = _uiState.asStateFlow()
 
-    init {
-        refreshPairedDevices()
+    private val bluetoothAdapter: BluetoothAdapter? by lazy {
+        (context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager)?.adapter
     }
 
-    fun refreshPairedDevices() {
-        viewModelScope.launch {
-            val enabled = printerManager.isBluetoothEnabled
-            val devices: List<BluetoothDevice> = if (enabled) {
-                try {
-                    printerManager.getPairedDevices().toList()
-                } catch (e: SecurityException) {
-                    Timber.e(e, "Permission denied reading paired devices")
-                    emptyList()
-                }
-            } else {
-                emptyList()
-            }
+    init { refreshPairedDevices() }
 
-            _uiState.update {
-                it.copy(
-                    bluetoothEnabled = enabled,
-                    pairedDevices = devices,
-                    connectedDeviceName = printerManager.connectedDeviceName.value,
-                    connectedDeviceAddress = printerManager.connectedDeviceAddress.value
-                )
-            }
+    fun refreshPairedDevices() {
+        val adapter = bluetoothAdapter
+        if (adapter == null || !adapter.isEnabled) {
+            _uiState.value = _uiState.value.copy(
+                bluetoothEnabled = false,
+                pairedDevices = emptyList(),
+                connectedDeviceName = null,
+                connectedDeviceAddress = null,
+            )
+            return
         }
+        _uiState.value = _uiState.value.copy(
+            bluetoothEnabled = true,
+            pairedDevices = printerManager.getPairedPrinters(adapter),
+            connectedDeviceName = printerManager.connectedDeviceName(),
+            connectedDeviceAddress = printerManager.connectedDeviceAddress(),
+        )
     }
 
     fun connect(device: BluetoothDevice) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, successMessage = null, errorMessage = null) }
-            val name = try {
-                device.name ?: device.address
+            val deviceName = try {
+                device.name ?: "Unknown"
             } catch (e: SecurityException) {
-                device.address
+                "Unknown"
             }
-            val result = printerManager.connect(device)
-            if (result.isSuccess) {
-                preferenceRepository.savePreferredPrinter(device.address, name)
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        connectedDeviceName = name,
+            _uiState.value = _uiState.value.copy(isConnecting = true, error = null)
+            printerManager.connect(device)
+                .onSuccess {
+                    viewModelScope.launch { prefRepository.save(device.address, deviceName) }
+                    _uiState.value = _uiState.value.copy(
+                        isConnecting = false,
+                        connectedDeviceName = deviceName,
                         connectedDeviceAddress = device.address,
-                        successMessage = "Terhubung ke $name"
+                        message = "Terhubung ke $deviceName",
                     )
                 }
-            } else {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        errorMessage = "Gagal terhubung ke $name: ${result.exceptionOrNull()?.message}"
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(
+                        isConnecting = false,
+                        error = "Gagal terhubung: ${e.message}",
                     )
                 }
-            }
         }
     }
 
     fun disconnect() {
-        viewModelScope.launch {
-            printerManager.disconnect()
-            _uiState.update {
-                it.copy(
-                    connectedDeviceName = null,
-                    connectedDeviceAddress = null,
-                    successMessage = "Printer terputus"
-                )
-            }
-        }
+        printerManager.disconnect()
+        _uiState.value = _uiState.value.copy(
+            connectedDeviceName = null,
+            connectedDeviceAddress = null,
+            message = "Terputus dari printer",
+        )
     }
 
     fun print() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isPrinting = true, successMessage = null, errorMessage = null) }
-            try {
-                val invoiceResult = invoiceRepository.getInvoice(invoiceId)
-                val invoice = invoiceResult.getOrNull()
-                if (invoice == null) {
-                    _uiState.update {
-                        it.copy(isPrinting = false, errorMessage = "Gagal memuat invoice")
+            _uiState.value = _uiState.value.copy(isPrinting = true, error = null, message = null)
+            invoiceRepository.getInvoice(invoiceId)
+                .onSuccess { invoice ->
+                    val receipt = invoice.receipt
+                    if (receipt == null) {
+                        _uiState.value = _uiState.value.copy(isPrinting = false, error = "Struk tidak tersedia untuk tagihan ini")
+                        return@onSuccess
                     }
-                    return@launch
-                }
-                val receipt = invoice.receipt
-                if (receipt == null) {
-                    _uiState.update {
-                        it.copy(isPrinting = false, errorMessage = "Struk tidak tersedia")
-                    }
-                    return@launch
-                }
-                val bytes = escPosRenderer.render(receipt)
-                val job = PrintJob(invoiceId = invoiceId, bytes = bytes)
-                queueManager.enqueue(job)
-                val result = queueManager.processNext()
-                if (result.isSuccess) {
-                    _uiState.update {
-                        it.copy(isPrinting = false, successMessage = "Struk berhasil dicetak")
-                    }
-                } else {
-                    _uiState.update {
-                        it.copy(
-                            isPrinting = false,
-                            errorMessage = "Gagal mencetak: ${result.exceptionOrNull()?.message}"
-                        )
+                    queueManager.enqueue(invoiceId, renderer.render(receipt))
+                    val status = queueManager.processNext()
+                    if (status == PrintJobStatus.SUCCESS) {
+                        _uiState.value = _uiState.value.copy(isPrinting = false, message = "Struk berhasil dicetak")
+                    } else {
+                        _uiState.value = _uiState.value.copy(isPrinting = false, error = "Gagal mencetak struk, akan dicoba ulang")
                     }
                 }
-            } catch (e: Exception) {
-                Timber.e(e, "Print error")
-                _uiState.update { it.copy(isPrinting = false, errorMessage = "Error: ${e.message}") }
-            }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(isPrinting = false, error = "Gagal memuat tagihan: ${e.message}")
+                }
         }
     }
 
-    fun clearMessage() {
-        _uiState.update { it.copy(successMessage = null) }
-    }
-
-    fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
-    }
+    fun clearMessage() { _uiState.value = _uiState.value.copy(message = null) }
+    fun clearError()   { _uiState.value = _uiState.value.copy(error = null) }
 }

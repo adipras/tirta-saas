@@ -1,67 +1,54 @@
 package com.adipras.tirtasaas.feature.printer
 
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import timber.log.Timber
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private const val MAX_RETRIES = 3
+
 @Singleton
 class PrintQueueManager @Inject constructor(
-    private val printerManager: BluetoothPrinterManager
+    private val printerManager: BluetoothPrinterManager,
 ) {
-    companion object {
-        private const val TAG = "PrintQueueManager"
-        private const val MAX_RETRIES = 3
+    private val _queue = MutableStateFlow<List<PrintJob>>(emptyList())
+    val queue: StateFlow<List<PrintJob>> = _queue.asStateFlow()
+
+    fun enqueue(invoiceId: String, bytes: ByteArray): String {
+        val job = PrintJob(id = UUID.randomUUID().toString(), invoiceId = invoiceId, bytes = bytes)
+        _queue.value = _queue.value + job
+        return job.id
     }
 
-    private val queue = ArrayDeque<PrintJob>()
-    private val mutex = Mutex()
-    private var isProcessing = false
-
-    suspend fun enqueue(job: PrintJob) = mutex.withLock {
-        queue.addLast(job)
-        Timber.tag(TAG).d("Enqueued job ${job.id} for invoice ${job.invoiceId}. Queue size: ${queue.size}")
-    }
-
-    suspend fun processNext(): Result<Unit> {
-        val job = mutex.withLock {
-            if (isProcessing || queue.isEmpty()) return Result.success(Unit)
-            isProcessing = true
-            queue.removeFirst()
-        }
-
-        Timber.tag(TAG).d("Processing job ${job.id}, attempt ${job.retryCount + 1}")
-        val result = printerManager.print(job.bytes)
-
-        return mutex.withLock {
-            isProcessing = false
-            if (result.isFailure) {
-                val updatedJob = job.copy(
-                    retryCount = job.retryCount + 1,
-                    status = if (job.retryCount + 1 >= MAX_RETRIES) {
-                        PrintJobStatus.FAILED
-                    } else {
-                        PrintJobStatus.PENDING
-                    }
-                )
-                if (updatedJob.status == PrintJobStatus.PENDING) {
-                    queue.addFirst(updatedJob)
-                    Timber.tag(TAG).w(
-                        "Job ${job.id} failed, will retry (${updatedJob.retryCount}/$MAX_RETRIES)"
-                    )
-                } else {
-                    Timber.tag(TAG).e(
-                        "Job ${job.id} permanently failed after $MAX_RETRIES attempts"
-                    )
-                }
-                result
+    suspend fun processNext(): PrintJobStatus {
+        val job = _queue.value.firstOrNull { it.status == PrintJobStatus.PENDING }
+            ?: return PrintJobStatus.SUCCESS
+        updateStatus(job.id, PrintJobStatus.PRINTING)
+        return if (printerManager.print(job.bytes).isSuccess) {
+            _queue.value = _queue.value.filterNot { it.id == job.id }
+            PrintJobStatus.SUCCESS
+        } else {
+            if (job.retryCount < MAX_RETRIES) {
+                replaceJob(job.copy(retryCount = job.retryCount + 1, status = PrintJobStatus.PENDING))
+                PrintJobStatus.PENDING
             } else {
-                Timber.tag(TAG).d("Job ${job.id} succeeded")
-                Result.success(Unit)
+                updateStatus(job.id, PrintJobStatus.FAILED)
+                PrintJobStatus.FAILED
             }
         }
     }
 
-    suspend fun clearQueue() = mutex.withLock { queue.clear() }
+    fun clearFailed() {
+        _queue.value = _queue.value.filterNot { it.status == PrintJobStatus.FAILED }
+    }
+
+    private fun updateStatus(id: String, status: PrintJobStatus) {
+        _queue.value = _queue.value.map { if (it.id == id) it.copy(status = status) else it }
+    }
+
+    private fun replaceJob(job: PrintJob) {
+        _queue.value = _queue.value.map { if (it.id == job.id) job else it }
+    }
 }

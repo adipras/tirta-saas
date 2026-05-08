@@ -1,108 +1,66 @@
 package com.adipras.tirtasaas.feature.printer
 
 import com.adipras.tirtasaas.feature.invoice.ReceiptPayloadDto
-import java.nio.charset.Charset
 import javax.inject.Inject
 
-/**
- * Renders a ReceiptPayloadDto to ESC/POS byte array for 58mm thermal printers (32 chars wide).
- */
+private const val PAPER_WIDTH = 32
+
 class EscPosRenderer @Inject constructor() {
 
-    private val charset = Charset.forName("ISO-8859-1")
-    private val lineWidth = 32
-
-    private val ESC = 0x1B.toByte()
-    private val GS = 0x1D.toByte()
-    private val LF = 0x0A.toByte()
-    private val INIT = byteArrayOf(ESC, 0x40.toByte())
-    private val ALIGN_LEFT = byteArrayOf(ESC, 0x61.toByte(), 0x00.toByte())
-    private val ALIGN_CENTER = byteArrayOf(ESC, 0x61.toByte(), 0x01.toByte())
-    private val BOLD_ON = byteArrayOf(ESC, 0x45.toByte(), 0x01.toByte())
-    private val BOLD_OFF = byteArrayOf(ESC, 0x45.toByte(), 0x00.toByte())
-    private val CUT = byteArrayOf(GS, 0x56.toByte(), 0x41.toByte(), 0x10.toByte())
-
-    private operator fun ByteArray.plus(other: ByteArray): ByteArray {
-        val result = ByteArray(size + other.size)
-        copyInto(result)
-        other.copyInto(result, size)
-        return result
-    }
-
-    private fun text(value: String): ByteArray = value.toByteArray(charset)
-    private fun line(value: String = ""): ByteArray = text(value) + byteArrayOf(LF)
-    private fun separator(): ByteArray = line("-".repeat(lineWidth))
-
-    private fun formatTwoCol(left: String, right: String): ByteArray {
-        val available = lineWidth - right.length
-        val leftText = if (left.length > available) left.take(available) else left
-        val spaces = (lineWidth - leftText.length - right.length).coerceAtLeast(1)
-        return line(leftText + " ".repeat(spaces) + right)
-    }
-
     fun render(receipt: ReceiptPayloadDto): ByteArray {
-        var out = INIT + ALIGN_CENTER
+        val sb = StringBuilder()
 
-        out += BOLD_ON + line(receipt.companyName.ifBlank { "Tirta SaaS" }) + BOLD_OFF
-        if (receipt.companyPhone.isNotBlank()) out += line(receipt.companyPhone)
-        if (receipt.companyEmail.isNotBlank()) out += line(receipt.companyEmail)
-        out += separator()
-
-        out += ALIGN_LEFT
-        out += line("No: ${receipt.invoiceNumber}")
-        out += line("Pelanggan: ${receipt.customerName}")
-        out += line("Meter: ${receipt.meterNumber}")
-        if (receipt.address.isNotBlank()) out += line("Alamat: ${receipt.address}")
-        out += line("Bulan: ${receipt.usageMonth}")
-        receipt.dueDate?.takeIf { it.isNotBlank() }?.let { out += line("Jatuh Tempo: $it") }
-        out += separator()
-
-        out += formatTwoCol("Meter Awal", formatNumber(receipt.meterStart) + " m3")
-        out += formatTwoCol("Meter Akhir", formatNumber(receipt.meterEnd) + " m3")
-        out += formatTwoCol("Pemakaian", formatNumber(receipt.usageM3) + " m3")
-        out += separator()
-
-        out += formatTwoCol("Biaya Air", formatRupiah(receipt.waterCharge))
-        out += formatTwoCol("Abonemen", formatRupiah(receipt.abonemen))
-        if (receipt.penaltyAmount > 0.0) {
-            out += formatTwoCol("Denda", formatRupiah(receipt.penaltyAmount))
+        fun center(text: String): String {
+            if (text.length >= PAPER_WIDTH) return text.take(PAPER_WIDTH)
+            val totalPad = PAPER_WIDTH - text.length
+            val left = totalPad / 2
+            return " ".repeat(left) + text + " ".repeat(totalPad - left)
         }
-        out += BOLD_ON + formatTwoCol("TOTAL", formatRupiah(receipt.totalAmount)) + BOLD_OFF
-        out += formatTwoCol("Bayar", formatRupiah(receipt.totalPaid))
-        val remainingAmount = (receipt.totalAmount - receipt.totalPaid).coerceAtLeast(0.0)
-        if (remainingAmount > 0.0) {
-            out += formatTwoCol("Sisa", formatRupiah(remainingAmount))
-        }
-        out += separator()
 
-        out += ALIGN_CENTER
+        fun line(label: String, value: String): String {
+            val space = PAPER_WIDTH - label.length - value.length
+            return if (space > 0) label + " ".repeat(space) + value else "$label $value"
+        }
+
+        fun divider() = "-".repeat(PAPER_WIDTH)
+
+        sb.append(center(receipt.companyName)).append("\n")
+        if (receipt.companyPhone.isNotBlank()) sb.append(center(receipt.companyPhone)).append("\n")
+        sb.append(divider()).append("\n")
+        sb.append(line("No. Tagihan:", receipt.invoiceNumber.takeLast(16))).append("\n")
+        sb.append(line("Pelanggan:", receipt.customerName.take(18))).append("\n")
+        sb.append(line("No. Meter:", receipt.meterNumber.take(18))).append("\n")
+        sb.append(line("Bulan:", receipt.usageMonth)).append("\n")
+        sb.append(divider()).append("\n")
+        sb.append(line("Meter Awal:", "${receipt.meterStart} m3")).append("\n")
+        sb.append(line("Meter Akhir:", "${receipt.meterEnd} m3")).append("\n")
+        sb.append(line("Pemakaian:", "${receipt.usageM3} m3")).append("\n")
+        sb.append(divider()).append("\n")
+        sb.append(line("Biaya Air:", formatRp(receipt.waterCharge))).append("\n")
+        sb.append(line("Abonemen:", formatRp(receipt.abonemen))).append("\n")
+        if (receipt.penaltyAmount > 0) sb.append(line("Denda:", formatRp(receipt.penaltyAmount))).append("\n")
+        sb.append(divider()).append("\n")
+        sb.append(line("TOTAL:", formatRp(receipt.totalAmount))).append("\n")
+        if (receipt.totalPaid > 0) sb.append(line("Dibayar:", formatRp(receipt.totalPaid))).append("\n")
+        if (receipt.dueDate != null) sb.append(line("Jatuh Tempo:", receipt.dueDate)).append("\n")
         if (receipt.footerText.isNotBlank()) {
-            out += line(receipt.footerText)
-        } else {
-            out += line("Terima kasih!")
+            sb.append(divider()).append("\n")
+            sb.append(center(receipt.footerText)).append("\n")
         }
-        out += line()
-        out += line()
-        out += line()
-        out += CUT
-        return out
+        sb.append("\n\n\n")
+
+        val init = byteArrayOf(0x1B, 0x40)
+        val cut  = byteArrayOf(0x1D, 0x56, 0x41, 0x03)
+        val text = sb.toString().toByteArray(Charsets.ISO_8859_1)
+        return init + text + cut
     }
 
-    private fun formatRupiah(amount: Double): String {
-        val long = amount.toLong()
-        val formatted = StringBuilder()
-        val stringValue = long.toString()
-        var count = 0
-        for (index in stringValue.indices.reversed()) {
-            if (count > 0 && count % 3 == 0) formatted.insert(0, '.')
-            formatted.insert(0, stringValue[index])
-            count++
-        }
-        return "Rp$formatted"
-    }
+    private fun formatRp(amount: Double) = "Rp${String.format("%,.0f", amount)}"
+}
 
-    private fun formatNumber(amount: Double): String {
-        val asLong = amount.toLong()
-        return if (amount == asLong.toDouble()) asLong.toString() else amount.toString()
-    }
+private operator fun ByteArray.plus(other: ByteArray): ByteArray {
+    val result = ByteArray(size + other.size)
+    copyInto(result)
+    other.copyInto(result, size)
+    return result
 }
