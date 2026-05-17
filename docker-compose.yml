@@ -1,0 +1,91 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: tirta-mysql
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${MYSQL_USER} -p${MYSQL_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - tirta-net
+
+  backend:
+    build:
+      context: ./tirta-saas-backend
+    container_name: tirta-backend
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASS: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 8081
+      ENV: production
+      GIN_MODE: release
+      AUTO_SEED_ADMIN: ${AUTO_SEED_ADMIN}
+      ENABLE_INVOICE_SCHEDULER: ${ENABLE_INVOICE_SCHEDULER}
+      ENABLE_TRIAL_SCHEDULER: ${ENABLE_TRIAL_SCHEDULER}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_storage:/app/storage
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tirta-net
+
+  frontend:
+    build:
+      context: ./tirta-saas-frontend
+    container_name: tirta-frontend
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - tirta-net
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: tirta-nginx
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx:/etc/nginx/conf.d:ro
+      - ./deploy/certs:/etc/nginx/certs:ro
+      - ./deploy/www:/var/www/certbot:ro
+    restart: unless-stopped
+    networks:
+      - tirta-net
+
+volumes:
+  mysql_data:
+  backend_uploads:
+  backend_storage:
+
+networks:
+  tirta-net:
+    driver: bridge

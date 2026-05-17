@@ -43,7 +43,7 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("ℹ️  No .env file found; using environment variables")
 	}
 
 	config.ConnectDB()

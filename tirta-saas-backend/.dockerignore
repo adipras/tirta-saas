@@ -1,0 +1,10 @@
+.env
+uploads/
+storage/
+main.exe
+.git
+.gitignore
+docs/*.json
+docs/*.yaml
+tests/
+tmp/
