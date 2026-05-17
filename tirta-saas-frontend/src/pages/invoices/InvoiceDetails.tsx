@@ -7,8 +7,7 @@ import {
 import invoiceService from '../../services/invoiceService';
 import { thermalPrinterService } from '../../services/thermalPrinterService';
 import type { InvoiceDetails as InvoiceDetailsType, Invoice } from '../../types/invoice';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
+import { useToast } from '../../components';
 
 const STATUS_LABELS: Record<Invoice['status'], string> = {
   paid: 'Lunas',
@@ -43,7 +42,7 @@ const formatDate = (dateString?: string) => {
 
 export default function InvoiceDetails() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   const { id } = useParams<{ id: string }>();
 
   const [invoice, setInvoice] = useState<InvoiceDetailsType | null>(null);
@@ -55,15 +54,12 @@ export default function InvoiceDetails() {
       const data = await invoiceService.getInvoiceById(invoiceId);
       setInvoice(data);
     } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Gagal memuat detail tagihan',
-      }));
+      toast.error('Gagal memuat detail tagihan');
       navigate('/admin/invoices');
     } finally {
       setLoading(false);
     }
-  }, [dispatch, navigate]);
+  }, [navigate, toast]);
 
   useEffect(() => {
     if (id) {

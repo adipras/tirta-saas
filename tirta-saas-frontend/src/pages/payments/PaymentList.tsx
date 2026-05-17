@@ -41,8 +41,7 @@ const PaymentList: React.FC = () => {
       setPembayaran(response.data);
       setTotalPages(response.pagination.totalPages);
       setCurrentPage(response.pagination.currentPage);
-    } catch (error) {
-      console.error('Failed to fetch payments:', error);
+    } catch {
       showErrorToast('Gagal memuat data pembayaran');
     } finally {
       setLoading(false);
@@ -87,8 +86,7 @@ const PaymentList: React.FC = () => {
       showSuccessToast('Pembayaran berhasil dibatalkan');
       setVoidTarget(null);
       fetchPembayaran(currentPage, searchTerm, filters);
-    } catch (error) {
-      console.error('Failed to void payment:', error);
+    } catch {
       showErrorToast('Gagal membatalkan pembayaran');
     }
   };
@@ -104,8 +102,7 @@ const PaymentList: React.FC = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (error) {
-      console.error('Failed to export payments:', error);
+    } catch {
       showErrorToast('Gagal mengekspor data pembayaran');
     }
   };

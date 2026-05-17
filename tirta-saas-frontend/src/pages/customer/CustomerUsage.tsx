@@ -21,9 +21,7 @@ const CustomerPemakaian: React.FC = () => {
     try {
       const data = await customerPortalService.getWaterPemakaian();
       setPemakaianData(data);
-    } catch (error) {
-      console.error('Error loading usage:', error);
-    } finally {
+    } catch { /* ignore */ } finally {
       setLoading(false);
     }
   };

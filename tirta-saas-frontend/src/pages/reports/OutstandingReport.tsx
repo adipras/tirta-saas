@@ -73,8 +73,7 @@ export default function OutstandingReport() {
       setLoading(true);
       const data = (await reportService.getOutstandingReport(filters)) as OutstandingReportData;
       setReportData(data);
-    } catch (error) {
-      console.error('Failed to fetch outstanding report:', error);
+    } catch {
       setReportData(null);
     } finally {
       setLoading(false);

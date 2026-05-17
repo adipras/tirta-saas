@@ -6,8 +6,7 @@ import invoiceService, { type CreateInvoicePayload } from '../../services/invoic
 import customerService from '../../services/customerService';
 import CustomerSearchSelect from '../../components/CustomerSearchSelect';
 import type { Customer } from '../../types/customer';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
+import { useToast } from '../../components';
 
 interface InvoiceFormData {
   customerId: string;
@@ -22,7 +21,7 @@ interface InvoiceFormData {
 
 export default function InvoiceForm() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -62,24 +61,18 @@ export default function InvoiceForm() {
         const response = await customerService.getPelanggan(1, 1000);
         setCustomers(response.data);
       } catch {
-        dispatch(addNotification({
-          type: 'error',
-          message: 'Gagal memuat data pelanggan',
-        }));
+        toast.error('Gagal memuat data pelanggan');
       } finally {
         setLoading(false);
       }
     };
 
     fetchCustomers();
-  }, [dispatch]);
+  }, [toast]);
 
   const onSubmit = async (data: InvoiceFormData) => {
     if (!data.customerId) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Pelanggan wajib dipilih',
-      }));
+      toast.error('Pelanggan wajib dipilih');
       return;
     }
 
@@ -92,10 +85,7 @@ export default function InvoiceForm() {
       .filter((item) => item.description !== '' && item.quantity > 0 && item.unitPrice >= 0);
 
     if (items.length === 0) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Tambahkan minimal satu item tagihan yang valid',
-      }));
+      toast.error('Tambahkan minimal satu item tagihan yang valid');
       return;
     }
 
@@ -109,16 +99,10 @@ export default function InvoiceForm() {
     try {
       setSaving(true);
       await invoiceService.createInvoice(payload);
-      dispatch(addNotification({
-        type: 'success',
-        message: 'Tagihan berhasil dibuat',
-      }));
+      toast.success('Tagihan berhasil dibuat');
       navigate('/admin/invoices');
     } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Gagal membuat tagihan',
-      }));
+      toast.error('Gagal membuat tagihan');
     } finally {
       setSaving(false);
     }

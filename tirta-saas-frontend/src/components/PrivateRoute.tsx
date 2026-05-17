@@ -11,45 +11,27 @@ const PrivateRoute = ({ children, requiredRole }: PrivateRouteProps) => {
   const location = useLocation();
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
   const hasStoredSession = authService.isAuthenticated();
-  
-  console.log('=== PrivateRoute Render ===');
-  console.log('Location:', location.pathname);
-  console.log('isAuthenticated:', isAuthenticated);
-  console.log('user:', user);
-  console.log('requiredRole:', requiredRole);
-  console.log('user?.role:', user?.role);
-  console.log('Match:', user?.role === requiredRole);
 
   if (!isAuthenticated || !hasStoredSession) {
-    console.log('❌ Not authenticated, redirecting to login');
     const loginPath = requiredRole === 'customer' ? '/customer/login' : '/admin/login';
-    console.log('Redirect to:', loginPath);
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 
   if (requiredRole && user?.role !== requiredRole) {
-    // Allow platform_owner to access admin routes
-    // Allow tenant_admin to access admin routes (they are the same)
-    // Allow meter_reader to access admin routes
+    // Allow platform_owner, tenant_admin, meter_reader to access admin routes
     const isAdminRoute = requiredRole === 'admin';
     const isPlatformOwner = user?.role === 'platform_owner';
     const isTenantAdmin = user?.role === 'tenant_admin';
     const isMeterReader = user?.role === 'meter_reader';
     
     if (isAdminRoute && (isPlatformOwner || isTenantAdmin || isMeterReader)) {
-      console.log('✅ Platform owner, Tenant admin, or Meter reader accessing admin route - ALLOWED');
       return <>{children}</>;
     }
     
-    console.log('❌ Role mismatch, redirecting');
-    console.log('Expected role:', requiredRole);
-    console.log('User role:', user?.role);
     const dashboardPath = user?.role === 'customer' ? '/customer' : '/admin';
-    console.log('Redirect to:', dashboardPath);
     return <Navigate to={dashboardPath} replace />;
   }
 
-  console.log('✅ Auth check passed, rendering children');
   return <>{children}</>;
 };
 

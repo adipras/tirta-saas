@@ -7,17 +7,10 @@ import { ToastProvider, ErrorBoundary, PrivateRoute } from './components';
 import DashboardLayout from './layouts/DashboardLayout';
 import CustomerLayout from './layouts/CustomerLayout';
 import RoleBasedDashboard from './pages/RoleBasedDashboard';
-import CustomerDashboard from './pages/CustomerDashboard';
+import CustomerDashboard from './pages/customer/CustomerDashboard';
+import CustomerPayInvoice from './pages/customer/CustomerPayInvoice';
+import CustomerLoginPage from './pages/customer/CustomerLogin';
 import AdminLogin from './pages/auth/AdminLogin';
-// Portal Pelanggan - NEW
-import CustomerLoginNew from './pages/customer/CustomerLogin';
-import CustomerDashboardNew from './pages/customer/CustomerDashboard';
-import CustomerTagihanNew from './pages/customer/CustomerInvoices';
-import CustomerPembayaranNew from './pages/customer/CustomerPayments';
-import CustomerPemakaianNew from './pages/customer/CustomerUsage';
-import CustomerProfilNew from './pages/customer/CustomerProfile';
-import CustomerPayInvoiceNew from './pages/customer/CustomerPayInvoice';
-// End Portal Pelanggan
 import CustomerList from './pages/customers/CustomerList';
 import CustomerDetails from './pages/customers/CustomerDetails';
 import CustomerForm from './pages/customers/CustomerForm';
@@ -62,11 +55,8 @@ import SubscriptionStatusPage from './pages/subscription/SubscriptionStatusPage'
 import SubscriptionUpgradePage from './pages/subscription/SubscriptionUpgradePage';
 import UserManagementList from './pages/user-management/UserManagementList';
 import NotFound from './pages/NotFound';
-import TestPage from './pages/TestPage';
 
 function App() {
-  console.log('=== App Component Rendering ===');
-  
   return (
     <Provider store={store}>
       <PersistGate loading={<div>Memuat...</div>} persistor={persistor}>
@@ -76,19 +66,6 @@ function App() {
             <Routes>
             {/* Public Routes - Landing Page First */}
             <Route path="/" element={<LandingPage />} />
-            
-            {/* Debug route */}
-            <Route path="/debug" element={
-              <div style={{ padding: '50px', backgroundColor: 'yellow' }}>
-                <h1 style={{ fontSize: '30px', marginBottom: '20px' }}>DEBUG PAGE</h1>
-                <p>If you see this, routing works!</p>
-                <pre>{JSON.stringify({
-                  path: window.location.pathname,
-                  hash: window.location.hash,
-                  search: window.location.search
-                }, null, 2)}</pre>
-              </div>
-            } />
 
             {/* Public Routes */}
             <Route path="/register" element={<RegisterAccount />} />
@@ -99,23 +76,7 @@ function App() {
             
             {/* Auth Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
-            
-            {/* Portal Pelanggan Routes */}
-            <Route path="/customer/login" element={<CustomerLoginNew />} />
-            <Route path="/customer/dashboard" element={<CustomerDashboardNew />} />
-            <Route path="/customer/invoices" element={<CustomerTagihanNew />} />
-            <Route path="/customer/pay/:invoiceId" element={<CustomerPayInvoiceNew />} />
-            <Route path="/customer/payments" element={<CustomerPembayaranNew />} />
-            <Route path="/customer/usage" element={<CustomerPemakaianNew />} />
-            <Route path="/customer/profile" element={<CustomerProfilNew />} />
-            
-            {/* Test route - outside auth to verify routing works */}
-            <Route path="/test-simple" element={
-              <div style={{ backgroundColor: 'red', color: 'white', padding: '50px', fontSize: '30px', minHeight: '100vh' }}>
-                <h1>SIMPLE TEST - NO AUTH</h1>
-                <p>If you see this, React Router works!</p>
-              </div>
-            } />
+            <Route path="/customer/login" element={<CustomerLoginPage />} />
 
             {/* Admin Routes */}
             <Route path="/admin" element={
@@ -128,7 +89,6 @@ function App() {
                   <RoleBasedDashboard />
                 </ErrorBoundary>
               } />
-              <Route path="test" element={<TestPage />} />
               <Route path="customers" element={<CustomerList />} />
               <Route path="customers/bulk-import" element={<BulkImportPelanggan />} />
               <Route path="customers/new" element={<CustomerForm mode="create" />} />
@@ -202,6 +162,7 @@ function App() {
               <Route path="payments/info" element={<CustomerPaymentInfo />} />
               <Route path="payments/confirm" element={<CustomerPaymentConfirmation />} />
               <Route path="payments/success" element={<PaymentSuccess />} />
+              <Route path="pay/:invoiceId" element={<CustomerPayInvoice />} />
               <Route path="usage" element={<CustomerPemakaianMonitor />} />
             </Route>
 

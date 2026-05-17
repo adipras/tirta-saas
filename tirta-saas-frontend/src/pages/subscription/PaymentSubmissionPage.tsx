@@ -110,7 +110,7 @@ const PaymentSubmissionPage = () => {
       // Success - navigate to status page
       toast.success(`Payment submitted! Confirmation ID: ${response.confirmationId}`);
       navigate('/subscription/status');
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.error || 'Failed to submit payment. Please try again.');
     } finally {
       setLoading(false);

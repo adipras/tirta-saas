@@ -51,8 +51,7 @@ export default function PemakaianReport() {
       setLoading(true);
       const data = await reportService.getPemakaianReport(filters);
       setReportData(data);
-    } catch (error) {
-      console.error('Failed to fetch usage report:', error);
+    } catch {
       setReportData(null);
     } finally {
       setLoading(false);

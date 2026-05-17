@@ -11,10 +11,9 @@ import {
 import { DataTable, type Column } from '../../components/DataTable';
 import invoiceService, { type InvoiceFilters } from '../../services/invoiceService';
 import type { Invoice, InvoiceListStats } from '../../types/invoice';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { DashboardStatCard, PageHeader } from '../../components';
 import { formatIDR } from '../../utils/exportUtils';
+import { useToast } from '../../components';
 
 const STATUS_LABELS: Record<Invoice['status'], string> = {
   paid: 'Lunas',
@@ -62,7 +61,7 @@ const escapeHtml = (value: string) =>
 
 export default function InvoiceList() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
 
   const [invoices, setTagihan] = useState<Invoice[]>([]);
   const [stats, setStats] = useState<InvoiceListStats>(EMPTY_STATS);
@@ -84,14 +83,11 @@ export default function InvoiceList() {
       setTagihan(response.data);
       setStats(normalizeStats(response.stats));
     } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Gagal memuat data tagihan',
-      }));
+      toast.error('Gagal memuat data tagihan');
     } finally {
       setLoading(false);
     }
-  }, [dispatch, filterStatus, filterType, searchTerm]);
+  }, [filterStatus, filterType, searchTerm, toast]);
 
   useEffect(() => {
     fetchTagihan();
@@ -105,19 +101,13 @@ export default function InvoiceList() {
 
   const handlePrintFilteredList = () => {
     if (invoices.length === 0) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Tidak ada data tagihan untuk dicetak',
-      }));
+      toast.error('Tidak ada data tagihan untuk dicetak');
       return;
     }
 
     const printWindow = window.open('', '_blank', 'width=1200,height=800');
     if (!printWindow) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Popup diblokir browser. Izinkan popup untuk mencetak daftar tagihan.',
-      }));
+      toast.error('Popup diblokir browser. Izinkan popup untuk mencetak daftar tagihan.');
       return;
     }
 

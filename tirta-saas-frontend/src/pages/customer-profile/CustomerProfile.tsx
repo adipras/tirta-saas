@@ -19,7 +19,7 @@ export default function CustomerProfil() {
       const data = await customerProfilService.getProfil();
       setProfil(data);
       setError(null);
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.message || 'Failed to load profile');
     } finally {
       setLoading(false);

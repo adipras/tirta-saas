@@ -11,13 +11,12 @@ import {
 } from '@heroicons/react/24/outline';
 import customerService from '../../services/customerService';
 import type { Customer } from '../../types/customer';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader } from '../../components';
+import { useToast } from '../../components';
 
 export default function CustomerDetails() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   const { id } = useParams<{ id: string }>();
   
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -25,17 +24,11 @@ export default function CustomerDetails() {
 
   const fetchCustomer = async (customerId: string) => {
     try {
-      console.log('fetchCustomer called with id:', customerId);
       setLoading(true);
       const data = await customerService.getCustomerById(customerId);
-      console.log('Customer data received:', data);
       setCustomer(data);
-    } catch (error) {
-      console.error('Error fetching customer:', error);
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch customer details',
-      }));
+    } catch  {
+      toast.error('Gagal memuat data pelanggan');
       navigate('/admin/customers');
     } finally {
       setLoading(false);
@@ -43,12 +36,9 @@ export default function CustomerDetails() {
   };
 
   useEffect(() => {
-    console.log('CustomerDetails mounted, id:', id);
     if (id) {
-      console.log('Fetching customer with id:', id);
       fetchCustomer(id);
     } else {
-      console.log('No id found in params');
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -67,16 +57,10 @@ export default function CustomerDetails() {
       
       if (updatedCustomer) {
         setCustomer(updatedCustomer);
-        dispatch(addNotification({
-          type: 'success',
-          message: `Customer ${newIsActive ? 'activated' : 'deactivated'} successfully`,
-        }));
+        toast.success(`Pelanggan berhasil ${newIsActive ? 'diaktifkan' : 'dinonaktifkan'}`);
       }
     } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to update customer status',
-      }));
+      toast.error('Gagal memperbarui status pelanggan');
     }
   };
 

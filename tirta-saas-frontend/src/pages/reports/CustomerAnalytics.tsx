@@ -55,8 +55,7 @@ export default function CustomerAnalytics() {
       setLoading(true);
       const data = await reportService.getCustomerAnalytics(filters);
       setReportData(data);
-    } catch (error) {
-      console.error('Failed to fetch customer analytics:', error);
+    } catch {
       setReportData(null);
     } finally {
       setLoading(false);

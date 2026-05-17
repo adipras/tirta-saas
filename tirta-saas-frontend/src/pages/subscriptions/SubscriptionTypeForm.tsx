@@ -3,13 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { subscriptionService } from '../../services/subscriptionService';
 import type { SubscriptionTypeFormData } from '../../types/subscription';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader } from '../../components';
+import { useToast } from '../../components';
 
 export default function SubscriptionTypeForm() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
 
@@ -45,12 +44,8 @@ export default function SubscriptionTypeForm() {
         late_fee_per_day: data.late_fee_per_day.toString(),
         max_late_fee: data.max_late_fee.toString(),
       });
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch subscription type',
-      }));
-      console.error('Error fetching subscription type:', error);
+    } catch  {
+      toast.error('Gagal memuat data golongan langganan');
     } finally {
       setLoading(false);
     }
@@ -142,25 +137,15 @@ export default function SubscriptionTypeForm() {
 
       if (isEditMode && id) {
         await subscriptionService.updateSubscriptionType(id, payload);
-        dispatch(addNotification({
-          type: 'success',
-          message: 'Subscription type updated successfully',
-        }));
+        toast.success('Golongan langganan berhasil diperbarui');
       } else {
         await subscriptionService.createSubscriptionType(payload);
-        dispatch(addNotification({
-          type: 'success',
-          message: 'Subscription type created successfully',
-        }));
+        toast.success('Golongan langganan berhasil dibuat');
       }
 
       navigate('/admin/subscriptions');
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: `Failed to ${isEditMode ? 'update' : 'create'} subscription type`,
-      }));
-      console.error('Error submitting form:', error);
+    } catch  {
+      toast.error(`Gagal ${isEditMode ? 'memperbarui' : 'membuat'} golongan langganan`);
     } finally {
       setLoading(false);
     }

@@ -37,9 +37,7 @@ function PaymentProofList({ onViewDetails }: PaymentProofListProps) {
       const verified = response.payment_proofs.filter(p => p.status === 'VERIFIED').length;
       const rejected = response.payment_proofs.filter(p => p.status === 'REJECTED').length;
       setStats({ pending, verified, rejected });
-    } catch (err) {
-      console.error('Failed to fetch payment proofs:', err);
-    } finally {
+    } catch { /* ignore */ } finally {
       setLoading(false);
     }
   };

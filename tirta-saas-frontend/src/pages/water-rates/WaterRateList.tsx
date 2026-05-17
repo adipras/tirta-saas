@@ -11,13 +11,12 @@ import { waterRateService } from '../../services/waterRateService';
 import { subscriptionService } from '../../services/subscriptionService';
 import type { WaterRate } from '../../types/waterRate';
 import type { SubscriptionType } from '../../types/subscription';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader, ConfirmModal } from '../../components';
+import { useToast } from '../../components';
 
 export default function WaterRateList() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   
   const [waterRates, setWaterRates] = useState<WaterRate[]>([]);
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
@@ -43,25 +42,19 @@ export default function WaterRateList() {
       } else {
         setWaterRates([]);
       }
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Gagal memuat tarif air',
-      }));
-      console.error('Error fetching water rates:', error);
+    } catch  {
+      toast.error('Gagal memuat tarif air');
       setWaterRates([]);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filterSubscription, filterActive, dispatch]);
+  }, [currentPage, filterSubscription, filterActive, dispatch, toast]);
 
   const fetchSubscriptionTypes = useCallback(async () => {
     try {
       const types = await subscriptionService.getAllSubscriptionTypes();
       setSubscriptionTypes(types || []);
-    } catch (error) {
-      console.error('Error fetching subscription types:', error);
-    }
+    } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
@@ -77,18 +70,11 @@ export default function WaterRateList() {
     if (!deleteTarget) return;
     try {
       await waterRateService.deleteWaterRate(deleteTarget);
-      dispatch(addNotification({
-        type: 'success',
-        message: 'Tarif air berhasil dihapus',
-      }));
+      toast.success('Tarif air berhasil dihapus');
       setDeleteTarget(null);
       fetchWaterRates();
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Gagal menghapus tarif air',
-      }));
-      console.error('Error deleting water rate:', error);
+    } catch  {
+      toast.error('Gagal menghapus tarif air');
     }
   };
 
@@ -101,16 +87,10 @@ export default function WaterRateList() {
         await waterRateService.activateWaterRate(id);
       }
       
-      dispatch(addNotification({
-        type: 'success',
-        message: `Tarif air berhasil ${currentActive ? 'dinonaktifkan' : 'diaktifkan'}`,
-      }));
+      toast.success(`Tarif air berhasil ${currentActive ? 'dinonaktifkan' : 'diaktifkan'}`);
       await fetchWaterRates();
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Gagal memperbarui status tarif air',
-      }));
+    } catch  {
+      toast.error('Gagal memperbarui status tarif air');
     } finally {
       setTogglingRateId(null);
     }

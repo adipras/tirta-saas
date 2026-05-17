@@ -39,7 +39,7 @@ export default function CustomerProfilEdit() {
         postalCode: data.postalCode,
       });
       setError(null);
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.message || 'Gagal memuat profil');
     } finally {
       setLoading(false);
@@ -105,7 +105,7 @@ export default function CustomerProfilEdit() {
       setSaving(true);
       await customerProfilService.updateProfil(formData);
       navigate('/customer/profile');
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.message || 'Gagal memperbarui profil');
     } finally {
       setSaving(false);

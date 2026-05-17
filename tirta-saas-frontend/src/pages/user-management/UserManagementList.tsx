@@ -59,8 +59,7 @@ export default function UserManagementList() {
       const data = await tenantUserService.getTenantUsers();
       setUsers(data);
       setFilteredUsers(data);
-    } catch (err: any) {
-      console.error('Failed to load users:', err);
+    } catch  {
       setError(err.response?.data?.error || 'Failed to load users');
     } finally {
       setLoading(false);
@@ -93,8 +92,7 @@ export default function UserManagementList() {
       await tenantUserService.deleteTenantUser(deleteTarget);
       loadUsers();
       setDeleteTarget(null);
-    } catch (err: any) {
-      console.error('Failed to delete user:', err);
+    } catch  {
       setError(err.response?.data?.error || 'Failed to delete user');
     }
   };

@@ -48,8 +48,7 @@ export default function LandingPage() {
         .filter((plan: SubscriptionPlan) => plan.is_active)
         .sort((a: SubscriptionPlan, b: SubscriptionPlan) => a.display_order - b.display_order);
       setPricingPlans(activePlans);
-    } catch (error) {
-      console.error('Failed to fetch subscription plans:', error);
+    } catch  {
       // Keep empty array on error
     } finally {
       setLoadingPlans(false);

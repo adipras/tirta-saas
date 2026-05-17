@@ -66,7 +66,7 @@ export default function CustomerPemakaianMonitor() {
       setPemakaianHistory(transformed);
       calculateStats(transformed);
       setError(null);
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.message || 'Failed to load usage data');
     } finally {
       setLoading(false);

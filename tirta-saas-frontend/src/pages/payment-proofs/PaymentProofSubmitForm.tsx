@@ -36,9 +36,7 @@ const PaymentProofSubmitForm: React.FC = () => {
         status: 'unpaid',
       });
       setTagihan(response.data || []);
-    } catch (err) {
-      console.error('Failed to fetch invoices:', err);
-    }
+    } catch { /* ignore */ }
   };
 
   const handleInvoiceChange = (invoiceId: string) => {
@@ -114,7 +112,7 @@ const PaymentProofSubmitForm: React.FC = () => {
       setTimeout(() => {
         navigate('/admin/payments');
       }, 2000);
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.error || 'Failed to submit payment proof');
     } finally {
       setLoading(false);

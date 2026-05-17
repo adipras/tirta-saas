@@ -159,8 +159,7 @@ export default function PlatformPaymentSettings() {
       if (qrRes.status === 'fulfilled') {
         setQRCodes(qrRes.value);
       }
-    } catch (error) {
-      console.error('Failed to load platform payment settings:', error);
+    } catch  {
       toast.error('Gagal memuat pengaturan pembayaran platform.');
     }
   }, [toast]);
@@ -236,8 +235,7 @@ export default function PlatformPaymentSettings() {
 
       await loadSettings();
       closeBankModal();
-    } catch (error) {
-      console.error('Failed to save bank account:', error);
+    } catch  {
       toast.error('Gagal menyimpan rekening bank.');
     }
   };
@@ -320,8 +318,7 @@ export default function PlatformPaymentSettings() {
 
       await loadSettings();
       closeQRModal();
-    } catch (error) {
-      console.error('Failed to save QR code:', error);
+    } catch  {
       toast.error('Gagal menyimpan QR code.');
     }
   };
@@ -342,8 +339,7 @@ export default function PlatformPaymentSettings() {
 
       setDeleteTarget(null);
       await loadSettings();
-    } catch (error) {
-      console.error('Failed to delete payment setting:', error);
+    } catch  {
       toast.error('Gagal menghapus data pembayaran.');
     }
   };

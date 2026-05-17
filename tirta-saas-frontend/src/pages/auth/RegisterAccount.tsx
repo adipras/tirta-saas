@@ -76,7 +76,7 @@ const RegisterAccount = () => {
           email: data.email,
         },
       });
-    } catch (err: any) {
+    } catch  {
       setError(err.message || 'Terjadi kesalahan. Coba lagi.');
     } finally {
       setIsLoading(false);

@@ -115,7 +115,7 @@ export default function ChangePassword() {
       setTimeout(() => {
         navigate('/customer/profile');
       }, 2000);
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.message || 'Gagal mengubah kata sandi');
     } finally {
       setLoading(false);

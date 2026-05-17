@@ -96,8 +96,7 @@ export default function SubscriptionPlans() {
       setLoading(true);
       const response = await apiClient.get('/platform/subscription-plans?include_inactive=true');
       setPlans(response.data || []);
-    } catch (error: unknown) {
-      console.error('Failed to fetch plans:', error);
+    } catch  {
       toast.error(getErrorMessage(error, 'Gagal memuat paket langganan.'));
     } finally {
       setLoading(false);
@@ -177,8 +176,7 @@ export default function SubscriptionPlans() {
 
       await fetchPlans();
       closeModal();
-    } catch (error: unknown) {
-      console.error('Failed to save plan:', error);
+    } catch  {
       toast.error(getErrorMessage(error, 'Gagal menyimpan paket langganan.'));
     } finally {
       setSubmitting(false);

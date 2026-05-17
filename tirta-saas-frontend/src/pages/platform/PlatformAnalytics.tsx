@@ -97,8 +97,7 @@ export default function PlatformAnalytics() {
 
       setOverview(overviewRes.data);
       setTenantGrowth(growthRes.data);
-    } catch (err: unknown) {
-      console.error('Error fetching analytics:', err);
+    } catch  {
       setError(getErrorMessage(err, 'Gagal memuat analitik platform.'));
     } finally {
       setLoading(false);

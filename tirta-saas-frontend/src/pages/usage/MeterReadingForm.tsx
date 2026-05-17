@@ -8,13 +8,12 @@ import { CustomerSearchSelect } from '../../components';
 import type { WaterPemakaianFormData } from '../../types/usage';
 import type { Customer } from '../../types/customer';
 import type { WaterRate } from '../../types/waterRate';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader } from '../../components';
+import { useToast } from '../../components';
 
 export default function MeterReadingForm() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
 
@@ -78,12 +77,8 @@ export default function MeterReadingForm() {
     try {
       const response = await customerService.getPelanggan(1, 1000, { isActive: true });
       setPelanggan(response.data);
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Gagal memuat data pelanggan',
-      }));
-      console.error('Error fetching customers:', error);
+    } catch  {
+      toast.error('Gagal memuat data pelanggan');
     }
   };
 
@@ -97,10 +92,9 @@ export default function MeterReadingForm() {
           ? ''
           : 'Belum ada tarif air aktif untuk tipe langganan pelanggan ini. Tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air.'
       );
-    } catch (error) {
+    } catch {
       setActiveRate(null);
       setRateWarning('Gagal memeriksa tarif air aktif untuk pelanggan ini.');
-      console.error('Error fetching active water rate:', error);
     } finally {
       setIsCheckingRate(false);
     }
@@ -116,9 +110,8 @@ export default function MeterReadingForm() {
       } else {
         setPreviousReading(0);
       }
-    } catch (error) {
+    } catch {
       setPreviousReading(0);
-      console.error('Error fetching previous reading:', error);
     }
   };
 
@@ -133,12 +126,8 @@ export default function MeterReadingForm() {
         notes: data.notes || '',
       });
       setPreviousReading(data.meterStart);
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Gagal memuat data pemakaian air',
-      }));
-      console.error('Error fetching water usage:', error);
+    } catch  {
+      toast.error('Gagal memuat data pemakaian air');
     } finally {
       setLoading(false);
     }
@@ -184,10 +173,7 @@ export default function MeterReadingForm() {
     }
 
     if (!isEditMode && !activeRate) {
-      dispatch(addNotification({
-        type: 'error',
-        message: rateWarning || 'Tarif air aktif belum tersedia untuk pelanggan ini',
-      }));
+      toast.error(rateWarning || 'Tarif air aktif belum tersedia untuk pelanggan ini');
       return;
     }
 
@@ -206,25 +192,15 @@ export default function MeterReadingForm() {
           meterEnd: payload.meterEnd,
           notes: payload.notes,
         });
-        dispatch(addNotification({
-          type: 'success',
-          message: 'Pembacaan meter berhasil diperbarui',
-        }));
+        toast.success('Pembacaan meter berhasil diperbarui');
       } else {
         await usageService.createWaterPemakaian(payload);
-        dispatch(addNotification({
-          type: 'success',
-          message: 'Pembacaan meter berhasil dicatat',
-        }));
+        toast.success('Pembacaan meter berhasil dicatat');
       }
 
       navigate('/admin/usage');
-    } catch (error: any) {
-      dispatch(addNotification({
-        type: 'error',
-        message: error?.response?.data?.error || `Gagal ${isEditMode ? 'memperbarui' : 'mencatat'} pembacaan meter`,
-      }));
-      console.error('Error submitting form:', error);
+    } catch  {
+      toast.error(error?.response?.data?.error || `Gagal ${isEditMode ? 'memperbarui' : 'mencatat'} pembacaan meter`);
     } finally {
       setLoading(false);
     }

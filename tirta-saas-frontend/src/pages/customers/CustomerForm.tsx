@@ -4,9 +4,8 @@ import { useForm } from 'react-hook-form';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import customerService from '../../services/customerService';
 import type { CreateCustomerDto, UpdateCustomerDto, SubscriptionType } from '../../types/customer';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader } from '../../components';
+import { useToast } from '../../components';
 
 interface CustomerFormData {
   meter_number: string;
@@ -24,7 +23,7 @@ interface CustomerFormProps {
 
 export default function CustomerForm({ mode }: CustomerFormProps) {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   const { id } = useParams<{ id: string }>();
   
   const [loading, setLoading] = useState(false);
@@ -43,12 +42,9 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
       const types = await customerService.getSubscriptionTypes();
       setSubscriptionTypes(types);
     } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch subscription types',
-      }));
+      toast.error('Gagal memuat daftar golongan langganan');
     }
-  }, [dispatch]);
+  }, [toast]);
 
   const fetchCustomer = useCallback(async (customerId: string) => {
     try {
@@ -65,15 +61,12 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
         address: customer.address || '',
       });
     } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch customer details',
-      }));
+      toast.error('Gagal memuat data pelanggan');
       navigate('/admin/customers');
     } finally {
       setLoading(false);
     }
-  }, [dispatch, navigate, reset]);
+  }, [navigate, reset, toast]);
 
   useEffect(() => {
     void fetchSubscriptionTypes();
@@ -88,24 +81,15 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
       
       if (mode === 'create') {
         await customerService.createCustomer(data as CreateCustomerDto);
-        dispatch(addNotification({
-          type: 'success',
-          message: 'Customer created successfully',
-        }));
+        toast.success('Pelanggan berhasil ditambahkan');
       } else if (mode === 'edit' && id) {
         await customerService.updateCustomer(id, data as UpdateCustomerDto);
-        dispatch(addNotification({
-          type: 'success',
-          message: 'Customer updated successfully',
-        }));
+        toast.success('Pelanggan berhasil diperbarui');
       }
       
       navigate('/admin/customers');
     } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: `Failed to ${mode} customer`,
-      }));
+      toast.error(`Gagal ${mode === 'create' ? 'menambahkan' : 'memperbarui'} pelanggan`);
     } finally {
       setSaving(false);
     }

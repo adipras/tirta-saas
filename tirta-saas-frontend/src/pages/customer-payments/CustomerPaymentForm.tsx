@@ -62,7 +62,7 @@ export default function CustomerPaymentForm() {
       const unpaid = data.filter(inv => inv.status !== 'paid');
       setTagihan(unpaid);
       setError(null);
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.message || 'Failed to load invoices');
     } finally {
       setLoading(false);
@@ -154,7 +154,7 @@ export default function CustomerPaymentForm() {
           paymentMethod: formData.paymentMethod
         } 
       });
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.message || 'Failed to process payment');
     } finally {
       setSubmitting(false);

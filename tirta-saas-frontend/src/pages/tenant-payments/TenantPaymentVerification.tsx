@@ -116,8 +116,7 @@ export default function TenantPaymentVerification() {
       setError('');
       const result = await paymentProofService.getPaymentProofs();
       setPayments(result.payment_proofs.map(mapProofToPayment));
-    } catch (loadError) {
-      console.error('Failed to load payment proofs:', loadError);
+    } catch {
       setError('Daftar verifikasi pembayaran belum bisa dimuat. Silakan coba lagi.');
     } finally {
       setLoading(false);
@@ -186,8 +185,7 @@ export default function TenantPaymentVerification() {
           : 'Pembayaran berhasil ditolak.'
       );
       closeModal();
-    } catch (actionError) {
-      console.error('Payment verification action failed:', actionError);
+    } catch {
       toast.error('Aksi gagal. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);

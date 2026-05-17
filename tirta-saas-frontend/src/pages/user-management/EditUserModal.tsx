@@ -28,9 +28,7 @@ export default function EditUserModal({ user, onClose, onSuccess }: EditUserModa
     try {
       const data = await tenantUserService.getAvailableRoles();
       setRoles(data);
-    } catch (err) {
-      console.error('Failed to load roles:', err);
-    }
+    } catch { /* ignore */ }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,8 +46,7 @@ export default function EditUserModal({ user, onClose, onSuccess }: EditUserModa
       await tenantUserService.updateTenantUser(user.id, formData);
       toast.success('User berhasil diperbarui!');
       onSuccess();
-    } catch (err: any) {
-      console.error('Failed to update user:', err);
+    } catch  {
       setError(err.response?.data?.error || 'Failed to update user');
     } finally {
       setLoading(false);

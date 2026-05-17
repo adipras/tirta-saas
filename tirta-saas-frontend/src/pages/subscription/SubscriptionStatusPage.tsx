@@ -65,8 +65,7 @@ export default function SubscriptionStatusPage() {
     try {
       const data = await subscriptionPaymentService.getSubscriptionStatus();
       setStatus(data);
-    } catch (error) {
-      console.error('Failed to load subscription status:', error);
+    } catch {
       setStatus(null);
     } finally {
       setLoading(false);

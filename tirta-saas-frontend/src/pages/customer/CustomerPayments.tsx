@@ -21,9 +21,7 @@ const CustomerPembayaran: React.FC = () => {
     try {
       const data = await customerPortalService.getPembayaran();
       setPembayaran(data);
-    } catch (error) {
-      console.error('Error loading payments:', error);
-    } finally {
+    } catch { /* ignore */ } finally {
       setLoading(false);
     }
   };

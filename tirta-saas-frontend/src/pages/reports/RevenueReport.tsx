@@ -87,8 +87,7 @@ export default function RevenueReport() {
       setLoading(true);
       const data = await reportService.getRevenueReport(filters);
       setReportData(data);
-    } catch (error) {
-      console.error('Failed to fetch revenue report:', error);
+    } catch {
       setReportData(null);
     } finally {
       setLoading(false);

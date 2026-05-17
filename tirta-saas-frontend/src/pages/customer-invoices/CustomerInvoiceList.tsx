@@ -29,7 +29,7 @@ export default function CustomerInvoiceList() {
       const data = await invoiceService.getCustomerTagihan();
       setTagihan(data);
       setError(null);
-    } catch (err: unknown) {
+    } catch  {
       if (typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string') {
         setError(err.message);
       } else {

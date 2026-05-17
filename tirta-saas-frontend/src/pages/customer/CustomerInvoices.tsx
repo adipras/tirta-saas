@@ -22,9 +22,7 @@ const CustomerTagihan: React.FC = () => {
     try {
       const data = await customerPortalService.getTagihan();
       setTagihan(data);
-    } catch (error) {
-      console.error('Error loading invoices:', error);
-    } finally {
+    } catch { /* ignore */ } finally {
       setLoading(false);
     }
   };

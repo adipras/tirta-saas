@@ -32,7 +32,6 @@ class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
-      console.log('Login response:', response);
       
       // Handle different response formats
       const authData: AuthResponse = {
@@ -41,7 +40,7 @@ class AuthService {
         user: response.user || {
           id: response.id || response.userId || '',
           email: response.email || credentials.email,
-          name: response.name || response.username || 'Admin User',
+          name: response.name || response.username || 'Pengguna',
           role: response.role || 'admin',
           tenant_id: response.tenant_id || response.tenantId,
           tenant_name: response.tenant_name || null,
@@ -55,9 +54,8 @@ class AuthService {
       this.setUser(authData.user);
       
       return authData;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw new Error('Login failed. Please check your credentials.');
+    } catch {
+      throw new Error('Login gagal. Periksa kembali email dan kata sandi Anda.');
     }
   }
 
@@ -67,7 +65,7 @@ class AuthService {
       if (token) {
         await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, {});
       }
-    } catch (error) {
+    } catch  {
       console.error('Logout error:', error);
     } finally {
       this.clearAuth();

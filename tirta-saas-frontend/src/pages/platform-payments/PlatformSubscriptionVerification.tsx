@@ -60,8 +60,7 @@ export default function PlatformSubscriptionVerification() {
       const statusFilter = filterStatus === 'all' ? undefined : filterStatus;
       const data = await platformSubscriptionService.getSubscriptionPembayaran(statusFilter);
       setPayments(data);
-    } catch (err: unknown) {
-      console.error('Failed to load payments:', err);
+    } catch  {
       setError(getErrorMessage(err, 'Gagal memuat pembayaran langganan tenant.'));
     } finally {
       setLoading(false);
@@ -96,7 +95,7 @@ export default function PlatformSubscriptionVerification() {
         objectUrl = URL.createObjectURL(blob);
         setProofPreviewUrl(objectUrl);
         setProofContentType(blob.type || '');
-      } catch (err: unknown) {
+      } catch  {
         if (!active) {
           return;
         }
@@ -163,8 +162,7 @@ export default function PlatformSubscriptionVerification() {
 
       await loadPayments();
       closeModal();
-    } catch (err: unknown) {
-      console.error('Action failed:', err);
+    } catch  {
       setError(getErrorMessage(err, 'Aksi pembayaran gagal. Silakan coba lagi.'));
     } finally {
       setIsSubmitting(false);

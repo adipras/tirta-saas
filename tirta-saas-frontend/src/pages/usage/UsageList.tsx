@@ -14,13 +14,12 @@ import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
 import type { WaterPemakaian, WaterPemakaianFilters } from '../../types/usage';
 import type { Customer } from '../../types/customer';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { DashboardStatCard, PageHeader, ConfirmModal } from '../../components';
+import { useToast } from '../../components';
 
 export default function PemakaianList() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   
   const [waterPemakaians, setWaterPemakaians] = useState<WaterPemakaian[]>([]);
   const [customers, setPelanggan] = useState<Customer[]>([]);
@@ -44,24 +43,18 @@ export default function PemakaianList() {
         filters
       );
       setWaterPemakaians(response.data);
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch water usages',
-      }));
-      console.error('Error fetching water usages:', error);
+    } catch  {
+      toast.error('Gagal memuat data pemakaian air');
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filters, dispatch]);
+  }, [currentPage, filters, dispatch, toast]);
 
   const fetchPelanggan = useCallback(async () => {
     try {
       const response = await customerService.getPelanggan(1, 1000, { isActive: true });
       setPelanggan(response.data);
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-    }
+    } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {
@@ -80,18 +73,11 @@ export default function PemakaianList() {
     if (!deleteTarget) return;
     try {
       await usageService.deleteWaterPemakaian(deleteTarget);
-      dispatch(addNotification({
-        type: 'success',
-        message: 'Water usage deleted successfully',
-      }));
+      toast.success('Data pemakaian air berhasil dihapus');
       setDeleteTarget(null);
       fetchWaterPemakaians();
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to delete water usage',
-      }));
-      console.error('Error deleting water usage:', error);
+    } catch  {
+      toast.error('Gagal menghapus data pemakaian air');
     }
   };
 

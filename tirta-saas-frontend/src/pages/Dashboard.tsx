@@ -38,8 +38,6 @@ const stats = [
 ];
 
 const Dashboard = () => {
-  console.log('=== Dashboard Component Rendering ===');
-  console.log('Dashboard content should appear now');
   
   return (
     <div style={{ border: '3px solid green', padding: '20px', backgroundColor: 'white' }}>

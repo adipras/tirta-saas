@@ -41,9 +41,7 @@ export default function CustomerPaymentInfo() {
       // setQRCodes(settings.qrCodes.filter(q => q.isActive));
       setBankAccounts([]);
       setQRCodes([]);
-    } catch (error) {
-      console.error('Failed to load payment settings:', error);
-    }
+    } catch { /* ignore */ }
   };
 
   const loadInvoice = async () => {
@@ -51,9 +49,7 @@ export default function CustomerPaymentInfo() {
       setLoading(true);
       const data = await invoiceService.getInvoiceById(invoiceId!);
       setInvoice(data);
-    } catch (error) {
-      console.error('Failed to load invoice:', error);
-    } finally {
+    } catch { /* ignore */ } finally {
       setLoading(false);
     }
   };
@@ -63,9 +59,7 @@ export default function CustomerPaymentInfo() {
       await navigator.clipboard.writeText(text);
       setCopiedField(field);
       setTimeout(() => setCopiedField(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
+    } catch { /* ignore */ }
   };
 
   const formatCurrency = (amount: number) => {

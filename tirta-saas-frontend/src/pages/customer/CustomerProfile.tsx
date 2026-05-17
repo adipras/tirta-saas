@@ -40,9 +40,7 @@ const CustomerProfil: React.FC = () => {
         address: data.address,
         phone: data.phone,
       });
-    } catch (error) {
-      console.error('Error loading profile:', error);
-    } finally {
+    } catch { /* ignore */ } finally {
       setLoading(false);
     }
   };
@@ -56,7 +54,7 @@ const CustomerProfil: React.FC = () => {
       await customerPortalService.updateProfil(profileForm);
       setMessage({ type: 'success', text: 'Profil berhasil diperbarui!' });
       await loadProfil();
-    } catch (error: any) {
+    } catch  {
       setMessage({ type: 'error', text: error.response?.data?.error || 'Gagal memperbarui profil' });
     } finally {
       setSaving(false);
@@ -90,7 +88,7 @@ const CustomerProfil: React.FC = () => {
         new_password: '',
         confirm_password: '',
       });
-    } catch (error: any) {
+    } catch  {
       setMessage({ type: 'error', text: error.response?.data?.error || 'Gagal mengubah password' });
     } finally {
       setSaving(false);

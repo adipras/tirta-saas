@@ -33,14 +33,12 @@ const PaymentReceipt: React.FC = () => {
       setLoading(true);
       const data = await paymentService.getReceipt(paymentId);
       setReceipt(data);
-    } catch (error) {
-      console.error('Failed to fetch receipt:', error);
+    } catch  {
 
       try {
         const generated = await paymentService.generateReceipt(paymentId);
         setReceipt(generated);
-      } catch (genError) {
-        console.error('Failed to generate receipt:', genError);
+      } catch  {
         toast.error('Gagal memuat struk pembayaran');
       }
     } finally {
@@ -60,8 +58,7 @@ const PaymentReceipt: React.FC = () => {
       setPrinterStatus(status);
       setBridgeAvailable(status.bridgeAvailable !== false && status.bridgeRunning !== false);
       setBridgeChecked(true);
-    } catch (error) {
-      console.error('Failed to get thermal printer status:', error);
+    } catch {
       setPrinterStatus({
         connected: false,
         bridgeAvailable: false,
@@ -123,8 +120,7 @@ const PaymentReceipt: React.FC = () => {
       } else {
         toast.success(`${devices.length} printer thermal ditemukan`);
       }
-    } catch (error) {
-      console.error('Failed to scan thermal printers:', error);
+    } catch  {
       toast.error('Gagal mencari printer thermal');
     } finally {
       setPrinterBusy(false);
@@ -148,8 +144,7 @@ const PaymentReceipt: React.FC = () => {
       setPreferredPrinter(device);
       toast.success(`Printer ${device.name} berhasil dihubungkan`);
       await refreshPrinterStatus();
-    } catch (error) {
-      console.error('Failed to connect thermal printer:', error);
+    } catch  {
       toast.error(`Gagal menghubungkan printer ${device.name}`);
     } finally {
       setPrinterBusy(false);
@@ -172,8 +167,7 @@ const PaymentReceipt: React.FC = () => {
         toast.success('Perintah cetak ke printer thermal berhasil dikirim');
         await refreshPrinterStatus();
         return;
-      } catch (error) {
-        console.error('Failed to print using thermal bridge:', error);
+      } catch  {
         toast.error('Gagal mencetak ke printer thermal, gunakan cetak browser sebagai fallback');
       } finally {
         setPrinting(false);

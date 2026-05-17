@@ -33,7 +33,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
       toast.success('Pembayaran berhasil diverifikasi!');
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.error || 'Failed to verify payment');
     } finally {
       setLoading(false);
@@ -55,7 +55,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
       toast.success('Pembayaran berhasil ditolak');
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.error || 'Failed to reject payment');
     } finally {
       setLoading(false);

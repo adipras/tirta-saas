@@ -86,8 +86,7 @@ export default function PaymentReport() {
       setLoading(true);
       const data = await reportService.getPaymentReport(filters);
       setReportData(data);
-    } catch (error) {
-      console.error('Failed to fetch payment report:', error);
+    } catch {
       setReportData(null);
     } finally {
       setLoading(false);

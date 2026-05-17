@@ -237,8 +237,7 @@ export default function TenantPaymentSettings() {
       if (qrRes.status === 'fulfilled') {
         setQRCodes(qrRes.value);
       }
-    } catch (error) {
-      console.error('Failed to load tenant settings:', error);
+    } catch  {
       toast.error('Gagal memuat pengaturan tenant.');
     }
   }, [toast]);
@@ -324,8 +323,7 @@ export default function TenantPaymentSettings() {
       syncTenantIdentity(updatedSettings, uploadedLogoUrl);
       await loadSettings();
       toast.success('Profil tenant berhasil diperbarui.');
-    } catch (error) {
-      console.error('Failed to save tenant profile:', error);
+    } catch  {
       toast.error('Gagal menyimpan profil tenant.');
     } finally {
       setProfileSaving(false);
@@ -366,8 +364,7 @@ export default function TenantPaymentSettings() {
       });
       await loadSettings();
       toast.success('Siklus tagihan berhasil diperbarui.');
-    } catch (error) {
-      console.error('Failed to save billing settings:', error);
+    } catch  {
       toast.error('Gagal menyimpan siklus tagihan.');
     } finally {
       setBillingSaving(false);
@@ -421,8 +418,7 @@ export default function TenantPaymentSettings() {
       await loadSettings();
       closeBankModal();
       toast.success('Rekening bank berhasil disimpan.');
-    } catch (error) {
-      console.error('Failed to save bank account:', error);
+    } catch  {
       toast.error('Gagal menyimpan rekening bank.');
     }
   };
@@ -504,8 +500,7 @@ export default function TenantPaymentSettings() {
       await loadSettings();
       closeQRModal();
       toast.success('QR code berhasil disimpan.');
-    } catch (error) {
-      console.error('Failed to save QR code:', error);
+    } catch  {
       toast.error('Gagal menyimpan QR code.');
     }
   };
@@ -525,8 +520,7 @@ export default function TenantPaymentSettings() {
       setDeleteTarget(null);
       await loadSettings();
       toast.success(deleteTarget.type === 'bank' ? 'Rekening bank dihapus.' : 'QR code dihapus.');
-    } catch (error) {
-      console.error('Failed to delete payment method:', error);
+    } catch  {
       toast.error('Gagal menghapus data.');
     }
   };

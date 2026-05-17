@@ -89,8 +89,7 @@ export default function PlatformOwnerDashboard() {
       setOverview(overviewData);
       setPendingTenants((pendingData || []).slice(0, 3));
       setTenantsByPlan(growthData?.tenants_by_plan || {});
-    } catch (fetchError) {
-      console.error('Failed to fetch platform owner dashboard data:', fetchError);
+    } catch {
       setError('Dashboard platform owner belum bisa dimuat. Silakan coba lagi.');
     } finally {
       setLoading(false);

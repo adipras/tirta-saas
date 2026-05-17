@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, ArrowUpTrayIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { usageService } from '../../services/usageService';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader } from '../../components';
+import { useToast } from '../../components';
+
 
 interface RowEntry {
   meter_number: string;
@@ -18,7 +18,7 @@ const EMPTY_ROW: RowEntry = { meter_number: '', meter_end: '', notes: '' };
 
 export default function BulkImportWaterPemakaian() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
 
   const [usageMonth, setPemakaianMonth] = useState(new Date().toISOString().slice(0, 7));
   const [rows, setRows] = useState<RowEntry[]>([{ ...EMPTY_ROW }]);
@@ -57,11 +57,11 @@ export default function BulkImportWaterPemakaian() {
   const handleSubmit = async () => {
     const validRows = rows.filter(r => r.meter_number && r.meter_end);
     if (!usageMonth) {
-      dispatch(addNotification({ type: 'error', message: 'Pilih bulan pemakaian' }));
+      toast.error('Pilih bulan pemakaian');
       return;
     }
     if (validRows.length === 0) {
-      dispatch(addNotification({ type: 'error', message: 'Tidak ada data yang valid untuk diimport' }));
+      toast.error('Tidak ada data yang valid untuk diimport');
       return;
     }
 
@@ -86,12 +86,14 @@ export default function BulkImportWaterPemakaian() {
       });
       setRows(updatedRows);
 
-      dispatch(addNotification({
-        type: res.failed === 0 ? 'success' : 'warning',
-        message: `Import selesai: ${res.success} berhasil, ${res.failed} gagal`,
-      }));
-    } catch (err: any) {
-      dispatch(addNotification({ type: 'error', message: err.message || 'Import gagal' }));
+      const msg = `Import selesai: ${res.success} berhasil, ${res.failed} gagal`;
+      if (res.failed === 0) {
+        toast.success(msg);
+      } else {
+        toast.warning(msg);
+      }
+    } catch  {
+      toast.error(err.message || 'Import gagal');
     } finally {
       setLoading(false);
     }
@@ -103,7 +105,7 @@ export default function BulkImportWaterPemakaian() {
         title="Bulk Import Meter Reading"
         subtitle="Import data pembacaan meter banyak pelanggan sekaligus"
         actions={
-          <button onClick={() => navigate('/admin/usage')} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => navigate('/admin/usage')} aria-label="Kembali ke halaman pemakaian" className="text-gray-400 hover:text-gray-600">
             <ArrowLeftIcon className="h-6 w-6" />
           </button>
         }
@@ -198,7 +200,7 @@ export default function BulkImportWaterPemakaian() {
                     )}
                   </td>
                   <td className="px-3 py-2">
-                    <button onClick={() => removeRow(i)} className="text-gray-400 hover:text-red-500 text-xs">✕</button>
+                    <button onClick={() => removeRow(i)} aria-label="Hapus baris ini" className="text-gray-400 hover:text-red-500 text-xs">✕</button>
                   </td>
                 </tr>
               ))}

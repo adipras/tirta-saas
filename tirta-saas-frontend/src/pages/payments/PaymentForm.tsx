@@ -91,9 +91,7 @@ const PaymentForm: React.FC = () => {
       // Allow payment for all customers (including inactive)
       // Because registration fee payment is required to activate customer
       setPelanggan(response.data);
-    } catch (error) {
-      console.error('Failed to fetch customers:', error);
-    }
+    } catch { /* ignore */ }
   }, []);
 
   const fetchOutstandingTagihan = useCallback(async (customerId: string) => {
@@ -103,8 +101,7 @@ const PaymentForm: React.FC = () => {
       setOutstandingTagihan(invoices);
       setSelectedTagihan(new Set());
       setPaymentAmounts({});
-    } catch (error) {
-      console.error('Failed to fetch outstanding invoices:', error);
+    } catch  {
       setOutstandingTagihan([]);
       setSelectedTagihan(new Set());
       setPaymentAmounts({});
@@ -312,8 +309,7 @@ const PaymentForm: React.FC = () => {
           : 'Pembayaran berhasil dicatat.'
       );
       navigate('/admin/payments');
-    } catch (error: unknown) {
-      console.error('Failed to save payment:', error);
+    } catch  {
       toast.error(getErrorMessage(error, 'Gagal menyimpan pembayaran'));
     } finally {
       setLoading(false);

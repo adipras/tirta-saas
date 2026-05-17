@@ -118,7 +118,7 @@ export default function BulkImportPelanggan() {
       if (res.failureCount > 0) {
         toast.warning(`${res.failureCount} baris gagal diimport`);
       }
-    } catch (err: any) {
+    } catch  {
       toast.error(err?.response?.data?.error || 'Gagal mengimport data');
     } finally {
       setLoading(false);

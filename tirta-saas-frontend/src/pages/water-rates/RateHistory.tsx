@@ -7,8 +7,6 @@ import {
   CurrencyDollarIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { waterRateService } from '../../services/waterRateService';
 import { subscriptionService } from '../../services/subscriptionService';
 import type { RateHistory } from '../../types/waterRate';
@@ -20,6 +18,7 @@ import {
   PageHeader,
 } from '../../components';
 import type { Column } from '../../components';
+import { useToast } from '../../components';
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -46,7 +45,7 @@ const formatDateTime = (date: string) =>
 
 export default function RateHistory() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
 
   const [history, setHistory] = useState<RateHistory[]>([]);
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
@@ -63,26 +62,18 @@ export default function RateHistory() {
         20
       );
       setHistory(response.data);
-    } catch (error) {
-      dispatch(
-        addNotification({
-          type: 'error',
-          message: 'Riwayat tarif air belum bisa dimuat',
-        })
-      );
-      console.error('Error fetching rate history:', error);
+    } catch  {
+      toast.error('Riwayat tarif air belum bisa dimuat');
     } finally {
       setLoading(false);
     }
-  }, [currentPage, selectedSubscription, dispatch]);
+  }, [currentPage, selectedSubscription, toast]);
 
   const fetchSubscriptionTypes = useCallback(async () => {
     try {
       const types = await subscriptionService.getAllSubscriptionTypes();
       setSubscriptionTypes(types);
-    } catch (error) {
-      console.error('Error fetching subscription types:', error);
-    }
+    } catch { /* ignore */ }
   }, []);
 
   useEffect(() => {

@@ -45,8 +45,7 @@ export default function PemakaianHistoryPage() {
     try {
       const data = await customerService.getCustomerById(customerId);
       setCustomer(data);
-    } catch (fetchError) {
-      console.error('Error fetching customer:', fetchError);
+    } catch {
       setError('Profil pelanggan belum bisa dimuat. Silakan coba lagi.');
     }
   }, [customerId]);
@@ -61,8 +60,7 @@ export default function PemakaianHistoryPage() {
       setError('');
       const data = await usageService.getCustomerPemakaianHistoryById(customerId);
       setHistory(data);
-    } catch (fetchError) {
-      console.error('Error fetching usage history:', fetchError);
+    } catch {
       setError('Riwayat pemakaian belum bisa dimuat. Silakan coba lagi.');
     } finally {
       setLoading(false);

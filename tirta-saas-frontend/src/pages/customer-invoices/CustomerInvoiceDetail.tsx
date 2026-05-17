@@ -33,7 +33,7 @@ export default function CustomerInvoiceDetail() {
       const data = await invoiceService.getInvoiceById(id!);
       setInvoice(data);
       setError(null);
-    } catch (err: any) {
+    } catch  {
       setError(err.response?.data?.message || 'Failed to load invoice');
     } finally {
       setLoading(false);
@@ -44,7 +44,7 @@ export default function CustomerInvoiceDetail() {
     try {
       setDownloading(true);
       await invoiceService.downloadInvoicePDF(id!);
-    } catch (err: any) {
+    } catch  {
       toast.error(err.response?.data?.message || 'Gagal mengunduh invoice');
     } finally {
       setDownloading(false);

@@ -106,8 +106,7 @@ const TenantManagement = () => {
           : API_ENDPOINTS.PLATFORM.TENANTS;
       const response = await apiClient.get(endpoint);
       setTenants(response.data || []);
-    } catch (error) {
-      console.error('Failed to load tenants:', error);
+    } catch  {
       toast.error('Gagal memuat data tenant.');
     } finally {
       setIsLoading(false);
@@ -127,8 +126,7 @@ const TenantManagement = () => {
           total_tenants: 0,
         }
       );
-    } catch (error) {
-      console.error('Failed to load tenant stats:', error);
+    } catch  {
       toast.error('Gagal memuat ringkasan tenant.');
     }
   }, [toast]);
@@ -193,8 +191,7 @@ const TenantManagement = () => {
 
       await Promise.all([loadTenants(), loadTenantStats()]);
       closeModal();
-    } catch (error) {
-      console.error('Action failed:', error);
+    } catch  {
       toast.error('Aksi tenant gagal. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);

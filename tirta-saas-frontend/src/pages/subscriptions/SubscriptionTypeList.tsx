@@ -10,13 +10,12 @@ import {
 import { DataTable } from '../../components/DataTable';
 import { subscriptionService } from '../../services/subscriptionService';
 import type { SubscriptionType } from '../../types/subscription';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader, ConfirmModal } from '../../components';
+import { useToast } from '../../components';
 
 export default function SubscriptionTypeList() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +32,6 @@ export default function SubscriptionTypeList() {
         10, 
         search || undefined
       );
-      console.log('Golongan Langganan Response:', response);
       
       // Response is already formatted by service with {data, totalPages}
       if (response && response.data) {
@@ -49,23 +47,17 @@ export default function SubscriptionTypeList() {
         setSubscriptionTypes(processedData);
         setTotalPages(response.totalPages || 1);
       } else {
-        console.error('Invalid response format:', response);
         setSubscriptionTypes([]);
         setTotalPages(1);
       }
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch subscription types',
-      }));
-      console.error('Error fetching subscription types:', error);
-      console.error('Error details:', (error as any)?.response || (error as any)?.message);
+    } catch  {
+      toast.error('Gagal memuat daftar golongan langganan');
       setSubscriptionTypes([]);
       setTotalPages(1);
     } finally {
       setLoading(false);
     }
-  }, [currentPage, search, dispatch]);
+  }, [currentPage, search, dispatch, toast]);
 
   useEffect(() => {
     fetchSubscriptionTypes();
@@ -79,18 +71,11 @@ export default function SubscriptionTypeList() {
     if (!deleteTarget) return;
     try {
       await subscriptionService.deleteSubscriptionType(deleteTarget);
-      dispatch(addNotification({
-        type: 'success',
-        message: 'Subscription type deleted successfully',
-      }));
+      toast.success('Golongan langganan berhasil dihapus');
       setDeleteTarget(null);
       fetchSubscriptionTypes();
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to delete subscription type',
-      }));
-      console.error('Error deleting subscription type:', error);
+    } catch  {
+      toast.error('Gagal menghapus golongan langganan');
     }
   };
 

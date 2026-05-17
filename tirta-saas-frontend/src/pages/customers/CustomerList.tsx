@@ -13,13 +13,12 @@ import {
 import { DataTable, type Column } from '../../components/DataTable';
 import customerService from '../../services/customerService';
 import type { Customer, CustomerFilters, SubscriptionType } from '../../types/customer';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { DashboardStatCard, PageHeader } from '../../components';
+import { useToast } from '../../components';
 
 export default function CustomerList() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   
   const [customers, setPelanggan] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,14 +52,11 @@ export default function CustomerList() {
       const response = await customerService.getPelanggan(currentPage, 10, filterParams);
       setPelanggan(response.data);
     } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch customers',
-      }));
+      toast.error('Gagal memuat daftar pelanggan');
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filters, dispatch]);
+  }, [currentPage, filters, toast]);
 
   useEffect(() => {
     fetchPelanggan();
@@ -71,9 +67,7 @@ export default function CustomerList() {
     try {
       const types = await customerService.getSubscriptionTypes();
       setSubscriptionTypes(types);
-    } catch (error) {
-      console.error('Failed to fetch subscription types:', error);
-    }
+    } catch { /* ignore */ }
   };
 
   const handleStatusChange = async (customerId: string, isActive: boolean) => {
@@ -84,17 +78,11 @@ export default function CustomerList() {
         await customerService.deactivateCustomer(customerId);
       }
       
-      dispatch(addNotification({
-        type: 'success',
-        message: `Customer ${isActive ? 'activated' : 'deactivated'} successfully`,
-      }));
+      toast.success(`Pelanggan berhasil ${isActive ? 'diaktifkan' : 'dinonaktifkan'}`);
       
       fetchPelanggan();
     } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to update customer status',
-      }));
+      toast.error('Gagal memperbarui status pelanggan');
     }
   };
 
@@ -117,15 +105,9 @@ export default function CustomerList() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      dispatch(addNotification({
-        type: 'success',
-        message: 'Pelanggan exported successfully',
-      }));
+      toast.success('Data pelanggan berhasil diekspor');
     } catch {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to export customers',
-      }));
+      toast.error('Gagal mengekspor data pelanggan');
     }
   };
 

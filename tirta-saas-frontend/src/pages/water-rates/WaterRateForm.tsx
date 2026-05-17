@@ -5,13 +5,12 @@ import { waterRateService } from '../../services/waterRateService';
 import { subscriptionService } from '../../services/subscriptionService';
 import type { WaterRateFormData } from '../../types/waterRate';
 import type { SubscriptionType } from '../../types/subscription';
-import { useAppDispatch } from '../../hooks/redux';
-import { addNotification } from '../../store/slices/uiSlice';
 import { PageHeader } from '../../components';
+import { useToast } from '../../components';
 
 export default function WaterRateForm() {
   const navigate = useNavigate();
-  const dispatch = useAppDispatch();
+  const toast = useToast();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
 
@@ -38,12 +37,8 @@ export default function WaterRateForm() {
     try {
       const types = await subscriptionService.getAllSubscriptionTypes();
       setSubscriptionTypes(types);
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch subscription types',
-      }));
-      console.error('Error fetching subscription types:', error);
+    } catch  {
+      toast.error('Gagal memuat data golongan langganan');
     }
   };
 
@@ -51,7 +46,6 @@ export default function WaterRateForm() {
     try {
       setLoading(true);
       const data = await waterRateService.getWaterRate(rateId);
-      console.log('Fetched water rate data:', data);
       setFormData({
         amount: data.amount.toString(),
         effectiveDate: data.effective_date.split('T')[0],
@@ -59,12 +53,8 @@ export default function WaterRateForm() {
         categoryId: data.category_id || '',
         description: data.description || '',
       });
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: 'Failed to fetch water rate',
-      }));
-      console.error('Error fetching water rate:', error);
+    } catch  {
+      toast.error('Gagal memuat data tarif air');
     } finally {
       setLoading(false);
     }
@@ -129,25 +119,15 @@ export default function WaterRateForm() {
 
       if (isEditMode && id) {
         await waterRateService.updateWaterRate(id, payload);
-        dispatch(addNotification({
-          type: 'success',
-          message: 'Water rate updated successfully',
-        }));
+        toast.success('Tarif air berhasil diperbarui');
       } else {
         await waterRateService.createWaterRate(payload);
-        dispatch(addNotification({
-          type: 'success',
-          message: 'Water rate created successfully',
-        }));
+        toast.success('Tarif air berhasil dibuat');
       }
 
       navigate('/admin/water-rates');
-    } catch (error) {
-      dispatch(addNotification({
-        type: 'error',
-        message: `Failed to ${isEditMode ? 'update' : 'create'} water rate`,
-      }));
-      console.error('Error submitting form:', error);
+    } catch  {
+      toast.error(`Gagal ${isEditMode ? 'memperbarui' : 'membuat'} tarif air`);
     } finally {
       setLoading(false);
     }

@@ -33,9 +33,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
       if (data.length > 0) {
         setFormData((prev) => ({ ...prev, role: data[0].value }));
       }
-    } catch (err) {
-      console.error('Failed to load roles:', err);
-    }
+    } catch { /* ignore */ }
   };
 
   const handleGeneratePassword = () => {
@@ -59,8 +57,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
       await tenantUserService.createTenantUser(formData);
       setCreatedCredentials({ email: formData.email, password: formData.password });
       onSuccess();
-    } catch (err: any) {
-      console.error('Failed to create user:', err);
+    } catch  {
       setError(err.response?.data?.error || 'Failed to create user');
     } finally {
       setLoading(false);

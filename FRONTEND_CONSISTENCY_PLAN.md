@@ -111,3 +111,27 @@ Pendekatan implementasi:
 - Ada potensi breaking change pada route customer dan flow pembayaran; perlu strategi migrasi URL/redirect yang jelas.
 - Migrasi dilakukan incremental per domain fitur agar review PR tetap kecil dan terukur.
 - Seluruh perubahan UI harus menjaga behavior bisnis existing (tenant scoping, role access, payment proof flow).
+
+## Progress Sementara
+Status umum: implementasi sudah bergerak di **Fase 1** dan mulai menyentuh sebagian **Fase 2**, tetapi belum final.
+
+1. **Selesai**
+   - **T9 — Bersih-bersih legacy/debug** sudah dikerjakan pada area inti: route debug/test dibersihkan dari `src/App.tsx`, import test page dihapus, dan `console.log` debug utama dibersihkan dari `App.tsx` serta `src/components/PrivateRoute.tsx`.
+
+2. **Sedang berjalan**
+   - **T2 — Konsolidasi route customer**: route customer publik ganda di `src/App.tsx` sudah mulai dipangkas; entry publik customer difokuskan ke `/customer/login`, sedangkan route pembayaran customer dipindahkan ke tree customer yang terproteksi.
+   - **T3 — Standardisasi auth & API layer customer**: duplikasi halaman `src/pages/auth/CustomerLogin.tsx` sudah dihapus; flow customer aktif sedang dipusatkan ke implementasi di `src/pages/customer/*`.
+   - **T5 — Standarisasi state loading/error**: beberapa halaman sudah mulai digeser ke pola loading/error yang lebih konsisten; contoh jelas terlihat di `src/pages/customer/CustomerDashboard.tsx` yang sudah memakai skeleton/loading state dan pesan error UI.
+   - **T7 — Standardisasi copy Bahasa Indonesia**: sebagian pesan user-facing mulai dilokalkan, termasuk fallback pesan login di `src/services/authService.ts`.
+
+3. **Snapshot perubahan yang sudah terlihat**
+   - `src/App.tsx`: konsolidasi import halaman customer, penghapusan route debug/test, dan perapihan route customer.
+   - `src/pages/customer/CustomerDashboard.tsx`: migrasi dari service customer lama ke Redux auth + service domain standar (`invoiceService`, `customerProfilService`), plus perbaikan UX loading/error.
+   - `src/pages/customer/CustomerLogin.tsx` dan `src/pages/customer/CustomerPayInvoice.tsx`: refactor flow customer sedang berlangsung.
+   - `src/services/authService.ts`: logging debug dikurangi dan copy error login diubah ke Bahasa Indonesia.
+
+4. **Belum final / belum dikerjakan penuh**
+   - **T4 — Unifikasi notifikasi**
+   - **T6 — Harmonisasi komponen form/tabel/tombol/modal**
+   - **T8 — Hardening aksesibilitas**
+   - **T10 — Guardrails lint/build/dokumentasi konsistensi**

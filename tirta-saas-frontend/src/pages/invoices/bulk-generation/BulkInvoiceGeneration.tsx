@@ -60,8 +60,7 @@ const BulkInvoiceGeneration = () => {
 
       setPreviewData(data);
       setShowPreview(true);
-    } catch (error) {
-      console.error('Error previewing:', error);
+    } catch  {
       toast.error('Gagal preview invoice. Silakan coba lagi.');
     } finally {
       setLoading(false);
@@ -88,8 +87,7 @@ const BulkInvoiceGeneration = () => {
       setShowPreview(false);
       setPreviewData(null);
       toast.success(`Berhasil! ${data.success} tagihan dibuat.`);
-    } catch (error) {
-      console.error('Error generating:', error);
+    } catch  {
       toast.error('Gagal membuat tagihan. Silakan coba lagi.');
     } finally {
       setLoading(false);
