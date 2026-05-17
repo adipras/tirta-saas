@@ -73,16 +73,23 @@ Jika repo belum ada di VPS:
 ```bash
 sudo mkdir -p /opt/tirta-saas
 sudo chown -R adipras:adipras /opt/tirta-saas
-cd /opt
-git clone <URL_REPO_GIT> tirta-saas
+cd /opt/tirta-saas
+git clone <URL_REPO_GIT> app
+sudo chown -R adipras:adipras /opt/tirta-saas/app
 ```
 
 Kalau repo sudah ada:
 
 ```bash
-cd /opt/tirta-saas
+cd /opt/tirta-saas/app
 git pull origin main
 ```
+
+Catatan:
+
+- Direktori `/opt/tirta-saas` bisa dipakai untuk file operasional seperti `backup`, `env`, `nginx`, dan `scripts`
+- Source code Git disimpan di `/opt/tirta-saas/app`
+- Dengan struktur ini, folder operasional yang sudah ada tidak tertimpa oleh `git clone`
 
 ### Opsi fallback: rsync dari WSL ke VPS
 
@@ -92,7 +99,7 @@ rsync -av --delete \
   --exclude 'node_modules' \
   --exclude 'dist' \
   ~/workspace/tirta-saas/ \
-  adipras@103.93.161.172:/opt/tirta-saas/
+  adipras@103.93.161.172:/opt/tirta-saas/app/
 ```
 
 ---
@@ -100,7 +107,7 @@ rsync -av --delete \
 ## E. Siapkan environment di VPS
 
 ```bash
-cd /opt/tirta-saas
+cd /opt/tirta-saas/app
 cp .env.example .env
 nano .env
 ```
@@ -108,15 +115,33 @@ nano .env
 Isi minimal:
 
 - `MYSQL_ROOT_PASSWORD`
+- `MYSQL_DATABASE`
+- `MYSQL_USER`
 - `MYSQL_PASSWORD`
 - `JWT_SECRET`
+- `AUTO_SEED_ADMIN`
+- `ENABLE_INVOICE_SCHEDULER`
+- `ENABLE_TRIAL_SCHEDULER`
+
+Pastikan juga folder yang di-mount oleh Docker Compose tersedia:
+
+```bash
+cd /opt/tirta-saas/app
+mkdir -p deploy/certs deploy/www
+```
+
+Jika sebelumnya ada konfigurasi Nginx lama di `/opt/tirta-saas/nginx`, sinkronkan ke lokasi yang dipakai repo:
+
+```bash
+cp -r /opt/tirta-saas/nginx/* /opt/tirta-saas/app/deploy/nginx/
+```
 
 ---
 
 ## F. Jalankan Docker di VPS
 
 ```bash
-cd /opt/tirta-saas
+cd /opt/tirta-saas/app
 docker compose config
 docker compose up -d --build
 docker compose ps
@@ -137,10 +162,11 @@ Kalau ada perubahan baru:
 1. Edit file di `D:`
 2. `git add`, `git commit`, `git push`
 3. Di WSL: `git pull`
-4. Di VPS: `git pull`
+4. Di VPS: `cd /opt/tirta-saas/app && git pull origin main`
 5. Jalankan:
 
 ```bash
+cd /opt/tirta-saas/app
 docker compose up -d --build
 ```
 
@@ -151,4 +177,5 @@ docker compose up -d --build
 - Jangan commit file `.env`
 - Gunakan key SSH yang benar: `~/.ssh/adipras_id_ed25519`
 - Jika repo di VPS memakai GitHub private repo, pastikan VPS punya akses SSH key atau token
-
+- Semua perintah `git pull`, `docker compose`, dan pengelolaan `.env` dijalankan dari `/opt/tirta-saas/app`
+- Jangan clone repo langsung ke `/opt/tirta-saas` jika folder itu sudah dipakai untuk file deployment non-Git

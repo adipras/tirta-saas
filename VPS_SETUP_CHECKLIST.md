@@ -12,8 +12,12 @@ Dokumen ini dipakai untuk tracking progres deploy production Tirta SaaS di VPS.
 ## Status Saat Ini
 
 - **Phase 1:** Selesai
-- **Phase 2:** Belum dimulai
+- **Phase 2:** Selesai
+- **Phase 4:** In progress
 - **Akses VPS:** Sudah berhasil via SSH key dari WSL
+- **Deploy Docker:** Berhasil jalan di `/opt/tirta-saas/app`
+- **HTTP Publik:** `http://tirtautama.net` sudah aktif
+- **Catatan:** Login aplikasi masih gagal dan perlu investigasi terpisah
 
 ## Prasyarat dari Mesin Lokal (WSL)
 
@@ -36,7 +40,7 @@ ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
 - [ ] SSH hardening aktif (`PermitRootLogin no`, `PasswordAuthentication no`)
 - [ ] `fail2ban` aktif
 - [ ] `unattended-upgrades` aktif
-- [ ] MySQL tidak diexpose ke publik
+- [x] MySQL tidak diexpose ke publik
 - [x] Verifikasi bisa login SSH dari terminal kedua sebelum restart SSH service
 
 **Cara dari terminal WSL:**
@@ -92,16 +96,17 @@ sudo ufw status verbose
 
 **Objective:** Docker Engine + Compose siap untuk production deployment.
 
-- [ ] Docker repo official ditambahkan
-- [ ] `docker-ce`, `docker-compose-plugin` terinstall
-- [ ] User `adipras` masuk grup `docker`
-- [ ] Struktur folder `/opt/tirta-saas` dibuat
-- [ ] File `docker-compose.yml` dibuat
+- [x] Docker repo official ditambahkan
+- [x] `docker-ce`, `docker-compose-plugin` terinstall
+- [x] User `adipras` masuk grup `docker`
+- [x] Struktur folder `/opt/tirta-saas` dibuat
+- [x] Repo aplikasi diclone ke `/opt/tirta-saas/app`
+- [x] File `docker-compose.yml` tersedia dari repo aplikasi
 - [ ] File env dibuat:
-  - [ ] `/opt/tirta-saas/.env`
-  - [ ] `/opt/tirta-saas/env/backend.env`
-  - [ ] `/opt/tirta-saas/env/frontend.env`
-- [ ] `docker compose config` valid
+  - [x] `/opt/tirta-saas/app/.env`
+  - [ ] `/opt/tirta-saas/env/backend.env` (opsional, tidak dipakai compose saat ini)
+  - [ ] `/opt/tirta-saas/env/frontend.env` (opsional, tidak dipakai compose saat ini)
+- [x] `docker compose config` valid
 
 **Cara dari terminal WSL:**
 
@@ -111,13 +116,15 @@ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o 
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 sudo apt update && sudo apt -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 sudo usermod -aG docker adipras
-sudo mkdir -p /opt/tirta-saas/{nginx/conf.d,nginx/certs,nginx/www,env,backup,scripts}
+sudo mkdir -p /opt/tirta-saas/{env,backup,scripts}
 sudo chown -R adipras:adipras /opt/tirta-saas
-cd /opt/tirta-saas && docker compose config
+cd /opt/tirta-saas
+git clone <URL_REPO_GIT> app
+cd /opt/tirta-saas/app && docker compose config
 ```
 
-**Status:** ⬜ Not Started / 🟨 In Progress / 🟩 Done  
-**Catatan:** ...
+**Status:** 🟩 Done  
+**Catatan:** Docker dan Compose aktif; source code dideploy dari repo Git di `/opt/tirta-saas/app`.
 
 ---
 
@@ -166,34 +173,36 @@ sudo dpkg-reconfigure -plow unattended-upgrades
 
 **Objective:** Menjalankan service Tirta SaaS lewat Nginx reverse proxy.
 
-- [ ] Konfigurasi Nginx dibuat (`tirta.conf`)
-- [ ] Image backend dibuild/pull
-- [ ] Image frontend dibuild/pull
-- [ ] `docker compose up -d` sukses
-- [ ] Health check backend endpoint valid
-- [ ] Jalur tanpa domain (HTTP via IP) dites
+- [x] Konfigurasi Nginx dibuat (`tirta.conf`)
+- [x] Image backend dibuild/pull
+- [x] Image frontend dibuild/pull
+- [x] `docker compose up -d` sukses
+- [x] Health check backend endpoint valid
+- [x] Jalur tanpa domain (HTTP via IP) dites
+- [x] Jalur dengan domain (HTTP) aktif
 - [ ] Jalur dengan domain + TLS (Let’s Encrypt) disiapkan
 - [ ] HTTPS aktif tanpa error sertifikat (jika domain sudah ada)
 
 **Cara dari terminal WSL:**
 
 ```bash
-# 1) Kirim file dari WSL ke VPS (jalankan dari folder project lokal)
-scp -i ~/.ssh/adipras docker-compose.yml adipras@103.93.161.172:/opt/tirta-saas/
-scp -i ~/.ssh/adipras -r nginx env adipras@103.93.161.172:/opt/tirta-saas/
+# 1) Update source code di VPS
+ssh -i ~/.ssh/adipras adipras@103.93.161.172
+cd /opt/tirta-saas/app
+git pull origin main
 
 # 2) Jalankan stack di VPS
-ssh -i ~/.ssh/adipras adipras@103.93.161.172
-cd /opt/tirta-saas
-docker compose --env-file .env up -d
+cp .env.example .env   # jika belum ada
+docker compose up -d --build
 docker compose ps
 
 # 3) Uji dari WSL lokal
 curl -I http://103.93.161.172
+curl -I http://tirtautama.net
 ```
 
-**Status:** ⬜ Not Started / 🟨 In Progress / 🟩 Done  
-**Catatan:** ...
+**Status:** 🟨 In Progress  
+**Catatan:** HTTP via IP dan domain sudah aktif; TLS/HTTPS belum dipasang. Akses browser berhasil, tetapi login aplikasi masih gagal dan perlu investigasi aplikasi/backend.
 
 ---
 
@@ -267,15 +276,15 @@ chmod +x /opt/tirta-saas/scripts/backup.sh
 
 ## Ringkasan Progress
 
-- [ ] Pre-Setup selesai
-- [ ] Core Setup selesai
+- [x] Pre-Setup selesai
+- [x] Core Setup selesai
 - [ ] Hardening selesai
-- [ ] Services live
+- [x] Services live
 - [ ] Monitoring aktif
 - [ ] Backup-restore tervalidasi
 - [ ] Dokumen operasional final
 
-**Overall Progress:** `0%`  
-**PIC:** ...  
-**Tanggal mulai:** ...  
+**Overall Progress:** `45%`  
+**PIC:** `adipras`  
+**Tanggal mulai:** `2026-05-17`  
 **Target go-live:** ...
