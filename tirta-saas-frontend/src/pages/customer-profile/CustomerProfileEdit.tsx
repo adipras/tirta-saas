@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { customerProfilService } from '../../services/customerProfileService';
 import type { CustomerProfil, UpdateProfilDto } from '../../types/customerProfile';
+import { FormSkeleton, useToast } from '../../components';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 export default function CustomerProfilEdit() {
   const navigate = useNavigate();
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,11 +24,7 @@ export default function CustomerProfilEdit() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    loadProfil();
-  }, []);
-
-  const loadProfil = async () => {
+  const loadProfil = useCallback(async () => {
     try {
       setLoading(true);
       const data = await customerProfilService.getProfil();
@@ -39,12 +38,16 @@ export default function CustomerProfilEdit() {
         postalCode: data.postalCode,
       });
       setError(null);
-    } catch  {
-      setError(err.response?.data?.message || 'Gagal memuat profil');
+    } catch (err: unknown) {
+      setError(extractApiErrorMessage(err, 'Gagal memuat profil'));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadProfil();
+  }, [loadProfil]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -104,9 +107,12 @@ export default function CustomerProfilEdit() {
     try {
       setSaving(true);
       await customerProfilService.updateProfil(formData);
+      showSuccessToast('Profil berhasil diperbarui');
       navigate('/customer/profile');
-    } catch  {
-      setError(err.response?.data?.message || 'Gagal memperbarui profil');
+    } catch (err: unknown) {
+      const message = extractApiErrorMessage(err, 'Gagal memperbarui profil');
+      setError(message);
+      showErrorToast(message);
     } finally {
       setSaving(false);
     }
@@ -118,16 +124,30 @@ export default function CustomerProfilEdit() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-6">
+          <div className="h-8 w-40 animate-pulse rounded bg-gray-200 mb-2" />
+          <div className="h-4 w-56 animate-pulse rounded bg-gray-200" />
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <FormSkeleton />
+        </div>
       </div>
     );
   }
 
   if (error && !profile) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-600">{error}</p>
+      <div className="max-w-3xl mx-auto">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+          <p className="text-red-700">{error}</p>
+          <button
+            onClick={() => void loadProfil()}
+            className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
+          >
+            Coba Lagi
+          </button>
+        </div>
       </div>
     );
   }
@@ -163,9 +183,10 @@ export default function CustomerProfilEdit() {
               type="text"
               id="name"
               name="name"
+              autoComplete="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 errors.name ? 'border-red-300' : 'border-gray-300'
               }`}
             />
@@ -181,9 +202,10 @@ export default function CustomerProfilEdit() {
               type="email"
               id="email"
               name="email"
+              autoComplete="email"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 errors.email ? 'border-red-300' : 'border-gray-300'
               }`}
             />
@@ -199,9 +221,10 @@ export default function CustomerProfilEdit() {
               type="tel"
               id="phone"
               name="phone"
+              autoComplete="tel"
               value={formData.phone}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 errors.phone ? 'border-red-300' : 'border-gray-300'
               }`}
             />
@@ -217,9 +240,10 @@ export default function CustomerProfilEdit() {
               id="address"
               name="address"
               rows={3}
+              autoComplete="street-address"
               value={formData.address}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                 errors.address ? 'border-red-300' : 'border-gray-300'
               }`}
             />
@@ -236,9 +260,10 @@ export default function CustomerProfilEdit() {
                 type="text"
                 id="city"
                 name="city"
+                autoComplete="address-level2"
                 value={formData.city}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                   errors.city ? 'border-red-300' : 'border-gray-300'
                 }`}
               />
@@ -253,9 +278,10 @@ export default function CustomerProfilEdit() {
                 type="text"
                 id="postalCode"
                 name="postalCode"
+                autoComplete="postal-code"
                 value={formData.postalCode}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                   errors.postalCode ? 'border-red-300' : 'border-gray-300'
                 }`}
               />
@@ -277,7 +303,7 @@ export default function CustomerProfilEdit() {
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 flex items-center"
+            className="px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 flex items-center"
           >
             {saving ? (
               <>

@@ -22,12 +22,12 @@ function resolveDefaultApiOrigin(): string {
     return configuredLocalOrigin || `http://${DEFAULT_API_HOST}:${DEFAULT_API_PORT}`;
   }
 
-  const hostname = window.location.hostname || DEFAULT_API_HOST;
+  const { hostname, origin } = window.location;
   if (isLocalHostname(hostname)) {
     return configuredLocalOrigin || `http://${DEFAULT_API_HOST}:${DEFAULT_API_PORT}`;
   }
 
-  return configuredPublicOrigin || `http://${hostname}:${DEFAULT_API_PORT}`;
+  return configuredPublicOrigin || origin;
 }
 
 function resolveApiOrigin(apiBaseUrl: string): string {
@@ -100,6 +100,12 @@ export const API_ENDPOINTS = {
     GENERATE_RECEIPT: '/payments/:id/receipt',
     GET_RECEIPT: '/payments/:id/receipt',
     EXPORT: '/payments/export',
+  },
+  PAYMENT_PROOFS: {
+    LIST: '/payment-proofs',
+    DETAIL: (id: string) => `/payment-proofs/${id}`,
+    VERIFY: (id: string) => `/payment-proofs/${id}/verify`,
+    REJECT: (id: string) => `/payment-proofs/${id}/reject`,
   },
   WATER_USAGE: {
     LIST: '/water-usage',

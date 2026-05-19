@@ -1,4 +1,4 @@
-import { API_ORIGIN } from '../constants/api';
+import { API_ENDPOINTS, API_ORIGIN } from '../constants/api';
 import { apiClient } from './apiClient';
 
 const STATIC_BASE = API_ORIGIN;
@@ -32,10 +32,15 @@ export interface PaymentProof {
   updated_at: string;
 }
 
-function withProofUrl(proof: any): PaymentProof {
+function withProofUrl(proof: Record<string, unknown>): PaymentProof {
+  const normalizedProof = proof as Partial<PaymentProof>;
+
   return {
-    ...proof,
-    proof_image_url: proof.proof_image_url ? `${STATIC_BASE}${proof.proof_image_url}` : '',
+    ...(normalizedProof as PaymentProof),
+    proof_image_url:
+      typeof normalizedProof.proof_image_url === 'string'
+        ? `${STATIC_BASE}${normalizedProof.proof_image_url}`
+        : '',
   };
 }
 
@@ -67,7 +72,7 @@ export interface RejectPaymentData {
 }
 
 class PaymentProofService {
-  private baseUrl = '/payment-proofs';
+  private baseUrl = API_ENDPOINTS.PAYMENT_PROOFS.LIST;
 
   /**
    * Submit payment proof with image upload
@@ -119,7 +124,7 @@ class PaymentProofService {
    * Get payment proof by ID
    */
   async getPaymentProof(id: string): Promise<PaymentProof> {
-    const response = await apiClient.get(`${this.baseUrl}/${id}`);
+    const response = await apiClient.get(API_ENDPOINTS.PAYMENT_PROOFS.DETAIL(id));
     return withProofUrl(response);
   }
 
@@ -127,7 +132,7 @@ class PaymentProofService {
    * Verify payment proof (Admin only)
    */
   async verifyPaymentProof(id: string, data: VerifyPaymentData): Promise<PaymentProof> {
-    const response = await apiClient.post(`${this.baseUrl}/${id}/verify`, data);
+    const response = await apiClient.post(API_ENDPOINTS.PAYMENT_PROOFS.VERIFY(id), data);
     return withProofUrl(response);
   }
 
@@ -135,7 +140,7 @@ class PaymentProofService {
    * Reject payment proof (Admin only)
    */
   async rejectPaymentProof(id: string, data: RejectPaymentData): Promise<PaymentProof> {
-    const response = await apiClient.post(`${this.baseUrl}/${id}/reject`, data);
+    const response = await apiClient.post(API_ENDPOINTS.PAYMENT_PROOFS.REJECT(id), data);
     return withProofUrl(response);
   }
 }

@@ -48,7 +48,7 @@ export default function WaterRateList() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filterSubscription, filterActive, dispatch, toast]);
+  }, [currentPage, filterSubscription, filterActive, toast]);
 
   const fetchSubscriptionTypes = useCallback(async () => {
     try {
@@ -178,16 +178,18 @@ export default function WaterRateList() {
           <button
             onClick={() => navigate(`/admin/water-rates/edit/${row.id}`)}
             className="text-blue-600 hover:text-blue-900"
-            title="Ubah"
+            title="Ubah tarif"
+            aria-label={`Ubah tarif untuk ${row.subscription?.name ?? 'tarif ini'}`}
           >
-            <PencilIcon className="w-5 h-5" />
+            <PencilIcon className="w-5 h-5" aria-hidden="true" />
           </button>
           <button
             onClick={() => handleDelete(row.id)}
             className="text-red-600 hover:text-red-900"
-            title="Hapus"
+            title="Hapus tarif"
+            aria-label={`Hapus tarif untuk ${row.subscription?.name ?? 'tarif ini'}`}
           >
-            <TrashIcon className="w-5 h-5" />
+            <TrashIcon className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
       ),

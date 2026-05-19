@@ -471,7 +471,7 @@ export default function SubscriptionUpgradePage() {
 
       toast.success(`Pembayaran berhasil dikirim. ID konfirmasi: ${result.confirmationId}.`);
       setStep('waiting-verification');
-    } catch  {
+    } catch (submitError: unknown) {
       setError(getErrorMessage(submitError, 'Gagal mengirim konfirmasi pembayaran.'));
     } finally {
       setIsSubmitting(false);

@@ -286,8 +286,8 @@ export default function InvoiceList() {
               onClick={handlePrintFilteredList}
               className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
             >
-              <PrinterIcon className="mr-1 h-4 w-4" />
-              Print
+              <PrinterIcon className="mr-1 h-4 w-4" aria-hidden="true" />
+              Cetak
             </button>
           </div>
         }
@@ -340,8 +340,12 @@ export default function InvoiceList() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <label htmlFor="invoice-search" className="sr-only">
+              Cari nomor invoice, pelanggan, atau nomor meter
+            </label>
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
             <input
+              id="invoice-search"
               type="text"
               placeholder="Cari nomor invoice, pelanggan, atau nomor meter..."
               value={searchTerm}
@@ -350,7 +354,9 @@ export default function InvoiceList() {
             />
           </div>
           <div>
+            <label htmlFor="invoice-filter-status" className="sr-only">Filter status tagihan</label>
             <select
+              id="invoice-filter-status"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as InvoiceFilters['status'] | '')}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
@@ -363,7 +369,9 @@ export default function InvoiceList() {
             </select>
           </div>
           <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+            <label htmlFor="invoice-filter-type" className="sr-only">Filter tipe tagihan</label>
             <select
+              id="invoice-filter-type"
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as InvoiceFilters['type'] | '')}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"

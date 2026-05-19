@@ -110,8 +110,16 @@ export default function InvoiceForm() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div className="h-8 w-48 animate-pulse rounded bg-gray-200" aria-hidden="true" />
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm p-6 space-y-4">
+          <div className="h-6 w-40 animate-pulse rounded bg-gray-200" aria-hidden="true" />
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="h-10 animate-pulse rounded bg-gray-200" aria-hidden="true" />
+            <div className="h-10 animate-pulse rounded bg-gray-200" aria-hidden="true" />
+          </div>
+          <div className="h-20 animate-pulse rounded bg-gray-200" aria-hidden="true" />
+        </div>
       </div>
     );
   }
@@ -200,11 +208,12 @@ export default function InvoiceForm() {
               {fields.map((field, index) => (
                 <div key={field.id} className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 p-4 md:grid-cols-[minmax(0,1fr)_120px_180px_auto] md:items-center">
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label htmlFor={`items.${index}.description`} className="mb-1 block text-sm font-medium text-gray-700">
                       Deskripsi item {index + 1}
                     </label>
                     <input
                       {...register(`items.${index}.description`, { required: 'Deskripsi wajib diisi' })}
+                      id={`items.${index}.description`}
                       placeholder="Deskripsi biaya"
                       className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
@@ -213,22 +222,24 @@ export default function InvoiceForm() {
                     )}
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label htmlFor={`items.${index}.quantity`} className="mb-1 block text-sm font-medium text-gray-700">
                       Qty
                     </label>
                     <input
                       {...register(`items.${index}.quantity`, { valueAsNumber: true, min: { value: 1, message: 'Minimal 1' } })}
+                      id={`items.${index}.quantity`}
                       type="number"
                       placeholder="Qty"
                       className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                    <label htmlFor={`items.${index}.unitPrice`} className="mb-1 block text-sm font-medium text-gray-700">
                       Harga satuan
                     </label>
                     <input
                       {...register(`items.${index}.unitPrice`, { valueAsNumber: true, min: { value: 0, message: 'Minimal 0' } })}
+                      id={`items.${index}.unitPrice`}
                       type="number"
                       step="1"
                       placeholder="Harga satuan"
@@ -239,9 +250,9 @@ export default function InvoiceForm() {
                     type="button"
                     onClick={() => remove(index)}
                     className="inline-flex items-center justify-center rounded-md p-2 text-red-600 hover:bg-red-50 hover:text-red-800"
-                    title="Hapus item"
+                    aria-label={`Hapus item ${index + 1}`}
                   >
-                    <TrashIcon className="h-5 w-5" />
+                    <TrashIcon className="h-5 w-5" aria-hidden="true" />
                   </button>
                 </div>
               ))}

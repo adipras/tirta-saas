@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './store';
@@ -41,7 +42,6 @@ import {
 } from './pages/reports';
 import { CustomerProfil, CustomerProfilEdit, ChangePassword } from './pages/customer-profile';
 import { CustomerInvoiceList, CustomerInvoiceDetail } from './pages/customer-invoices';
-import { CustomerPaymentForm, PaymentSuccess, CustomerPaymentInfo, CustomerPaymentConfirmation } from './pages/customer-payments';
 import { CustomerPemakaianMonitor } from './pages/customer-usage';
 import { TenantManagement, PlatformAnalytics, SubscriptionPlans } from './pages/platform';
 import { TenantPaymentVerification } from './pages/tenant-payments';
@@ -55,6 +55,27 @@ import SubscriptionStatusPage from './pages/subscription/SubscriptionStatusPage'
 import SubscriptionUpgradePage from './pages/subscription/SubscriptionUpgradePage';
 import UserManagementList from './pages/user-management/UserManagementList';
 import NotFound from './pages/NotFound';
+
+function CustomerPaymentLegacyRedirect() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const invoiceId = searchParams.get('invoice');
+
+  useEffect(() => {
+    if (invoiceId) {
+      navigate(`/customer/pay/${invoiceId}`, { replace: true });
+      return;
+    }
+
+    navigate('/customer/invoices', { replace: true });
+  }, [invoiceId, navigate]);
+
+  return (
+    <div className="flex h-64 items-center justify-center">
+      <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-indigo-600"></div>
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -158,10 +179,11 @@ function App() {
               <Route path="profile/change-password" element={<ChangePassword />} />
               <Route path="invoices" element={<CustomerInvoiceList />} />
               <Route path="invoices/:id" element={<CustomerInvoiceDetail />} />
-              <Route path="payments/new" element={<CustomerPaymentForm />} />
-              <Route path="payments/info" element={<CustomerPaymentInfo />} />
-              <Route path="payments/confirm" element={<CustomerPaymentConfirmation />} />
-              <Route path="payments/success" element={<PaymentSuccess />} />
+              <Route path="payments" element={<Navigate to="/customer/invoices" replace />} />
+              <Route path="payments/new" element={<CustomerPaymentLegacyRedirect />} />
+              <Route path="payments/info" element={<CustomerPaymentLegacyRedirect />} />
+              <Route path="payments/confirm" element={<CustomerPaymentLegacyRedirect />} />
+              <Route path="payments/success" element={<CustomerPaymentLegacyRedirect />} />
               <Route path="pay/:invoiceId" element={<CustomerPayInvoice />} />
               <Route path="usage" element={<CustomerPemakaianMonitor />} />
             </Route>

@@ -16,8 +16,9 @@ export { default as ErrorBoundary } from './ErrorBoundary';
 export { Modal, ConfirmModal } from './Modal';
 export type { ModalProps, ConfirmModalProps } from './Modal';
 
-export { ToastProvider, useToast } from './Toast';
-export type { Toast, ToastType } from './Toast';
+export { ToastProvider } from './Toast';
+export { useToast } from '../hooks/useToast';
+export type { Toast, ToastType } from '../types/toast';
 
 export {
   Skeleton,

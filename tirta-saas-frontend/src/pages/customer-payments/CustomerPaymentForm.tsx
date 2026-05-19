@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   CreditCardIcon, 
@@ -8,9 +8,11 @@ import {
   CheckCircleIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import { PageHeader, useToast, CardSkeleton, FormSkeleton } from '../../components';
 import { invoiceService } from '../../services/invoiceService';
 import { paymentService } from '../../services/paymentService';
 import type { Invoice } from '../../types/invoice';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 type PaymentMethod = 'cash' | 'bank_transfer' | 'credit_card' | 'debit_card' | 'e_wallet';
 
@@ -26,6 +28,7 @@ export default function CustomerPaymentForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preSelectedInvoiceId = searchParams.get('invoice');
+  const { error: showErrorToast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -43,33 +46,21 @@ export default function CustomerPaymentForm() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    loadUnpaidTagihan();
-  }, []);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (preSelectedInvoiceId && invoices.length > 0) {
-      handleInvoiceSelect(preSelectedInvoiceId);
-    }
-  }, [preSelectedInvoiceId, invoices]);
-
-  const loadUnpaidTagihan = async () => {
+  const loadUnpaidTagihan = useCallback(async () => {
     try {
       setLoading(true);
       const data = await invoiceService.getCustomerTagihan();
       const unpaid = data.filter(inv => inv.status !== 'paid');
       setTagihan(unpaid);
       setError(null);
-    } catch  {
-      setError(err.response?.data?.message || 'Failed to load invoices');
+    } catch (err: unknown) {
+      setError(extractApiErrorMessage(err, 'Gagal memuat tagihan'));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleInvoiceSelect = (invoiceId: string) => {
+  const handleInvoiceSelect = useCallback((invoiceId: string) => {
     const invoice = invoices.find(inv => inv.id === invoiceId);
     if (invoice) {
       setSelectedInvoice(invoice);
@@ -79,7 +70,17 @@ export default function CustomerPaymentForm() {
         amount: invoice.amountDue,
       }));
     }
-  };
+  }, [invoices]);
+
+  useEffect(() => {
+    void loadUnpaidTagihan();
+  }, [loadUnpaidTagihan]);
+
+  useEffect(() => {
+    if (preSelectedInvoiceId && invoices.length > 0) {
+      handleInvoiceSelect(preSelectedInvoiceId);
+    }
+  }, [handleInvoiceSelect, preSelectedInvoiceId, invoices]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -106,21 +107,21 @@ export default function CustomerPaymentForm() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.invoiceId) {
-      newErrors.invoiceId = 'Please select an invoice';
+      newErrors.invoiceId = 'Pilih tagihan terlebih dahulu';
     }
 
     if (!formData.amount || formData.amount <= 0) {
-      newErrors.amount = 'Amount must be greater than 0';
+      newErrors.amount = 'Nominal harus lebih dari 0';
     } else if (selectedInvoice && formData.amount > selectedInvoice.amountDue) {
-      newErrors.amount = 'Amount cannot exceed the amount due';
+      newErrors.amount = 'Nominal tidak boleh melebihi sisa tagihan';
     }
 
     if (!formData.paymentMethod) {
-      newErrors.paymentMethod = 'Please select a payment method';
+      newErrors.paymentMethod = 'Pilih metode pembayaran';
     }
 
     if (formData.paymentMethod !== 'cash' && !formData.referenceNumber) {
-      newErrors.referenceNumber = 'Reference number is required for non-cash payments';
+      newErrors.referenceNumber = 'Nomor referensi wajib diisi untuk pembayaran non-tunai';
     }
 
     setErrors(newErrors);
@@ -154,8 +155,10 @@ export default function CustomerPaymentForm() {
           paymentMethod: formData.paymentMethod
         } 
       });
-    } catch  {
-      setError(err.response?.data?.message || 'Failed to process payment');
+    } catch (err: unknown) {
+      const message = extractApiErrorMessage(err, 'Gagal memproses pembayaran');
+      setError(message);
+      showErrorToast(message);
     } finally {
       setSubmitting(false);
     }
@@ -186,17 +189,28 @@ export default function CustomerPaymentForm() {
   };
 
   const paymentMethods = [
-    { value: 'bank_transfer', label: 'Bank Transfer', description: 'Transfer via ATM or Internet Banking' },
-    { value: 'credit_card', label: 'Credit Card', description: 'Pay with credit card' },
-    { value: 'debit_card', label: 'Debit Card', description: 'Pay with debit card' },
-    { value: 'e_wallet', label: 'E-Wallet', description: 'GoPay, OVO, Dana, LinkAja' },
-    { value: 'cash', label: 'Cash', description: 'Pay at office' },
+    { value: 'bank_transfer', label: 'Transfer Bank', description: 'Transfer via ATM atau Internet Banking' },
+    { value: 'credit_card', label: 'Kartu Kredit', description: 'Bayar dengan kartu kredit' },
+    { value: 'debit_card', label: 'Kartu Debit', description: 'Bayar dengan kartu debit' },
+    { value: 'e_wallet', label: 'Dompet Digital', description: 'GoPay, OVO, Dana, LinkAja' },
+    { value: 'cash', label: 'Tunai', description: 'Bayar langsung di kantor' },
   ];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="max-w-4xl mx-auto space-y-6" aria-busy="true" aria-label="Memuat tagihan">
+        <CardSkeleton />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow p-6">
+              <FormSkeleton />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -206,13 +220,13 @@ export default function CustomerPaymentForm() {
       <div className="max-w-2xl mx-auto">
         <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
           <CheckCircleIcon className="h-16 w-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-green-900 mb-2">All Tagihan Paid!</h2>
-          <p className="text-green-700 mb-6">You don't have any outstanding invoices at the moment.</p>
+          <h2 className="text-xl font-semibold text-green-900 mb-2">Semua Tagihan Lunas!</h2>
+          <p className="text-green-700 mb-6">Tidak ada tagihan yang belum dibayar saat ini.</p>
           <button
             onClick={() => navigate('/customer/invoices')}
             className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
-            View All Tagihan
+            Lihat Semua Tagihan
           </button>
         </div>
       </div>
@@ -221,16 +235,15 @@ export default function CustomerPaymentForm() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Make a Payment</h1>
-        <p className="text-gray-600">Select an invoice and choose your payment method</p>
-      </div>
+      <PageHeader
+        title="Lakukan Pembayaran"
+        subtitle="Pilih tagihan dan metode pembayaran Anda."
+      />
 
       {/* Error Alert */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start">
-          <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mr-3 mt-0.5" />
+        <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start">
+          <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mr-3 mt-0.5" aria-hidden="true" />
           <p className="text-red-600">{error}</p>
         </div>
       )}
@@ -241,15 +254,15 @@ export default function CustomerPaymentForm() {
           <div className="lg:col-span-2 space-y-6">
             {/* Invoice Selection */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Select Invoice</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Pilih Tagihan</h2>
               <div className="space-y-3">
                 {invoices.map(invoice => (
                   <label
                     key={invoice.id}
                     className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
                       formData.invoiceId === invoice.id
-                        ? 'border-blue-600 bg-blue-50'
-                        : 'border-gray-200 hover:border-blue-300'
+                        ? 'border-indigo-600 bg-indigo-50'
+                        : 'border-gray-200 hover:border-indigo-300'
                     }`}
                   >
                     <input
@@ -258,16 +271,16 @@ export default function CustomerPaymentForm() {
                       value={invoice.id}
                       checked={formData.invoiceId === invoice.id}
                       onChange={handleChange}
-                      className="mt-1 h-4 w-4 text-blue-600"
+                      className="mt-1 h-4 w-4 text-indigo-600"
                     />
                     <div className="ml-3 flex-1">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-semibold text-gray-900">{invoice.invoiceNumber}</p>
-                          <p className="text-sm text-gray-600">Period: {invoice.billingPeriod}</p>
+                          <p className="text-sm text-gray-600">Periode: {invoice.billingPeriod}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-gray-600">Amount Due</p>
+                          <p className="text-sm text-gray-600">Sisa Tagihan</p>
                           <p className="text-lg font-bold text-red-600">{formatCurrency(invoice.amountDue)}</p>
                         </div>
                       </div>
@@ -280,15 +293,15 @@ export default function CustomerPaymentForm() {
 
             {/* Payment Method */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Method</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Metode Pembayaran</h2>
               <div className="space-y-3">
                 {paymentMethods.map(method => (
                   <label
                     key={method.value}
                     className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
                       formData.paymentMethod === method.value
-                        ? 'border-blue-600 bg-blue-50'
-                        : 'border-gray-200 hover:border-blue-300'
+                        ? 'border-indigo-600 bg-indigo-50'
+                        : 'border-gray-200 hover:border-indigo-300'
                     }`}
                   >
                     <input
@@ -297,10 +310,10 @@ export default function CustomerPaymentForm() {
                       value={method.value}
                       checked={formData.paymentMethod === method.value}
                       onChange={handleChange}
-                      className="mt-1 h-4 w-4 text-blue-600"
+                      className="mt-1 h-4 w-4 text-indigo-600"
                     />
                     <div className="ml-3 flex items-center flex-1">
-                      <div className={`${formData.paymentMethod === method.value ? 'text-blue-600' : 'text-gray-400'}`}>
+                      <div className={`${formData.paymentMethod === method.value ? 'text-indigo-600' : 'text-gray-400'}`}>
                         {getPaymentMethodIcon(method.value as PaymentMethod)}
                       </div>
                       <div className="ml-3">
@@ -316,12 +329,12 @@ export default function CustomerPaymentForm() {
 
             {/* Payment Details */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Details</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Detail Pembayaran</h2>
               <div className="space-y-4">
                 {/* Amount */}
                 <div>
                   <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-                    Payment Amount <span className="text-red-500">*</span>
+                    Nominal Pembayaran <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rp</span>
@@ -333,7 +346,7 @@ export default function CustomerPaymentForm() {
                       onChange={handleChange}
                       min="0"
                       step="1000"
-                      className={`w-full pl-12 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`w-full pl-12 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                         errors.amount ? 'border-red-300' : 'border-gray-300'
                       }`}
                     />
@@ -341,7 +354,7 @@ export default function CustomerPaymentForm() {
                   {errors.amount && <p className="mt-1 text-sm text-red-600">{errors.amount}</p>}
                   {selectedInvoice && (
                     <p className="mt-1 text-sm text-gray-600">
-                      Maximum: {formatCurrency(selectedInvoice.amountDue)}
+                      Maksimum: {formatCurrency(selectedInvoice.amountDue)}
                     </p>
                   )}
                 </div>
@@ -350,7 +363,7 @@ export default function CustomerPaymentForm() {
                 {formData.paymentMethod !== 'cash' && (
                   <div>
                     <label htmlFor="referenceNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                      Reference Number <span className="text-red-500">*</span>
+                      Nomor Referensi <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -358,8 +371,8 @@ export default function CustomerPaymentForm() {
                       name="referenceNumber"
                       value={formData.referenceNumber}
                       onChange={handleChange}
-                      placeholder="Enter transaction reference number"
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      placeholder="Masukkan nomor referensi transaksi"
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                         errors.referenceNumber ? 'border-red-300' : 'border-gray-300'
                       }`}
                     />
@@ -370,7 +383,7 @@ export default function CustomerPaymentForm() {
                 {/* Notes */}
                 <div>
                   <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                    Notes (Optional)
+                    Catatan (Opsional)
                   </label>
                   <textarea
                     id="notes"
@@ -378,8 +391,8 @@ export default function CustomerPaymentForm() {
                     value={formData.notes}
                     onChange={handleChange}
                     rows={3}
-                    placeholder="Add any additional notes..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Tambahkan catatan jika perlu..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
@@ -389,54 +402,54 @@ export default function CustomerPaymentForm() {
           {/* Summary Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-6 sticky top-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Summary</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Ringkasan Pembayaran</h2>
               <div className="space-y-3">
                 {selectedInvoice ? (
                   <>
                     <div className="pb-3 border-b border-gray-200">
-                      <p className="text-sm text-gray-600">Invoice Number</p>
+                      <p className="text-sm text-gray-600">Nomor Tagihan</p>
                       <p className="font-mono text-gray-900">{selectedInvoice.invoiceNumber}</p>
                     </div>
                     <div className="pb-3 border-b border-gray-200">
-                      <p className="text-sm text-gray-600">Billing Period</p>
+                      <p className="text-sm text-gray-600">Periode Tagihan</p>
                       <p className="text-gray-900">{selectedInvoice.billingPeriod}</p>
                     </div>
                     <div className="pb-3 border-b border-gray-200">
-                      <p className="text-sm text-gray-600">Total Amount</p>
+                      <p className="text-sm text-gray-600">Total Tagihan</p>
                       <p className="text-gray-900">{formatCurrency(selectedInvoice.totalAmount)}</p>
                     </div>
                     {selectedInvoice.amountPaid > 0 && (
                       <div className="pb-3 border-b border-gray-200">
-                        <p className="text-sm text-gray-600">Paid</p>
+                        <p className="text-sm text-gray-600">Sudah Dibayar</p>
                         <p className="text-green-600">-{formatCurrency(selectedInvoice.amountPaid)}</p>
                       </div>
                     )}
                     <div className="pb-3 border-b border-gray-200">
-                      <p className="text-sm font-medium text-gray-900">Amount Due</p>
+                      <p className="text-sm font-medium text-gray-900">Sisa Tagihan</p>
                       <p className="text-lg font-bold text-red-600">{formatCurrency(selectedInvoice.amountDue)}</p>
                     </div>
                     <div className="pt-3">
-                      <p className="text-sm font-medium text-gray-900">You are paying</p>
-                      <p className="text-2xl font-bold text-blue-600">{formatCurrency(formData.amount)}</p>
+                      <p className="text-sm font-medium text-gray-900">Nominal yang Dibayar</p>
+                      <p className="text-2xl font-bold text-indigo-600">{formatCurrency(formData.amount)}</p>
                     </div>
                   </>
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">Select an invoice to see summary</p>
+                  <p className="text-sm text-gray-500 text-center py-4">Pilih tagihan untuk melihat ringkasan</p>
                 )}
               </div>
 
               <button
                 type="submit"
                 disabled={submitting || !selectedInvoice}
-                className="w-full mt-6 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="w-full mt-6 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {submitting ? (
                   <span className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Processing...
+                    Memproses...
                   </span>
                 ) : (
-                  'Submit Payment'
+                  'Kirim Pembayaran'
                 )}
               </button>
 
@@ -446,7 +459,7 @@ export default function CustomerPaymentForm() {
                 disabled={submitting}
                 className="w-full mt-3 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
               >
-                Cancel
+                Batal
               </button>
             </div>
           </div>

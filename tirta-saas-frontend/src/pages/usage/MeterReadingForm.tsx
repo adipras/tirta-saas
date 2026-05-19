@@ -199,7 +199,7 @@ export default function MeterReadingForm() {
       }
 
       navigate('/admin/usage');
-    } catch  {
+    } catch (error: any) {
       toast.error(error?.response?.data?.error || `Gagal ${isEditMode ? 'memperbarui' : 'mencatat'} pembacaan meter`);
     } finally {
       setLoading(false);

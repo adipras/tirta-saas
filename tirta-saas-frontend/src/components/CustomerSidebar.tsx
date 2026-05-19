@@ -13,7 +13,7 @@ const navigation = [
   { name: 'Dashboard', href: '/customer/dashboard', icon: HomeIcon },
   { name: 'Profil', href: '/customer/profile', icon: UserIcon },
   { name: 'Tagihan', href: '/customer/invoices', icon: DocumentDuplicateIcon },
-  { name: 'Pembayaran', href: '/customer/payments', icon: CreditCardIcon },
+  { name: 'Pembayaran', href: '/customer/invoices', icon: CreditCardIcon },
   { name: 'Pemakaian', href: '/customer/usage', icon: ChartBarIcon },
 ];
 
@@ -29,6 +29,7 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => (
       <button
         onClick={onClose}
         className="md:hidden p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+        aria-label="Tutup menu navigasi pelanggan"
       >
         <XMarkIcon className="h-5 w-5" />
       </button>
@@ -97,8 +98,14 @@ const CustomerSidebar = ({ open, onClose }: CustomerSidebarProps) => {
           <div
             className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity"
             onClick={onClose}
+            aria-hidden="true"
           />
-          <div className="safe-y relative flex w-[min(20rem,88vw)] flex-col flex-shrink-0 shadow-xl">
+          <div
+            className="safe-y relative flex w-[min(20rem,88vw)] flex-col flex-shrink-0 shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigasi pelanggan"
+          >
             <SidebarContent onClose={onClose} />
           </div>
         </div>

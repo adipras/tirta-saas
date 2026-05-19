@@ -65,23 +65,23 @@ export default function WaterRateForm() {
 
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
-      newErrors.amount = 'Rate per m³ must be a positive number';
+      newErrors.amount = 'Tarif per m³ harus berupa angka positif';
     }
 
     if (!formData.effectiveDate) {
-      newErrors.effectiveDate = 'Effective date is required';
+      newErrors.effectiveDate = 'Tanggal berlaku wajib diisi';
     } else {
       const selectedDate = new Date(formData.effectiveDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
       if (!isEditMode && selectedDate < today) {
-        newErrors.effectiveDate = 'Effective date cannot be in the past';
+        newErrors.effectiveDate = 'Tanggal berlaku tidak boleh di masa lalu';
       }
     }
 
     if (!formData.subscriptionId) {
-      newErrors.subscriptionId = 'Subscription type is required';
+      newErrors.subscriptionId = 'Golongan langganan wajib dipilih';
     }
 
     setErrors(newErrors);
@@ -192,7 +192,7 @@ export default function WaterRateForm() {
 
               <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                  Rate per m³ (IDR) <span className="text-red-500">*</span>
+                  Tarif per m³ (IDR) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -207,7 +207,7 @@ export default function WaterRateForm() {
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
-                  placeholder="e.g., 5000"
+                  placeholder="mis. 5000"
                 />
                 {errors.amount && (
                   <p className="mt-1 text-sm text-red-600">{errors.amount}</p>

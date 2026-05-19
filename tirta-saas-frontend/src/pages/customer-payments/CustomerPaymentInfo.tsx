@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   BuildingLibraryIcon,
@@ -8,32 +8,38 @@ import {
   QrCodeIcon,
   ClipboardDocumentCheckIcon,
 } from '@heroicons/react/24/outline';
+import { PageHeader, useToast, CardSkeleton } from '../../components';
 import { invoiceService } from '../../services/invoiceService';
 import type { Invoice } from '../../types/invoice';
+import { extractApiErrorMessage } from '../../utils/apiError';
+
+interface BankAccount {
+  id: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+}
+
+interface PaymentQrCode {
+  id: string;
+  imageUrl: string;
+}
 
 export default function CustomerPaymentInfo() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const invoiceId = searchParams.get('invoice');
+  const { error: showErrorToast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
 
-  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
-  const [qrCodes, setQRCodes] = useState<any[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [qrCodes, setQRCodes] = useState<PaymentQrCode[]>([]);
 
-  useEffect(() => {
-    if (invoiceId) {
-      loadInvoice();
-    } else {
-      setLoading(false);
-    }
-    loadPaymentSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoiceId]);
-
-  const loadPaymentSettings = async () => {
+  const loadPaymentSettings = useCallback(async () => {
     try {
       // TODO: Implement API call when endpoint is ready
       // const settings = await settingsService.getTenantPaymentSettings();
@@ -41,18 +47,32 @@ export default function CustomerPaymentInfo() {
       // setQRCodes(settings.qrCodes.filter(q => q.isActive));
       setBankAccounts([]);
       setQRCodes([]);
-    } catch { /* ignore */ }
-  };
+    } catch { /* ignore: payment settings are non-critical */ }
+  }, []);
 
-  const loadInvoice = async () => {
+  const loadInvoice = useCallback(async () => {
     try {
       setLoading(true);
+      setInvoiceError(null);
       const data = await invoiceService.getInvoiceById(invoiceId!);
       setInvoice(data);
-    } catch { /* ignore */ } finally {
+    } catch (err: unknown) {
+      const message = extractApiErrorMessage(err, 'Gagal memuat tagihan. Silakan coba lagi.');
+      setInvoiceError(message);
+      showErrorToast(message);
+    } finally {
       setLoading(false);
     }
-  };
+  }, [invoiceId, showErrorToast]);
+
+  useEffect(() => {
+    if (invoiceId) {
+      void loadInvoice();
+    } else {
+      setLoading(false);
+    }
+    void loadPaymentSettings();
+  }, [invoiceId, loadInvoice, loadPaymentSettings]);
 
   const copyToClipboard = async (text: string, field: string) => {
     try {
@@ -76,31 +96,51 @@ export default function CustomerPaymentInfo() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="max-w-4xl mx-auto space-y-6" aria-busy="true" aria-label="Memuat informasi pembayaran">
+        <CardSkeleton />
+        <CardSkeleton />
+        <CardSkeleton />
+      </div>
+    );
+  }
+
+  if (invoiceError) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div
+          role="alert"
+          className="rounded-lg border border-red-200 bg-red-50 p-6 text-center"
+        >
+          <p className="text-red-700">{invoiceError}</p>
+          <button
+            onClick={() => { void loadInvoice(); }}
+            className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
+          >
+            Coba Lagi
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Water Bill Payment</h1>
-        <p className="text-gray-600">Transfer to one of the accounts below</p>
-      </div>
+      <PageHeader
+        title="Pembayaran Tagihan Air"
+        subtitle="Transfer ke salah satu rekening di bawah ini, lalu konfirmasi pembayaran Anda."
+      />
 
       {/* Invoice Summary */}
       {invoice && (
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg shadow-md p-6 border-l-4 border-blue-600">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Invoice Details</h2>
+        <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-lg shadow-md p-6 border-l-4 border-indigo-600">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Detail Tagihan</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Invoice Number</p>
+              <p className="text-sm text-gray-600">Nomor Tagihan</p>
               <p className="text-base font-semibold text-gray-900">{invoice.invoiceNumber}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Period</p>
+              <p className="text-sm text-gray-600">Periode</p>
               <p className="text-base font-semibold text-gray-900">
                 {new Date(invoice.periodStartDate).toLocaleDateString('id-ID', {
                   month: 'long',
@@ -109,8 +149,8 @@ export default function CustomerPaymentInfo() {
               </p>
             </div>
             <div className="col-span-2">
-              <p className="text-sm text-gray-600">Total Amount</p>
-              <p className="text-3xl font-bold text-blue-600">
+              <p className="text-sm text-gray-600">Total Tagihan</p>
+              <p className="text-3xl font-bold text-indigo-600">
                 {formatCurrency(invoice.amountDue || invoice.totalAmount)}
               </p>
             </div>
@@ -137,14 +177,14 @@ export default function CustomerPaymentInfo() {
       {/* Bank Accounts */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-          <BuildingLibraryIcon className="h-6 w-6 mr-2 text-blue-600" />
-          Bank Transfer
+          <BuildingLibraryIcon className="h-6 w-6 mr-2 text-indigo-600" />
+          Transfer Bank
         </h2>
 
         {bankAccounts.map((bank) => (
           <div
             key={bank.id}
-            className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:border-blue-500 transition-colors"
+            className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:border-indigo-500 transition-colors"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">{bank.bankName}</h3>
@@ -154,29 +194,30 @@ export default function CustomerPaymentInfo() {
             </div>
             <div className="space-y-2">
               <div>
-                <p className="text-sm text-gray-600">Account Name</p>
+                <p className="text-sm text-gray-600">Nama Rekening</p>
                 <p className="text-base font-semibold text-gray-900">{bank.accountName}</p>
               </div>
               <div className="flex items-center justify-between pt-2 border-t">
                 <div>
-                  <p className="text-sm text-gray-600">Account Number</p>
+                  <p className="text-sm text-gray-600">Nomor Rekening</p>
                   <p className="text-2xl font-mono font-bold text-gray-900">
                     {bank.accountNumber}
                   </p>
                 </div>
                 <button
-                  onClick={() => copyToClipboard(bank.accountNumber, bank.id)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                  onClick={() => void copyToClipboard(bank.accountNumber, bank.id)}
+                  aria-label={`Salin nomor rekening ${bank.bankName}: ${bank.accountNumber}`}
+                  className="flex items-center space-x-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100"
                 >
                   {copiedField === bank.id ? (
                     <>
                       <CheckIcon className="h-5 w-5" />
-                      <span className="text-sm font-medium">Copied!</span>
+                      <span className="text-sm font-medium">Tersalin!</span>
                     </>
                   ) : (
                     <>
                       <DocumentDuplicateIcon className="h-5 w-5" />
-                      <span className="text-sm font-medium">Copy</span>
+                      <span className="text-sm font-medium">Salin</span>
                     </>
                   )}
                 </button>
@@ -186,18 +227,17 @@ export default function CustomerPaymentInfo() {
         ))}
       </div>
 
-      {/* QR Code */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center mb-4">
-          <QrCodeIcon className="h-6 w-6 mr-2 text-blue-600" />
-          QRIS Payment
+          <QrCodeIcon className="h-6 w-6 mr-2 text-indigo-600" />
+          Pembayaran QRIS
         </h2>
         {qrCodes.length > 0 ? (
           <div className="flex flex-col items-center py-6">
             <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200 overflow-hidden">
               <img
                 src={qrCodes[0].imageUrl}
-                alt="QR Code"
+                alt="Kode QR untuk pembayaran QRIS"
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
@@ -217,7 +257,7 @@ export default function CustomerPaymentInfo() {
         ) : (
           <div className="flex flex-col items-center py-6">
             <QrCodeIcon className="h-20 w-20 text-gray-400 mb-2" />
-            <p className="text-sm text-gray-500">QR Code not available</p>
+            <p className="text-sm text-gray-500">QR Code tidak tersedia</p>
           </div>
         )}
       </div>
@@ -226,14 +266,14 @@ export default function CustomerPaymentInfo() {
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Already paid?</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Sudah bayar?</h3>
             <p className="text-sm text-gray-600 mt-1">Unggah bukti pembayaran Anda</p>
           </div>
           <button
             onClick={handleConfirmPayment}
-            className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+            className="flex items-center space-x-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
           >
-            <span>Confirm Payment</span>
+            <span>Konfirmasi Pembayaran</span>
             <ArrowRightIcon className="h-5 w-5" />
           </button>
         </div>

@@ -48,7 +48,7 @@ export default function PemakaianList() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filters, dispatch, toast]);
+  }, [currentPage, filters, toast]);
 
   const fetchPelanggan = useCallback(async () => {
     try {
@@ -159,7 +159,11 @@ export default function PemakaianList() {
         <div className="flex items-center justify-end">
           <span className="font-medium">{(row.usageM3 ?? 0).toFixed(2)}</span>
           {row.isAnomaly && (
-            <ExclamationTriangleIcon className="w-4 h-4 text-yellow-500 ml-2" title="Anomaly detected" />
+            <ExclamationTriangleIcon
+              className="w-4 h-4 text-yellow-500 ml-2"
+              title="Terdeteksi anomali"
+              aria-label="Terdeteksi anomali pada data pemakaian ini"
+            />
           )}
         </div>
       ),
@@ -182,22 +186,25 @@ export default function PemakaianList() {
             onClick={() => navigate(`/admin/usage/${row.customerId}/history`)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-purple-200 text-purple-600 transition hover:bg-purple-50"
             title="Lihat riwayat"
+            aria-label={`Lihat riwayat pemakaian ${row.customer?.name ?? ''}`}
           >
-            <ChartBarIcon className="w-5 h-5" />
+            <ChartBarIcon className="w-5 h-5" aria-hidden="true" />
           </button>
           <button
             onClick={() => navigate(`/admin/usage/edit/${row.id}`)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 text-blue-600 transition hover:bg-blue-50"
             title="Ubah data"
+            aria-label={`Ubah data pemakaian ${row.customer?.name ?? ''}`}
           >
-            <PencilIcon className="w-5 h-5" />
+            <PencilIcon className="w-5 h-5" aria-hidden="true" />
           </button>
           <button
             onClick={() => handleDelete(row.id)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50"
             title="Hapus data"
+            aria-label={`Hapus data pemakaian ${row.customer?.name ?? ''}`}
           >
-            <TrashIcon className="w-5 h-5" />
+            <TrashIcon className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
       ),
@@ -282,7 +289,7 @@ export default function PemakaianList() {
                   onChange={(e) => handleFilterChange('customerId', e.target.value)}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="">All Pelanggan</option>
+                  <option value="">Semua Pelanggan</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
                       {customer.name} ({customer.meter_number})

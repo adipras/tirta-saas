@@ -12,8 +12,11 @@ import type { TenantUser } from '../../services/tenantUserService';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
 import { PageHeader, ConfirmModal, DataTable, type Column } from '../../components';
+import { useToast } from '../../components';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 export default function UserManagementList() {
+  const toast = useToast();
   const [users, setUsers] = useState<TenantUser[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<TenantUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +26,6 @@ export default function UserManagementList() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<TenantUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [error, setError] = useState<string>('');
 
   const hasActiveFilters = searchTerm !== '' || filterRole !== '';
 
@@ -55,12 +57,11 @@ export default function UserManagementList() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      setError('');
       const data = await tenantUserService.getTenantUsers();
       setUsers(data);
       setFilteredUsers(data);
-    } catch  {
-      setError(err.response?.data?.error || 'Failed to load users');
+    } catch (err: unknown) {
+      toast.error(extractApiErrorMessage(err, 'Gagal memuat data pengguna'));
     } finally {
       setLoading(false);
     }
@@ -92,17 +93,17 @@ export default function UserManagementList() {
       await tenantUserService.deleteTenantUser(deleteTarget);
       loadUsers();
       setDeleteTarget(null);
-    } catch  {
-      setError(err.response?.data?.error || 'Failed to delete user');
+    } catch (err: unknown) {
+      toast.error(extractApiErrorMessage(err, 'Gagal menghapus pengguna'));
     }
   };
 
   const getRoleBadge = (role: string) => {
     const roleConfig: Record<string, { bg: string; text: string; label: string }> = {
       tenant_admin: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Admin' },
-      meter_reader: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Meter Reader' },
-      finance: { bg: 'bg-green-100', text: 'text-green-800', label: 'Finance' },
-      service: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Service' },
+      meter_reader: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Pembaca Meter' },
+      finance: { bg: 'bg-green-100', text: 'text-green-800', label: 'Keuangan' },
+      service: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Layanan' },
     };
 
     const config = roleConfig[role] || { bg: 'bg-gray-100', text: 'text-gray-800', label: role };
@@ -117,7 +118,7 @@ export default function UserManagementList() {
   const columns: Column<TenantUser>[] = [
     {
       key: 'name',
-      label: 'Name',
+      label: 'Nama',
       sortable: true,
     },
     {
@@ -127,13 +128,13 @@ export default function UserManagementList() {
     },
     {
       key: 'role',
-      label: 'Role',
+      label: 'Peran',
       sortable: true,
       render: (_value, user) => getRoleBadge(user.role),
     },
     {
       key: 'created_at',
-      label: 'Created',
+      label: 'Dibuat',
       sortable: true,
       render: (_value, user) => user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID') : '-',
     },
@@ -144,16 +145,16 @@ export default function UserManagementList() {
       <button
         onClick={() => handleEdit(user)}
         className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
-        title="Edit user"
-        aria-label="Edit user"
+        title="Ubah pengguna"
+        aria-label={`Ubah pengguna ${user.name}`}
       >
         <PencilIcon className="h-5 w-5" />
       </button>
       <button
         onClick={() => handleDelete(user.id)}
         className="inline-flex items-center justify-center rounded-md p-2.5 text-red-600 hover:bg-red-50 hover:text-red-900"
-        title="Delete user"
-        aria-label="Delete user"
+        title="Hapus pengguna"
+        aria-label={`Hapus pengguna ${user.name}`}
       >
         <TrashIcon className="h-5 w-5" />
       </button>
@@ -164,14 +165,14 @@ export default function UserManagementList() {
     <div className="space-y-6">
       <PageHeader
         title="Manajemen Pengguna"
-        subtitle="Manage operational users (meter reader, finance, service)"
+        subtitle="Kelola pengguna operasional (pembaca meter, keuangan, layanan)"
         actions={
           <button
             onClick={() => setShowCreateModal(true)}
             className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 sm:w-auto"
           >
             <PlusIcon className="h-5 w-5 mr-2" />
-            Add User
+            Tambah Pengguna
           </button>
         }
       />
@@ -182,7 +183,7 @@ export default function UserManagementList() {
           <div className="flex items-center">
             <UserGroupIcon className="h-8 w-8 text-blue-500" />
             <div className="ml-3">
-              <p className="text-sm text-gray-600">Total Users</p>
+              <p className="text-sm text-gray-600">Total Pengguna</p>
               <p className="text-2xl font-bold">{users.length}</p>
             </div>
           </div>
@@ -193,7 +194,7 @@ export default function UserManagementList() {
               <span className="text-blue-600 text-sm font-bold">M</span>
             </div>
             <div className="ml-3">
-              <p className="text-sm text-gray-600">Meter Readers</p>
+              <p className="text-sm text-gray-600">Pembaca Meter</p>
               <p className="text-2xl font-bold">{users.filter((u) => u.role === 'meter_reader').length}</p>
             </div>
           </div>
@@ -201,10 +202,10 @@ export default function UserManagementList() {
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center">
             <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-              <span className="text-green-600 text-sm font-bold">F</span>
+              <span className="text-green-600 text-sm font-bold">K</span>
             </div>
             <div className="ml-3">
-              <p className="text-sm text-gray-600">Finance</p>
+              <p className="text-sm text-gray-600">Keuangan</p>
               <p className="text-2xl font-bold">{users.filter((u) => u.role === 'finance').length}</p>
             </div>
           </div>
@@ -212,10 +213,10 @@ export default function UserManagementList() {
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center">
             <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
-              <span className="text-orange-600 text-sm font-bold">S</span>
+              <span className="text-orange-600 text-sm font-bold">L</span>
             </div>
             <div className="ml-3">
-              <p className="text-sm text-gray-600">Service</p>
+              <p className="text-sm text-gray-600">Layanan</p>
               <p className="text-2xl font-bold">{users.filter((u) => u.role === 'service').length}</p>
             </div>
           </div>
@@ -226,25 +227,29 @@ export default function UserManagementList() {
       <div className="bg-white rounded-lg shadow p-4">
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
+            <label htmlFor="search-pengguna" className="sr-only">Cari pengguna</label>
             <input
+              id="search-pengguna"
               type="text"
-              placeholder="Search by name or email..."
+              placeholder="Cari nama atau email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
+            <label htmlFor="filter-peran" className="sr-only">Filter berdasarkan peran</label>
             <select
+              id="filter-peran"
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             >
-              <option value="">All Roles</option>
-              <option value="meter_reader">Meter Reader</option>
-              <option value="finance">Finance</option>
-              <option value="service">Service</option>
+              <option value="">Semua Peran</option>
+              <option value="meter_reader">Pembaca Meter</option>
+              <option value="finance">Keuangan</option>
+              <option value="service">Layanan</option>
             </select>
           </div>
           {hasActiveFilters && (
@@ -253,19 +258,13 @@ export default function UserManagementList() {
                 onClick={handleClearFilters}
                 className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 sm:w-auto"
               >
-                <XMarkIcon className="h-4 w-4 mr-1" />
-                Clear Filters
+                <XMarkIcon className="h-4 w-4 mr-1" aria-hidden="true" />
+                Hapus Filter
               </button>
             </div>
           )}
         </div>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
 
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -275,7 +274,7 @@ export default function UserManagementList() {
           actions={actions}
           searchable={false}
           loading={loading}
-          emptyMessage="No users found"
+          emptyMessage="Tidak ada pengguna yang ditemukan"
         />
       </div>
 

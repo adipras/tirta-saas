@@ -7,7 +7,7 @@ import {
 import invoiceService from '../../services/invoiceService';
 import { thermalPrinterService } from '../../services/thermalPrinterService';
 import type { InvoiceDetails as InvoiceDetailsType, Invoice } from '../../types/invoice';
-import { useToast } from '../../components';
+import { useToast, CardSkeleton } from '../../components';
 
 const STATUS_LABELS: Record<Invoice['status'], string> = {
   paid: 'Lunas',
@@ -73,8 +73,13 @@ export default function InvoiceDetails() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+      <div className="space-y-6">
+        <div className="h-8 w-48 animate-pulse rounded bg-gray-200" aria-hidden="true" />
+        <CardSkeleton />
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
       </div>
     );
   }
@@ -119,8 +124,8 @@ export default function InvoiceDetails() {
           onClick={handlePrint}
           className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
         >
-          <PrinterIcon className="mr-2 h-4 w-4" />
-          Print
+          <PrinterIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+          Cetak
         </button>
       </div>
 

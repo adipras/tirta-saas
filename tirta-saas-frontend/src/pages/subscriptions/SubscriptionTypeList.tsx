@@ -57,7 +57,7 @@ export default function SubscriptionTypeList() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, search, dispatch, toast]);
+  }, [currentPage, search, toast]);
 
   useEffect(() => {
     fetchSubscriptionTypes();

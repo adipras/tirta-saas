@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { customerProfilService } from '../../services/customerProfileService';
 import type { ChangePasswordDto, PasswordValidation } from '../../types/customerProfile';
+import { useToast } from '../../components';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 export default function ChangePassword() {
   const navigate = useNavigate();
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
@@ -109,14 +111,12 @@ export default function ChangePassword() {
       setLoading(true);
       setError(null);
       await customerProfilService.changePassword(formData);
-      setSuccess(true);
-      
-      // Redirect after 2 seconds
-      setTimeout(() => {
-        navigate('/customer/profile');
-      }, 2000);
-    } catch  {
-      setError(err.response?.data?.message || 'Gagal mengubah kata sandi');
+      showSuccessToast('Kata sandi berhasil diubah');
+      navigate('/customer/profile');
+    } catch (err: unknown) {
+      const message = extractApiErrorMessage(err, 'Gagal mengubah kata sandi');
+      setError(message);
+      showErrorToast(message);
     } finally {
       setLoading(false);
     }
@@ -132,23 +132,15 @@ export default function ChangePassword() {
 
   const getValidationIcon = (isValid: boolean) => {
     return isValid ? (
-      <CheckCircleIcon className="h-5 w-5 text-green-600" />
+      <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
     ) : (
-      <XCircleIcon className="h-5 w-5 text-gray-400" />
+      <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
     );
   };
-
-  if (success) {
-    return (
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-          <CheckCircleIcon className="h-16 w-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-green-900 mb-2">Kata sandi berhasil diubah!</h2>
-          <p className="text-green-700">Mengembalikan Anda ke halaman profil...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -182,21 +174,23 @@ export default function ChangePassword() {
                 type={showPasswords.current ? 'text' : 'password'}
                 id="currentPassword"
                 name="currentPassword"
+                autoComplete="current-password"
                 value={formData.currentPassword}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-4 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                   errors.currentPassword ? 'border-red-300' : 'border-gray-300'
                 }`}
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('current')}
+                aria-label={showPasswords.current ? 'Sembunyikan kata sandi saat ini' : 'Tampilkan kata sandi saat ini'}
                 className="absolute inset-y-0 right-0 flex items-center pr-3"
               >
                 {showPasswords.current ? (
-                  <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                  <EyeSlashIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 ) : (
-                  <EyeIcon className="h-5 w-5 text-gray-400" />
+                  <EyeIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 )}
               </button>
             </div>
@@ -213,21 +207,23 @@ export default function ChangePassword() {
                 type={showPasswords.new ? 'text' : 'password'}
                 id="newPassword"
                 name="newPassword"
+                autoComplete="new-password"
                 value={formData.newPassword}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-4 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                   errors.newPassword ? 'border-red-300' : 'border-gray-300'
                 }`}
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('new')}
+                aria-label={showPasswords.new ? 'Sembunyikan kata sandi baru' : 'Tampilkan kata sandi baru'}
                 className="absolute inset-y-0 right-0 flex items-center pr-3"
               >
                 {showPasswords.new ? (
-                  <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                  <EyeSlashIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 ) : (
-                  <EyeIcon className="h-5 w-5 text-gray-400" />
+                  <EyeIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 )}
               </button>
             </div>
@@ -235,40 +231,45 @@ export default function ChangePassword() {
 
             {/* Password Requirements */}
             {formData.newPassword && (
-              <div className="mt-3 space-y-2">
-                <p className="text-sm font-medium text-gray-700">Kata sandi harus mengandung:</p>
-                <div className="space-y-1">
-                  <div className="flex items-center">
+              <div className="mt-3 space-y-2" aria-live="polite" aria-atomic="false">
+                <p className="text-sm font-medium text-gray-700" id="password-requirements-label">
+                  Kata sandi harus mengandung:
+                </p>
+                <ul
+                  className="space-y-1"
+                  aria-labelledby="password-requirements-label"
+                >
+                  <li className="flex items-center">
                     {getValidationIcon(validation.minLength)}
                     <span className={`ml-2 text-sm ${getValidationColor(validation.minLength)}`}>
                       Minimal 8 karakter
                     </span>
-                  </div>
-                  <div className="flex items-center">
+                  </li>
+                  <li className="flex items-center">
                     {getValidationIcon(validation.hasUpperCase)}
                     <span className={`ml-2 text-sm ${getValidationColor(validation.hasUpperCase)}`}>
                       Satu huruf kapital
                     </span>
-                  </div>
-                  <div className="flex items-center">
+                  </li>
+                  <li className="flex items-center">
                     {getValidationIcon(validation.hasLowerCase)}
                     <span className={`ml-2 text-sm ${getValidationColor(validation.hasLowerCase)}`}>
                       Satu huruf kecil
                     </span>
-                  </div>
-                  <div className="flex items-center">
+                  </li>
+                  <li className="flex items-center">
                     {getValidationIcon(validation.hasNumber)}
                     <span className={`ml-2 text-sm ${getValidationColor(validation.hasNumber)}`}>
                       Satu angka
                     </span>
-                  </div>
-                  <div className="flex items-center">
+                  </li>
+                  <li className="flex items-center">
                     {getValidationIcon(validation.hasSpecialChar)}
                     <span className={`ml-2 text-sm ${getValidationColor(validation.hasSpecialChar)}`}>
-                      Satu karakter spesial (!@#$%^&*...)
+                      Satu karakter spesial (!@#$%^&amp;*...)
                     </span>
-                  </div>
-                </div>
+                  </li>
+                </ul>
               </div>
             )}
           </div>
@@ -283,21 +284,23 @@ export default function ChangePassword() {
                 type={showPasswords.confirm ? 'text' : 'password'}
                 id="confirmPassword"
                 name="confirmPassword"
+                autoComplete="new-password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-4 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                   errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
                 }`}
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('confirm')}
+                aria-label={showPasswords.confirm ? 'Sembunyikan konfirmasi kata sandi' : 'Tampilkan konfirmasi kata sandi'}
                 className="absolute inset-y-0 right-0 flex items-center pr-3"
               >
                 {showPasswords.confirm ? (
-                  <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                  <EyeSlashIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 ) : (
-                  <EyeIcon className="h-5 w-5 text-gray-400" />
+                  <EyeIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 )}
               </button>
             </div>
@@ -318,7 +321,7 @@ export default function ChangePassword() {
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 flex items-center"
+            className="px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 flex items-center"
           >
             {loading ? (
               <>

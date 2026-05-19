@@ -112,7 +112,7 @@ const PaymentProofSubmitForm: React.FC = () => {
       setTimeout(() => {
         navigate('/admin/payments');
       }, 2000);
-    } catch  {
+    } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to submit payment proof');
     } finally {
       setLoading(false);

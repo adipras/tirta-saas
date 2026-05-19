@@ -92,7 +92,7 @@ export default function BulkImportWaterPemakaian() {
       } else {
         toast.warning(msg);
       }
-    } catch  {
+    } catch (err: any) {
       toast.error(err.message || 'Import gagal');
     } finally {
       setLoading(false);

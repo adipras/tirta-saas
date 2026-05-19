@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CloudArrowUpIcon,
@@ -7,8 +7,10 @@ import {
   ExclamationCircleIcon,
   CameraIcon,
 } from '@heroicons/react/24/outline';
+import { PageHeader, useToast } from '../../components';
 import { invoiceService } from '../../services/invoiceService';
 import type { Invoice } from '../../types/invoice';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 interface PaymentConfirmationData {
   invoiceId: string;
@@ -26,6 +28,7 @@ export default function CustomerPaymentConfirmation() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const invoiceId = searchParams.get('invoice');
+  const { error: showErrorToast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -48,14 +51,7 @@ export default function CustomerPaymentConfirmation() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (invoiceId) {
-      loadInvoice();
-    }
-  }, [invoiceId]);
-
-  const loadInvoice = async () => {
+  const loadInvoice = useCallback(async () => {
     try {
       setLoading(true);
       const data = await invoiceService.getInvoiceById(invoiceId!);
@@ -64,12 +60,20 @@ export default function CustomerPaymentConfirmation() {
         ...prev,
         amount: data.amountDue || data.totalAmount,
       }));
-    } catch {
-      setError('Failed to load invoice');
+    } catch (err: unknown) {
+      const message = extractApiErrorMessage(err, 'Gagal memuat tagihan');
+      setError(message);
+      showErrorToast(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [invoiceId, showErrorToast]);
+
+  useEffect(() => {
+    if (invoiceId) {
+      void loadInvoice();
+    }
+  }, [invoiceId, loadInvoice]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -89,11 +93,11 @@ export default function CustomerPaymentConfirmation() {
     if (file) {
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
-        setErrors({ ...errors, proofFile: 'File must be JPG, PNG, or PDF' });
+        setErrors({ ...errors, proofFile: 'File harus berformat JPG, PNG, atau PDF' });
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        setErrors({ ...errors, proofFile: 'File size must not exceed 5MB' });
+        setErrors({ ...errors, proofFile: 'Ukuran file maksimal 5MB' });
         return;
       }
 
@@ -120,10 +124,10 @@ export default function CustomerPaymentConfirmation() {
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-    if (!formData.paymentDate) newErrors.paymentDate = 'Payment date is required';
-    if (!formData.accountNumber) newErrors.accountNumber = 'Account number is required';
-    if (!formData.accountName) newErrors.accountName = 'Account name is required';
-    if (!formData.proofFile) newErrors.proofFile = 'Payment proof is required';
+    if (!formData.paymentDate) newErrors.paymentDate = 'Tanggal pembayaran wajib diisi';
+    if (!formData.accountNumber) newErrors.accountNumber = 'Nomor rekening wajib diisi';
+    if (!formData.accountName) newErrors.accountName = 'Nama rekening wajib diisi';
+    if (!formData.proofFile) newErrors.proofFile = 'Bukti pembayaran wajib diunggah';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -156,8 +160,10 @@ export default function CustomerPaymentConfirmation() {
       setTimeout(() => {
         navigate('/customer/payments/success?confirmed=true');
       }, 2000);
-    } catch {
-      setError('Failed to submit payment confirmation');
+    } catch (err: unknown) {
+      const message = extractApiErrorMessage(err, 'Gagal mengirim konfirmasi pembayaran');
+      setError(message);
+      showErrorToast(message);
     } finally {
       setSubmitting(false);
     }
@@ -173,8 +179,8 @@ export default function CustomerPaymentConfirmation() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-gray-500">Memuat data tagihan...</div>
       </div>
     );
   }
@@ -184,8 +190,8 @@ export default function CustomerPaymentConfirmation() {
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-8 text-center">
           <CheckCircleIcon className="h-20 w-20 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Confirmation Submitted!</h2>
-          <p className="text-gray-600">We will verify within 1-2 business days</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Konfirmasi Pembayaran Terkirim!</h2>
+          <p className="text-gray-600">Kami akan memverifikasi dalam 1-2 hari kerja</p>
         </div>
       </div>
     );
@@ -193,22 +199,22 @@ export default function CustomerPaymentConfirmation() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold text-gray-900">Confirm Payment</h1>
-        <p className="text-gray-600 mt-1">Upload proof and fill details</p>
-      </div>
+      <PageHeader
+        title="Konfirmasi Pembayaran"
+        subtitle="Unggah bukti transfer dan isi detail pembayaran untuk dikonfirmasi."
+      />
 
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg flex items-start">
-          <ExclamationCircleIcon className="h-5 w-5 text-red-400 mt-0.5" />
+        <div role="alert" className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg flex items-start">
+          <ExclamationCircleIcon className="h-5 w-5 text-red-400 mt-0.5" aria-hidden="true" />
           <p className="ml-3 text-sm text-red-800">{error}</p>
         </div>
       )}
 
       {invoice && (
-        <div className="bg-blue-50 rounded-lg p-6 border-l-4 border-blue-600">
-          <h2 className="font-semibold text-gray-900 mb-3">Invoice {invoice.invoiceNumber}</h2>
-          <p className="text-2xl font-bold text-blue-600">{formatCurrency(formData.amount)}</p>
+        <div className="bg-indigo-50 rounded-lg p-6 border-l-4 border-indigo-600">
+          <h2 className="font-semibold text-gray-900 mb-3">Tagihan {invoice.invoiceNumber}</h2>
+          <p className="text-2xl font-bold text-indigo-600">{formatCurrency(formData.amount)}</p>
         </div>
       )}
 
@@ -216,16 +222,16 @@ export default function CustomerPaymentConfirmation() {
         {/* Upload */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Payment Proof <span className="text-red-500">*</span>
+            Bukti Pembayaran <span className="text-red-500">*</span>
           </label>
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
             {!formData.proofFile ? (
               <div>
-                <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
                 <label htmlFor="file-upload" className="mt-4 inline-block cursor-pointer">
-                  <span className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center">
-                    <CameraIcon className="h-5 w-5 mr-2" />
-                    Choose File
+                  <span className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 inline-flex items-center">
+                    <CameraIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                    Pilih File
                   </span>
                   <input
                     id="file-upload"
@@ -235,19 +241,20 @@ export default function CustomerPaymentConfirmation() {
                     onChange={handleFileChange}
                   />
                 </label>
-                <p className="mt-2 text-xs text-gray-500">PNG, JPG, or PDF up to 5MB</p>
+                <p className="mt-2 text-xs text-gray-500">PNG, JPG, atau PDF maksimal 5MB</p>
               </div>
             ) : (
               <div className="relative">
                 {previewUrl && (
-                  <img src={previewUrl} alt="Preview" className="max-h-64 mx-auto rounded-lg" />
+                  <img src={previewUrl} alt="Pratinjau bukti pembayaran" className="max-h-64 mx-auto rounded-lg" />
                 )}
                 <button
                   type="button"
                   onClick={removeFile}
+                  aria-label="Hapus file"
                   className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
                 >
-                  <XMarkIcon className="h-5 w-5" />
+                  <XMarkIcon className="h-5 w-5" aria-hidden="true" />
                 </button>
               </div>
             )}
@@ -258,88 +265,94 @@ export default function CustomerPaymentConfirmation() {
         {/* Form Fields */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Date <span className="text-red-500">*</span>
+            <label htmlFor="paymentDate" className="block text-sm font-medium text-gray-700 mb-1">
+              Tanggal Pembayaran <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
+              id="paymentDate"
               name="paymentDate"
               value={formData.paymentDate}
               onChange={handleChange}
               max={new Date().toISOString().split('T')[0]}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
             />
             {errors.paymentDate && <p className="mt-1 text-sm text-red-600">{errors.paymentDate}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Payment Method <span className="text-red-500">*</span>
+            <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700 mb-1">
+              Metode Pembayaran <span className="text-red-500">*</span>
             </label>
             <select
+              id="paymentMethod"
               name="paymentMethod"
               value={formData.paymentMethod}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="e_wallet">E-Wallet (QRIS)</option>
+              <option value="bank_transfer">Transfer Bank</option>
+              <option value="e_wallet">Dompet Digital (QRIS)</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Your Account Number <span className="text-red-500">*</span>
+            <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700 mb-1">
+              Nomor Rekening Pengirim <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
+              id="accountNumber"
               name="accountNumber"
               value={formData.accountNumber}
               onChange={handleChange}
-              placeholder="e.g., 1234567890"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="mis. 1234567890"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
             />
             {errors.accountNumber && <p className="mt-1 text-sm text-red-600">{errors.accountNumber}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Your Account Name <span className="text-red-500">*</span>
+            <label htmlFor="accountName" className="block text-sm font-medium text-gray-700 mb-1">
+              Nama Rekening Pengirim <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
+              id="accountName"
               name="accountName"
               value={formData.accountName}
               onChange={handleChange}
-              placeholder="e.g., John Doe"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="mis. Budi Santoso"
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
             />
             {errors.accountName && <p className="mt-1 text-sm text-red-600">{errors.accountName}</p>}
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Reference Number (Optional)
+          <label htmlFor="referenceNumber" className="block text-sm font-medium text-gray-700 mb-1">
+            Nomor Referensi (Opsional)
           </label>
           <input
             type="text"
+            id="referenceNumber"
             name="referenceNumber"
             value={formData.referenceNumber}
             onChange={handleChange}
-            placeholder="Transaction ref from bank"
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            placeholder="Nomor referensi dari bank"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
           <textarea
+            id="notes"
             name="notes"
             value={formData.notes}
             onChange={handleChange}
             rows={3}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
@@ -349,14 +362,14 @@ export default function CustomerPaymentConfirmation() {
             onClick={() => navigate(-1)}
             className="px-6 py-2 border text-gray-700 rounded-lg hover:bg-gray-50"
           >
-            Cancel
+            Batal
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
           >
-            {submitting ? 'Submitting...' : 'Submit Confirmation'}
+            {submitting ? 'Mengirim...' : 'Kirim Konfirmasi'}
           </button>
         </div>
       </form>

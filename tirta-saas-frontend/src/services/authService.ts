@@ -65,8 +65,8 @@ class AuthService {
       if (token) {
         await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, {});
       }
-    } catch  {
-      console.error('Logout error:', error);
+    } catch {
+      console.error('Logout error');
     } finally {
       this.clearAuth();
     }

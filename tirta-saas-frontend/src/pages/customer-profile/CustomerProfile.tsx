@@ -1,30 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { UserCircleIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, CreditCardIcon, KeyIcon } from '@heroicons/react/24/outline';
+import { PageHeader, useToast } from '../../components';
 import { customerProfilService } from '../../services/customerProfileService';
 import type { CustomerProfil as CustomerProfilType } from '../../types/customerProfile';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 export default function CustomerProfil() {
   const [profile, setProfil] = useState<CustomerProfilType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { error: showErrorToast } = useToast();
 
-  useEffect(() => {
-    loadProfil();
-  }, []);
-
-  const loadProfil = async () => {
+  const loadProfil = useCallback(async () => {
     try {
       setLoading(true);
       const data = await customerProfilService.getProfil();
       setProfil(data);
       setError(null);
-    } catch  {
-      setError(err.response?.data?.message || 'Failed to load profile');
+    } catch (err: unknown) {
+      const message = extractApiErrorMessage(err, 'Gagal memuat profil');
+      setError(message);
+      showErrorToast(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [showErrorToast]);
+
+  useEffect(() => {
+    void loadProfil();
+  }, [loadProfil]);
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -64,15 +69,16 @@ export default function CustomerProfil() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-600">{error}</p>
+      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+        <p className="text-red-700">{error}</p>
+        <button onClick={() => void loadProfil()} className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700">Coba Lagi</button>
       </div>
     );
   }
@@ -87,28 +93,27 @@ export default function CustomerProfil() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Profil Saya</h1>
-          <p className="text-gray-600">Kelola informasi pribadi dan pengaturan akun Anda</p>
-        </div>
-        <div className="flex gap-3">
-          <Link
-            to="/customer/profile/change-password"
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <KeyIcon className="h-5 w-5 mr-2" />
-            Ubah Kata Sandi
-          </Link>
-          <Link
-            to="/customer/profile/edit"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-          >
-            Edit Profil
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Profil Saya"
+        subtitle="Kelola informasi pribadi, status akun, dan detail langganan pelanggan Anda."
+        actions={
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link
+              to="/customer/profile/change-password"
+              className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <KeyIcon className="mr-2 h-5 w-5" />
+              Ubah Kata Sandi
+            </Link>
+            <Link
+              to="/customer/profile/edit"
+              className="inline-flex items-center justify-center rounded-lg border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              Edit Profil
+            </Link>
+          </div>
+        }
+      />
 
       {/* Status Alert */}
       {profile.outstandingBalance > 0 && (

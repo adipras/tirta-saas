@@ -113,25 +113,31 @@ Pendekatan implementasi:
 - Seluruh perubahan UI harus menjaga behavior bisnis existing (tenant scoping, role access, payment proof flow).
 
 ## Progress Sementara
-Status umum: implementasi sudah bergerak di **Fase 1** dan mulai menyentuh sebagian **Fase 2**, tetapi belum final.
+Status umum: implementasi sudah **menuntaskan mayoritas fondasi Fase 1**, mendorong **Fase 2** ke banyak domain fitur utama, dan mulai menutup sebagian gap **Fase 3** pada aksesibilitas. Namun, harmonisasi komponen reusable dan guardrails repo-wide masih belum final.
 
-1. **Selesai**
-   - **T9 — Bersih-bersih legacy/debug** sudah dikerjakan pada area inti: route debug/test dibersihkan dari `src/App.tsx`, import test page dihapus, dan `console.log` debug utama dibersihkan dari `App.tsx` serta `src/components/PrivateRoute.tsx`.
+1. **Sudah tercapai / progres besar**
+   - **T2 — Konsolidasi route customer**: route customer publik/legacy di `src/App.tsx` sudah dipangkas, entry publik difokuskan ke `/customer/login`, dan flow pembayaran customer diarahkan ke tree customer yang lebih konsisten.
+   - **T3 — Standardisasi auth & API layer customer**: duplikasi halaman/customer flow lama dibersihkan, service customer lama (`src/services/customerAuthService.ts`, `src/services/customerPortalService.ts`) dihapus, dan kontrak error API mulai dipusatkan lewat helper bersama.
+   - **T4 — Unifikasi sistem notifikasi (substantial progress)**: fondasi toast tunggal sudah dibangun lewat `src/components/toast-context.ts`, `src/hooks/useToast.ts`, `src/types/toast.ts`, dan `src/utils/apiError.ts`; migrasi pemakaian notifikasi sudah berjalan di area customer, invoices, reports, dan sebagian admin.
+   - **T5 — Standarisasi page shell & state UX (substantial progress)**: pola `PageHeader`, skeleton/loading state, retryable error state, dan empty state sudah diterapkan di banyak halaman prioritas tinggi, terutama pada flow customer, `customer-invoices`, `invoices`, `reports`, dan `user-management`.
+   - **T7 — Standardisasi copy UI Bahasa Indonesia (substantial progress)**: banyak copy user-facing yang disentuh sudah dinormalkan ke Bahasa Indonesia, termasuk pada auth fallback, customer flow, invoices, reports, usage, water rates, dan user management.
+   - **T8 — Hardening aksesibilitas (substantial progress)**: gap a11y sudah mulai ditutup pada sidebar mobile, dialog/modal, form labels, icon-only actions, loading state, tabel, dan kontrol interaktif di halaman prioritas.
+   - **T9 — Bersih-bersih legacy/debug** sudah dikerjakan pada area inti: route debug/test dibersihkan dari `src/App.tsx`, import test page dihapus, dan debug logging utama dikurangi.
 
-2. **Sedang berjalan**
-   - **T2 — Konsolidasi route customer**: route customer publik ganda di `src/App.tsx` sudah mulai dipangkas; entry publik customer difokuskan ke `/customer/login`, sedangkan route pembayaran customer dipindahkan ke tree customer yang terproteksi.
-   - **T3 — Standardisasi auth & API layer customer**: duplikasi halaman `src/pages/auth/CustomerLogin.tsx` sudah dihapus; flow customer aktif sedang dipusatkan ke implementasi di `src/pages/customer/*`.
-   - **T5 — Standarisasi state loading/error**: beberapa halaman sudah mulai digeser ke pola loading/error yang lebih konsisten; contoh jelas terlihat di `src/pages/customer/CustomerDashboard.tsx` yang sudah memakai skeleton/loading state dan pesan error UI.
-   - **T7 — Standardisasi copy Bahasa Indonesia**: sebagian pesan user-facing mulai dilokalkan, termasuk fallback pesan login di `src/services/authService.ts`.
+2. **Snapshot area yang sudah tersentuh**
+   - **Fondasi bersama**: `src/components/Toast.tsx`, `src/components/toast-context.ts`, `src/hooks/useToast.ts`, `src/types/toast.ts`, `src/utils/apiError.ts`, `src/components/CustomerSidebar.tsx`, `src/components/index.ts`.
+   - **Flow customer**: `src/pages/customer/CustomerDashboard.tsx`, `src/pages/customer/CustomerPayInvoice.tsx`, `src/pages/customer-invoices/*`, `src/pages/customer-payments/*`, `src/pages/customer-profile/*`, `src/pages/customer-usage/CustomerUsageMonitor.tsx`.
+   - **Invoices & laporan**: `src/pages/invoices/*`, `src/pages/invoices/bulk-generation/BulkInvoiceGeneration.tsx`, `src/pages/reports/*`.
+   - **Admin prioritas tinggi**: `src/pages/user-management/*`, `src/pages/water-rates/*`, `src/pages/usage/UsageList.tsx`.
+   - **Pembersihan legacy**: file customer legacy dan service customer lama yang tidak lagi menjadi flow utama sudah dipangkas dari code path aktif.
 
-3. **Snapshot perubahan yang sudah terlihat**
-   - `src/App.tsx`: konsolidasi import halaman customer, penghapusan route debug/test, dan perapihan route customer.
-   - `src/pages/customer/CustomerDashboard.tsx`: migrasi dari service customer lama ke Redux auth + service domain standar (`invoiceService`, `customerProfilService`), plus perbaikan UX loading/error.
-   - `src/pages/customer/CustomerLogin.tsx` dan `src/pages/customer/CustomerPayInvoice.tsx`: refactor flow customer sedang berlangsung.
-   - `src/services/authService.ts`: logging debug dikurangi dan copy error login diubah ke Bahasa Indonesia.
+3. **Kondisi validasi terakhir**
+   - **Build frontend** konsisten lolos pada slice-slice refactor yang sudah dikerjakan.
+   - **Lint targeted** untuk file yang disentuh umumnya lolos, tetapi **lint global repo masih gagal** karena hutang lama di file lain.
+   - Snapshot terakhir lint global yang tercatat menunjukkan **107 problem (101 error, 6 warning)**, dominan `@typescript-eslint/no-explicit-any` dan `react-hooks/exhaustive-deps` di area legacy yang belum ikut dirapikan.
 
-4. **Belum final / belum dikerjakan penuh**
-   - **T4 — Unifikasi notifikasi**
-   - **T6 — Harmonisasi komponen form/tabel/tombol/modal**
-   - **T8 — Hardening aksesibilitas**
-   - **T10 — Guardrails lint/build/dokumentasi konsistensi**
+4. **Belum final / prioritas lanjutan**
+   - **T4 — Unifikasi notifikasi**: migrasi belum menutup seluruh halaman non-prioritas, dan cleanup final pada state/action notifikasi lama masih perlu verifikasi dependensi.
+   - **T6 — Harmonisasi komponen form/tabel/tombol/modal**: belum ada standardisasi varian reusable yang benar-benar final lintas domain.
+   - **T8 — Hardening aksesibilitas**: sortable table, keyboard interaction, dan beberapa icon/table action di area admin masih butuh sweep lanjutan.
+   - **T10 — Guardrails lint/build/dokumentasi konsistensi**: checklist review, playbook konsistensi, dan perapihan lint repo-wide masih belum selesai.

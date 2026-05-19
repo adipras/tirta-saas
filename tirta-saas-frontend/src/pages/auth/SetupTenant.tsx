@@ -173,7 +173,7 @@ const SetupTenant = () => {
       } else {
         navigate('/admin');
       }
-    } catch  {
+    } catch (submitError: unknown) {
       setError(
         submitError instanceof Error
           ? submitError.message

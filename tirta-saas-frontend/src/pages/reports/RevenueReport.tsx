@@ -23,10 +23,12 @@ import {
   DataTable,
   FormInput,
   PageHeader,
+  useToast,
 } from '../../components';
 import { reportService } from '../../services/reportService';
 import type { RevenueReport as RevenueReportType } from '../../types/report';
 import { exportToCSV, exportToExcel, formatIDR } from '../../utils/exportUtils';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
 
@@ -75,6 +77,7 @@ export default function RevenueReport() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<RevenueReportType | null>(null);
+  const { error: showErrorToast } = useToast();
   const [filters, setFilters] = useState({
     startDate:
       searchParams.get('startDate') ||
@@ -87,12 +90,13 @@ export default function RevenueReport() {
       setLoading(true);
       const data = await reportService.getRevenueReport(filters);
       setReportData(data);
-    } catch {
+    } catch (err) {
       setReportData(null);
+      showErrorToast(extractApiErrorMessage(err, 'Gagal memuat laporan pendapatan. Silakan coba lagi.'));
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, showErrorToast]);
 
   useEffect(() => {
     void fetchReportData();
@@ -155,8 +159,9 @@ export default function RevenueReport() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+      <div role="status" aria-label="Memuat laporan pendapatan..." className="flex h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" aria-hidden="true" />
+        <span className="sr-only">Memuat laporan pendapatan...</span>
       </div>
     );
   }
@@ -197,7 +202,7 @@ export default function RevenueReport() {
               onClick={() => handleExport('csv')}
               className="inline-flex items-center justify-center rounded-xl bg-gray-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
             >
-              <ArrowDownTrayIcon className="mr-2 h-5 w-5" />
+              <ArrowDownTrayIcon className="mr-2 h-5 w-5" aria-hidden="true" />
               Ekspor CSV
             </button>
             <button
@@ -205,7 +210,7 @@ export default function RevenueReport() {
               onClick={() => handleExport('excel')}
               className="inline-flex items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
             >
-              <ArrowDownTrayIcon className="mr-2 h-5 w-5" />
+              <ArrowDownTrayIcon className="mr-2 h-5 w-5" aria-hidden="true" />
               Ekspor Excel
             </button>
           </div>

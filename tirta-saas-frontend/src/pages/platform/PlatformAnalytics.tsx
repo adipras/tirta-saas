@@ -97,7 +97,7 @@ export default function PlatformAnalytics() {
 
       setOverview(overviewRes.data);
       setTenantGrowth(growthRes.data);
-    } catch  {
+    } catch (err: unknown) {
       setError(getErrorMessage(err, 'Gagal memuat analitik platform.'));
     } finally {
       setLoading(false);

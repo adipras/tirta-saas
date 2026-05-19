@@ -96,7 +96,7 @@ export default function SubscriptionPlans() {
       setLoading(true);
       const response = await apiClient.get('/platform/subscription-plans?include_inactive=true');
       setPlans(response.data || []);
-    } catch  {
+    } catch (error: unknown) {
       toast.error(getErrorMessage(error, 'Gagal memuat paket langganan.'));
     } finally {
       setLoading(false);
@@ -176,7 +176,7 @@ export default function SubscriptionPlans() {
 
       await fetchPlans();
       closeModal();
-    } catch  {
+    } catch (error: unknown) {
       toast.error(getErrorMessage(error, 'Gagal menyimpan paket langganan.'));
     } finally {
       setSubmitting(false);

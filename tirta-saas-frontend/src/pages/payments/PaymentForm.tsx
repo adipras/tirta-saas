@@ -101,7 +101,7 @@ const PaymentForm: React.FC = () => {
       setOutstandingTagihan(invoices);
       setSelectedTagihan(new Set());
       setPaymentAmounts({});
-    } catch  {
+    } catch (error: unknown) {
       setOutstandingTagihan([]);
       setSelectedTagihan(new Set());
       setPaymentAmounts({});
@@ -309,7 +309,7 @@ const PaymentForm: React.FC = () => {
           : 'Pembayaran berhasil dicatat.'
       );
       navigate('/admin/payments');
-    } catch  {
+    } catch (error: unknown) {
       toast.error(getErrorMessage(error, 'Gagal menyimpan pembayaran'));
     } finally {
       setLoading(false);

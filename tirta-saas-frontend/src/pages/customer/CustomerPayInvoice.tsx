@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeftIcon, CloudArrowUpIcon } from '@heroicons/react/24/outline';
 import { invoiceService } from '../../services/invoiceService';
 import type { InvoiceDetails } from '../../types/invoice';
 import paymentProofService, { type PaymentProof } from '../../services/paymentProofService';
+import { PageHeader, useToast } from '../../components';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 const CustomerPayInvoice: React.FC = () => {
   const navigate = useNavigate();
   const { invoiceId } = useParams<{ invoiceId: string }>();
+  const {
+    error: showErrorToast,
+    warning: showWarningToast,
+    success: showSuccessToast,
+  } = useToast();
   const [invoice, setInvoice] = useState<InvoiceDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -28,40 +35,48 @@ const CustomerPayInvoice: React.FC = () => {
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
-  useEffect(() => {
-    if (invoiceId) {
-      loadInvoice();
+  const loadInvoice = useCallback(async () => {
+    if (!invoiceId) {
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoiceId]);
 
-  const loadInvoice = async () => {
     try {
       setLoading(true);
-      const data = await invoiceService.getInvoiceById(invoiceId!);
+      setError('');
+      const data = await invoiceService.getInvoiceById(invoiceId);
       setInvoice(data);
       setFormData((prev) => ({
         ...prev,
         amount: String(data.amountDue ?? data.totalAmount ?? ''),
       }));
-    } catch {
-      setError('Gagal memuat data tagihan');
+    } catch (err: unknown) {
+      const message = extractApiErrorMessage(err, 'Gagal memuat data tagihan');
+      setError(message);
+      showErrorToast(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [invoiceId, showErrorToast]);
+
+  useEffect(() => {
+    void loadInvoice();
+  }, [loadInvoice]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError('Ukuran file maksimal 5MB');
+        const message = 'Ukuran file maksimal 5MB';
+        setError(message);
+        showWarningToast(message);
         return;
       }
 
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
       if (!allowedTypes.includes(file.type)) {
-        setError('Format file harus JPG, PNG, atau PDF');
+        const message = 'Format file harus JPG, PNG, atau PDF';
+        setError(message);
+        showWarningToast(message);
         return;
       }
 
@@ -84,7 +99,9 @@ const CustomerPayInvoice: React.FC = () => {
     setError('');
 
     if (!proofImage) {
-      setError('Silakan upload bukti pembayaran');
+      const message = 'Silakan upload bukti pembayaran';
+      setError(message);
+      showWarningToast(message);
       return;
     }
 
@@ -92,13 +109,17 @@ const CustomerPayInvoice: React.FC = () => {
 
     const parsedAmount = Number(formData.amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setError('Masukkan nominal pembayaran yang valid');
+      const message = 'Masukkan nominal pembayaran yang valid';
+      setError(message);
+      showWarningToast(message);
       return;
     }
 
     const maxAmount = invoice.amountDue ?? invoice.totalAmount ?? 0;
     if (parsedAmount > maxAmount) {
-      setError('Nominal pembayaran tidak boleh melebihi sisa tagihan saat ini');
+      const message = 'Nominal pembayaran tidak boleh melebihi sisa tagihan saat ini';
+      setError(message);
+      showWarningToast(message);
       return;
     }
 
@@ -119,15 +140,14 @@ const CustomerPayInvoice: React.FC = () => {
 
       setSubmittedProof(proof);
       setSuccess(true);
+      showSuccessToast('Bukti pembayaran berhasil dikirim dan sedang menunggu verifikasi admin.');
       setTimeout(() => {
         navigate('/customer/invoices');
       }, 2000);
-    } catch  {
-      const errMsg =
-        err instanceof Error
-          ? err.message
-          : 'Gagal mengirim bukti pembayaran';
-      setError(errMsg);
+    } catch (err: unknown) {
+      const message = extractApiErrorMessage(err, 'Gagal mengirim bukti pembayaran');
+      setError(message);
+      showErrorToast(message);
     } finally {
       setSubmitting(false);
     }
@@ -189,23 +209,19 @@ const CustomerPayInvoice: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          to="/customer/invoices"
-          className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-          aria-label="Kembali ke daftar tagihan"
-        >
-          <ArrowLeftIcon className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">Bayar Tagihan</h1>
-          <p className="text-sm text-gray-500">
-            Kirim konfirmasi pembayaran. Admin akan memverifikasi sesuai nominal snapshot saat Anda
-            submit.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Bayar Tagihan"
+        subtitle="Kirim konfirmasi pembayaran. Admin akan memverifikasi sesuai nominal snapshot saat Anda submit."
+        actions={
+          <Link
+            to="/customer/invoices"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            Kembali ke Tagihan
+          </Link>
+        }
+      />
 
       {/* Invoice Details */}
       <div className="rounded-lg bg-white p-6 shadow-md">
@@ -243,7 +259,10 @@ const CustomerPayInvoice: React.FC = () => {
         <h3 className="mb-4 text-lg font-semibold text-gray-900">Form Konfirmasi Pembayaran</h3>
 
         {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div
+            className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+            role="alert"
+          >
             {error}
           </div>
         )}

@@ -156,7 +156,7 @@ const TenantRegistration = () => {
       setTimeout(() => {
         navigate('/admin/login');
       }, 3000);
-    } catch  {
+    } catch (error: unknown) {
       setErrorMessage(getErrorMessage(error));
     } finally {
       setIsLoading(false);
