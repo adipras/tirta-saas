@@ -73,6 +73,31 @@ cd tirta-saas-backend
 go run ./scripts/seed_subscription_plans
 ```
 
+### Metode 3: Production di VPS Docker
+```bash
+ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
+cd /opt/tirta-saas/app
+/opt/tirta-saas/scripts/backup.sh
+
+set -a
+. /opt/tirta-saas/app/.env
+set +a
+
+NETWORK_NAME=$(docker network ls --format '{{.Name}}' | grep '_tirta-net$' | head -n 1)
+
+docker run --rm \
+  --network "$NETWORK_NAME" \
+  -v /opt/tirta-saas/app/tirta-saas-backend:/app \
+  -w /app \
+  -e DB_HOST=tirta-mysql \
+  -e DB_PORT=3306 \
+  -e DB_NAME="$MYSQL_DATABASE" \
+  -e DB_USER="$MYSQL_USER" \
+  -e DB_PASS="$MYSQL_PASSWORD" \
+  golang:1.24.2-alpine \
+  sh -lc 'apk add --no-cache git >/dev/null && go run ./scripts/seed_subscription_plans'
+```
+
 ## Catatan Penting
 
 1. **Update Data**: Jika plans sudah ada, script akan menanyakan konfirmasi untuk update. Ketik `y` untuk melanjutkan atau `n` untuk membatalkan.
@@ -84,6 +109,8 @@ go run ./scripts/seed_subscription_plans
    - Atau edit langsung di database
 
 4. **Landing Page**: Plans yang aktif (`is_active = true`) akan otomatis muncul di landing page public.
+
+5. **Untuk Production Docker**: karena container backend production tidak membawa toolchain Go, jalankan seeder lewat container Go sementara seperti pada Metode 3.
 
 ## Struktur Data
 

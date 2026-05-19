@@ -1,7 +1,7 @@
 # Tirta SaaS - User Manual & Testing Guide
 
-**Version:** 1.0.2  
-**Last Updated:** March 8, 2026  
+**Version:** 1.0.3  
+**Last Updated:** May 19, 2026  
 **Status:** Production Ready  
 **Purpose:** Complete manual for testing all features in correct order
 
@@ -34,18 +34,19 @@
 
 1. [System Overview](#system-overview)
 2. [Pre-requisites](#pre-requisites)
-3. [Testing Flow](#testing-flow)
-4. [Platform Owner Guide](#platform-owner-guide)
-5. [Tenant Admin Guide](#tenant-admin-guide)
-6. [Customer Guide](#customer-guide)
-7. [Export Data (CSV & Excel)](#export-data-csv--excel)
-8. [Bulk Import](#bulk-import)
-9. [Print Support](#print-support)
-10. [Advanced Filtering & Search](#advanced-filtering--search)
-11. [Troubleshooting](#troubleshooting)
-12. [Testing Checklist](#testing-checklist)
-13. [API Reference](#api-endpoints-reference)
-14. [Known Issues](#known-issues)
+3. [Production Operations Guide](#production-operations-guide)
+4. [Testing Flow](#testing-flow)
+5. [Platform Owner Guide](#platform-owner-guide)
+6. [Tenant Admin Guide](#tenant-admin-guide)
+7. [Customer Guide](#customer-guide)
+8. [Export Data (CSV & Excel)](#export-data-csv--excel)
+9. [Bulk Import](#bulk-import)
+10. [Print Support](#print-support)
+11. [Advanced Filtering & Search](#advanced-filtering--search)
+12. [Troubleshooting](#troubleshooting)
+13. [Testing Checklist](#testing-checklist)
+14. [API Reference](#api-endpoints-reference)
+15. [Known Issues](#known-issues)
 
 ---
 
@@ -188,6 +189,239 @@ Before starting tests, verify:
 - [x] Can access http://localhost:5173
 - [x] Can login with platform owner credentials
 - [x] No console errors in browser
+
+---
+
+## Production Operations Guide
+
+Bagian ini dipakai untuk operasional production di VPS Docker (`/opt/tirta-saas/app`).
+
+### 1. Menjalankan Seeding Jika Diperlukan
+
+**Kapan perlu seed:**
+- tabel `subscription_plan_details` kosong
+- plan default perlu dibentuk ulang
+- ada perubahan definisi plan di source code
+
+**Sebelum mulai:**
+1. Pastikan bisa SSH ke VPS.
+2. Jalankan backup database dulu.
+3. Lakukan di maintenance window jika data plan sudah dipakai tenant aktif.
+
+**Langkah step-by-step:**
+
+```bash
+# 1) Login ke VPS
+ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
+
+# 2) Masuk ke folder aplikasi
+cd /opt/tirta-saas/app
+
+# 3) Backup database terlebih dahulu
+/opt/tirta-saas/scripts/backup.sh
+
+# 4) Load env production
+set -a
+. /opt/tirta-saas/app/.env
+set +a
+
+# 5) Cari nama docker network aplikasi
+NETWORK_NAME=$(docker network ls --format '{{.Name}}' | grep '_tirta-net$' | head -n 1)
+
+# 6) Jalankan seeder dari container Go sementara
+docker run --rm \
+  --network "$NETWORK_NAME" \
+  -v /opt/tirta-saas/app/tirta-saas-backend:/app \
+  -w /app \
+  -e DB_HOST=tirta-mysql \
+  -e DB_PORT=3306 \
+  -e DB_NAME="$MYSQL_DATABASE" \
+  -e DB_USER="$MYSQL_USER" \
+  -e DB_PASS="$MYSQL_PASSWORD" \
+  golang:1.24.2-alpine \
+  sh -lc 'apk add --no-cache git >/dev/null && go run ./scripts/seed_subscription_plans'
+```
+
+**Jika muncul prompt:**
+- `Found X existing subscription plans. Do you want to continue? (y/n):`
+- ketik `y` hanya jika Anda memang ingin update plan yang sudah ada
+
+**Verifikasi hasil seed:**
+
+```bash
+docker exec -e MYSQL_PWD="$MYSQL_PASSWORD" tirta-mysql \
+  mysql -u"$MYSQL_USER" -D "$MYSQL_DATABASE" \
+  -e "SELECT plan, name, is_active, display_order FROM subscription_plan_details ORDER BY display_order;"
+```
+
+**Catatan penting:**
+- Seeder membaca env `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`, jadi untuk production Docker perlu dipetakan dari `.env` VPS.
+- Jalur cepat di lokal tetap bisa pakai:
+
+```bash
+cd tirta-saas-backend
+./scripts/seed-subscription-plans.sh
+```
+
+### 2. Redeploy Backend / Frontend Jika Ada Update
+
+**Prinsip aman di VPS 2 GB RAM:**
+1. Backup database dulu.
+2. `git pull --ff-only` dulu.
+3. Build service **bertahap**, jangan sekaligus bila tidak perlu.
+4. Backend dikerjakan lebih dulu, frontend setelah backend sehat.
+
+#### A. Redeploy backend saja
+
+```bash
+ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
+cd /opt/tirta-saas/app
+
+/opt/tirta-saas/scripts/backup.sh
+git pull --ff-only origin main
+
+docker compose build backend
+docker compose up -d backend
+
+curl -fsS http://127.0.0.1:8081/health
+docker compose ps
+docker logs --tail 100 tirta-backend
+```
+
+#### B. Redeploy frontend saja
+
+```bash
+ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
+cd /opt/tirta-saas/app
+
+git pull --ff-only origin main
+
+docker compose build frontend
+docker compose up -d frontend nginx
+
+wget --no-check-certificate --header="Host: tirtautama.net" -qO- https://127.0.0.1/health >/dev/null && echo health-ok
+docker compose ps
+docker logs --tail 100 tirta-frontend
+```
+
+#### C. Redeploy backend + frontend
+
+```bash
+ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
+cd /opt/tirta-saas/app
+
+/opt/tirta-saas/scripts/backup.sh
+git pull --ff-only origin main
+
+# backend dulu
+docker compose build backend
+docker compose up -d backend
+curl -fsS http://127.0.0.1:8081/health
+
+# lalu frontend
+docker compose build frontend
+docker compose up -d frontend nginx
+wget --no-check-certificate --header="Host: tirtautama.net" -qO- https://127.0.0.1/health >/dev/null && echo health-ok
+
+docker compose ps
+```
+
+**Kalau memory sempit saat build:**
+
+```bash
+sudo fallocate -l 4G /swapfile.deploy
+sudo chmod 600 /swapfile.deploy
+sudo mkswap /swapfile.deploy
+sudo swapon /swapfile.deploy
+free -h
+```
+
+Setelah deploy selesai:
+
+```bash
+sudo swapoff /swapfile.deploy
+sudo rm -f /swapfile.deploy
+free -h
+```
+
+**Fast path yang sudah disediakan:**
+
+```bash
+/opt/tirta-saas/scripts/deploy-update.sh
+```
+
+Gunakan fast path hanya saat server dalam kondisi sehat dan ada cukup resource untuk rebuild.
+
+### 3. Akses Database Production via DBeaver
+
+**Tujuan:** membuka MySQL production dengan aman tanpa expose port database ke internet publik.
+
+**Metode yang direkomendasikan:** SSH tunnel dari laptop lokal ke IP container MySQL di VPS.
+
+#### A. Ambil informasi koneksi dari VPS
+
+```bash
+ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
+
+cd /opt/tirta-saas/app
+set -a
+. /opt/tirta-saas/app/.env
+set +a
+
+docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tirta-mysql
+
+echo "$MYSQL_DATABASE"
+echo "$MYSQL_USER"
+```
+
+**Catat nilai berikut:**
+- `MYSQL_DATABASE`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+- IP container `tirta-mysql`
+
+> Jangan simpan kredensial production di repo atau screenshot yang tidak aman.
+
+#### B. Buat tunnel dari laptop lokal
+
+Misal IP container MySQL adalah `172.20.0.2`:
+
+```bash
+ssh -L 13306:172.20.0.2:3306 -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
+```
+
+Biarkan terminal SSH ini tetap terbuka selama sesi DBeaver dipakai.
+
+#### C. Konfigurasi DBeaver
+
+1. Buka **DBeaver** → **New Database Connection**.
+2. Pilih **MySQL**.
+3. Isi parameter berikut:
+   - **Host:** `127.0.0.1`
+   - **Port:** `13306`
+   - **Database:** isi dari `MYSQL_DATABASE`
+   - **Username:** isi dari `MYSQL_USER`
+   - **Password:** isi dari `MYSQL_PASSWORD`
+4. Klik **Test Connection**.
+5. Jika sukses, klik **Finish**.
+
+#### D. Jika koneksi gagal
+
+Lakukan cek berikut:
+
+```bash
+# cek apakah tunnel masih aktif
+ssh -L 13306:172.20.0.2:3306 -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
+
+# cek IP container mungkin berubah setelah recreate
+ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172 \
+  "docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tirta-mysql"
+```
+
+**Catatan penting:**
+- Karena MySQL tidak dipublish ke host publik, tunnel wajib dipakai.
+- IP container bisa berubah setelah `docker compose recreate`, jadi cek ulang jika DBeaver mendadak tidak bisa connect.
+- Untuk aktivitas baca data biasa, gunakan user aplikasi. Gunakan `root` hanya jika benar-benar diperlukan.
 
 ---
 

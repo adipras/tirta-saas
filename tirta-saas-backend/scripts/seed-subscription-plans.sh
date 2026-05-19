@@ -1,6 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Script to seed subscription plans
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+BACKEND_DIR=$(cd "$SCRIPT_DIR/.." && pwd)
+
 echo "Seeding subscription plans..."
-cd /home/bsi/private-project/tirta-saas/tirta-saas-backend
+cd "$BACKEND_DIR"
 go run ./scripts/seed_subscription_plans
