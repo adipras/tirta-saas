@@ -11,7 +11,7 @@ import { waterRateService } from '../../services/waterRateService';
 import { subscriptionService } from '../../services/subscriptionService';
 import type { WaterRate } from '../../types/waterRate';
 import type { SubscriptionType } from '../../types/subscription';
-import { PageHeader, ConfirmModal } from '../../components';
+import { ActionIconButton, ConfirmModal, FormSelect, PageHeader } from '../../components';
 import { useToast } from '../../components';
 
 export default function WaterRateList() {
@@ -116,31 +116,31 @@ export default function WaterRateList() {
     {
       key: 'subscription',
       label: 'Golongan Langganan',
-      render: (_value: any, row: WaterRate) => row.subscription?.name || '-',
+      render: (_value: unknown, row: WaterRate) => row.subscription?.name || '-',
       sortable: true,
     },
     {
       key: 'amount',
       label: 'Tarif per m3',
-      render: (_value: any, row: WaterRate) => formatCurrency(row.amount),
+      render: (_value: unknown, row: WaterRate) => formatCurrency(row.amount),
       align: 'right' as const,
       sortable: true,
     },
     {
       key: 'effective_date',
       label: 'Berlaku Mulai',
-      render: (_value: any, row: WaterRate) => formatDate(row.effective_date),
+      render: (_value: unknown, row: WaterRate) => formatDate(row.effective_date),
       sortable: true,
     },
     {
       key: 'description',
       label: 'Deskripsi',
-      render: (_value: any, row: WaterRate) => row.description || '-',
+      render: (_value: unknown, row: WaterRate) => row.description || '-',
     },
     {
       key: 'active',
       label: 'Status',
-      render: (_value: any, row: WaterRate) => (
+      render: (_value: unknown, row: WaterRate) => (
         <span
           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
             row.active
@@ -156,7 +156,7 @@ export default function WaterRateList() {
     {
       key: 'actions',
       label: 'Aksi',
-      render: (_value: any, row: WaterRate) => (
+      render: (_value: unknown, row: WaterRate) => (
         <div className="flex space-x-2 justify-center">
           <button
             type="button"
@@ -175,22 +175,20 @@ export default function WaterRateList() {
               }`}
             />
           </button>
-          <button
+          <ActionIconButton
+            icon={PencilIcon}
+            label={`Ubah tarif untuk ${row.subscription?.name ?? 'tarif ini'}`}
+            tone="blue"
+            variant="ghost"
             onClick={() => navigate(`/admin/water-rates/edit/${row.id}`)}
-            className="text-blue-600 hover:text-blue-900"
-            title="Ubah tarif"
-            aria-label={`Ubah tarif untuk ${row.subscription?.name ?? 'tarif ini'}`}
-          >
-            <PencilIcon className="w-5 h-5" aria-hidden="true" />
-          </button>
-          <button
+          />
+          <ActionIconButton
+            icon={TrashIcon}
+            label={`Hapus tarif untuk ${row.subscription?.name ?? 'tarif ini'}`}
+            tone="red"
+            variant="ghost"
             onClick={() => handleDelete(row.id)}
-            className="text-red-600 hover:text-red-900"
-            title="Hapus tarif"
-            aria-label={`Hapus tarif untuk ${row.subscription?.name ?? 'tarif ini'}`}
-          >
-            <TrashIcon className="w-5 h-5" aria-hidden="true" />
-          </button>
+          />
         </div>
       ),
       align: 'center' as const,
@@ -216,38 +214,26 @@ export default function WaterRateList() {
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Golongan Langganan
-            </label>
-            <select
-              value={filterSubscription}
-              onChange={(e) => setFilterSubscription(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            >
-              <option value="">Semua Golongan</option>
-              {subscriptionTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              value={filterActive}
-              onChange={(e) => setFilterActive(e.target.value as 'all' | 'true' | 'false')}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            >
-              <option value="all">Semua Status</option>
-              <option value="true">Aktif</option>
-              <option value="false">Nonaktif</option>
-            </select>
-          </div>
+          <FormSelect
+            label="Golongan Langganan"
+            value={filterSubscription}
+            onChange={(e) => setFilterSubscription(e.target.value)}
+            options={[
+              { value: '', label: 'Semua Golongan' },
+              ...subscriptionTypes.map((type) => ({ value: type.id, label: type.name })),
+            ]}
+          />
+
+          <FormSelect
+            label="Status"
+            value={filterActive}
+            onChange={(e) => setFilterActive(e.target.value as 'all' | 'true' | 'false')}
+            options={[
+              { value: 'all', label: 'Semua Status' },
+              { value: 'true', label: 'Aktif' },
+              { value: 'false', label: 'Nonaktif' },
+            ]}
+          />
 
           {(filterSubscription !== '' || filterActive !== 'all') && (
             <div>

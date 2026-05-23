@@ -53,6 +53,42 @@ export interface OutstandingPayment {
   daysOverdue: number;
 }
 
+export interface OutstandingReportInvoice {
+  customerId: number;
+  customerName: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string;
+  amount: number;
+  daysOverdue: number;
+}
+
+export interface OutstandingReportAgingBucket {
+  range: string;
+  count: number;
+  amount: number;
+  percentage: number;
+}
+
+export interface OutstandingReportOldestInvoice {
+  invoice_id: string;
+  customer_id: string;
+  total_amount: number;
+  outstanding: number;
+  created_at: string;
+}
+
+export interface OutstandingReportData {
+  totalOutstanding: number;
+  totalPelanggan: number;
+  overdueCount: number;
+  agingBuckets: OutstandingReportAgingBucket[];
+  outstandingTagihan: OutstandingReportInvoice[];
+  unpaid_count?: number;
+  total_outstanding?: number;
+  oldest_invoices?: OutstandingReportOldestInvoice[];
+}
+
 // Customer Analytics Types
 export interface CustomerAnalytics {
   totalPelanggan: number;

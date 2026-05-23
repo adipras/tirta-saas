@@ -15,8 +15,8 @@ const stats = [
     changeType: 'increase',
   },
   {
-    name: 'Monthly Revenue',
-    stat: '$45,231',
+    name: 'Pendapatan Bulanan',
+    stat: 'Rp 45.231.000',
     icon: CurrencyDollarIcon,
     change: '8%',
     changeType: 'increase',
@@ -40,8 +40,8 @@ const stats = [
 const Dashboard = () => {
   
   return (
-    <div style={{ border: '3px solid green', padding: '20px', backgroundColor: 'white' }}>
-      <PageHeader title="Dashboard Overview" />
+    <div className="space-y-8 bg-white p-5">
+      <PageHeader title="Ringkasan Dashboard" />
       
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         {stats.map((item) => (
@@ -72,37 +72,37 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Activities</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Aktivitas Terbaru</h3>
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span className="text-sm text-gray-600">New customer registration: John Doe</span>
+              <span className="text-sm text-gray-600">Pelanggan baru terdaftar: John Doe</span>
             </div>
             <div className="flex items-center space-x-3">
               <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-              <span className="text-sm text-gray-600">Invoice #INV-001 generated</span>
+              <span className="text-sm text-gray-600">Tagihan #INV-001 berhasil dibuat</span>
             </div>
             <div className="flex items-center space-x-3">
               <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-              <span className="text-sm text-gray-600">Payment received: $450.00</span>
+              <span className="text-sm text-gray-600">Pembayaran diterima: Rp 450.000</span>
             </div>
           </div>
         </div>
 
         <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Aksi Cepat</h3>
           <div className="grid grid-cols-2 gap-4">
             <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-              Add Customer
+              Tambah Pelanggan
             </button>
             <button className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
-              Generate Invoice
+              Buat Tagihan
             </button>
             <button className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors">
-              Record Payment
+              Catat Pembayaran
             </button>
             <button className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors">
-              View Laporan
+              Lihat Laporan
             </button>
           </div>
         </div>

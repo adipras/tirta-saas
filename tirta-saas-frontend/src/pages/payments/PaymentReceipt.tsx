@@ -430,7 +430,7 @@ const PaymentReceipt: React.FC = () => {
 
         <div className="py-3 border-b border-dashed border-gray-400 space-y-1">
           <div className="flex justify-between items-start gap-2">
-            <span className="font-semibold text-gray-700">Status Invoice</span>
+            <span className="font-semibold text-gray-700">Status Tagihan</span>
             <span className={`text-right font-bold ${receiptView.invoiceStatusColorClass}`}>
               {receiptView.invoiceStatusLabel}
             </span>

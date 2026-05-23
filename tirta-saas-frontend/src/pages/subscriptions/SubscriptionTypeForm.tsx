@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { subscriptionService } from '../../services/subscriptionService';
@@ -25,13 +25,7 @@ export default function SubscriptionTypeForm() {
 
   const [errors, setErrors] = useState<Partial<Record<keyof SubscriptionTypeFormData, string>>>({});
 
-  useEffect(() => {
-    if (isEditMode && id) {
-      fetchSubscriptionType(id);
-    }
-  }, [id, isEditMode]);
-
-  const fetchSubscriptionType = async (typeId: string) => {
+  const fetchSubscriptionType = useCallback(async (typeId: string) => {
     try {
       setLoading(true);
       const data = await subscriptionService.getSubscriptionType(typeId);
@@ -49,56 +43,57 @@ export default function SubscriptionTypeForm() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (isEditMode && id) {
+      void fetchSubscriptionType(id);
+    }
+  }, [fetchSubscriptionType, id, isEditMode]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof SubscriptionTypeFormData, string>> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = 'Nama golongan langganan wajib diisi';
     }
 
-    // Registration Fee is required
     if (!formData.registration_fee || formData.registration_fee.trim() === '') {
-      newErrors.registration_fee = 'Registration fee is required';
+      newErrors.registration_fee = 'Biaya pendaftaran wajib diisi';
     } else {
       const registrationFee = parseFloat(formData.registration_fee);
       if (isNaN(registrationFee) || registrationFee < 0) {
-        newErrors.registration_fee = 'Registration fee must be a non-negative number';
+        newErrors.registration_fee = 'Biaya pendaftaran harus berupa angka nol atau lebih';
       }
     }
 
-    // Monthly Fee is required
     if (!formData.monthly_fee || formData.monthly_fee.trim() === '') {
-      newErrors.monthly_fee = 'Monthly fee is required';
+      newErrors.monthly_fee = 'Biaya bulanan wajib diisi';
     } else {
       const monthlyFee = parseFloat(formData.monthly_fee);
       if (isNaN(monthlyFee) || monthlyFee < 0) {
-        newErrors.monthly_fee = 'Monthly fee must be a non-negative number';
+        newErrors.monthly_fee = 'Biaya bulanan harus berupa angka nol atau lebih';
       }
     }
 
-    // Maintenance Fee (optional, default to 0)
     if (formData.maintenance_fee && formData.maintenance_fee.trim() !== '') {
       const maintenanceFee = parseFloat(formData.maintenance_fee);
       if (isNaN(maintenanceFee) || maintenanceFee < 0) {
-        newErrors.maintenance_fee = 'Maintenance fee must be a non-negative number';
+        newErrors.maintenance_fee = 'Biaya pemeliharaan harus berupa angka nol atau lebih';
       }
     }
 
-    // Late Fee Per Day (optional, default to 0)
     if (formData.late_fee_per_day && formData.late_fee_per_day.trim() !== '') {
       const lateFeePerDay = parseFloat(formData.late_fee_per_day);
       if (isNaN(lateFeePerDay) || lateFeePerDay < 0) {
-        newErrors.late_fee_per_day = 'Late fee per day must be a non-negative number';
+        newErrors.late_fee_per_day = 'Denda keterlambatan per hari harus berupa angka nol atau lebih';
       }
     }
 
-    // Max Late Fee (optional, default to 0)
     if (formData.max_late_fee && formData.max_late_fee.trim() !== '') {
       const maxLateFee = parseFloat(formData.max_late_fee);
       if (isNaN(maxLateFee) || maxLateFee < 0) {
-        newErrors.max_late_fee = 'Max late fee must be a non-negative number';
+        newErrors.max_late_fee = 'Batas maksimum denda harus berupa angka nol atau lebih';
       }
     }
 
@@ -158,22 +153,22 @@ export default function SubscriptionTypeForm() {
         className="flex items-center text-sm text-gray-500 hover:text-gray-700"
       >
         <ArrowLeftIcon className="mr-2 h-4 w-4" />
-        Back to Golongan Langganan
+        Kembali ke Golongan Langganan
       </button>
       <PageHeader
-        title={isEditMode ? 'Edit Subscription Type' : 'Create Subscription Type'}
-        subtitle={isEditMode ? 'Update the subscription type details and fee structure' : 'Create a new subscription type with fee structure'}
+        title={isEditMode ? 'Ubah Golongan Langganan' : 'Buat Golongan Langganan'}
+        subtitle={isEditMode ? 'Perbarui detail golongan langganan dan struktur biayanya' : 'Tambahkan golongan langganan baru beserta struktur biayanya'}
       />
 
       <div className="bg-white shadow rounded-lg">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Information */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Dasar</h3>
             <div className="grid grid-cols-1 gap-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Name <span className="text-red-500">*</span>
+                  Nama <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -186,7 +181,7 @@ export default function SubscriptionTypeForm() {
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                   }`}
-                  placeholder="e.g., Residential, Commercial, Industrial"
+                  placeholder="Contoh: Rumah Tangga, Niaga, Industri"
                 />
                 {errors.name && (
                   <p className="mt-1 text-sm text-red-600">{errors.name}</p>
@@ -195,7 +190,7 @@ export default function SubscriptionTypeForm() {
 
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                  Description
+                  Deskripsi
                 </label>
                 <textarea
                   id="description"
@@ -204,7 +199,7 @@ export default function SubscriptionTypeForm() {
                   value={formData.description}
                   onChange={handleChange}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Brief description of this subscription type"
+                  placeholder="Deskripsi singkat untuk golongan langganan ini"
                 />
               </div>
             </div>
@@ -212,11 +207,11 @@ export default function SubscriptionTypeForm() {
 
           {/* Fee Structure */}
           <div className="pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Fee Structure</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Struktur Biaya</h3>
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div>
                 <label htmlFor="registration_fee" className="block text-sm font-medium text-gray-700">
-                  Registration Fee (IDR) <span className="text-red-500">*</span>
+                  Biaya Pendaftaran (Rp) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -240,7 +235,7 @@ export default function SubscriptionTypeForm() {
 
               <div>
                 <label htmlFor="monthly_fee" className="block text-sm font-medium text-gray-700">
-                  Monthly Fee (IDR) <span className="text-red-500">*</span>
+                  Biaya Bulanan (Rp) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -264,7 +259,7 @@ export default function SubscriptionTypeForm() {
 
               <div>
                 <label htmlFor="maintenance_fee" className="block text-sm font-medium text-gray-700">
-                  Maintenance Fee (IDR)
+                  Biaya Pemeliharaan (Rp)
                 </label>
                 <input
                   type="number"
@@ -288,7 +283,7 @@ export default function SubscriptionTypeForm() {
 
               <div>
                 <label htmlFor="late_fee_per_day" className="block text-sm font-medium text-gray-700">
-                  Late Fee Per Day (IDR)
+                  Denda Keterlambatan per Hari (Rp)
                 </label>
                 <input
                   type="number"
@@ -309,13 +304,13 @@ export default function SubscriptionTypeForm() {
                   <p className="mt-1 text-sm text-red-600">{errors.late_fee_per_day}</p>
                 )}
                 <p className="mt-1 text-sm text-gray-500">
-                  Daily late payment fee (IDR per day)
+                  Denda keterlambatan harian dalam rupiah per hari
                 </p>
               </div>
 
               <div>
                 <label htmlFor="max_late_fee" className="block text-sm font-medium text-gray-700">
-                  Max Late Fee (IDR)
+                  Batas Maksimum Denda (Rp)
                 </label>
                 <input
                   type="number"
@@ -336,7 +331,7 @@ export default function SubscriptionTypeForm() {
                   <p className="mt-1 text-sm text-red-600">{errors.max_late_fee}</p>
                 )}
                 <p className="mt-1 text-sm text-gray-500">
-                  Maximum cap for late fees
+                  Batas maksimum total denda keterlambatan
                 </p>
               </div>
             </div>
@@ -349,14 +344,14 @@ export default function SubscriptionTypeForm() {
               onClick={() => navigate('/admin/subscriptions')}
               className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
             >
-              Cancel
+              Batal
             </button>
             <button
               type="submit"
               disabled={loading}
               className="w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
-              {loading ? 'Saving...' : isEditMode ? 'Update' : 'Create'}
+              {loading ? 'Menyimpan...' : isEditMode ? 'Perbarui' : 'Buat'}
             </button>
           </div>
         </form>

@@ -78,11 +78,11 @@ export default function CustomerAnalytics() {
     const baseName = `analitik_pelanggan_${filters.startDate}_${filters.endDate}`;
 
     const topRows = (reportData.topPelanggan || []).map((item) => ({
-      Rank: item.rank,
+      Peringkat: item.rank,
       Pelanggan: item.customerName,
       'Total Pemakaian (m3)': item.totalPemakaian,
-      'Total Revenue (IDR)': item.totalRevenue,
-      'Total Revenue': formatIDR(item.totalRevenue),
+      'Total Pendapatan (IDR)': item.totalRevenue,
+      'Total Pendapatan': formatIDR(item.totalRevenue),
     }));
     const growthRows = (reportData.customerGrowth || []).map((item) => ({
       Bulan: item.month,
@@ -103,7 +103,7 @@ export default function CustomerAnalytics() {
 
     exportToExcel(
       [
-        { sheetName: 'Top Pelanggan', data: topRows },
+        { sheetName: 'Pelanggan Teratas', data: topRows },
         { sheetName: 'Pertumbuhan Pelanggan', data: growthRows },
         { sheetName: 'Distribusi Status', data: statusRows },
       ],
@@ -342,7 +342,7 @@ export default function CustomerAnalytics() {
               },
               {
                 key: 'growth_rate',
-                label: 'Growth',
+                label: 'Pertumbuhan',
                 align: 'right',
                 render: (_value, item) => {
                   const index = reportData.customerGrowth.findIndex(
@@ -359,17 +359,17 @@ export default function CustomerAnalytics() {
       </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Rincian top pelanggan</h2>
+        <h2 className="text-base font-semibold text-gray-900">Rincian pelanggan teratas</h2>
         <div className="mt-4">
           <DataTable
             data={reportData.topPelanggan}
             searchable={false}
             pageSize={8}
-            emptyMessage="Belum ada data top pelanggan."
+            emptyMessage="Belum ada data pelanggan teratas."
             columns={[
               {
                 key: 'rank',
-                label: 'Rank',
+                label: 'Peringkat',
                 sortable: true,
                 align: 'right',
               },
@@ -387,7 +387,7 @@ export default function CustomerAnalytics() {
               },
               {
                 key: 'totalRevenue',
-                label: 'Revenue',
+                label: 'Pendapatan',
                 sortable: true,
                 align: 'right',
                 render: (value) => formatIDR(Number(value || 0)),

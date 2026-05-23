@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { EyeIcon } from '@heroicons/react/24/outline';
 import { DataTable, type Column } from '../../components/DataTable';
 import paymentProofService from '../../services/paymentProofService';
@@ -19,11 +19,7 @@ function PaymentProofList({ onViewDetails }: PaymentProofListProps) {
     rejected: 0,
   });
 
-  useEffect(() => {
-    fetchPaymentProofs();
-  }, [statusFilter]);
-
-  const fetchPaymentProofs = async () => {
+  const fetchPaymentProofs = useCallback(async () => {
     setLoading(true);
     try {
       const response = await paymentProofService.getPaymentProofs({
@@ -40,7 +36,11 @@ function PaymentProofList({ onViewDetails }: PaymentProofListProps) {
     } catch { /* ignore */ } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
+
+  useEffect(() => {
+    void fetchPaymentProofs();
+  }, [fetchPaymentProofs]);
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -51,6 +51,32 @@ function PaymentProofList({ onViewDetails }: PaymentProofListProps) {
     return badges[status as keyof typeof badges] || 'bg-gray-100 text-gray-800';
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return 'Menunggu';
+      case 'VERIFIED':
+        return 'Terverifikasi';
+      case 'REJECTED':
+        return 'Ditolak';
+      default:
+        return status;
+    }
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    switch (method) {
+      case 'bank_transfer':
+        return 'Transfer bank';
+      case 'e_wallet':
+        return 'E-wallet';
+      case 'cash':
+        return 'Tunai';
+      default:
+        return method.replace('_', ' ');
+    }
+  };
+
   const filteredProofs = paymentProofs.filter(proof => 
     searchInvoice === '' || proof.invoice_number.toLowerCase().includes(searchInvoice.toLowerCase())
   );
@@ -58,30 +84,30 @@ function PaymentProofList({ onViewDetails }: PaymentProofListProps) {
   const columns: Column<PaymentProof>[] = [
     {
       key: 'invoice_number',
-      label: 'Invoice',
+      label: 'Tagihan',
       sortable: true,
     },
     {
       key: 'customer_name',
-      label: 'Customer',
+      label: 'Pelanggan',
       sortable: true,
     },
     {
       key: 'amount',
-      label: 'Amount',
+      label: 'Nominal',
       sortable: true,
       render: (_value, proof) => `Rp ${proof.amount.toLocaleString('id-ID')}`,
     },
     {
       key: 'payment_date',
-      label: 'Payment Date',
+      label: 'Tanggal Pembayaran',
       sortable: true,
       render: (_value, proof) => new Date(proof.payment_date).toLocaleDateString('id-ID'),
     },
     {
       key: 'payment_method',
-      label: 'Method',
-      render: (_value, proof) => proof.payment_method.replace('_', ' '),
+      label: 'Metode',
+      render: (_value, proof) => getPaymentMethodLabel(proof.payment_method),
     },
     {
       key: 'status',
@@ -89,13 +115,13 @@ function PaymentProofList({ onViewDetails }: PaymentProofListProps) {
       sortable: true,
       render: (_value, proof) => (
         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(proof.status)}`}>
-          {proof.status}
+          {getStatusLabel(proof.status)}
         </span>
       ),
     },
     {
       key: 'submitted_at',
-      label: 'Submitted',
+      label: 'Dikirim',
       sortable: true,
       render: (_value, proof) => new Date(proof.submitted_at).toLocaleDateString('id-ID'),
     },
@@ -117,15 +143,15 @@ function PaymentProofList({ onViewDetails }: PaymentProofListProps) {
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-          <div className="text-yellow-600 text-sm font-medium">Pending Review</div>
+          <div className="text-yellow-600 text-sm font-medium">Menunggu Verifikasi</div>
           <div className="text-2xl font-bold text-yellow-700 mt-1">{stats.pending}</div>
         </div>
         <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-          <div className="text-green-600 text-sm font-medium">Verified</div>
+          <div className="text-green-600 text-sm font-medium">Terverifikasi</div>
           <div className="text-2xl font-bold text-green-700 mt-1">{stats.verified}</div>
         </div>
         <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-          <div className="text-red-600 text-sm font-medium">Rejected</div>
+          <div className="text-red-600 text-sm font-medium">Ditolak</div>
           <div className="text-2xl font-bold text-red-700 mt-1">{stats.rejected}</div>
         </div>
       </div>
@@ -135,28 +161,28 @@ function PaymentProofList({ onViewDetails }: PaymentProofListProps) {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Filter by Status
+              Filter Status
             </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="VERIFIED">Verified</option>
-              <option value="REJECTED">Rejected</option>
+              <option value="">Semua Status</option>
+              <option value="PENDING">Menunggu</option>
+              <option value="VERIFIED">Terverifikasi</option>
+              <option value="REJECTED">Ditolak</option>
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search by Invoice
+              Cari berdasarkan tagihan
             </label>
             <input
               type="text"
               value={searchInvoice}
               onChange={(e) => setSearchInvoice(e.target.value)}
-              placeholder="Enter invoice number..."
+              placeholder="Masukkan nomor tagihan..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -171,7 +197,7 @@ function PaymentProofList({ onViewDetails }: PaymentProofListProps) {
           actions={actions}
           searchable={false}
           loading={loading}
-          emptyMessage="No payment proofs found"
+          emptyMessage="Belum ada bukti pembayaran"
         />
       </div>
     </div>

@@ -112,32 +112,48 @@ Pendekatan implementasi:
 - Migrasi dilakukan incremental per domain fitur agar review PR tetap kecil dan terukur.
 - Seluruh perubahan UI harus menjaga behavior bisnis existing (tenant scoping, role access, payment proof flow).
 
-## Progress Sementara
-Status umum: implementasi sudah **menuntaskan mayoritas fondasi Fase 1**, mendorong **Fase 2** ke banyak domain fitur utama, dan mulai menutup sebagian gap **Fase 3** pada aksesibilitas. Namun, harmonisasi komponen reusable dan guardrails repo-wide masih belum final.
+## Progress Final
+Status umum: implementasi sudah **menuntaskan Fase 1, Fase 2, dan Fase 3** untuk scope konsistensi frontend yang didefinisikan pada dokumen ini. Fondasi route/auth/notifikasi sudah tunggal, halaman prioritas tinggi sudah diseragamkan, a11y kritikal ditutup, guardrail lint/build aktif, dan checklist/playbook konsistensi kini terdokumentasi di dokumen ini.
 
 1. **Sudah tercapai / progres besar**
    - **T2 — Konsolidasi route customer**: route customer publik/legacy di `src/App.tsx` sudah dipangkas, entry publik difokuskan ke `/customer/login`, dan flow pembayaran customer diarahkan ke tree customer yang lebih konsisten.
    - **T3 — Standardisasi auth & API layer customer**: duplikasi halaman/customer flow lama dibersihkan, service customer lama (`src/services/customerAuthService.ts`, `src/services/customerPortalService.ts`) dihapus, dan kontrak error API mulai dipusatkan lewat helper bersama.
-   - **T4 — Unifikasi sistem notifikasi (substantial progress)**: fondasi toast tunggal sudah dibangun lewat `src/components/toast-context.ts`, `src/hooks/useToast.ts`, `src/types/toast.ts`, dan `src/utils/apiError.ts`; migrasi pemakaian notifikasi sudah berjalan di area customer, invoices, reports, dan sebagian admin.
-   - **T5 — Standarisasi page shell & state UX (substantial progress)**: pola `PageHeader`, skeleton/loading state, retryable error state, dan empty state sudah diterapkan di banyak halaman prioritas tinggi, terutama pada flow customer, `customer-invoices`, `invoices`, `reports`, dan `user-management`.
-   - **T7 — Standardisasi copy UI Bahasa Indonesia (substantial progress)**: banyak copy user-facing yang disentuh sudah dinormalkan ke Bahasa Indonesia, termasuk pada auth fallback, customer flow, invoices, reports, usage, water rates, dan user management.
-   - **T8 — Hardening aksesibilitas (substantial progress)**: gap a11y sudah mulai ditutup pada sidebar mobile, dialog/modal, form labels, icon-only actions, loading state, tabel, dan kontrol interaktif di halaman prioritas.
+   - **T4 — Unifikasi sistem notifikasi (done)**: fondasi toast tunggal dipakai sebagai pola notifikasi aktif, referensi state notifikasi Redux lama sudah dibersihkan, dan toast kini punya live-region agar feedback status/error tetap terbaca screen reader.
+   - **T5 — Standarisasi page shell & state UX (done)**: pola `PageHeader`, skeleton/loading state, retryable error state, dan empty state sudah diterapkan di banyak halaman prioritas tinggi, terutama pada flow customer, `customer-invoices`, `invoices`, `reports`, dan `user-management`.
+   - **T6 — Harmonisasi komponen form/tabel/tombol/modal (done)**: varian reusable dipertegas lewat `ActionIconButton`, `FormInput`/`FormSelect`/`FormTextarea` yang lebih stabil, serta modal yang konsisten untuk close/confirm flow dan heading terhubung.
+   - **T7 — Standardisasi copy UI Bahasa Indonesia (done)**: copy user-facing pada auth, customer flow, invoices, payment proofs, receipt/payment submission, dashboard, customer details, water rates, user management, analitik/reporting, dan pengaturan platform/tenant sudah dinormalkan ke Bahasa Indonesia.
+   - **T8 — Hardening aksesibilitas (done)**: gap a11y kritikal sudah ditutup pada sidebar mobile, dialog/modal, form labels, helper/error association, toast live-region, icon-only actions, toggle interaktif, tabel, serta aksi baris di halaman prioritas.
    - **T9 — Bersih-bersih legacy/debug** sudah dikerjakan pada area inti: route debug/test dibersihkan dari `src/App.tsx`, import test page dihapus, dan debug logging utama dikurangi.
+   - **T10 — Guardrails (done)**: rule lint `no-console` dan `no-alert` aktif, pola `confirm()` legacy sudah diganti ke `ConfirmModal`, lint global frontend bersih, build produksi sudah dipecah per vendor/domain, dan checklist/playbook konsistensi kini terdokumentasi.
 
 2. **Snapshot area yang sudah tersentuh**
-   - **Fondasi bersama**: `src/components/Toast.tsx`, `src/components/toast-context.ts`, `src/hooks/useToast.ts`, `src/types/toast.ts`, `src/utils/apiError.ts`, `src/components/CustomerSidebar.tsx`, `src/components/index.ts`.
-   - **Flow customer**: `src/pages/customer/CustomerDashboard.tsx`, `src/pages/customer/CustomerPayInvoice.tsx`, `src/pages/customer-invoices/*`, `src/pages/customer-payments/*`, `src/pages/customer-profile/*`, `src/pages/customer-usage/CustomerUsageMonitor.tsx`.
+   - **Fondasi bersama**: `src/components/Toast.tsx`, `src/components/toast-context.ts`, `src/hooks/useToast.ts`, `src/types/toast.ts`, `src/utils/apiError.ts`, `src/components/CustomerSidebar.tsx`, `src/components/index.ts`, `src/components/ActionIconButton.tsx`, `src/components/FormInput.tsx`, `src/components/Modal.tsx`, `vite.config.ts`.
+   - **Flow customer**: `src/pages/customer/CustomerDashboard.tsx`, `src/pages/customer/CustomerPayInvoice.tsx`, `src/pages/customer-invoices/*`, `src/pages/customer-payments/*`, `src/pages/customer-profile/*`, `src/pages/customer-usage/CustomerUsageMonitor.tsx`, `src/pages/payments/PaymentReceipt.tsx`.
    - **Invoices & laporan**: `src/pages/invoices/*`, `src/pages/invoices/bulk-generation/BulkInvoiceGeneration.tsx`, `src/pages/reports/*`.
-   - **Admin prioritas tinggi**: `src/pages/user-management/*`, `src/pages/water-rates/*`, `src/pages/usage/UsageList.tsx`.
+   - **Admin prioritas tinggi**: `src/pages/user-management/*`, `src/pages/water-rates/*`, `src/pages/usage/UsageList.tsx`, `src/pages/payment-proofs/*`, `src/pages/customers/CustomerDetails.tsx`, `src/pages/Dashboard.tsx`.
+   - **Pengaturan & platform**: `src/pages/settings/TenantPaymentSettings.tsx`, `src/pages/settings/PlatformPaymentSettings.tsx`, `src/pages/platform/TenantManagement.tsx`, `src/pages/platform-payments/PlatformSubscriptionVerification.tsx`, `src/pages/platform/SubscriptionPlans.tsx`, `src/pages/platform/PlatformAnalytics.tsx`, `src/pages/dashboards/PlatformOwnerDashboard.tsx`.
+   - **Profil & dashboard tambahan**: `src/pages/customer-profile/*`, `src/pages/reports/ReportsDashboard.tsx`, `src/pages/reports/CustomerAnalytics.tsx`.
    - **Pembersihan legacy**: file customer legacy dan service customer lama yang tidak lagi menjadi flow utama sudah dipangkas dari code path aktif.
 
 3. **Kondisi validasi terakhir**
-   - **Build frontend** konsisten lolos pada slice-slice refactor yang sudah dikerjakan.
-   - **Lint targeted** untuk file yang disentuh umumnya lolos, tetapi **lint global repo masih gagal** karena hutang lama di file lain.
-   - Snapshot terakhir lint global yang tercatat menunjukkan **107 problem (101 error, 6 warning)**, dominan `@typescript-eslint/no-explicit-any` dan `react-hooks/exhaustive-deps` di area legacy yang belum ikut dirapikan.
+   - **Build frontend** lolos setelah batch refactor terakhir.
+   - **Lint global frontend** kini **lolos tanpa warning/error** pada state worktree saat ini.
+   - **Build produksi** kini lolos tanpa warning chunk-size setelah pemecahan `manualChunks` per vendor/domain di Vite.
 
-4. **Belum final / prioritas lanjutan**
-   - **T4 — Unifikasi notifikasi**: migrasi belum menutup seluruh halaman non-prioritas, dan cleanup final pada state/action notifikasi lama masih perlu verifikasi dependensi.
-   - **T6 — Harmonisasi komponen form/tabel/tombol/modal**: belum ada standardisasi varian reusable yang benar-benar final lintas domain.
-   - **T8 — Hardening aksesibilitas**: sortable table, keyboard interaction, dan beberapa icon/table action di area admin masih butuh sweep lanjutan.
-   - **T10 — Guardrails lint/build/dokumentasi konsistensi**: checklist review, playbook konsistensi, dan perapihan lint repo-wide masih belum selesai.
+4. **Checklist review konsistensi frontend**
+   - Gunakan endpoint dari `src/constants/api.ts` dan akses HTTP lewat service, bukan langsung dari komponen.
+   - Untuk feedback sementara/error/sukses, pakai `useToast`; jangan tambahkan sistem notifikasi kedua.
+   - Untuk aksi ikon tanpa teks, pakai `ActionIconButton` atau minimal pastikan ada `aria-label` yang jelas.
+   - Untuk field form baru, utamakan `FormInput`, `FormTextarea`, `FormSelect`, atau primitive setara yang menjaga relasi `label`/`id`/`aria-describedby`.
+   - Untuk dialog konfirmasi, gunakan `ConfirmModal`; hindari `alert()` atau `confirm()` browser.
+   - Pastikan copy user-facing memakai Bahasa Indonesia dan istilah domain baku: **Tagihan, Pembayaran, Pelanggan, Tarif Air, Tenant**.
+   - Jalankan `npm run lint` dan `npm run build` sebelum merge agar guardrail konsistensi tetap terjaga.
+
+5. **Frontend Consistency Playbook**
+   - **Route & flow**: pertahankan satu path canonical per fitur; redirect/entry customer publik tetap menuju tree customer aktif.
+   - **State UX**: setiap halaman data minimal memiliki state loading, empty, success, dan error yang terlihat pengguna.
+   - **Notifikasi**: gunakan toast untuk hasil aksi async; inline helper/error tetap boleh untuk validasi form per field.
+   - **Komponen reusable**: untuk aksi tabel/list, gunakan pola tombol ikon yang seragam; untuk filter/form, prioritaskan primitive form bersama.
+   - **Aksesibilitas**: semua kontrol interaktif harus bisa difokuskan keyboard, icon-only button wajib punya label, dan helper/error text harus terhubung ke field.
+   - **Copy**: hindari campuran EN/ID pada label, CTA, empty state, dan pesan error; konsistenkan istilah lintas domain.
+   - **Build hygiene**: pertahankan pemecahan chunk di `vite.config.ts` saat menambah dependensi/halaman berat baru.

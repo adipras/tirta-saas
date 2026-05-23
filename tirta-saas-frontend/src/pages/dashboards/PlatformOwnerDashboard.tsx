@@ -185,13 +185,13 @@ export default function PlatformOwnerDashboard() {
         <DashboardStatCard
           title="Tenant Aktif"
           value={overview.active_tenants.toLocaleString('id-ID')}
-          helper={`${overview.growth_rate_percent.toFixed(1)}% growth`}
-          subtitle="Tenant aktif dibanding total tenant yang terdaftar."
+          helper={`${overview.growth_rate_percent.toFixed(1)}% pertumbuhan`}
+          subtitle="Tenant aktif dibandingkan total tenant yang terdaftar."
           icon={CheckCircleIcon}
           tone="green"
         />
         <DashboardStatCard
-          title="Pending Aktivasi"
+          title="Menunggu Aktivasi"
           value={pendingTenants.length.toLocaleString('id-ID')}
           helper={`${overview.trial_tenants} tenant trial`}
           subtitle="Tenant yang masih menunggu review atau proses aktivasi berikutnya."
@@ -199,10 +199,10 @@ export default function PlatformOwnerDashboard() {
           tone="yellow"
         />
         <DashboardStatCard
-          title="Revenue Bulan Ini"
+          title="Pendapatan Bulan Ini"
           value={formatCompactCurrency(overview.monthly_revenue)}
           helper={`Total ${formatCompactCurrency(overview.total_revenue)}`}
-          subtitle="Ringkasan revenue platform untuk bulan berjalan."
+          subtitle="Ringkasan pendapatan platform untuk bulan berjalan."
           icon={CurrencyDollarIcon}
           tone="blue"
         />
@@ -226,7 +226,7 @@ export default function PlatformOwnerDashboard() {
           <h2 className="text-base font-semibold text-gray-900">Statistik sistem</h2>
           <div className="mt-4 space-y-3 text-sm">
             <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <span className="text-gray-600">Total user</span>
+              <span className="text-gray-600">Total pengguna</span>
               <span className="font-semibold text-gray-900">{overview.total_users.toLocaleString('id-ID')}</span>
             </div>
             <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
@@ -234,15 +234,15 @@ export default function PlatformOwnerDashboard() {
               <span className="font-semibold text-gray-900">{overview.total_customers.toLocaleString('id-ID')}</span>
             </div>
             <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <span className="text-gray-600">Storage terpakai</span>
+              <span className="text-gray-600">Penyimpanan terpakai</span>
               <span className="font-semibold text-gray-900">{overview.total_storage_used_gb.toFixed(2)} GB</span>
             </div>
             <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <span className="text-gray-600">API call hari ini</span>
+              <span className="text-gray-600">Panggilan API hari ini</span>
               <span className="font-semibold text-gray-900">{overview.total_api_calls_today.toLocaleString('id-ID')}</span>
             </div>
             <div className="flex items-center justify-between rounded-2xl border border-red-100 bg-red-50 px-4 py-3">
-              <span className="text-red-700">Tenant suspended</span>
+              <span className="text-red-700">Tenant ditangguhkan</span>
               <span className="font-semibold text-red-700">{overview.suspended_tenants.toLocaleString('id-ID')}</span>
             </div>
           </div>

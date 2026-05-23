@@ -66,7 +66,7 @@ class AuthService {
         await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, {});
       }
     } catch {
-      console.error('Logout error');
+      // Tetap lanjut membersihkan sesi lokal walau revoke token di server gagal.
     } finally {
       this.clearAuth();
     }

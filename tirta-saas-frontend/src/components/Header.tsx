@@ -160,7 +160,11 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           <div className="hidden sm:block">
             <PrinterBridgeIndicator />
           </div>
-          <button className="rounded-full p-2 text-gray-400 hover:text-gray-500">
+          <button
+            className="rounded-full p-2 text-gray-400 hover:text-gray-500"
+            aria-label="Lihat notifikasi"
+            title="Lihat notifikasi"
+          >
             <BellIcon className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
           </button>
           <div className="relative" ref={menuRef}>

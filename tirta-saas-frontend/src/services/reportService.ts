@@ -1,13 +1,15 @@
 import { apiClient } from './apiClient';
 import { API_ENDPOINTS } from '../constants/api';
 import type {
-  RevenueReport,
-  PaymentReport,
   CustomerAnalytics,
+  ExportOptions,
+  OutstandingReportData,
+  PaymentReport,
   PemakaianReport,
   ReportFilters,
-  ExportOptions,
+  RevenueReport,
 } from '../types/report';
+import { asRecord, getNumber, getString, mapArray } from '../utils/dataTransform';
 
 class ReportService {
   private serializeFilters(filters?: ReportFilters): Record<string, unknown> | undefined {
@@ -24,170 +26,153 @@ class ReportService {
     };
   }
 
-  private normalizeRevenueReport(raw: any, filters?: ReportFilters): RevenueReport {
-    const period = raw?.period || {};
+  private normalizeRevenueReport(raw: unknown, filters?: ReportFilters): RevenueReport {
+    const data = asRecord(raw);
+    const period = asRecord(data.period);
 
     return {
-      totalRevenue: Number(raw?.totalRevenue ?? raw?.total_revenue ?? 0),
-      monthlyRevenue: Array.isArray(raw?.monthlyRevenue)
-        ? raw.monthlyRevenue
-        : Array.isArray(raw?.monthly_revenue)
-          ? raw.monthly_revenue.map((item: any) => ({
-              month: item.month,
-              year: Number(item.year ?? 0),
-              revenue: Number(item.revenue ?? 0),
-              invoices: Number(item.invoices ?? 0),
-            }))
-          : [],
-      revenueBySubscriptionType: Array.isArray(raw?.revenueBySubscriptionType)
-        ? raw.revenueBySubscriptionType
-        : Array.isArray(raw?.revenue_by_subscription_type)
-          ? raw.revenue_by_subscription_type.map((item: any) => ({
-              subscriptionType: item.subscriptionType ?? item.subscription_type ?? 'Tanpa Tipe',
-              revenue: Number(item.revenue ?? 0),
-              percentage: Number(item.percentage ?? 0),
-            }))
-          : [],
+      totalRevenue: getNumber(data.totalRevenue ?? data.total_revenue),
+      monthlyRevenue: Array.isArray(data.monthlyRevenue)
+        ? (data.monthlyRevenue as RevenueReport['monthlyRevenue'])
+        : mapArray(data.monthly_revenue, (item) => ({
+            month: getString(item.month),
+            year: getNumber(item.year),
+            revenue: getNumber(item.revenue),
+            invoices: getNumber(item.invoices),
+          })),
+      revenueBySubscriptionType: Array.isArray(data.revenueBySubscriptionType)
+        ? (data.revenueBySubscriptionType as RevenueReport['revenueBySubscriptionType'])
+        : mapArray(data.revenue_by_subscription_type, (item) => ({
+            subscriptionType: getString(item.subscriptionType ?? item.subscription_type, 'Tanpa Tipe'),
+            revenue: getNumber(item.revenue),
+            percentage: getNumber(item.percentage),
+          })),
       period: {
         startDate:
-          period.startDate ??
-          period.start_date ??
-          period.start ??
-          filters?.startDate ??
+          getString(period.startDate ?? period.start_date ?? period.start) ||
+          filters?.startDate ||
           '',
         endDate:
-          period.endDate ??
-          period.end_date ??
-          period.end ??
-          filters?.endDate ??
+          getString(period.endDate ?? period.end_date ?? period.end) ||
+          filters?.endDate ||
           '',
       },
     };
   }
 
   async getRevenueReport(filters?: ReportFilters): Promise<RevenueReport> {
-    const response = await apiClient.get<any>(
+    const response = await apiClient.get(
       API_ENDPOINTS.REPORTS.REVENUE,
       { params: this.serializeFilters(filters) }
     );
     return this.normalizeRevenueReport(response, filters);
   }
 
-  private normalizePaymentReport(raw: any): PaymentReport {
+  private normalizePaymentReport(raw: unknown): PaymentReport {
+    const data = asRecord(raw);
+
     return {
-      totalCollected: Number(raw?.totalCollected ?? raw?.total_collected ?? raw?.total_amount ?? 0),
-      totalOutstanding: Number(raw?.totalOutstanding ?? raw?.total_outstanding ?? 0),
-      paymentMethodBreakdown: Array.isArray(raw?.paymentMethodBreakdown)
-        ? raw.paymentMethodBreakdown
-        : Array.isArray(raw?.payment_method_breakdown)
-          ? raw.payment_method_breakdown.map((item: any) => ({
-              method: item.method ?? 'Tanpa Metode',
-              amount: Number(item.amount ?? 0),
-              count: Number(item.count ?? 0),
-              percentage: Number(item.percentage ?? 0),
+      totalCollected: getNumber(data.totalCollected ?? data.total_collected ?? data.total_amount),
+      totalOutstanding: getNumber(data.totalOutstanding ?? data.total_outstanding),
+      paymentMethodBreakdown: Array.isArray(data.paymentMethodBreakdown)
+        ? (data.paymentMethodBreakdown as PaymentReport['paymentMethodBreakdown'])
+        : mapArray(data.payment_method_breakdown, (item) => ({
+            method: getString(item.method, 'Tanpa Metode'),
+            amount: getNumber(item.amount),
+            count: getNumber(item.count),
+            percentage: getNumber(item.percentage),
+          })),
+      dailyCollection: Array.isArray(data.dailyCollection)
+        ? (data.dailyCollection as PaymentReport['dailyCollection'])
+        : Array.isArray(data.daily_collection)
+          ? mapArray(data.daily_collection, (item) => ({
+              date: getString(item.date),
+              amount: getNumber(item.amount ?? item.total),
+              count: getNumber(item.count),
             }))
-          : [],
-      dailyCollection: Array.isArray(raw?.dailyCollection)
-        ? raw.dailyCollection
-        : Array.isArray(raw?.daily_collection)
-          ? raw.daily_collection.map((item: any) => ({
-              date: item.date,
-              amount: Number(item.amount ?? item.total ?? 0),
-              count: Number(item.count ?? 0),
-            }))
-          : Array.isArray(raw?.daily_trends)
-            ? raw.daily_trends.map((item: any) => ({
-                date: item.date,
-                amount: Number(item.amount ?? item.total ?? 0),
-                count: Number(item.count ?? 0),
-              }))
-            : [],
-      outstandingPembayaran: Array.isArray(raw?.outstandingPembayaran)
-        ? raw.outstandingPembayaran
-        : Array.isArray(raw?.outstanding_payments)
-          ? raw.outstanding_payments.map((item: any) => ({
-              customerId: item.customerId ?? item.customer_id ?? '',
-              customerName: item.customerName ?? item.customer_name ?? '-',
-              invoiceNumber: item.invoiceNumber ?? item.invoice_number ?? '-',
-              amount: Number(item.amount ?? 0),
-              dueDate: item.dueDate ?? item.due_date ?? '',
-              daysOverdue: Number(item.daysOverdue ?? item.days_overdue ?? 0),
-            }))
-          : [],
+          : mapArray(data.daily_trends, (item) => ({
+              date: getString(item.date),
+              amount: getNumber(item.amount ?? item.total),
+              count: getNumber(item.count),
+            })),
+      outstandingPembayaran: Array.isArray(data.outstandingPembayaran)
+        ? (data.outstandingPembayaran as PaymentReport['outstandingPembayaran'])
+        : mapArray(data.outstanding_payments, (item) => ({
+            customerId: getNumber(item.customerId ?? item.customer_id),
+            customerName: getString(item.customerName ?? item.customer_name, '-'),
+            invoiceNumber: getString(item.invoiceNumber ?? item.invoice_number, '-'),
+            amount: getNumber(item.amount),
+            dueDate: getString(item.dueDate ?? item.due_date),
+            daysOverdue: getNumber(item.daysOverdue ?? item.days_overdue),
+          })),
     };
   }
 
-  private normalizeCustomerAnalytics(raw: any): CustomerAnalytics {
+  private normalizeCustomerAnalytics(raw: unknown): CustomerAnalytics {
+    const data = asRecord(raw);
+
     return {
-      totalPelanggan: Number(raw?.totalPelanggan ?? raw?.total_customers ?? 0),
-      activePelanggan: Number(raw?.activePelanggan ?? raw?.active_customers ?? 0),
-      inactivePelanggan: Number(raw?.inactivePelanggan ?? raw?.inactive_customers ?? 0),
-      suspendedPelanggan: Number(raw?.suspendedPelanggan ?? raw?.suspended_customers ?? 0),
-      customerGrowth: Array.isArray(raw?.customerGrowth)
-        ? raw.customerGrowth
-        : Array.isArray(raw?.customer_growth)
-          ? raw.customer_growth.map((item: any) => ({
-              month: item.month,
-              year: Number(item.year ?? 0),
-              newPelanggan: Number(item.newPelanggan ?? item.new_customers ?? 0),
-              totalPelanggan: Number(item.totalPelanggan ?? item.total_customers ?? 0),
-            }))
-          : [],
-      statusDistribution: Array.isArray(raw?.statusDistribution)
-        ? raw.statusDistribution
-        : Array.isArray(raw?.status_distribution)
-          ? raw.status_distribution.map((item: any) => ({
-              status: item.status ?? '-',
-              count: Number(item.count ?? 0),
-              percentage: Number(item.percentage ?? 0),
-            }))
-          : [],
-      topPelanggan: Array.isArray(raw?.topPelanggan)
-        ? raw.topPelanggan
-        : Array.isArray(raw?.top_customers)
-          ? raw.top_customers.map((item: any, index: number) => ({
-              customerId: item.customerId ?? item.customer_id ?? index,
-              customerName: item.customerName ?? item.customer_name ?? '-',
-              totalPemakaian: Number(item.totalPemakaian ?? item.total_usage_m3 ?? 0),
-              totalRevenue: Number(item.totalRevenue ?? item.total_revenue ?? 0),
-              rank: Number(item.rank ?? index + 1),
-            }))
-          : [],
+      totalPelanggan: getNumber(data.totalPelanggan ?? data.total_customers),
+      activePelanggan: getNumber(data.activePelanggan ?? data.active_customers),
+      inactivePelanggan: getNumber(data.inactivePelanggan ?? data.inactive_customers),
+      suspendedPelanggan: getNumber(data.suspendedPelanggan ?? data.suspended_customers),
+      customerGrowth: Array.isArray(data.customerGrowth)
+        ? (data.customerGrowth as CustomerAnalytics['customerGrowth'])
+        : mapArray(data.customer_growth, (item) => ({
+            month: getString(item.month),
+            year: getNumber(item.year),
+            newPelanggan: getNumber(item.newPelanggan ?? item.new_customers),
+            totalPelanggan: getNumber(item.totalPelanggan ?? item.total_customers),
+          })),
+      statusDistribution: Array.isArray(data.statusDistribution)
+        ? (data.statusDistribution as CustomerAnalytics['statusDistribution'])
+        : mapArray(data.status_distribution, (item) => ({
+            status: getString(item.status, '-'),
+            count: getNumber(item.count),
+            percentage: getNumber(item.percentage),
+          })),
+      topPelanggan: Array.isArray(data.topPelanggan)
+        ? (data.topPelanggan as CustomerAnalytics['topPelanggan'])
+        : mapArray(data.top_customers, (item, index) => ({
+            customerId: getNumber(item.customerId ?? item.customer_id, index),
+            customerName: getString(item.customerName ?? item.customer_name, '-'),
+            totalPemakaian: getNumber(item.totalPemakaian ?? item.total_usage_m3),
+            totalRevenue: getNumber(item.totalRevenue ?? item.total_revenue),
+            rank: getNumber(item.rank, index + 1),
+          })),
     };
   }
 
-  private normalizeUsageReport(raw: any): PemakaianReport {
+  private normalizeUsageReport(raw: unknown): PemakaianReport {
+    const data = asRecord(raw);
+
     return {
-      totalPemakaian: Number(raw?.totalPemakaian ?? raw?.total_usage ?? raw?.total_usage_m3 ?? 0),
-      averagePemakaian: Number(raw?.averagePemakaian ?? raw?.average_usage ?? raw?.average_usage_m3 ?? 0),
-      usageTrends: Array.isArray(raw?.usageTrends)
-        ? raw.usageTrends
-        : Array.isArray(raw?.usage_trends)
-          ? raw.usage_trends.map((item: any) => ({
-              month: item.month,
-              year: Number(item.year ?? 0),
-              totalPemakaian: Number(item.totalPemakaian ?? item.total_usage ?? 0),
-              averagePemakaian: Number(item.averagePemakaian ?? item.average_usage ?? 0),
-              customerCount: Number(item.customerCount ?? item.customer_count ?? 0),
-            }))
-          : [],
-      highConsumers: Array.isArray(raw?.highConsumers)
-        ? raw.highConsumers
-        : Array.isArray(raw?.high_consumers)
-          ? raw.high_consumers.map((item: any, index: number) => ({
-              customerId: item.customerId ?? item.customer_id ?? index,
-              customerName: item.customerName ?? item.customer_name ?? '-',
-              meterNumber: item.meterNumber ?? item.meter_number ?? '-',
-              usage: Number(item.usage ?? 0),
-              month: item.month,
-              year: Number(item.year ?? 0),
-            }))
-          : [],
+      totalPemakaian: getNumber(data.totalPemakaian ?? data.total_usage ?? data.total_usage_m3),
+      averagePemakaian: getNumber(data.averagePemakaian ?? data.average_usage ?? data.average_usage_m3),
+      usageTrends: Array.isArray(data.usageTrends)
+        ? (data.usageTrends as PemakaianReport['usageTrends'])
+        : mapArray(data.usage_trends, (item) => ({
+            month: getString(item.month),
+            year: getNumber(item.year),
+            totalPemakaian: getNumber(item.totalPemakaian ?? item.total_usage),
+            averagePemakaian: getNumber(item.averagePemakaian ?? item.average_usage),
+            customerCount: getNumber(item.customerCount ?? item.customer_count),
+          })),
+      highConsumers: Array.isArray(data.highConsumers)
+        ? (data.highConsumers as PemakaianReport['highConsumers'])
+        : mapArray(data.high_consumers, (item, index) => ({
+            customerId: getNumber(item.customerId ?? item.customer_id, index),
+            customerName: getString(item.customerName ?? item.customer_name, '-'),
+            meterNumber: getString(item.meterNumber ?? item.meter_number, '-'),
+            usage: getNumber(item.usage),
+            month: getString(item.month),
+            year: getNumber(item.year),
+          })),
     };
   }
 
   async getPaymentReport(filters?: ReportFilters): Promise<PaymentReport> {
-    const response = await apiClient.get<any>(
+    const response = await apiClient.get(
       API_ENDPOINTS.REPORTS.PAYMENTS,
       { params: this.serializeFilters(filters) }
     );
@@ -195,7 +180,7 @@ class ReportService {
   }
 
   async getCustomerAnalytics(filters?: ReportFilters): Promise<CustomerAnalytics> {
-    const response = await apiClient.get<any>(
+    const response = await apiClient.get(
       API_ENDPOINTS.REPORTS.CUSTOMERS,
       { params: this.serializeFilters(filters) }
     );
@@ -203,19 +188,52 @@ class ReportService {
   }
 
   async getPemakaianReport(filters?: ReportFilters): Promise<PemakaianReport> {
-    const response = await apiClient.get<any>(
+    const response = await apiClient.get(
       API_ENDPOINTS.REPORTS.USAGE,
       { params: this.serializeFilters(filters) }
     );
     return this.normalizeUsageReport(response);
   }
 
-  async getOutstandingReport(filters?: ReportFilters): Promise<any> {
+  async getOutstandingReport(filters?: ReportFilters): Promise<OutstandingReportData> {
     const response = await apiClient.get(
       API_ENDPOINTS.REPORTS.OUTSTANDING,
       { params: this.serializeFilters(filters) }
     );
-    return response.data || response;
+    const data = asRecord(response);
+
+    return {
+      totalOutstanding: getNumber(data.totalOutstanding ?? data.total_outstanding),
+      totalPelanggan: getNumber(data.totalPelanggan ?? data.total_pelanggan ?? data.total_customers),
+      overdueCount: getNumber(data.overdueCount ?? data.overdue_count ?? data.unpaid_count),
+      agingBuckets: mapArray(data.agingBuckets ?? data.aging_buckets, (item) => ({
+        range: getString(item.range),
+        count: getNumber(item.count),
+        amount: getNumber(item.amount),
+        percentage: getNumber(item.percentage),
+      })),
+      outstandingTagihan: mapArray(
+        data.outstandingTagihan ?? data.outstanding_tagihan ?? data.outstanding_invoices,
+        (item) => ({
+          customerId: getNumber(item.customerId ?? item.customer_id),
+          customerName: getString(item.customerName ?? item.customer_name),
+          invoiceNumber: getString(item.invoiceNumber ?? item.invoice_number),
+          invoiceDate: getString(item.invoiceDate ?? item.invoice_date ?? item.created_at),
+          dueDate: getString(item.dueDate ?? item.due_date),
+          amount: getNumber(item.amount ?? item.outstanding),
+          daysOverdue: getNumber(item.daysOverdue ?? item.days_overdue),
+        })
+      ),
+      unpaid_count: getNumber(data.unpaid_count, getNumber(data.overdue_count)),
+      total_outstanding: getNumber(data.total_outstanding, getNumber(data.totalOutstanding)),
+      oldest_invoices: mapArray(data.oldest_invoices, (item) => ({
+        invoice_id: getString(item.invoice_id),
+        customer_id: getString(item.customer_id),
+        total_amount: getNumber(item.total_amount),
+        outstanding: getNumber(item.outstanding),
+        created_at: getString(item.created_at),
+      })),
+    };
   }
 
   async exportReport(reportType: string, options: ExportOptions): Promise<Blob> {

@@ -531,7 +531,7 @@ export default function TenantPaymentSettings() {
     <div className="space-y-6">
       <PageHeader
         title="Pengaturan Tenant"
-        subtitle="Kelola identitas tenant, siklus tagihan, rekening bank, dan QR code pembayaran dengan layout yang nyaman di mobile."
+        subtitle="Kelola identitas tenant, siklus tagihan, rekening bank, dan kode QR pembayaran dengan layout yang nyaman di mobile."
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
@@ -544,7 +544,7 @@ export default function TenantPaymentSettings() {
           tone="blue"
         />
         <DashboardStatCard
-          title="Generate Tagihan"
+          title="Jadwal Tagihan"
           value={`Tgl ${billingForm.invoiceGenerationDay}`}
           helper="Jadwal bulanan"
           subtitle={`Jatuh tempo pada tanggal ${billingForm.invoiceDueDay}.`}
@@ -601,7 +601,7 @@ export default function TenantPaymentSettings() {
                   className="inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
                 >
                   <CloudArrowUpIcon className="mr-2 h-5 w-5" />
-                  Upload Logo
+                  Unggah Logo
                 </label>
                 <input
                   id="tenant-logo-input"
@@ -808,7 +808,7 @@ export default function TenantPaymentSettings() {
                         type="button"
                         onClick={() => openBankModal(bank)}
                         className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
-                        aria-label="Edit rekening bank"
+                        aria-label="Ubah rekening bank"
                       >
                         <PencilIcon className="h-5 w-5" />
                       </button>
@@ -847,7 +847,7 @@ export default function TenantPaymentSettings() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
             >
               <PlusIcon className="h-5 w-5" />
-              Tambah QR Code
+              Tambah Kode QR
             </button>
           </div>
         </div>
@@ -883,7 +883,7 @@ export default function TenantPaymentSettings() {
                         type="button"
                         onClick={() => openQRModal(qr)}
                         className="rounded p-1.5 text-blue-600 hover:bg-blue-50"
-                        aria-label="Edit QR code"
+                        aria-label="Ubah kode QR"
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
@@ -891,7 +891,7 @@ export default function TenantPaymentSettings() {
                         type="button"
                         onClick={() => setDeleteTarget({ type: 'qr', id: qr.id })}
                         className="rounded p-1.5 text-red-600 hover:bg-red-50"
-                        aria-label="Hapus QR code"
+                        aria-label="Hapus kode QR"
                       >
                         <TrashIcon className="h-4 w-4" />
                       </button>
@@ -902,7 +902,7 @@ export default function TenantPaymentSettings() {
                     {qr.imageDisplayUrl ? (
                       <img
                         src={qr.imageDisplayUrl}
-                        alt={`${qr.type} QR Code`}
+                        alt={`Kode QR ${qr.type}`}
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -921,7 +921,7 @@ export default function TenantPaymentSettings() {
       <Modal
         isOpen={showBankModal}
         onClose={closeBankModal}
-        title={editingBank ? 'Edit Rekening Bank' : 'Tambah Rekening Bank'}
+        title={editingBank ? 'Ubah Rekening Bank' : 'Tambah Rekening Bank'}
         size="md"
         mobileFullscreen
       >
@@ -995,7 +995,7 @@ export default function TenantPaymentSettings() {
       <Modal
         isOpen={showQRModal}
         onClose={closeQRModal}
-        title={editingQR ? 'Edit QR Code' : 'Tambah QR Code'}
+        title={editingQR ? 'Ubah Kode QR' : 'Tambah Kode QR'}
         size="md"
         mobileFullscreen
       >
@@ -1087,7 +1087,7 @@ export default function TenantPaymentSettings() {
               type="submit"
               className="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
             >
-              {editingQR ? 'Simpan Perubahan' : 'Tambah QR Code'}
+              {editingQR ? 'Simpan Perubahan' : 'Tambah Kode QR'}
             </button>
           </div>
         </form>
@@ -1097,11 +1097,11 @@ export default function TenantPaymentSettings() {
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
-        title={deleteTarget?.type === 'bank' ? 'Hapus Rekening Bank' : 'Hapus QR Code'}
+        title={deleteTarget?.type === 'bank' ? 'Hapus Rekening Bank' : 'Hapus Kode QR'}
         message={
           deleteTarget?.type === 'bank'
             ? 'Apakah Anda yakin ingin menghapus rekening bank ini?'
-            : 'Apakah Anda yakin ingin menghapus QR code ini?'
+            : 'Apakah Anda yakin ingin menghapus kode QR ini?'
         }
         confirmText="Hapus"
         cancelText="Batal"

@@ -9,6 +9,7 @@ import {
 import { API_ENDPOINTS } from '../../constants/api';
 import { apiClient } from '../../services/apiClient';
 import {
+  ActionIconButton,
   DashboardStatCard,
   DataTable,
   Modal,
@@ -81,6 +82,7 @@ const subscriptionStatusColors: Record<string, { bg: string; text: string; label
 };
 
 const TenantManagement = () => {
+  const actionReasonId = 'tenant-action-reason';
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -321,7 +323,7 @@ const TenantManagement = () => {
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <DashboardStatCard
-          title="Tenant Pending"
+          title="Tenant Menunggu"
           value={tenantStats.pending_tenants.toLocaleString('id-ID')}
           helper="Butuh tindak lanjut"
           subtitle="Tenant yang masih menunggu aktivasi atau verifikasi."
@@ -362,7 +364,7 @@ const TenantManagement = () => {
                   onClick={() => setActiveTab('pending')}
                   className={tabButtonClass('pending')}
                 >
-                  Pending
+                  Menunggu
                 </button>
                 <button
                   type="button"
@@ -388,47 +390,39 @@ const TenantManagement = () => {
           }
           actions={(tenant) => (
             <div className="flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
+              <ActionIconButton
+                icon={EyeIcon}
+                label={`Lihat detail tenant ${tenant.name}`}
+                tone="blue"
+                variant="ghost"
                 onClick={() => openModal(tenant, 'view')}
-                className="inline-flex items-center justify-center rounded-lg p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-800"
-                title="Lihat detail tenant"
-                aria-label="Lihat detail tenant"
-              >
-                <EyeIcon className="h-5 w-5" />
-              </button>
+              />
               {canApproveTenant(tenant) && (
-                <button
-                  type="button"
+                <ActionIconButton
+                  icon={CheckCircleIcon}
+                  label={`Aktivasi tenant ${tenant.name}`}
+                  tone="green"
+                  variant="ghost"
                   onClick={() => openModal(tenant, 'approve')}
-                  className="inline-flex items-center justify-center rounded-lg p-2.5 text-green-600 hover:bg-green-50 hover:text-green-800"
-                  title="Aktivasi tenant"
-                  aria-label="Aktivasi tenant"
-                >
-                  <CheckCircleIcon className="h-5 w-5" />
-                </button>
+                />
               )}
               {tenant.status === 'ACTIVE' && (
-                <button
-                  type="button"
+                <ActionIconButton
+                  icon={XCircleIcon}
+                  label={`Nonaktifkan tenant ${tenant.name}`}
+                  tone="orange"
+                  variant="ghost"
                   onClick={() => openModal(tenant, 'suspend')}
-                  className="inline-flex items-center justify-center rounded-lg p-2.5 text-orange-600 hover:bg-orange-50 hover:text-orange-800"
-                  title="Nonaktifkan tenant"
-                  aria-label="Nonaktifkan tenant"
-                >
-                  <XCircleIcon className="h-5 w-5" />
-                </button>
+                />
               )}
               {tenant.status === 'SUSPENDED' && (
-                <button
-                  type="button"
+                <ActionIconButton
+                  icon={CheckCircleIcon}
+                  label={`Aktifkan tenant ${tenant.name}`}
+                  tone="emerald"
+                  variant="ghost"
                   onClick={() => openModal(tenant, 'activate')}
-                  className="inline-flex items-center justify-center rounded-lg p-2.5 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-800"
-                  title="Aktifkan tenant"
-                  aria-label="Aktifkan tenant"
-                >
-                  <CheckCircleIcon className="h-5 w-5" />
-                </button>
+                />
               )}
             </div>
           )}
@@ -511,12 +505,13 @@ const TenantManagement = () => {
 
             {modalAction !== 'view' && modalAction !== 'activate' && (
               <section className="rounded-2xl border border-gray-200 bg-white p-4">
-                <label className="block text-sm font-semibold text-gray-900">
+                <label htmlFor={actionReasonId} className="block text-sm font-semibold text-gray-900">
                   {modalAction === 'approve'
                     ? 'Catatan aktivasi (opsional)'
                     : 'Alasan penonaktifan tenant'}
                 </label>
                 <textarea
+                  id={actionReasonId}
                   value={actionReason}
                   onChange={(event) => setActionReason(event.target.value)}
                   rows={4}

@@ -187,7 +187,7 @@ export default function PlatformSubscriptionVerification() {
 
   const getStatusBadge = (status: string) => {
     const config = {
-      pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Pending' },
+      pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Menunggu' },
       verified: { bg: 'bg-green-100', text: 'text-green-800', label: 'Terverifikasi' },
       rejected: { bg: 'bg-red-100', text: 'text-red-800', label: 'Ditolak' },
     };
@@ -353,7 +353,7 @@ export default function PlatformSubscriptionVerification() {
               className="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             >
               <option value="all">Semua status</option>
-              <option value="pending">Pending</option>
+              <option value="pending">Menunggu</option>
               <option value="verified">Terverifikasi</option>
               <option value="rejected">Ditolak</option>
             </select>

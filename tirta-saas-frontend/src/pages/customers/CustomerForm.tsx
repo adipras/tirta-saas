@@ -106,15 +106,15 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={mode === 'create' ? 'Add New Customer' : 'Edit Customer'}
-        subtitle={mode === 'create' ? 'Register a new customer in the system.' : 'Update customer information and settings.'}
+        title={mode === 'create' ? 'Tambah Pelanggan' : 'Ubah Pelanggan'}
+        subtitle={mode === 'create' ? 'Daftarkan pelanggan baru ke dalam sistem.' : 'Perbarui informasi dan pengaturan pelanggan.'}
         actions={
           <button
             onClick={() => navigate('/admin/customers')}
             className="inline-flex w-full items-center justify-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
           >
             <ArrowLeftIcon className="mr-2 h-4 w-4" />
-            Back to Pelanggan
+            Kembali ke Pelanggan
           </button>
         }
       />
@@ -127,10 +127,10 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   {/* Meter Number */}
                   <div>
                     <label htmlFor="meter_number" className="block text-sm font-medium text-gray-700">
-                      Meter Number *
+                      Nomor Meter *
                     </label>
                     <input
-                      {...register('meter_number', { required: 'Meter number is required' })}
+                      {...register('meter_number', { required: 'Nomor meter wajib diisi' })}
                       type="text"
                       id="meter_number"
                       disabled={mode === 'edit'}
@@ -145,10 +145,10 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   {/* Name */}
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                      Full Name *
+                      Nama Lengkap *
                     </label>
                     <input
-                      {...register('name', { required: 'Name is required' })}
+                      {...register('name', { required: 'Nama wajib diisi' })}
                       type="text"
                       id="name"
                       className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
@@ -166,10 +166,10 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                     </label>
                     <input
                       {...register('email', { 
-                        required: 'Email is required',
+                        required: 'Email wajib diisi',
                         pattern: {
                           value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                          message: 'Invalid email address'
+                          message: 'Alamat email tidak valid'
                         }
                       })}
                       type="email"
@@ -187,26 +187,26 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   {mode === 'create' && (
                     <div>
                       <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                        Password *
+                        Kata Sandi *
                       </label>
                       <input
                         {...register('password', { 
-                          required: mode === 'create' ? 'Password is required' : false,
+                          required: mode === 'create' ? 'Kata sandi wajib diisi' : false,
                           minLength: {
                             value: 6,
-                            message: 'Password must be at least 6 characters'
+                            message: 'Kata sandi minimal 6 karakter'
                           }
                         })}
                         type="password"
                         id="password"
                         className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                        placeholder="Min. 6 characters"
+                        placeholder="Minimal 6 karakter"
                       />
                       {errors.password && (
                         <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>
                       )}
                       <p className="mt-2 text-sm text-gray-500">
-                        Customer will use this password to login
+                        Pelanggan akan menggunakan kata sandi ini untuk masuk
                       </p>
                     </div>
                   )}
@@ -214,7 +214,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   {/* Phone */}
                   <div>
                     <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                      Phone Number
+                      Nomor Telepon
                     </label>
                     <input
                       {...register('phone')}
@@ -228,14 +228,14 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   {/* Subscription Type */}
                   <div>
                     <label htmlFor="subscription_id" className="block text-sm font-medium text-gray-700">
-                      Subscription Type *
+                      Golongan Langganan *
                     </label>
                     <select
-                      {...register('subscription_id', { required: 'Subscription type is required' })}
+                      {...register('subscription_id', { required: 'Golongan langganan wajib dipilih' })}
                       id="subscription_id"
                       className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     >
-                      <option value="">Select subscription type</option>
+                      <option value="">Pilih golongan langganan</option>
                       {subscriptionTypes.map((type) => (
                         <option key={type.id} value={type.id}>
                           {type.name} - Rp {type.monthly_fee.toLocaleString()}/bulan
@@ -250,7 +250,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   {/* Address */}
                   <div className="sm:col-span-2">
                     <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                      Address
+                      Alamat
                     </label>
                     <textarea
                       {...register('address')}
@@ -269,14 +269,14 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   onClick={() => navigate('/admin/customers')}
                   className="inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="inline-flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
-                  {saving ? 'Saving...' : mode === 'create' ? 'Create Customer' : 'Update Customer'}
+                  {saving ? 'Menyimpan...' : mode === 'create' ? 'Tambah Pelanggan' : 'Perbarui Pelanggan'}
                 </button>
               </div>
             </div>

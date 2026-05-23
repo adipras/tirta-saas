@@ -13,7 +13,7 @@ import {
 import { DataTable, type Column } from '../../components/DataTable';
 import customerService from '../../services/customerService';
 import type { Customer, CustomerFilters, SubscriptionType } from '../../types/customer';
-import { DashboardStatCard, PageHeader } from '../../components';
+import { ActionIconButton, DashboardStatCard, PageHeader } from '../../components';
 import { useToast } from '../../components';
 
 export default function CustomerList() {
@@ -169,29 +169,28 @@ export default function CustomerList() {
 
   const actions = (customer: Customer) => (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      <button
+      <ActionIconButton
+        icon={EyeIcon}
+        label={`Lihat detail pelanggan ${customer.name}`}
+        tone="blue"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           navigate(`/admin/customers/${customer.id}`);
         }}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 text-blue-600 transition hover:bg-blue-50"
-        title="Lihat detail"
-      >
-        <EyeIcon className="h-5 w-5" />
-      </button>
-      <button
+      />
+      <ActionIconButton
+        icon={PencilIcon}
+        label={`Ubah pelanggan ${customer.name}`}
+        tone="gray"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           navigate(`/admin/customers/${customer.id}/edit`);
         }}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:bg-gray-50"
-        title="Ubah pelanggan"
-      >
-        <PencilIcon className="h-5 w-5" />
-      </button>
+      />
       <button
+        type="button"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -201,6 +200,8 @@ export default function CustomerList() {
           customer.is_active ? 'bg-green-600' : 'bg-gray-300'
         }`}
         title={customer.is_active ? 'Aktif - klik untuk nonaktifkan' : 'Nonaktif - klik untuk aktifkan'}
+        aria-label={`${customer.is_active ? 'Nonaktifkan' : 'Aktifkan'} pelanggan ${customer.name}`}
+        aria-pressed={customer.is_active}
       >
         <span
           className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -303,50 +304,54 @@ export default function CustomerList() {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Status</label>
+              <label htmlFor="filter-status-pelanggan" className="block text-sm font-medium text-gray-700">Status</label>
               <select
+                id="filter-status-pelanggan"
                 value={filters.isActive === '' ? '' : filters.isActive ? 'active' : 'inactive'}
                 onChange={(e) => setFilters({ ...filters, isActive: e.target.value === '' ? '' : e.target.value === 'active' })}
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
               >
-                <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="">Semua status</option>
+                <option value="active">Aktif</option>
+                <option value="inactive">Nonaktif</option>
               </select>
             </div>
-            
+          
             <div>
-              <label className="block text-sm font-medium text-gray-700">Subscription Type</label>
+              <label htmlFor="filter-tipe-langganan" className="block text-sm font-medium text-gray-700">Tipe langganan</label>
               <select
+                id="filter-tipe-langganan"
                 value={filters.subscriptionTypeId}
                 onChange={(e) => setFilters({ ...filters, subscriptionTypeId: e.target.value })}
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
               >
-                <option value="">All Types</option>
+                <option value="">Semua tipe</option>
                 {subscriptionTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.name}
+                    <option key={type.id} value={type.id}>
+                      {type.name}
                   </option>
                 ))}
               </select>
             </div>
-            
+          
             <div>
-              <label className="block text-sm font-medium text-gray-700">Outstanding Balance</label>
+              <label htmlFor="filter-saldo-tertunggak" className="block text-sm font-medium text-gray-700">Saldo tertunggak</label>
               <select
+                id="filter-saldo-tertunggak"
                 value={filters.hasOutstandingBalance}
                 onChange={(e) => setFilters({ ...filters, hasOutstandingBalance: e.target.value })}
                 className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
               >
-                <option value="">All</option>
-                <option value="true">With Balance</option>
-                <option value="false">No Balance</option>
+                <option value="">Semua</option>
+                <option value="true">Ada tunggakan</option>
+                <option value="false">Tanpa tunggakan</option>
               </select>
             </div>
-            
+          
             <div>
-              <label className="block text-sm font-medium text-gray-700">Search</label>
+              <label htmlFor="filter-pencarian-pelanggan" className="block text-sm font-medium text-gray-700">Pencarian</label>
               <input
+                id="filter-pencarian-pelanggan"
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -366,7 +371,7 @@ export default function CustomerList() {
               })}
               className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
             >
-              Reset Filter
+              Atur ulang filter
             </button>
           </div>
         </div>

@@ -23,33 +23,9 @@ import {
   useToast,
 } from '../../components';
 import { reportService } from '../../services/reportService';
+import type { OutstandingReportData } from '../../types/report';
 import { exportToCSV, exportToExcel, formatIDR } from '../../utils/exportUtils';
 import { extractApiErrorMessage } from '../../utils/apiError';
-
-interface AgingBucket {
-  range: string;
-  count: number;
-  amount: number;
-  percentage: number;
-}
-
-interface OutstandingInvoice {
-  customerId: number;
-  customerName: string;
-  invoiceNumber: string;
-  invoiceDate: string;
-  dueDate: string;
-  amount: number;
-  daysOverdue: number;
-}
-
-interface OutstandingReportData {
-  totalOutstanding: number;
-  totalPelanggan: number;
-  overdueCount: number;
-  agingBuckets: AgingBucket[];
-  outstandingTagihan: OutstandingInvoice[];
-}
 
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString('id-ID', {
@@ -74,7 +50,7 @@ export default function OutstandingReport() {
   const fetchReportData = useCallback(async () => {
     try {
       setLoading(true);
-      const data = (await reportService.getOutstandingReport(filters)) as OutstandingReportData;
+      const data = await reportService.getOutstandingReport(filters);
       setReportData(data);
     } catch (err) {
       setReportData(null);

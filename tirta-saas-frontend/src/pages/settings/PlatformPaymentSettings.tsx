@@ -348,7 +348,7 @@ export default function PlatformPaymentSettings() {
     <div className="space-y-6">
       <PageHeader
         title="Pengaturan Pembayaran Platform"
-        subtitle="Kelola rekening bank dan QR code yang ditampilkan ke tenant saat proses langganan atau perpanjangan."
+        subtitle="Kelola rekening bank dan kode QR yang ditampilkan ke tenant saat proses langganan atau perpanjangan."
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
@@ -369,10 +369,10 @@ export default function PlatformPaymentSettings() {
           tone="green"
         />
         <DashboardStatCard
-          title="QR Code"
+          title="Kode QR"
           value={stats.qrCodes.toLocaleString('id-ID')}
           helper="Pembayaran digital"
-          subtitle="Total QR code yang tersedia untuk tenant."
+          subtitle="Total kode QR yang tersedia untuk tenant."
           icon={QrCodeIcon}
           tone="purple"
         />
@@ -380,7 +380,7 @@ export default function PlatformPaymentSettings() {
           title="QR Aktif"
           value={stats.activeQrCodes.toLocaleString('id-ID')}
           helper="Siap dipakai"
-          subtitle="QR code aktif yang dapat dipilih tenant."
+          subtitle="Kode QR aktif yang dapat dipilih tenant."
           icon={QrCodeIcon}
           tone="green"
         />
@@ -471,7 +471,7 @@ export default function PlatformPaymentSettings() {
                         type="button"
                         onClick={() => openBankModal(bank)}
                         className="inline-flex items-center justify-center rounded-lg p-2.5 text-blue-600 hover:bg-blue-50"
-                        aria-label="Edit rekening bank"
+                        aria-label="Ubah rekening bank"
                       >
                         <PencilIcon className="h-5 w-5" />
                       </button>
@@ -510,7 +510,7 @@ export default function PlatformPaymentSettings() {
               className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
             >
               <PlusIcon className="h-5 w-5" />
-              Tambah QR Code
+              Tambah Kode QR
             </button>
           </div>
         </div>
@@ -554,7 +554,7 @@ export default function PlatformPaymentSettings() {
                         type="button"
                         onClick={() => openQRModal(qr)}
                         className="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50"
-                        aria-label="Edit QR code"
+                        aria-label="Ubah kode QR"
                       >
                         <PencilIcon className="h-4 w-4" />
                       </button>
@@ -562,7 +562,7 @@ export default function PlatformPaymentSettings() {
                         type="button"
                         onClick={() => setDeleteTarget({ type: 'qr', id: qr.id })}
                         className="rounded-lg p-1.5 text-red-600 hover:bg-red-50"
-                        aria-label="Hapus QR code"
+                        aria-label="Hapus kode QR"
                       >
                         <TrashIcon className="h-4 w-4" />
                       </button>
@@ -595,7 +595,7 @@ export default function PlatformPaymentSettings() {
       <Modal
         isOpen={showBankModal}
         onClose={closeBankModal}
-        title={editingBank ? 'Edit Rekening Bank' : 'Tambah Rekening Bank'}
+        title={editingBank ? 'Ubah Rekening Bank' : 'Tambah Rekening Bank'}
         size="md"
         mobileFullscreen
       >
@@ -682,7 +682,7 @@ export default function PlatformPaymentSettings() {
       <Modal
         isOpen={showQRModal}
         onClose={closeQRModal}
-        title={editingQR ? 'Edit QR Code' : 'Tambah QR Code'}
+        title={editingQR ? 'Ubah Kode QR' : 'Tambah Kode QR'}
         size="md"
         mobileFullscreen
       >
@@ -779,7 +779,7 @@ export default function PlatformPaymentSettings() {
               type="submit"
               className="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
             >
-              {editingQR ? 'Simpan Perubahan' : 'Tambah QR Code'}
+              {editingQR ? 'Simpan Perubahan' : 'Tambah Kode QR'}
             </button>
           </div>
         </form>
@@ -789,7 +789,7 @@ export default function PlatformPaymentSettings() {
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
-        title={deleteTarget?.type === 'bank' ? 'Hapus Rekening Bank' : 'Hapus QR Code'}
+        title={deleteTarget?.type === 'bank' ? 'Hapus Rekening Bank' : 'Hapus Kode QR'}
         message={
           deleteTarget?.type === 'bank'
             ? 'Rekening bank ini akan dihapus dari pilihan pembayaran tenant. Tindakan ini tidak dapat dibatalkan.'

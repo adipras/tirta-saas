@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { usageService } from '../../services/usageService';
@@ -10,6 +10,7 @@ import type { Customer } from '../../types/customer';
 import type { WaterRate } from '../../types/waterRate';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 export default function MeterReadingForm() {
   const navigate = useNavigate();
@@ -34,18 +35,78 @@ export default function MeterReadingForm() {
 
   const [errors, setErrors] = useState<Partial<Record<keyof WaterPemakaianFormData, string>>>({});
 
-  useEffect(() => {
-    fetchPelanggan();
-    if (isEditMode && id) {
-      fetchWaterPemakaian(id);
+  const fetchPelanggan = useCallback(async () => {
+    try {
+      const response = await customerService.getPelanggan(1, 1000, { isActive: true });
+      setPelanggan(response.data);
+    } catch  {
+      toast.error('Gagal memuat data pelanggan');
     }
-  }, [id, isEditMode]);
+  }, [toast]);
+
+  const fetchActiveRate = useCallback(async (subscriptionId: string) => {
+    try {
+      setIsCheckingRate(true);
+      const rate = await waterRateService.getCurrentRate(subscriptionId);
+      setActiveRate(rate);
+      setRateWarning(
+        rate
+          ? ''
+          : 'Belum ada tarif air aktif untuk tipe langganan pelanggan ini. Tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air.'
+      );
+    } catch {
+      setActiveRate(null);
+      setRateWarning('Gagal memeriksa tarif air aktif untuk pelanggan ini.');
+    } finally {
+      setIsCheckingRate(false);
+    }
+  }, []);
+
+  const fetchPreviousReading = useCallback(async (customerId: string) => {
+    try {
+      const history = await usageService.getCustomerPemakaianHistoryById(customerId);
+      if (history.length > 0) {
+        // Backend returns DESC order, so index 0 is the most recent reading
+        const lastReading = history[0];
+        setPreviousReading(lastReading.meterEnd);
+      } else {
+        setPreviousReading(0);
+      }
+    } catch {
+      setPreviousReading(0);
+    }
+  }, []);
+
+  const fetchWaterPemakaian = useCallback(async (usageId: string) => {
+    try {
+      setLoading(true);
+      const data = await usageService.getWaterPemakaian(usageId);
+      setFormData({
+        customerId: data.customerId,
+        usageMonth: data.usageMonth,
+        meterEnd: data.meterEnd.toString(),
+        notes: data.notes || '',
+      });
+      setPreviousReading(data.meterStart);
+    } catch  {
+      toast.error('Gagal memuat data pemakaian air');
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    void fetchPelanggan();
+    if (isEditMode && id) {
+      void fetchWaterPemakaian(id);
+    }
+  }, [fetchPelanggan, fetchWaterPemakaian, id, isEditMode]);
 
   useEffect(() => {
     if (formData.customerId && formData.usageMonth && !isEditMode) {
-      fetchPreviousReading(formData.customerId);
+      void fetchPreviousReading(formData.customerId);
     }
-  }, [formData.customerId, formData.usageMonth, isEditMode]);
+  }, [fetchPreviousReading, formData.customerId, formData.usageMonth, isEditMode]);
 
   useEffect(() => {
     if (!formData.customerId) {
@@ -62,7 +123,7 @@ export default function MeterReadingForm() {
     }
 
     void fetchActiveRate(selectedCustomer.subscription_id);
-  }, [formData.customerId, customers]);
+  }, [customers, fetchActiveRate, formData.customerId]);
 
   useEffect(() => {
     if (previousReading !== null && formData.meterEnd) {
@@ -72,66 +133,6 @@ export default function MeterReadingForm() {
       }
     }
   }, [previousReading, formData.meterEnd]);
-
-  const fetchPelanggan = async () => {
-    try {
-      const response = await customerService.getPelanggan(1, 1000, { isActive: true });
-      setPelanggan(response.data);
-    } catch  {
-      toast.error('Gagal memuat data pelanggan');
-    }
-  };
-
-  const fetchActiveRate = async (subscriptionId: string) => {
-    try {
-      setIsCheckingRate(true);
-      const rate = await waterRateService.getCurrentRate(subscriptionId);
-      setActiveRate(rate);
-      setRateWarning(
-        rate
-          ? ''
-          : 'Belum ada tarif air aktif untuk tipe langganan pelanggan ini. Tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air.'
-      );
-    } catch {
-      setActiveRate(null);
-      setRateWarning('Gagal memeriksa tarif air aktif untuk pelanggan ini.');
-    } finally {
-      setIsCheckingRate(false);
-    }
-  };
-
-  const fetchPreviousReading = async (customerId: string) => {
-    try {
-      const history = await usageService.getCustomerPemakaianHistoryById(customerId);
-      if (history.length > 0) {
-        // Backend returns DESC order, so index 0 is the most recent reading
-        const lastReading = history[0];
-        setPreviousReading(lastReading.meterEnd);
-      } else {
-        setPreviousReading(0);
-      }
-    } catch {
-      setPreviousReading(0);
-    }
-  };
-
-  const fetchWaterPemakaian = async (usageId: string) => {
-    try {
-      setLoading(true);
-      const data = await usageService.getWaterPemakaian(usageId);
-      setFormData({
-        customerId: data.customerId,
-        usageMonth: data.usageMonth,
-        meterEnd: data.meterEnd.toString(),
-        notes: data.notes || '',
-      });
-      setPreviousReading(data.meterStart);
-    } catch  {
-      toast.error('Gagal memuat data pemakaian air');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof WaterPemakaianFormData, string>> = {};
@@ -199,8 +200,13 @@ export default function MeterReadingForm() {
       }
 
       navigate('/admin/usage');
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || `Gagal ${isEditMode ? 'memperbarui' : 'mencatat'} pembacaan meter`);
+    } catch (error: unknown) {
+      toast.error(
+        extractApiErrorMessage(
+          error,
+          `Gagal ${isEditMode ? 'memperbarui' : 'mencatat'} pembacaan meter`
+        )
+      );
     } finally {
       setLoading(false);
     }

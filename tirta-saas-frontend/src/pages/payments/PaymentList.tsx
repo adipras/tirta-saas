@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { DataTable, type Column } from '../../components/DataTable';
 import { paymentService, type PaymentFilters } from '../../services/paymentService';
-import { DashboardStatCard, PageHeader, ConfirmModal, useToast } from '../../components';
+import { ActionIconButton, DashboardStatCard, PageHeader, ConfirmModal, useToast } from '../../components';
 import type {
   Payment,
   PaymentStatus,
@@ -183,31 +183,25 @@ const PaymentList: React.FC = () => {
       label: 'Aksi',
       render: (_value: unknown, payment: Payment) => (
         <div className="flex items-center gap-2">
-          <button
+          <ActionIconButton
+            icon={DocumentTextIcon}
+            label="Lihat struk pembayaran"
+            tone="blue"
             onClick={() => handleViewReceipt(payment)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 text-blue-600 transition hover:bg-blue-50"
-            title="Lihat struk pembayaran"
-            aria-label="Lihat struk pembayaran"
-          >
-            <DocumentTextIcon className="h-4 w-4" />
-          </button>
-          <button
+          />
+          <ActionIconButton
+            icon={EyeIcon}
+            label="Lihat detail tagihan"
+            tone="gray"
             onClick={() => handleViewInvoice(payment)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-600 transition hover:bg-gray-50"
-            title="Lihat detail tagihan"
-            aria-label="Lihat detail tagihan"
-          >
-            <EyeIcon className="h-4 w-4" />
-          </button>
+          />
           {payment.status === 'completed' && (
-            <button
+            <ActionIconButton
+              icon={NoSymbolIcon}
+              label="Batalkan pembayaran"
+              tone="red"
               onClick={() => handleVoidPayment(payment)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50"
-              title="Batalkan pembayaran"
-              aria-label="Batalkan pembayaran"
-            >
-              <NoSymbolIcon className="h-4 w-4" />
-            </button>
+            />
           )}
         </div>
       ),

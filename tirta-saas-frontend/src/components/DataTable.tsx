@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -44,6 +44,8 @@ export function DataTable<T extends object>({
   emptyMessage = 'Tidak ada data tersedia',
   loading = false,
 }: DataTableProps<T>) {
+  const searchInputId = useId();
+  const tableCaptionId = useId();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<keyof T | string | null>(null);
@@ -95,6 +97,9 @@ export function DataTable<T extends object>({
   }, [filteredData, currentPage, pageSize]);
 
   const totalPages = Math.ceil(filteredData.length / pageSize);
+  const visibleStart = filteredData.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const visibleEnd = filteredData.length === 0 ? 0 : Math.min(currentPage * pageSize, filteredData.length);
+  const visibleColumns = columns.filter((column) => !column.hideOnMobile);
 
   const handleSort = (column: keyof T | string) => {
     if (sortColumn === column) {
@@ -108,6 +113,17 @@ export function DataTable<T extends object>({
 
   const handlePageChange = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const handleRowKeyDown = (event: React.KeyboardEvent<HTMLElement>, item: T) => {
+    if (!onRowClick) {
+      return;
+    }
+
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onRowClick(item);
+    }
   };
 
   const getNestedValue = (obj: unknown, path: string): unknown => {
@@ -182,8 +198,9 @@ export function DataTable<T extends object>({
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center py-12" role="status" aria-live="polite">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
+        <span className="sr-only">Sedang memuat data tabel</span>
       </div>
     );
   }
@@ -193,8 +210,12 @@ export function DataTable<T extends object>({
       {searchable && searchKeys.length > 0 && (
         <div className="p-4 border-b border-gray-200">
           <div className="relative">
+            <label htmlFor={searchInputId} className="sr-only">
+              Cari data tabel
+            </label>
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
+              id={searchInputId}
               type="text"
               value={searchTerm}
               onChange={(e) => {
@@ -202,6 +223,7 @@ export function DataTable<T extends object>({
                 setCurrentPage(1);
               }}
               placeholder="Cari..."
+              aria-describedby={tableCaptionId}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -218,8 +240,11 @@ export function DataTable<T extends object>({
                 key={index}
                 className={`space-y-3 p-4 ${onRowClick ? 'cursor-pointer active:bg-gray-50' : ''}`}
                 onClick={() => onRowClick?.(item)}
+                onKeyDown={(event) => handleRowKeyDown(event, item)}
+                role={onRowClick ? 'button' : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
               >
-                {columns.filter((column) => !column.hideOnMobile).map((column) => (
+                {visibleColumns.map((column) => (
                   <div key={column.key as string} className="flex items-start justify-between gap-3">
                     <dt className="max-w-[45%] text-xs font-medium uppercase tracking-wide text-gray-500">
                       {column.label}
@@ -244,33 +269,54 @@ export function DataTable<T extends object>({
       </div>
 
       <div className="hidden overflow-x-auto sm:block">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-full divide-y divide-gray-200" aria-describedby={tableCaptionId}>
+          <caption id={tableCaptionId} className="sr-only">
+            Tabel data dengan {filteredData.length} baris hasil.
+          </caption>
           <thead className="bg-gray-50">
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key as string}
+                  scope="col"
+                  aria-sort={
+                    column.sortable && sortColumn === column.key
+                      ? sortDirection === 'asc'
+                        ? 'ascending'
+                        : sortDirection === 'desc'
+                          ? 'descending'
+                          : 'none'
+                      : undefined
+                  }
                   className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                    column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
+                    column.sortable ? 'hover:bg-gray-100' : ''
                   } ${column.className || ''}`}
-                  onClick={() => column.sortable && handleSort(column.key)}
                 >
-                  <div className="flex items-center">
-                    {column.label}
-                    {column.sortable && (
-                      <span className="ml-1">
+                  {column.sortable ? (
+                    <button
+                      type="button"
+                      onClick={() => handleSort(column.key)}
+                      className="flex items-center gap-1 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded-sm"
+                      aria-label={`Urutkan kolom ${column.label}`}
+                    >
+                      <span>{column.label}</span>
+                      <span className="ml-1" aria-hidden="true">
                         {sortColumn === column.key ? (
                           sortDirection === 'asc' ? (
                             <ChevronUpIcon className="h-4 w-4" />
-                          ) : (
+                          ) : sortDirection === 'desc' ? (
                             <ChevronDownIcon className="h-4 w-4" />
+                          ) : (
+                            <div className="h-4 w-4" />
                           )
                         ) : (
                           <div className="h-4 w-4" />
                         )}
                       </span>
-                    )}
-                  </div>
+                    </button>
+                  ) : (
+                    <div className="flex items-center">{column.label}</div>
+                  )}
                 </th>
               ))}
               {actions && (
@@ -298,6 +344,8 @@ export function DataTable<T extends object>({
                     onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''
                   }`}
                   onClick={() => onRowClick?.(item)}
+                  onKeyDown={(event) => handleRowKeyDown(event, item)}
+                  tabIndex={onRowClick ? 0 : undefined}
                 >
                   {columns.map((column) => (
                     <td
@@ -348,22 +396,26 @@ export function DataTable<T extends object>({
               <p className="text-sm text-gray-700">
                 Menampilkan{' '}
                 <span className="font-medium">
-                  {(currentPage - 1) * pageSize + 1}
+                  {visibleStart}
                 </span>{' '}
                 sampai{' '}
                 <span className="font-medium">
-                  {Math.min(currentPage * pageSize, filteredData.length)}
+                  {visibleEnd}
                 </span>{' '}
                 dari <span className="font-medium">{filteredData.length}</span>{' '}
                 hasil
               </p>
             </div>
             <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+              <nav
+                className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                aria-label="Navigasi halaman tabel"
+              >
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
                   className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Ke halaman sebelumnya"
                 >
                   <ChevronLeftIcon className="h-5 w-5" />
                 </button>
@@ -384,6 +436,7 @@ export function DataTable<T extends object>({
                             ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                             : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                         }`}
+                        aria-current={page === currentPage ? 'page' : undefined}
                       >
                         {page}
                       </button>
@@ -408,6 +461,7 @@ export function DataTable<T extends object>({
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                   className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Ke halaman berikutnya"
                 >
                   <ChevronRightIcon className="h-5 w-5" />
                 </button>

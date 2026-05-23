@@ -15,6 +15,7 @@ export { default as ErrorBoundary } from './ErrorBoundary';
 // UI Components
 export { Modal, ConfirmModal } from './Modal';
 export type { ModalProps, ConfirmModalProps } from './Modal';
+export { ActionIconButton } from './ActionIconButton';
 
 export { ToastProvider } from './Toast';
 export { useToast } from '../hooks/useToast';

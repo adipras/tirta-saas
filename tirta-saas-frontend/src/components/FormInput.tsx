@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 
 export interface FormInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -25,7 +25,11 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
     },
     ref
   ) => {
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    const generatedId = useId();
+    const inputId = id || generatedId;
+    const errorId = error ? `${inputId}-error` : undefined;
+    const helperId = !error && helperText ? `${inputId}-helper` : undefined;
+    const describedBy = [props['aria-describedby'], errorId, helperId].filter(Boolean).join(' ') || undefined;
 
     const inputClassName = `block ${fullWidth ? 'w-full' : ''} px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
       error ? 'border-red-300 text-red-900' : 'border-gray-300'
@@ -49,7 +53,15 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
             </div>
           )}
 
-          <input ref={ref} id={inputId} className={inputClassName} required={required} {...props} />
+          <input
+            ref={ref}
+            id={inputId}
+            className={inputClassName}
+            required={required}
+            aria-invalid={Boolean(error)}
+            aria-describedby={describedBy}
+            {...props}
+          />
 
           {icon && iconPosition === 'right' && (
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -58,8 +70,16 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
           )}
         </div>
 
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-        {!error && helperText && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+        {error && (
+          <p id={errorId} className="mt-1 text-sm text-red-600">
+            {error}
+          </p>
+        )}
+        {!error && helperText && (
+          <p id={helperId} className="mt-1 text-sm text-gray-500">
+            {helperText}
+          </p>
+        )}
       </div>
     );
   }
@@ -79,7 +99,11 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
     { label, error, helperText, fullWidth = true, className = '', id, required, ...props },
     ref
   ) => {
-    const textareaId = id || `textarea-${Math.random().toString(36).substr(2, 9)}`;
+    const generatedId = useId();
+    const textareaId = id || generatedId;
+    const errorId = error ? `${textareaId}-error` : undefined;
+    const helperId = !error && helperText ? `${textareaId}-helper` : undefined;
+    const describedBy = [props['aria-describedby'], errorId, helperId].filter(Boolean).join(' ') || undefined;
 
     const textareaClassName = `block ${fullWidth ? 'w-full' : ''} px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
       error ? 'border-red-300 text-red-900' : 'border-gray-300'
@@ -94,10 +118,26 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
           </label>
         )}
 
-        <textarea ref={ref} id={textareaId} className={textareaClassName} required={required} {...props} />
+        <textarea
+          ref={ref}
+          id={textareaId}
+          className={textareaClassName}
+          required={required}
+          aria-invalid={Boolean(error)}
+          aria-describedby={describedBy}
+          {...props}
+        />
 
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-        {!error && helperText && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+        {error && (
+        <p id={errorId} className="mt-1 text-sm text-red-600">
+          {error}
+        </p>
+        )}
+        {!error && helperText && (
+        <p id={helperId} className="mt-1 text-sm text-gray-500">
+          {helperText}
+        </p>
+        )}
       </div>
     );
   }
@@ -130,7 +170,11 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
     },
     ref
   ) => {
-    const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
+    const generatedId = useId();
+    const selectId = id || generatedId;
+    const errorId = error ? `${selectId}-error` : undefined;
+    const helperId = !error && helperText ? `${selectId}-helper` : undefined;
+    const describedBy = [props['aria-describedby'], errorId, helperId].filter(Boolean).join(' ') || undefined;
 
     const selectClassName = `block ${fullWidth ? 'w-full' : ''} px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
       error ? 'border-red-300 text-red-900' : 'border-gray-300'
@@ -145,7 +189,15 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
           </label>
         )}
 
-        <select ref={ref} id={selectId} className={selectClassName} required={required} {...props}>
+        <select
+          ref={ref}
+          id={selectId}
+          className={selectClassName}
+          required={required}
+          aria-invalid={Boolean(error)}
+          aria-describedby={describedBy}
+          {...props}
+        >
           {placeholder && (
             <option value="" disabled>
               {placeholder}
@@ -158,8 +210,16 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
           ))}
         </select>
 
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-        {!error && helperText && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+        {error && (
+          <p id={errorId} className="mt-1 text-sm text-red-600">
+            {error}
+          </p>
+        )}
+        {!error && helperText && (
+          <p id={helperId} className="mt-1 text-sm text-gray-500">
+            {helperText}
+          </p>
+        )}
       </div>
     );
   }
@@ -175,7 +235,11 @@ export interface FormCheckboxProps extends React.InputHTMLAttributes<HTMLInputEl
 
 export const FormCheckbox = forwardRef<HTMLInputElement, FormCheckboxProps>(
   ({ label, error, helperText, className = '', id, ...props }, ref) => {
-    const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`;
+    const generatedId = useId();
+    const checkboxId = id || generatedId;
+    const errorId = error ? `${checkboxId}-error` : undefined;
+    const helperId = !error && helperText ? `${checkboxId}-helper` : undefined;
+    const describedBy = [props['aria-describedby'], errorId, helperId].filter(Boolean).join(' ') || undefined;
 
     return (
       <div>
@@ -185,6 +249,8 @@ export const FormCheckbox = forwardRef<HTMLInputElement, FormCheckboxProps>(
             id={checkboxId}
             type="checkbox"
             className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${className}`}
+            aria-invalid={Boolean(error)}
+            aria-describedby={describedBy}
             {...props}
           />
           {label && (
@@ -193,8 +259,16 @@ export const FormCheckbox = forwardRef<HTMLInputElement, FormCheckboxProps>(
             </label>
           )}
         </div>
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-        {!error && helperText && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
+        {error && (
+          <p id={errorId} className="mt-1 text-sm text-red-600">
+            {error}
+          </p>
+        )}
+        {!error && helperText && (
+          <p id={helperId} className="mt-1 text-sm text-gray-500">
+            {helperText}
+          </p>
+        )}
       </div>
     );
   }

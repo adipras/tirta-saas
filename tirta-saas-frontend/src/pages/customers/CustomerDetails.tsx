@@ -123,7 +123,8 @@ export default function CustomerDetails() {
                 className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                   customer.is_active ? 'bg-green-600' : 'bg-gray-300'
                 }`}
-                title={customer.is_active ? 'Click to deactivate' : 'Click to activate'}
+                title={customer.is_active ? 'Klik untuk menonaktifkan pelanggan' : 'Klik untuk mengaktifkan pelanggan'}
+                aria-label={customer.is_active ? 'Nonaktifkan pelanggan' : 'Aktifkan pelanggan'}
               >
                 <span
                   className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
@@ -137,7 +138,7 @@ export default function CustomerDetails() {
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             >
               <PencilIcon className="mr-2 h-4 w-4" />
-              Edit
+              Ubah
             </button>
           </div>
         }
@@ -151,7 +152,7 @@ export default function CustomerDetails() {
                 {customer.name}
               </h3>
               <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                Meter Number: {customer.meter_number}
+                Nomor Meter: {customer.meter_number}
               </p>
             </div>
             {getStatusBadge(customer.is_active)}
@@ -170,7 +171,7 @@ export default function CustomerDetails() {
             </div>
 
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Phone</dt>
+              <dt className="text-sm font-medium text-gray-500">Nomor Telepon</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 <a href={`tel:${customer.phone}`} className="text-blue-600 hover:text-blue-800">
                   {customer.phone}
@@ -179,39 +180,39 @@ export default function CustomerDetails() {
             </div>
 
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Address</dt>
+              <dt className="text-sm font-medium text-gray-500">Alamat</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 {customer.address}
               </dd>
             </div>
 
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Subscription Type</dt>
+              <dt className="text-sm font-medium text-gray-500">Golongan Langganan</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 {customer.subscription ? (
                   <div>
                     <p className="font-medium">{customer.subscription.name}</p>
                     <p className="text-gray-500">
-                      Monthly Fee: Rp {customer.subscription.monthly_fee?.toLocaleString('id-ID') || '-'}
+                      Biaya Bulanan: Rp {customer.subscription.monthly_fee?.toLocaleString('id-ID') || '-'}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-gray-500">No subscription assigned</p>
+                  <p className="text-gray-500">Belum ada golongan langganan</p>
                 )}
               </dd>
             </div>
 
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Meter Number</dt>
+              <dt className="text-sm font-medium text-gray-500">Nomor Meter</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                 {customer.meter_number}
               </dd>
             </div>
 
             <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Registration Date</dt>
+              <dt className="text-sm font-medium text-gray-500">Tanggal Pendaftaran</dt>
               <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {new Date(customer.created_at).toLocaleDateString()}
+                {new Date(customer.created_at).toLocaleDateString('id-ID')}
               </dd>
             </div>
           </dl>
@@ -228,11 +229,11 @@ export default function CustomerDetails() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">
-                    Recent Tagihan
+                    Tagihan Terbaru
                   </dt>
                   <dd>
                     <div className="text-lg font-medium text-gray-900">
-                      View All
+                      Lihat Semua
                     </div>
                   </dd>
                 </dl>
@@ -245,7 +246,7 @@ export default function CustomerDetails() {
                 onClick={() => navigate(`/admin/invoices?customerId=${customer.id}`)}
                 className="font-medium text-blue-600 hover:text-blue-500"
               >
-                View invoices
+                Lihat tagihan
               </button>
             </div>
           </div>
@@ -260,11 +261,11 @@ export default function CustomerDetails() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">
-                    Payment History
+                    Riwayat Pembayaran
                   </dt>
                   <dd>
                     <div className="text-lg font-medium text-gray-900">
-                      View All
+                      Lihat Semua
                     </div>
                   </dd>
                 </dl>
@@ -277,7 +278,7 @@ export default function CustomerDetails() {
                 onClick={() => navigate(`/admin/payments?customerId=${customer.id}`)}
                 className="font-medium text-blue-600 hover:text-blue-500"
               >
-                View payments
+                Lihat pembayaran
               </button>
             </div>
           </div>
@@ -296,7 +297,7 @@ export default function CustomerDetails() {
                   </dt>
                   <dd>
                     <div className="text-lg font-medium text-gray-900">
-                      View Trends
+                      Lihat Tren
                     </div>
                   </dd>
                 </dl>
@@ -309,7 +310,7 @@ export default function CustomerDetails() {
                 onClick={() => navigate(`/admin/water-usage?customerId=${customer.id}`)}
                 className="font-medium text-blue-600 hover:text-blue-500"
               >
-                View usage
+                Lihat pemakaian
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { API_BASE_URL } from '../constants/api';
 import { authService } from './authService';
 
@@ -7,15 +7,18 @@ export interface ApiError {
   message: string;
   code?: string;
   status?: number;
-  response?: any;
+  response?: AxiosResponse;
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type LegacyApiPayload = any;
 
 class ApiClient {
   private client: AxiosInstance;
   private isRefreshing = false;
   private failedQueue: Array<{
-    resolve: (value: any) => void;
-    reject: (error: any) => void;
+    resolve: (value: string | null) => void;
+    reject: (reason?: unknown) => void;
   }> = [];
 
   constructor() {
@@ -94,7 +97,7 @@ class ApiClient {
     );
   }
 
-  private shouldAttemptTokenRefresh(error: any): boolean {
+  private shouldAttemptTokenRefresh(error: AxiosError<{ error?: string; message?: string }>): boolean {
     if (error.response?.status !== 401 || !error.config) {
       return false;
     }
@@ -119,7 +122,7 @@ class ApiClient {
     ].some((message) => authErrorMessage.includes(message));
   }
 
-  private processQueue(error: any, token: string | null): void {
+  private processQueue(error: unknown, token: string | null): void {
     this.failedQueue.forEach(({ resolve, reject }) => {
       if (error) {
         reject(error);
@@ -131,49 +134,56 @@ class ApiClient {
     this.failedQueue = [];
   }
 
-  private handleError(error: any): ApiError {
-    if (error.response) {
-      const { status, data } = error.response;
-      return {
-        message: data?.error || data?.message || 'An error occurred',
-        code: data?.code,
-        status,
-        response: error.response,
-      };
-    } else if (error.request) {
-      return {
-        message: 'Network error. Please check your connection.',
-        code: 'NETWORK_ERROR',
-      };
-    } else {
-      return {
-        message: error.message || 'An unexpected error occurred',
-        code: 'UNKNOWN_ERROR',
-      };
+  private handleError(error: unknown): ApiError {
+    if (error && typeof error === 'object') {
+      const axiosErr = error as AxiosError<{ error?: string; message?: string; code?: string }>;
+      if (axiosErr.response) {
+        const { status, data } = axiosErr.response;
+        return {
+          message: data?.error || data?.message || 'Terjadi kesalahan',
+          code: data?.code,
+          status,
+          response: axiosErr.response,
+        };
+      } else if (axiosErr.request) {
+        return {
+          message: 'Tidak ada respons dari server. Periksa koneksi internet Anda.',
+          code: 'NETWORK_ERROR',
+        };
+      } else if ((error as Error).message) {
+        return {
+          message: (error as Error).message,
+          code: 'UNKNOWN_ERROR',
+        };
+      }
     }
+    return {
+      message: 'Terjadi kesalahan yang tidak terduga',
+      code: 'UNKNOWN_ERROR',
+    };
   }
 
-  async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  async get<T = LegacyApiPayload>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.get<T>(url, config);
     return response.data;
   }
 
-  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async post<T = LegacyApiPayload>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.post<T>(url, data, config);
     return response.data;
   }
 
-  async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async put<T = LegacyApiPayload>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.put<T>(url, data, config);
     return response.data;
   }
 
-  async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+  async patch<T = LegacyApiPayload>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.patch<T>(url, data, config);
     return response.data;
   }
 
-  async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  async delete<T = LegacyApiPayload>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.delete<T>(url, config);
     return response.data;
   }

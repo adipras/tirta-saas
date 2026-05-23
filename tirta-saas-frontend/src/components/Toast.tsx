@@ -65,7 +65,11 @@ interface ToastContainerProps {
 
 const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onClose }) => {
   return (
-    <div className="fixed top-3 right-3 left-3 z-50 space-y-2 sm:left-auto sm:right-4 sm:top-4 sm:w-80">
+    <div
+      className="fixed top-3 right-3 left-3 z-50 space-y-2 sm:left-auto sm:right-4 sm:top-4 sm:w-80"
+      aria-live="polite"
+      aria-atomic="false"
+    >
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onClose={onClose} />
       ))}
@@ -133,18 +137,21 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
 
   return (
     <div
+      role={toast.type === 'error' || toast.type === 'warning' ? 'alert' : 'status'}
+      aria-atomic="true"
       className={`flex items-start gap-2.5 p-3 rounded-lg border shadow-lg transition-all duration-300 ${
         config.bgColor
       } ${config.borderColor} ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}`}
     >
-      <Icon className={`h-4 w-4 flex-shrink-0 mt-0.5 ${config.iconColor}`} />
+      <Icon className={`h-4 w-4 flex-shrink-0 mt-0.5 ${config.iconColor}`} aria-hidden="true" />
       <p className={`flex-1 text-xs font-medium leading-snug ${config.textColor}`}>{toast.message}</p>
       <button
+        type="button"
         onClick={handleClose}
         className={`flex-shrink-0 ${config.textColor} hover:opacity-70 transition-opacity`}
         aria-label="Tutup notifikasi"
       >
-        <XMarkIcon className="h-4 w-4" />
+        <XMarkIcon className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { waterRateService } from '../../services/waterRateService';
@@ -26,23 +26,16 @@ export default function WaterRateForm() {
 
   const [errors, setErrors] = useState<Partial<Record<keyof WaterRateFormData, string>>>({});
 
-  useEffect(() => {
-    fetchSubscriptionTypes();
-    if (isEditMode && id) {
-      fetchWaterRate(id);
-    }
-  }, [id, isEditMode]);
-
-  const fetchSubscriptionTypes = async () => {
+  const fetchSubscriptionTypes = useCallback(async () => {
     try {
       const types = await subscriptionService.getAllSubscriptionTypes();
       setSubscriptionTypes(types);
     } catch  {
       toast.error('Gagal memuat data golongan langganan');
     }
-  };
+  }, [toast]);
 
-  const fetchWaterRate = async (rateId: string) => {
+  const fetchWaterRate = useCallback(async (rateId: string) => {
     try {
       setLoading(true);
       const data = await waterRateService.getWaterRate(rateId);
@@ -58,7 +51,14 @@ export default function WaterRateForm() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    void fetchSubscriptionTypes();
+    if (isEditMode && id) {
+      void fetchWaterRate(id);
+    }
+  }, [fetchSubscriptionTypes, fetchWaterRate, id, isEditMode]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof WaterRateFormData, string>> = {};
@@ -143,7 +143,7 @@ export default function WaterRateForm() {
         Kembali ke Tarif Air
       </button>
       <PageHeader
-        title={isEditMode ? 'Edit Tarif Air' : 'Buat Tarif Air'}
+        title={isEditMode ? 'Ubah Tarif Air' : 'Buat Tarif Air'}
         subtitle={
           isEditMode
             ? 'Perbarui tarif air per meter kubik untuk golongan langganan yang dipilih.'

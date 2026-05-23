@@ -4,6 +4,7 @@ import { ArrowLeftIcon, ArrowUpTrayIcon, CheckCircleIcon, XCircleIcon } from '@h
 import { usageService } from '../../services/usageService';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 
 interface RowEntry {
@@ -12,6 +13,11 @@ interface RowEntry {
   notes: string;
   status?: 'pending' | 'success' | 'error';
   error?: string;
+}
+
+interface ImportErrorEntry {
+  meter_number: string;
+  error: string;
 }
 
 const EMPTY_ROW: RowEntry = { meter_number: '', meter_end: '', notes: '' };
@@ -79,7 +85,7 @@ export default function BulkImportWaterPemakaian() {
       // Mark row statuses
       const updatedRows = rows.map(r => {
         if (!r.meter_number) return r;
-        const errEntry = res.errors?.find((e: any) => e.meter_number === r.meter_number);
+        const errEntry = res.errors?.find((e: ImportErrorEntry) => e.meter_number === r.meter_number);
         return errEntry
           ? { ...r, status: 'error' as const, error: errEntry.error }
           : { ...r, status: 'success' as const };
@@ -92,8 +98,8 @@ export default function BulkImportWaterPemakaian() {
       } else {
         toast.warning(msg);
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Import gagal');
+    } catch (err: unknown) {
+      toast.error(extractApiErrorMessage(err, 'Import gagal'));
     } finally {
       setLoading(false);
     }

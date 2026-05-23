@@ -7,7 +7,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { apiClient } from '../../../services/apiClient';
 import { API_ENDPOINTS } from '../../../constants/api';
-import { useToast, PageHeader } from '../../../components';
+import { ConfirmModal, PageHeader, useToast } from '../../../components';
 
 interface PreviewInvoice {
   invoice_number: string;
@@ -46,6 +46,7 @@ const BulkInvoiceGeneration = () => {
   const [previewData, setPreviewData] = useState<GenerationResult | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
+  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
 
   const handlePreview = async () => {
     setLoading(true);
@@ -68,10 +69,6 @@ const BulkInvoiceGeneration = () => {
   };
 
   const handleGenerate = async () => {
-    if (!confirm(`Yakin ingin membuat ${previewData?.success || 0} tagihan untuk periode ${selectedMonth}?`)) {
-      return;
-    }
-
     setLoading(true);
     try {
       const data = await apiClient.post<GenerationResult>(
@@ -86,6 +83,7 @@ const BulkInvoiceGeneration = () => {
       setGenerationResult(data);
       setShowPreview(false);
       setPreviewData(null);
+      setShowGenerateConfirm(false);
       toast.success(`Berhasil! ${data.success} tagihan dibuat.`);
     } catch  {
       toast.error('Gagal membuat tagihan. Silakan coba lagi.');
@@ -104,7 +102,7 @@ const BulkInvoiceGeneration = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Generate Tagihan Massal" subtitle="Buat tagihan bulanan untuk semua pelanggan secara massal" />
+      <PageHeader title="Buat Tagihan Massal" subtitle="Buat tagihan bulanan untuk semua pelanggan secara massal" />
 
       {/* Selection Form */}
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -281,7 +279,7 @@ const BulkInvoiceGeneration = () => {
               Batal
             </button>
             <button
-              onClick={handleGenerate}
+              onClick={() => setShowGenerateConfirm(true)}
               disabled={loading || previewData.success === 0}
               className="rounded-md bg-green-600 px-6 py-2 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400"
             >
@@ -329,12 +327,24 @@ const BulkInvoiceGeneration = () => {
                 }}
                 className="rounded-md bg-blue-600 px-6 py-2 text-white hover:bg-blue-700"
               >
-                Generate Bulan Lain
+                Buat untuk Bulan Lain
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={showGenerateConfirm}
+        onClose={() => setShowGenerateConfirm(false)}
+        onConfirm={handleGenerate}
+        title="Buat Tagihan Massal"
+        message={`Yakin ingin membuat ${previewData?.success || 0} tagihan untuk periode ${selectedMonth}?`}
+        confirmText="Ya, buat tagihan"
+        cancelText="Batal"
+        type="warning"
+        isLoading={loading}
+      />
 
       {/* Info Card */}
       {!showPreview && !generationResult && (

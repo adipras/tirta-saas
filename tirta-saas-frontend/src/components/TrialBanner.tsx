@@ -4,34 +4,37 @@ import { useNavigate } from 'react-router-dom';
 import { subscriptionPaymentService } from '../services/subscriptionPaymentService';
 import type { SubscriptionStatus } from '../services/subscriptionPaymentService';
 import { authService } from '../services/authService';
+import { useToast } from '../hooks/useToast';
+import { extractApiErrorMessage } from '../utils/apiError';
 
 const TrialBanner = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [isVisible, setIsVisible] = useState(true);
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadSubscriptionStatus();
-  }, []);
+    const loadSubscriptionStatus = async () => {
+      try {
+        // Only load for tenant_admin role — platform_owner doesn't have a trial subscription
+        const userRole = authService.getUser()?.role;
+        if (userRole !== 'tenant_admin') {
+          setLoading(false);
+          return;
+        }
 
-  const loadSubscriptionStatus = async () => {
-    try {
-      // Only load for tenant_admin role — platform_owner doesn't have a trial subscription
-      const userRole = authService.getUser()?.role;
-      if (userRole !== 'tenant_admin') {
+        const data = await subscriptionPaymentService.getSubscriptionStatus();
+        setStatus(data);
+      } catch (error) {
+        toast.error(extractApiErrorMessage(error, 'Status langganan belum bisa dimuat.'));
+      } finally {
         setLoading(false);
-        return;
       }
-      
-      const data = await subscriptionPaymentService.getSubscriptionStatus();
-      setStatus(data);
-    } catch (error) {
-      console.error('Failed to load subscription status:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    void loadSubscriptionStatus();
+  }, [toast]);
 
   const handleDismiss = () => {
     setIsVisible(false);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -29,9 +29,27 @@ export default function UserManagementList() {
 
   const hasActiveFilters = searchTerm !== '' || filterRole !== '';
 
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterRole('');
+  };
+
+  const loadUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await tenantUserService.getTenantUsers();
+      setUsers(data);
+      setFilteredUsers(data);
+    } catch (err: unknown) {
+      toast.error(extractApiErrorMessage(err, 'Gagal memuat data pengguna'));
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
-    loadUsers();
-  }, []);
+    void loadUsers();
+  }, [loadUsers]);
 
   useEffect(() => {
     let filtered = users;
@@ -47,25 +65,7 @@ export default function UserManagementList() {
       filtered = filtered.filter((user) => user.role === filterRole);
     }
     setFilteredUsers(filtered);
-  }, [searchTerm, filterRole, users]);
-
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setFilterRole('');
-  };
-
-  const loadUsers = async () => {
-    try {
-      setLoading(true);
-      const data = await tenantUserService.getTenantUsers();
-      setUsers(data);
-      setFilteredUsers(data);
-    } catch (err: unknown) {
-      toast.error(extractApiErrorMessage(err, 'Gagal memuat data pengguna'));
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [filterRole, searchTerm, users]);
 
   const handleCreateSuccess = () => {
     setShowCreateModal(false);

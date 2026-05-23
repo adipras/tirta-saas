@@ -11,6 +11,7 @@ import {
 import { customerService } from '../../services/customerService';
 import { PageHeader, useToast } from '../../components';
 import { exportToCSV } from '../../utils/exportUtils';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 interface PreviewRow {
   name: string;
@@ -100,7 +101,7 @@ export default function BulkImportPelanggan() {
   };
 
   const handleDownloadTemplate = () => {
-    exportToCSV(TEMPLATE_ROWS as any, 'template_customers.csv');
+    exportToCSV(TEMPLATE_ROWS, 'template_customers.csv');
   };
 
   const handleSubmit = async () => {
@@ -118,8 +119,8 @@ export default function BulkImportPelanggan() {
       if (res.failureCount > 0) {
         toast.warning(`${res.failureCount} baris gagal diimport`);
       }
-    } catch (err: any) {
-      toast.error(err?.response?.data?.error || 'Gagal mengimport data');
+    } catch (err: unknown) {
+      toast.error(extractApiErrorMessage(err, 'Gagal mengimport data'));
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import { API_ORIGIN } from '../constants/api';
 import { apiClient } from './apiClient';
+import { asArray, asRecord, getNumber, getString, unwrapResponseData } from '../utils/dataTransform';
 
 const STATIC_BASE = API_ORIGIN;
 
@@ -29,33 +30,35 @@ export interface SubscriptionPayment {
   updatedAt: string;
 }
 
-function mapSubscriptionPayment(payment: any): SubscriptionPayment {
+function mapSubscriptionPayment(payment: unknown): SubscriptionPayment {
+  const data = asRecord(payment);
+
   return {
-    id: payment.id,
-    tenantId: payment.tenant_id,
-    tenant: payment.tenant_name
+    id: getString(data.id),
+    tenantId: getString(data.tenant_id),
+    tenant: getString(data.tenant_name)
       ? {
-          id: payment.tenant_id,
-          organizationName: payment.tenant_name,
-          villageCode: payment.tenant_village_code || '-',
+          id: getString(data.tenant_id),
+          organizationName: getString(data.tenant_name),
+          villageCode: getString(data.tenant_village_code, '-'),
         }
       : undefined,
-    subscriptionPlan: payment.subscription_plan,
-    billingPeriod: payment.billing_period,
-    amount: payment.amount,
-    paymentDate: payment.payment_date,
-    paymentMethod: payment.payment_method,
-    accountNumber: payment.account_number,
-    accountName: payment.account_name,
-    referenceNumber: payment.reference_number,
-    proofUrl: payment.proof_url ? `${STATIC_BASE}${payment.proof_url}` : '',
-    notes: payment.notes,
-    status: payment.status,
-    verifiedBy: payment.verified_by,
-    verifiedAt: payment.verified_at,
-    rejectionReason: payment.rejection_reason,
-    createdAt: payment.created_at,
-    updatedAt: payment.updated_at,
+    subscriptionPlan: getString(data.subscription_plan),
+    billingPeriod: getNumber(data.billing_period),
+    amount: getNumber(data.amount),
+    paymentDate: getString(data.payment_date),
+    paymentMethod: getString(data.payment_method),
+    accountNumber: getString(data.account_number),
+    accountName: getString(data.account_name),
+    referenceNumber: getString(data.reference_number),
+    proofUrl: getString(data.proof_url) ? `${STATIC_BASE}${getString(data.proof_url)}` : '',
+    notes: getString(data.notes),
+    status: getString(data.status) as SubscriptionPayment['status'],
+    verifiedBy: getString(data.verified_by),
+    verifiedAt: getString(data.verified_at),
+    rejectionReason: getString(data.rejection_reason),
+    createdAt: getString(data.created_at),
+    updatedAt: getString(data.updated_at),
   };
 }
 
@@ -70,8 +73,8 @@ export interface RejectPaymentRequest {
 class PlatformSubscriptionService {
   private readonly BASE_URL = '/platform/subscription-payments';
 
-  private extractPayload<T>(response: any): T {
-    return (response?.data ?? response) as T;
+  private extractPayload<T>(response: unknown): T {
+    return unwrapResponseData(response) as T;
   }
 
   private toRelativeProofUrl(proofUrl: string): string {
@@ -86,13 +89,13 @@ class PlatformSubscriptionService {
   async getSubscriptionPembayaran(status?: string): Promise<SubscriptionPayment[]> {
     const params = status ? { status } : {};
     const response = await apiClient.get(this.BASE_URL, { params });
-    const data = this.extractPayload<any[]>(response);
-    return (data || []).map(mapSubscriptionPayment);
+    const data = this.extractPayload<unknown>(response);
+    return asArray(data).map(mapSubscriptionPayment);
   }
 
   async getSubscriptionPaymentDetail(id: string): Promise<SubscriptionPayment> {
     const response = await apiClient.get(`${this.BASE_URL}/${id}`);
-    return mapSubscriptionPayment(this.extractPayload<any>(response));
+    return mapSubscriptionPayment(this.extractPayload(response));
   }
 
   async getPaymentProofBlob(proofUrl: string): Promise<Blob> {

@@ -304,7 +304,7 @@ export default function SubscriptionPlans() {
                   className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                   <PencilIcon className="h-4 w-4" />
-                  Edit
+                  Ubah
                 </button>
               </div>
 
@@ -337,13 +337,13 @@ export default function SubscriptionPlans() {
                   </p>
                 </div>
                 <div className="rounded-2xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">Storage</p>
+                  <p className="text-sm text-gray-500">Penyimpanan</p>
                   <p className="mt-1 text-lg font-semibold text-gray-900">
                     {formatNumber(plan.max_storage_gb)} GB
                   </p>
                 </div>
                 <div className="rounded-2xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">API calls / hari</p>
+                  <p className="text-sm text-gray-500">Panggilan API / hari</p>
                   <p className="mt-1 text-lg font-semibold text-gray-900">
                     {formatNumber(plan.max_api_calls_per_day)}
                   </p>
@@ -385,7 +385,7 @@ export default function SubscriptionPlans() {
       <Modal
         isOpen={showModal}
         onClose={closeModal}
-        title={editingPlan ? 'Edit Paket Langganan' : 'Tambah Paket Langganan'}
+        title={editingPlan ? 'Ubah Paket Langganan' : 'Tambah Paket Langganan'}
         size="xl"
         mobileFullscreen
       >
@@ -403,7 +403,7 @@ export default function SubscriptionPlans() {
               required
               value={formData.name}
               onChange={(event) => handleTextChange('name', event.target.value)}
-              placeholder="contoh: Basic Plan"
+              placeholder="contoh: Paket Basic"
             />
           </div>
 

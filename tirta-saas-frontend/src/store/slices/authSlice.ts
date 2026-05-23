@@ -21,6 +21,9 @@ const initialState: AuthState = {
   currentRequestId: undefined,
 };
 
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message ? error.message : fallback;
+
 // Async thunks
 export const loginAsync = createAsyncThunk(
   'auth/login',
@@ -32,8 +35,8 @@ export const loginAsync = createAsyncThunk(
     try {
       const response = await authService.login(credentials);
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Login failed');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Login failed'));
     }
   }
 );
@@ -43,8 +46,8 @@ export const logoutAsync = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await authService.logout();
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Logout failed');
+    } catch (error: unknown) {
+      return rejectWithValue(getErrorMessage(error, 'Logout failed'));
     }
   }
 );

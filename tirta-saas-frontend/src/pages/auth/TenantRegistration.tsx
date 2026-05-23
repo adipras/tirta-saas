@@ -241,7 +241,7 @@ const TenantRegistration = () => {
                       type="text"
                       {...register('organization_name')}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., RT 01 RW 05 Kelurahan Sejahtera"
+                      placeholder="Contoh: RT 01 RW 05 Kelurahan Sejahtera"
                     />
                     {errors.organization_name && (
                       <p className="mt-1 text-sm text-red-600">
@@ -258,7 +258,7 @@ const TenantRegistration = () => {
                       type="text"
                       {...register('village_code')}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., RT01RW05"
+                      placeholder="Contoh: RT01RW05"
                     />
                     {errors.village_code && (
                       <p className="mt-1 text-sm text-red-600">
@@ -275,7 +275,7 @@ const TenantRegistration = () => {
                       type="tel"
                       {...register('phone')}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., 081234567890"
+                      placeholder="Contoh: 081234567890"
                     />
                     {errors.phone && (
                       <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
@@ -290,7 +290,7 @@ const TenantRegistration = () => {
                       type="email"
                       {...register('email')}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., rt01rw05@example.com"
+                      placeholder="Contoh: rt01rw05@example.com"
                     />
                     {errors.email && (
                       <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
@@ -377,7 +377,7 @@ const TenantRegistration = () => {
                       type="text"
                       {...register('admin_name')}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., Budi Santoso"
+                      placeholder="Contoh: Budi Santoso"
                     />
                     {errors.admin_name && (
                       <p className="mt-1 text-sm text-red-600">
@@ -394,7 +394,7 @@ const TenantRegistration = () => {
                       type="email"
                       {...register('admin_email')}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., budi@example.com"
+                      placeholder="Contoh: budi@example.com"
                     />
                     {errors.admin_email && (
                       <p className="mt-1 text-sm text-red-600">
@@ -411,7 +411,7 @@ const TenantRegistration = () => {
                       type="tel"
                       {...register('admin_phone')}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., 081234567890"
+                      placeholder="Contoh: 081234567890"
                     />
                     {errors.admin_phone && (
                       <p className="mt-1 text-sm text-red-600">

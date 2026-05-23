@@ -1,5 +1,6 @@
 import { API_ORIGIN } from '../constants/api';
 import { apiClient } from './apiClient';
+import { asArray, asRecord, getBoolean, getString, unwrapResponseData } from '../utils/dataTransform';
 
 const STATIC_BASE = API_ORIGIN;
 
@@ -14,18 +15,26 @@ export interface QRCode {
   imageDisplayUrl?: string;
 }
 
-function withImageUrl(qr: any): QRCode {
+function withImageUrl(qr: unknown): QRCode {
+  const data = asRecord(qr);
+  const imageUrl = getString(data.image_url);
+
   return {
-    ...qr,
-    imageDisplayUrl: qr.image_url ? `${STATIC_BASE}/${qr.image_url}` : '',
+    ...(data as unknown as QRCode),
+    image_url: imageUrl,
+    imageDisplayUrl: imageUrl ? `${STATIC_BASE}/${imageUrl.replace(/^\/+/, '')}` : '',
+    id: getString(data.id),
+    type: getString(data.type) as QRCode['type'],
+    is_primary: getBoolean(data.is_primary),
+    is_active: getBoolean(data.is_active),
+    notes: getString(data.notes),
   };
 }
 
 class QRCodeService {
   async getQRCodes(): Promise<QRCode[]> {
     const res = await apiClient.get('/payment-methods/qr-codes');
-    const list = (res as any)?.data || [];
-    return list.map(withImageUrl);
+    return asArray(unwrapResponseData(res)).map(withImageUrl);
   }
 
   async createQRCode(data: {
@@ -45,7 +54,7 @@ class QRCodeService {
     const res = await apiClient.post('/payment-methods/qr-codes', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return withImageUrl((res as any).data);
+    return withImageUrl(unwrapResponseData(res));
   }
 
   async updateQRCode(id: string, data: {
@@ -65,7 +74,7 @@ class QRCodeService {
     const res = await apiClient.put(`/payment-methods/qr-codes/${id}`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return withImageUrl((res as any).data);
+    return withImageUrl(unwrapResponseData(res));
   }
 
   async deleteQRCode(id: string): Promise<void> {

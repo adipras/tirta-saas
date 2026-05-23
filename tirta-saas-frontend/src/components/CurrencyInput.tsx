@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 export interface CurrencyInputProps {
   value: number;
@@ -34,13 +34,7 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
   const [displayValue, setDisplayValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
-  useEffect(() => {
-    if (!isFocused) {
-      setDisplayValue(formatCurrency(value));
-    }
-  }, [value, isFocused]);
-
-  const formatCurrency = (num: number): string => {
+  const formatCurrency = useCallback((num: number): string => {
     if (num === 0) return '';
     return new Intl.NumberFormat(locale, {
       style: 'currency',
@@ -48,7 +42,13 @@ export const CurrencyInput: React.FC<CurrencyInputProps> = ({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(num);
-  };
+  }, [currency, locale]);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setDisplayValue(formatCurrency(value));
+    }
+  }, [formatCurrency, value, isFocused]);
 
   const parseCurrency = (str: string): number => {
     const cleaned = str.replace(/[^\d]/g, '');

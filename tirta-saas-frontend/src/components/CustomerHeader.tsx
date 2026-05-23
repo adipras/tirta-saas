@@ -59,7 +59,11 @@ const CustomerHeader = ({ onMenuClick }: CustomerHeaderProps) => {
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
-          <button className="rounded-full p-2 text-gray-400 hover:text-gray-500">
+          <button
+            className="rounded-full p-2 text-gray-400 hover:text-gray-500"
+            aria-label="Lihat notifikasi"
+            title="Lihat notifikasi"
+          >
             <BellIcon className="h-6 w-6" aria-hidden="true" />
           </button>
           <div className="relative" ref={menuRef}>

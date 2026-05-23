@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 export interface ModalProps {
@@ -37,6 +37,7 @@ export const Modal: React.FC<ModalProps> = ({
   bodyClassName = '',
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -80,17 +81,18 @@ export const Modal: React.FC<ModalProps> = ({
         } ${panelClassName}`}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
+        aria-labelledby={title ? titleId : undefined}
       >
         {(title || showCloseButton) && (
           <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 sm:px-6">
             {title && (
-              <h3 id="modal-title" className="text-lg font-semibold text-gray-900">
+              <h3 id={titleId} className="text-lg font-semibold text-gray-900">
                 {title}
               </h3>
             )}
             {showCloseButton && (
               <button
+                type="button"
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
                 aria-label="Tutup modal"
@@ -167,6 +169,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
         <div className="flex justify-end gap-3">
           <button
+            type="button"
             onClick={onClose}
             disabled={isLoading}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
@@ -174,6 +177,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             {cancelText}
           </button>
           <button
+            type="button"
             onClick={handleConfirm}
             disabled={isLoading}
             className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${styles.button}`}

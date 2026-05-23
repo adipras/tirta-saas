@@ -5,6 +5,7 @@ import * as yup from 'yup';
 import { Link, useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { API_BASE_URL, API_ENDPOINTS } from '../../constants/api';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 interface RegisterAccountFormData {
   name: string;
@@ -76,8 +77,8 @@ const RegisterAccount = () => {
           email: data.email,
         },
       });
-    } catch (err: any) {
-      setError(err.message || 'Terjadi kesalahan. Coba lagi.');
+    } catch (err: unknown) {
+      setError(extractApiErrorMessage(err, 'Terjadi kesalahan. Coba lagi.'));
     } finally {
       setIsLoading(false);
     }

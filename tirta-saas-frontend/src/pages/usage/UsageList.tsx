@@ -14,7 +14,7 @@ import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
 import type { WaterPemakaian, WaterPemakaianFilters } from '../../types/usage';
 import type { Customer } from '../../types/customer';
-import { DashboardStatCard, PageHeader, ConfirmModal } from '../../components';
+import { ActionIconButton, DashboardStatCard, PageHeader, ConfirmModal } from '../../components';
 import { useToast } from '../../components';
 
 export default function PemakaianList() {
@@ -182,30 +182,24 @@ export default function PemakaianList() {
       label: 'Aksi',
       render: (_value: unknown, row: WaterPemakaian) => (
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <button
+          <ActionIconButton
+            icon={ChartBarIcon}
+            label={`Lihat riwayat pemakaian ${row.customer?.name ?? 'pelanggan ini'}`}
+            tone="purple"
             onClick={() => navigate(`/admin/usage/${row.customerId}/history`)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-purple-200 text-purple-600 transition hover:bg-purple-50"
-            title="Lihat riwayat"
-            aria-label={`Lihat riwayat pemakaian ${row.customer?.name ?? ''}`}
-          >
-            <ChartBarIcon className="w-5 h-5" aria-hidden="true" />
-          </button>
-          <button
+          />
+          <ActionIconButton
+            icon={PencilIcon}
+            label={`Ubah data pemakaian ${row.customer?.name ?? 'pelanggan ini'}`}
+            tone="blue"
             onClick={() => navigate(`/admin/usage/edit/${row.id}`)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 text-blue-600 transition hover:bg-blue-50"
-            title="Ubah data"
-            aria-label={`Ubah data pemakaian ${row.customer?.name ?? ''}`}
-          >
-            <PencilIcon className="w-5 h-5" aria-hidden="true" />
-          </button>
-          <button
+          />
+          <ActionIconButton
+            icon={TrashIcon}
+            label={`Hapus data pemakaian ${row.customer?.name ?? 'pelanggan ini'}`}
+            tone="red"
             onClick={() => handleDelete(row.id)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-200 text-red-600 transition hover:bg-red-50"
-            title="Hapus data"
-            aria-label={`Hapus data pemakaian ${row.customer?.name ?? ''}`}
-          >
-            <TrashIcon className="w-5 h-5" aria-hidden="true" />
-          </button>
+          />
         </div>
       ),
       align: 'center' as const,

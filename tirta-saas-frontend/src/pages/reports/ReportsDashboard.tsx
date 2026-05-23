@@ -63,8 +63,8 @@ const reports = [
 
 const quickActions = [
   {
-    title: 'Generate Tagihan',
-    description: 'Masuk ke halaman tagihan bulanan untuk proses generate invoice.',
+    title: 'Buat Tagihan',
+    description: 'Masuk ke halaman tagihan bulanan untuk proses pembuatan invoice.',
     path: '/admin/invoices',
   },
   {

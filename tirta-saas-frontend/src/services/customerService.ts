@@ -8,6 +8,7 @@ import type {
   CustomerStats,
   SubscriptionType 
 } from '../types/customer';
+import { asArray, asRecord, getNumber, unwrapResponseData } from '../utils/dataTransform';
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -32,34 +33,32 @@ class CustomerService {
       ...filters,
     };
 
-    const response = await apiClient.get<any>(
+    const response = await apiClient.get(
       API_ENDPOINTS.CUSTOMERS.LIST,
       { params }
     );
-    
-    // Backend returns { status: "success", message: "...", data: { customers: [...], total: number } }
-    const data = response.data || response;
+    const data = asRecord(unwrapResponseData(response));
+
     return {
-      data: data.customers || [],
+      data: asArray<Customer>(data.customers),
       pagination: {
-        total: data.total || 0,
-        page: page,
-        limit: limit,
-        totalPages: Math.ceil((data.total || 0) / limit),
+        total: getNumber(data.total),
+        page,
+        limit,
+        totalPages: Math.ceil(getNumber(data.total) / limit),
         currentPage: page,
       }
     };
   }
 
   async getCustomerById(id: string): Promise<Customer> {
-    const response = await apiClient.get<any>(API_ENDPOINTS.CUSTOMERS.DETAIL(id));
-    // Backend returns { status: "success", message: "...", data: {...} }
-    return response.data || response;
+    const response = await apiClient.get(API_ENDPOINTS.CUSTOMERS.DETAIL(id));
+    return unwrapResponseData(response) as Customer;
   }
 
   async createCustomer(data: CreateCustomerDto): Promise<Customer> {
-    const response = await apiClient.post<any>(API_ENDPOINTS.CUSTOMERS.CREATE, data);
-    return response.data || response;
+    const response = await apiClient.post(API_ENDPOINTS.CUSTOMERS.CREATE, data);
+    return unwrapResponseData(response) as Customer;
   }
 
   async updateCustomer(id: string, data: UpdateCustomerDto): Promise<Customer> {
@@ -112,14 +111,13 @@ class CustomerService {
   }
 
   async exportPelanggan(filters?: CustomerFilters): Promise<Blob> {
-    const response = await apiClient.get(
+    return apiClient.get<Blob>(
       API_ENDPOINTS.CUSTOMERS.EXPORT,
       {
         params: filters,
         responseType: 'blob',
       }
     );
-    return response;
   }
 
   async bulkUpdateStatus(
@@ -133,10 +131,10 @@ class CustomerService {
   }
 
   async getSubscriptionTypes(): Promise<SubscriptionType[]> {
-    const response = await apiClient.get<SubscriptionType[]>(
+    const response = await apiClient.get(
       API_ENDPOINTS.SUBSCRIPTION_TYPES.LIST
     );
-    return response;
+    return asArray<SubscriptionType>(unwrapResponseData(response));
   }
 
   async bulkImportPelanggan(file: File): Promise<{
@@ -149,28 +147,27 @@ class CustomerService {
   }> {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await apiClient.post<any>(
+    const response = await apiClient.post(
       API_ENDPOINTS.CUSTOMERS.BULK_IMPORT,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
-    const data = response.data || response;
+    const data = asRecord(unwrapResponseData(response));
     return {
-      totalRecords: data.total_records ?? data.totalRecords ?? 0,
-      successCount: data.success_count ?? data.successCount ?? 0,
-      failureCount: data.failure_count ?? data.failureCount ?? 0,
-      skippedCount: data.skipped_count ?? data.skippedCount ?? 0,
-      errors: data.errors ?? [],
-      durationMs: data.duration_ms ?? data.durationMs ?? 0,
+      totalRecords: getNumber(data.total_records ?? data.totalRecords),
+      successCount: getNumber(data.success_count ?? data.successCount),
+      failureCount: getNumber(data.failure_count ?? data.failureCount),
+      skippedCount: getNumber(data.skipped_count ?? data.skippedCount),
+      errors: asArray<string>(data.errors),
+      durationMs: getNumber(data.duration_ms ?? data.durationMs),
     };
   }
 
   async exportPelangganCSV(): Promise<Blob> {
-    const response = await apiClient.get(
+    return apiClient.get<Blob>(
       API_ENDPOINTS.CUSTOMERS.EXPORT,
       { responseType: 'blob' }
     );
-    return response as unknown as Blob;
   }
 
   async assignMeter(customerId: string, meterNumber: string): Promise<Customer> {

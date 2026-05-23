@@ -1,5 +1,6 @@
 import { API_ORIGIN } from '../constants/api';
 import { apiClient } from './apiClient';
+import { asArray, asRecord, getString } from '../utils/dataTransform';
 
 const STATIC_BASE = `${API_ORIGIN}/`;
 
@@ -43,18 +44,24 @@ export interface PlatformPaymentSettings {
 class PlatformPaymentSettingsService {
   async getPlatformPaymentSettings(): Promise<PlatformPaymentSettings> {
     const response = await apiClient.get('/public/platform-payment-settings');
-    const qrCodes = Array.isArray(response?.qr_codes)
-      ? response.qr_codes.map((qr: any) => ({
-          ...qr,
-          imageDisplayUrl: resolveImageUrl(qr.image_url),
-        }))
-      : [];
+    const settings = asRecord(response);
+    const qrCodes = asArray(settings.qr_codes).map((qr) => {
+      const code = asRecord(qr);
+
+      return {
+        ...(code as unknown as PlatformQRCodeInfo),
+        imageDisplayUrl: resolveImageUrl(getString(code.image_url)),
+      };
+    });
 
     return {
-      ...response,
-      bank_accounts: response?.bank_accounts || [],
+      ...(settings as unknown as PlatformPaymentSettings),
+      bank_accounts: asArray<BankAccountInfo>(settings.bank_accounts),
       qr_codes: qrCodes,
-      payment_methods: response?.payment_methods || ['bank_transfer'],
+      payment_methods:
+        asArray<string>(settings.payment_methods).length > 0
+          ? asArray<string>(settings.payment_methods)
+          : ['bank_transfer'],
     };
   }
 }

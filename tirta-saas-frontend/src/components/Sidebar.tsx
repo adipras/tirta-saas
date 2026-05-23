@@ -132,6 +132,7 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
         <button
           onClick={onClose}
           className="md:hidden p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+          aria-label="Tutup sidebar"
         >
           <XMarkIcon className="h-5 w-5" />
         </button>

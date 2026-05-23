@@ -133,7 +133,7 @@ export default function PlatformAnalytics() {
       },
       {
         key: 'churned_tenants',
-        label: 'Churn',
+        label: 'Tenant Berhenti',
         render: (value) => <span className="font-medium text-red-600">-{formatNumber(Number(value))}</span>,
       },
       {
@@ -143,7 +143,7 @@ export default function PlatformAnalytics() {
       },
       {
         key: 'growth_rate_percent',
-        label: 'Growth',
+        label: 'Pertumbuhan',
         render: (value) => {
           const growth = Number(value);
           return (
@@ -228,24 +228,24 @@ export default function PlatformAnalytics() {
         <DashboardStatCard
           title="Pendapatan Bulanan"
           value={formatCurrency(overview.monthly_revenue)}
-          helper="Recurring bulan ini"
+          helper="Pendapatan berulang bulan ini"
           subtitle={`Total akumulasi ${formatCurrency(overview.total_revenue)}`}
           icon={CurrencyDollarIcon}
           tone="green"
         />
         <DashboardStatCard
-          title="Growth Tenant"
+          title="Pertumbuhan Tenant"
           value={formatPercentage(overview.growth_rate_percent)}
           helper={`+${formatNumber(overview.new_tenants_this_month)} baru`}
-          subtitle={`-${formatNumber(overview.churned_tenants_this_month)} churn pada bulan berjalan`}
+          subtitle={`-${formatNumber(overview.churned_tenants_this_month)} tenant berhenti pada bulan berjalan`}
           icon={overview.growth_rate_percent >= 0 ? ArrowTrendingUpIcon : ArrowTrendingDownIcon}
           tone={overview.growth_rate_percent >= 0 ? 'green' : 'yellow'}
         />
         <DashboardStatCard
           title="Uptime Sistem"
           value={formatPercentage(overview.uptime_percent)}
-          helper={`Error ${formatPercentage(overview.error_rate_percent)}`}
-          subtitle={`Outstanding revenue ${formatCurrency(overview.outstanding_revenue)}`}
+          helper={`Galat ${formatPercentage(overview.error_rate_percent)}`}
+          subtitle={`Pendapatan tertunggak ${formatCurrency(overview.outstanding_revenue)}`}
           icon={ServerIcon}
           tone="purple"
         />
@@ -255,7 +255,7 @@ export default function PlatformAnalytics() {
         <div className="mb-4">
           <h2 className="text-base font-semibold text-gray-900">Utilisasi platform</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Ringkasan resource dan beban operasional lintas tenant.
+            Ringkasan sumber daya dan beban operasional lintas tenant.
           </p>
         </div>
 
@@ -273,13 +273,13 @@ export default function PlatformAnalytics() {
             </p>
           </div>
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <p className="text-sm text-gray-500">Storage terpakai</p>
+            <p className="text-sm text-gray-500">Penyimpanan terpakai</p>
             <p className="mt-2 text-2xl font-semibold text-gray-900">
               {overview.total_storage_used_gb.toFixed(2)} GB
             </p>
           </div>
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <p className="text-sm text-gray-500">API call hari ini</p>
+            <p className="text-sm text-gray-500">Panggilan API hari ini</p>
             <p className="mt-2 text-2xl font-semibold text-gray-900">
               {formatNumber(overview.total_api_calls_today)}
             </p>
@@ -292,12 +292,12 @@ export default function PlatformAnalytics() {
           <div>
             <h2 className="text-base font-semibold text-gray-900">Pertumbuhan tenant</h2>
             <p className="mt-1 text-sm text-gray-500">
-              Summary first untuk lihat momentum tenant sebelum masuk rincian bulanan.
+              Lihat ringkasan dulu untuk memahami momentum tenant sebelum masuk rincian bulanan.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-sm text-gray-500">Growth rate</p>
+              <p className="text-sm text-gray-500">Tingkat pertumbuhan</p>
               <p className="mt-2 text-3xl font-semibold text-gray-900">
                 {formatPercentage(tenantGrowth.growth_rate_percent)}
               </p>
@@ -306,7 +306,7 @@ export default function PlatformAnalytics() {
               </p>
             </div>
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-              <p className="text-sm text-gray-500">Churn rate</p>
+              <p className="text-sm text-gray-500">Tingkat tenant berhenti</p>
               <p className="mt-2 text-3xl font-semibold text-gray-900">
                 {formatPercentage(tenantGrowth.churn_rate_percent)}
               </p>

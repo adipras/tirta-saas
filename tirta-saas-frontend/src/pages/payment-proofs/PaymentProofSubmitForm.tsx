@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import invoiceService from '../../services/invoiceService';
 import paymentProofService from '../../services/paymentProofService';
 import type { Invoice } from '../../types/invoice';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 const PaymentProofSubmitForm: React.FC = () => {
   const navigate = useNavigate();
@@ -85,7 +86,7 @@ const PaymentProofSubmitForm: React.FC = () => {
     e.preventDefault();
     
     if (!proofImage) {
-      setError('Payment proof image is required');
+      setError('File bukti pembayaran wajib diunggah');
       return;
     }
 
@@ -106,14 +107,14 @@ const PaymentProofSubmitForm: React.FC = () => {
         proof_image: proofImage,
       });
 
-      setSuccess('Payment proof submitted successfully! Waiting for admin verification.');
+      setSuccess('Bukti pembayaran berhasil dikirim. Menunggu verifikasi admin.');
       
       // Reset form
       setTimeout(() => {
         navigate('/admin/payments');
       }, 2000);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to submit payment proof');
+    } catch (err: unknown) {
+      setError(extractApiErrorMessage(err, 'Gagal mengirim bukti pembayaran'));
     } finally {
       setLoading(false);
     }
@@ -122,7 +123,7 @@ const PaymentProofSubmitForm: React.FC = () => {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold mb-6">Submit Payment Proof</h2>
+        <h2 className="text-2xl font-bold mb-6">Kirim Bukti Pembayaran</h2>
 
         {error && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded">
@@ -140,7 +141,7 @@ const PaymentProofSubmitForm: React.FC = () => {
           {/* Invoice Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Invoice <span className="text-red-500">*</span>
+              Pilih Tagihan <span className="text-red-500">*</span>
             </label>
             <select
               required
@@ -148,7 +149,7 @@ const PaymentProofSubmitForm: React.FC = () => {
               onChange={(e) => handleInvoiceChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">-- Select Invoice --</option>
+              <option value="">-- Pilih Tagihan --</option>
               {invoices.map((invoice) => (
                 <option key={invoice.id} value={invoice.id}>
                   {invoice.invoiceNumber} - {invoice.customerName} - Rp {invoice.totalAmount.toLocaleString()} ({invoice.billingPeriod})
@@ -160,17 +161,17 @@ const PaymentProofSubmitForm: React.FC = () => {
           {/* Invoice Details (if selected) */}
           {selectedInvoice && (
             <div className="bg-blue-50 p-4 rounded-md">
-              <h3 className="font-semibold mb-2">Invoice Details</h3>
+              <h3 className="font-semibold mb-2">Detail Tagihan</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>Invoice Number:</div>
+                <div>Nomor Tagihan:</div>
                 <div className="font-medium">{selectedInvoice.invoiceNumber}</div>
-                <div>Customer:</div>
+                <div>Pelanggan:</div>
                 <div className="font-medium">{selectedInvoice.customerName}</div>
-                <div>Total Amount:</div>
+                <div>Total Tagihan:</div>
                 <div className="font-medium">Rp {selectedInvoice.totalAmount.toLocaleString()}</div>
-                <div>Already Paid:</div>
+                <div>Sudah Dibayar:</div>
                 <div className="font-medium">Rp {selectedInvoice.amountPaid.toLocaleString()}</div>
-                <div>Remaining:</div>
+                <div>Sisa Tagihan:</div>
                 <div className="font-bold text-red-600">Rp {(selectedInvoice.totalAmount - selectedInvoice.amountPaid).toLocaleString()}</div>
               </div>
             </div>
@@ -179,7 +180,7 @@ const PaymentProofSubmitForm: React.FC = () => {
           {/* Payment Amount */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Amount <span className="text-red-500">*</span>
+              Nominal Pembayaran <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -189,14 +190,14 @@ const PaymentProofSubmitForm: React.FC = () => {
               value={formData.amount}
               onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter payment amount"
+              placeholder="Masukkan nominal pembayaran"
             />
           </div>
 
           {/* Payment Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Date <span className="text-red-500">*</span>
+              Tanggal Pembayaran <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
@@ -210,7 +211,7 @@ const PaymentProofSubmitForm: React.FC = () => {
           {/* Payment Method */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Method <span className="text-red-500">*</span>
+              Metode Pembayaran <span className="text-red-500">*</span>
             </label>
             <select
               required
@@ -218,16 +219,16 @@ const PaymentProofSubmitForm: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="bank_transfer">Bank Transfer</option>
+              <option value="bank_transfer">Transfer Bank</option>
               <option value="e_wallet">E-Wallet (GoPay, OVO, Dana)</option>
-              <option value="cash">Cash</option>
+              <option value="cash">Tunai</option>
             </select>
           </div>
 
           {/* Account Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Account Name / Payer Name <span className="text-red-500">*</span>
+              Nama Pemilik Rekening / Pembayar <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -235,42 +236,42 @@ const PaymentProofSubmitForm: React.FC = () => {
               value={formData.account_name}
               onChange={(e) => setFormData({ ...formData, account_name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Name on the account"
+              placeholder="Nama pada rekening"
             />
           </div>
 
           {/* Account Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Account Number (Optional)
+              Nomor Rekening (Opsional)
             </label>
             <input
               type="text"
               value={formData.account_number}
               onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Bank account or e-wallet number"
+              placeholder="Nomor rekening bank atau e-wallet"
             />
           </div>
 
           {/* Reference Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Reference Number (Optional)
+              Nomor Referensi (Opsional)
             </label>
             <input
               type="text"
               value={formData.reference_number}
               onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Transaction reference number"
+              placeholder="Nomor referensi transaksi"
             />
           </div>
 
           {/* Payment Proof Image */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Payment Proof Image <span className="text-red-500">*</span>
+              File Bukti Pembayaran <span className="text-red-500">*</span>
             </label>
             <div className="border-2 border-dashed border-gray-300 rounded-md p-4">
               <input
@@ -280,7 +281,7 @@ const PaymentProofSubmitForm: React.FC = () => {
                 className="w-full"
               />
               <p className="text-xs text-gray-500 mt-2">
-                Allowed: JPG, PNG, PDF. Max size: 5MB
+                Format yang diizinkan: JPG, PNG, PDF. Ukuran maksimal: 5MB
               </p>
             </div>
             
@@ -306,14 +307,14 @@ const PaymentProofSubmitForm: React.FC = () => {
           {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes (Optional)
+              Catatan (Opsional)
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Additional notes about the payment"
+              placeholder="Catatan tambahan tentang pembayaran"
             />
           </div>
 
@@ -324,14 +325,14 @@ const PaymentProofSubmitForm: React.FC = () => {
               onClick={() => navigate('/admin/payments')}
               className="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
             >
-              Cancel
+              Batal
             </button>
             <button
               type="submit"
               disabled={loading || !proofImage}
               className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {loading ? 'Submitting...' : 'Submit Payment Proof'}
+              {loading ? 'Mengirim...' : 'Kirim Bukti Pembayaran'}
             </button>
           </div>
         </form>

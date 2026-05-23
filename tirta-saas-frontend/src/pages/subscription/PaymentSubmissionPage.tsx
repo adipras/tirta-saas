@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
 import { subscriptionPaymentService } from '../../services/subscriptionPaymentService';
 import { useToast } from '../../components';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 interface PaymentState {
   plan: string;
@@ -108,10 +109,10 @@ const PaymentSubmissionPage = () => {
       );
 
       // Success - navigate to status page
-      toast.success(`Payment submitted! Confirmation ID: ${response.confirmationId}`);
+      toast.success(`Pembayaran berhasil dikirim. ID konfirmasi: ${response.confirmationId}`);
       navigate('/subscription/status');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to submit payment. Please try again.');
+    } catch (err: unknown) {
+      setError(extractApiErrorMessage(err, 'Gagal mengirim pembayaran. Silakan coba lagi.'));
     } finally {
       setLoading(false);
     }
@@ -132,31 +133,31 @@ const PaymentSubmissionPage = () => {
         className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
       >
         <ArrowLeftIcon className="h-5 w-5 mr-2" />
-        Back to Plan Selection
+        Kembali ke Pilihan Paket
       </button>
 
-      <h1 className="text-xl font-bold text-gray-900 mb-6 sm:text-2xl">Complete Your Payment</h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-6 sm:text-2xl">Selesaikan Pembayaran Anda</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Payment Info */}
         <div>
           {/* Order Summary */}
           <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Ringkasan Pesanan</h2>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Plan:</span>
+                <span className="text-gray-600">Paket:</span>
                 <span className="font-medium text-gray-900">{paymentState.planName}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Billing Period:</span>
+                <span className="text-gray-600">Periode Tagihan:</span>
                 <span className="font-medium text-gray-900">
-                  {paymentState.billingPeriod} {paymentState.billingPeriod === 1 ? 'Month' : 'Months'}
+                  {paymentState.billingPeriod} {paymentState.billingPeriod === 1 ? 'Bulan' : 'Bulan'}
                 </span>
               </div>
               <div className="border-t border-gray-200 pt-2 mt-2">
                 <div className="flex justify-between">
-                  <span className="font-semibold text-gray-900">Total Amount:</span>
+                  <span className="font-semibold text-gray-900">Total Pembayaran:</span>
                   <span className="text-xl font-bold text-blue-600">
                     {formatCurrency(paymentState.totalAmount)}
                   </span>
@@ -174,8 +175,8 @@ const PaymentSubmissionPage = () => {
                 <h4 className="text-sm font-medium text-blue-900 mb-2">Transfer Bank:</h4>
                 <div className="bg-white rounded p-3 text-sm space-y-1">
                   <p><span className="font-medium">Bank:</span> BCA</p>
-                  <p><span className="font-medium">Account:</span> 1234567890</p>
-                  <p><span className="font-medium">Name:</span> PT Tirta SaaS Indonesia</p>
+                  <p><span className="font-medium">Rekening:</span> 1234567890</p>
+                  <p><span className="font-medium">Nama:</span> PT Tirta SaaS Indonesia</p>
                 </div>
               </div>
 
@@ -183,7 +184,7 @@ const PaymentSubmissionPage = () => {
                 <h4 className="text-sm font-medium text-blue-900 mb-2">E-Wallet (QRIS):</h4>
                 <div className="bg-white rounded p-3">
                   <div className="w-32 h-32 bg-gray-200 rounded flex items-center justify-center">
-                    <span className="text-xs text-gray-500">QR Code</span>
+                    <span className="text-xs text-gray-500">Kode QR</span>
                   </div>
                 </div>
               </div>
@@ -193,7 +194,7 @@ const PaymentSubmissionPage = () => {
 
         {/* Right Column - Payment Form */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Confirmation</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Konfirmasi Pembayaran</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -204,7 +205,7 @@ const PaymentSubmissionPage = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Payment Date <span className="text-red-500">*</span>
+                Tanggal Pembayaran <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -219,7 +220,7 @@ const PaymentSubmissionPage = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Payment Method <span className="text-red-500">*</span>
+                Metode Pembayaran <span className="text-red-500">*</span>
               </label>
               <select
                 name="paymentMethod"
@@ -228,23 +229,23 @@ const PaymentSubmissionPage = () => {
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="bank_transfer">Bank Transfer</option>
+                <option value="bank_transfer">Transfer Bank</option>
                 <option value="e-wallet">E-Wallet (QRIS)</option>
-                <option value="other">Other</option>
+                <option value="other">Lainnya</option>
               </select>
             </div>
 
             {formData.paymentMethod === 'bank_transfer' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Account Number
+                  Nomor Rekening
                 </label>
                 <input
                   type="text"
                   name="accountNumber"
                   value={formData.accountNumber}
                   onChange={handleInputChange}
-                  placeholder="Your bank account number"
+                  placeholder="Nomor rekening Anda"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -252,14 +253,14 @@ const PaymentSubmissionPage = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Account Name <span className="text-red-500">*</span>
+                Nama Pemilik Rekening <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="accountName"
                 value={formData.accountName}
                 onChange={handleInputChange}
-                placeholder="Name of account holder"
+                placeholder="Nama pemilik rekening"
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -267,28 +268,28 @@ const PaymentSubmissionPage = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Reference Number
+                Nomor Referensi
               </label>
               <input
                 type="text"
                 name="referenceNumber"
                 value={formData.referenceNumber}
                 onChange={handleInputChange}
-                placeholder="Transaction reference number"
+                placeholder="Nomor referensi transaksi"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Proof of Payment <span className="text-red-500">*</span>
+                Bukti Pembayaran <span className="text-red-500">*</span>
               </label>
               <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
                 <div className="space-y-1 text-center">
                   <DocumentArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
                   <div className="flex text-sm text-gray-600">
                     <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
-                      <span>Upload a file</span>
+                      <span>Unggah file</span>
                       <input
                         type="file"
                         accept="image/jpeg,image/jpg,image/png,application/pdf"
@@ -296,14 +297,14 @@ const PaymentSubmissionPage = () => {
                         className="sr-only"
                       />
                     </label>
-                    <p className="pl-1">or drag and drop</p>
+                    <p className="pl-1">atau tarik dan lepas</p>
                   </div>
-                  <p className="text-xs text-gray-500">JPG, PNG, PDF up to 5MB</p>
+                  <p className="text-xs text-gray-500">JPG, PNG, PDF hingga 5MB</p>
                 </div>
               </div>
               {proofFile && (
                 <div className="mt-2">
-                  <p className="text-sm text-gray-600">Selected: {proofFile.name}</p>
+                  <p className="text-sm text-gray-600">File terpilih: {proofFile.name}</p>
                   {previewUrl && (
                     <img
                       src={previewUrl}
@@ -317,14 +318,14 @@ const PaymentSubmissionPage = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notes (Optional)
+                Catatan (Opsional)
               </label>
               <textarea
                 name="notes"
                 value={formData.notes}
                 onChange={handleInputChange}
                 rows={3}
-                placeholder="Additional information..."
+                placeholder="Informasi tambahan..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -337,7 +338,7 @@ const PaymentSubmissionPage = () => {
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
               />
               <label className="ml-2 text-sm text-gray-700">
-                I confirm that I have completed the payment
+                Saya mengonfirmasi bahwa pembayaran sudah dilakukan
               </label>
             </div>
 
@@ -347,14 +348,14 @@ const PaymentSubmissionPage = () => {
                 onClick={() => navigate(-1)}
                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
               >
-                Cancel
+                Batal
               </button>
               <button
                 type="submit"
                 disabled={loading}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {loading ? 'Submitting...' : 'Submit Payment'}
+                {loading ? 'Mengirim...' : 'Kirim Pembayaran'}
               </button>
             </div>
           </form>

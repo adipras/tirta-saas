@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import paymentProofService from '../../services/paymentProofService';
 import type { PaymentProof } from '../../services/paymentProofService';
 import { useToast } from '../../components';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 interface PaymentProofDetailModalProps {
   proof: PaymentProof | null;
@@ -33,16 +34,42 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
       toast.success('Pembayaran berhasil diverifikasi!');
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to verify payment');
+    } catch (err: unknown) {
+      setError(extractApiErrorMessage(err, 'Gagal memverifikasi pembayaran'));
     } finally {
       setLoading(false);
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return 'Menunggu';
+      case 'VERIFIED':
+        return 'Terverifikasi';
+      case 'REJECTED':
+        return 'Ditolak';
+      default:
+        return status;
+    }
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    switch (method) {
+      case 'bank_transfer':
+        return 'Transfer bank';
+      case 'e_wallet':
+        return 'E-wallet';
+      case 'cash':
+        return 'Tunai';
+      default:
+        return method.replace('_', ' ');
+    }
+  };
+
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
-      setError('Rejection reason is required');
+      setError('Alasan penolakan wajib diisi');
       return;
     }
 
@@ -55,8 +82,8 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
       toast.success('Pembayaran berhasil ditolak');
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to reject payment');
+    } catch (err: unknown) {
+      setError(extractApiErrorMessage(err, 'Gagal menolak pembayaran'));
     } finally {
       setLoading(false);
     }
@@ -78,10 +105,11 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
       <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white shadow-xl">
         {/* Header */}
         <div className="sticky top-0 flex items-center justify-between border-b bg-white px-4 py-4 sm:px-6">
-          <h2 className="text-lg font-bold sm:text-xl">Payment Proof Details</h2>
+          <h2 className="text-lg font-bold sm:text-xl">Detail Bukti Pembayaran</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 text-2xl"
+            aria-label="Tutup detail bukti pembayaran"
           >
             ×
           </button>
@@ -99,42 +127,42 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-600">Status:</span>
             <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(proof.status)}`}>
-              {proof.status}
+              {getStatusLabel(proof.status)}
             </span>
           </div>
 
           {/* Invoice Info */}
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-semibold mb-3">Invoice Information</h3>
+            <h3 className="font-semibold mb-3">Informasi Tagihan</h3>
             <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-              <div className="text-gray-600">Invoice Number:</div>
+              <div className="text-gray-600">Nomor Tagihan:</div>
               <div className="font-medium">{proof.invoice_number}</div>
-              <div className="text-gray-600">Customer:</div>
+              <div className="text-gray-600">Pelanggan:</div>
               <div className="font-medium">{proof.customer_name}</div>
             </div>
           </div>
 
           {/* Payment Details */}
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-semibold mb-3">Payment Details</h3>
+            <h3 className="font-semibold mb-3">Detail Pembayaran</h3>
             <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-              <div className="text-gray-600">Amount:</div>
+              <div className="text-gray-600">Nominal:</div>
               <div className="font-bold text-green-600">Rp {proof.amount.toLocaleString()}</div>
-              <div className="text-gray-600">Payment Date:</div>
+              <div className="text-gray-600">Tanggal Pembayaran:</div>
               <div className="font-medium">{new Date(proof.payment_date).toLocaleDateString('id-ID')}</div>
-              <div className="text-gray-600">Payment Method:</div>
-              <div className="font-medium capitalize">{proof.payment_method.replace('_', ' ')}</div>
-              <div className="text-gray-600">Account Name:</div>
+              <div className="text-gray-600">Metode Pembayaran:</div>
+              <div className="font-medium">{getPaymentMethodLabel(proof.payment_method)}</div>
+              <div className="text-gray-600">Nama Pemilik Rekening:</div>
               <div className="font-medium">{proof.account_name}</div>
               {proof.account_number && (
                 <>
-                  <div className="text-gray-600">Account Number:</div>
+                  <div className="text-gray-600">Nomor Rekening:</div>
                   <div className="font-medium">{proof.account_number}</div>
                 </>
               )}
               {proof.reference_number && (
                 <>
-                  <div className="text-gray-600">Reference Number:</div>
+                  <div className="text-gray-600">Nomor Referensi:</div>
                   <div className="font-medium">{proof.reference_number}</div>
                 </>
               )}
@@ -143,7 +171,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
 
           {/* Payment Proof Image */}
           <div>
-            <h3 className="font-semibold mb-3">Payment Proof Image</h3>
+            <h3 className="font-semibold mb-3">Bukti Pembayaran</h3>
             <div className="border rounded-lg overflow-hidden">
               {proof.proof_image_url.endsWith('.pdf') ? (
                 <div className="p-6 text-center">
@@ -160,7 +188,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
               ) : (
                 <img
                   src={proof.proof_image_url}
-                  alt="Payment Proof"
+                  alt="Bukti pembayaran"
                   className="w-full h-auto"
                   onError={(e) => {
                     e.currentTarget.src = 'https://via.placeholder.com/800x400?text=Image+Not+Found';
@@ -174,30 +202,30 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block"
             >
-              Open in new tab →
+              Buka di tab baru →
             </a>
           </div>
 
           {/* Notes */}
           {proof.notes && (
             <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold mb-2 text-blue-900">Customer Notes</h3>
+              <h3 className="font-semibold mb-2 text-blue-900">Catatan Pelanggan</h3>
               <p className="text-sm text-blue-800">{proof.notes}</p>
             </div>
           )}
 
           {/* Submission Info */}
           <div className="text-sm text-gray-600">
-            <div>Submitted: {new Date(proof.submitted_at).toLocaleString('id-ID')}</div>
+            <div>Dikirim: {new Date(proof.submitted_at).toLocaleString('id-ID')}</div>
             {proof.verified_at && (
-              <div>Processed: {new Date(proof.verified_at).toLocaleString('id-ID')}</div>
+              <div>Diproses: {new Date(proof.verified_at).toLocaleString('id-ID')}</div>
             )}
           </div>
 
           {/* Rejection Reason (if rejected) */}
           {proof.status === 'REJECTED' && proof.rejection_reason && (
             <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-              <h3 className="font-semibold mb-2 text-red-900">Rejection Reason</h3>
+              <h3 className="font-semibold mb-2 text-red-900">Alasan Penolakan</h3>
               <p className="text-sm text-red-800">{proof.rejection_reason}</p>
             </div>
           )}
@@ -209,13 +237,13 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
                 onClick={() => setAction('verify')}
                 className="flex-1 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
               >
-                ✓ Verify Payment
+                ✓ Verifikasi Pembayaran
               </button>
               <button
                 onClick={() => setAction('reject')}
                 className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
               >
-                ✗ Reject Payment
+                ✗ Tolak Pembayaran
               </button>
             </div>
           )}
@@ -223,17 +251,17 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
           {/* Verify Form */}
           {action === 'verify' && (
             <div className="bg-green-50 p-4 rounded-lg border border-green-200 space-y-4">
-              <h3 className="font-semibold text-green-900">Verify Payment</h3>
+              <h3 className="font-semibold text-green-900">Verifikasi Pembayaran</h3>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Verification Notes (Optional)
+                  Catatan Verifikasi (Opsional)
                 </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="Add any notes about this verification..."
+                  placeholder="Tambahkan catatan verifikasi jika perlu..."
                 />
               </div>
               <div className="flex flex-col-reverse gap-3 sm:flex-row">
@@ -241,14 +269,14 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
                   onClick={() => setAction(null)}
                   className="w-full rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50 sm:w-auto"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   onClick={handleVerify}
                   disabled={loading}
                   className="flex-1 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:bg-gray-400"
                 >
-                  {loading ? 'Processing...' : 'Confirm Verification'}
+                  {loading ? 'Memproses...' : 'Konfirmasi Verifikasi'}
                 </button>
               </div>
             </div>
@@ -257,17 +285,17 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
           {/* Reject Form */}
           {action === 'reject' && (
             <div className="bg-red-50 p-4 rounded-lg border border-red-200 space-y-4">
-              <h3 className="font-semibold text-red-900">Reject Payment</h3>
+              <h3 className="font-semibold text-red-900">Tolak Pembayaran</h3>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rejection Reason <span className="text-red-500">*</span>
+                  Alasan Penolakan <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                  placeholder="Explain why this payment is being rejected..."
+                  placeholder="Jelaskan alasan pembayaran ini ditolak..."
                   required
                 />
               </div>
@@ -276,14 +304,14 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
                   onClick={() => setAction(null)}
                   className="w-full rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50 sm:w-auto"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
                   onClick={handleReject}
                   disabled={loading || !rejectionReason.trim()}
                   className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:bg-gray-400"
                 >
-                  {loading ? 'Processing...' : 'Confirm Rejection'}
+                  {loading ? 'Memproses...' : 'Konfirmasi Penolakan'}
                 </button>
               </div>
             </div>
@@ -296,7 +324,7 @@ const PaymentProofDetailModal: React.FC<PaymentProofDetailModalProps> = ({
             onClick={onClose}
             className="w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-white"
           >
-            Close
+            Tutup
           </button>
         </div>
       </div>

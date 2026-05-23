@@ -1,5 +1,6 @@
 import { API_ORIGIN } from '../constants/api';
 import { apiClient } from './apiClient';
+import { asRecord, getNumber, getString, unwrapResponseData } from '../utils/dataTransform';
 
 const STATIC_BASE = API_ORIGIN;
 
@@ -49,25 +50,25 @@ export function resolveTenantAssetUrl(path?: string | null): string {
   return path.startsWith('/') ? `${STATIC_BASE}${path}` : `${STATIC_BASE}/${path}`;
 }
 
-function normalizeTenantSettings(raw: any): TenantSettings {
-  const data = raw?.data || raw || {};
+function normalizeTenantSettings(raw: unknown): TenantSettings {
+  const data = asRecord(unwrapResponseData(raw));
 
   return {
-    company_name: data.company_name || '',
-    address: data.address || '',
-    phone: data.phone || '',
-    email: data.email || '',
-    website: data.website || '',
-    logo_url: data.logo_url || '',
-    logo_display_url: resolveTenantAssetUrl(data.logo_url),
-    primary_color: data.primary_color || '',
-    secondary_color: data.secondary_color || '',
-    invoice_generation_day: Number(data.invoice_generation_day ?? 5),
-    invoice_due_day: Number(data.invoice_due_day ?? 25),
-    operating_hours: data.operating_hours || '',
-    service_area: data.service_area || '',
-    timezone: data.timezone || 'Asia/Jakarta',
-    language: data.language || 'id',
+    company_name: getString(data.company_name),
+    address: getString(data.address),
+    phone: getString(data.phone),
+    email: getString(data.email),
+    website: getString(data.website),
+    logo_url: getString(data.logo_url),
+    logo_display_url: resolveTenantAssetUrl(getString(data.logo_url)),
+    primary_color: getString(data.primary_color),
+    secondary_color: getString(data.secondary_color),
+    invoice_generation_day: getNumber(data.invoice_generation_day, 5),
+    invoice_due_day: getNumber(data.invoice_due_day, 25),
+    operating_hours: getString(data.operating_hours),
+    service_area: getString(data.service_area),
+    timezone: getString(data.timezone, 'Asia/Jakarta'),
+    language: getString(data.language, 'id'),
   };
 }
 
@@ -92,7 +93,8 @@ class TenantSettingsService {
       },
     });
 
-    const logoUrl = response?.data?.logo_url || response?.logo_url || '';
+    const data = asRecord(unwrapResponseData(response));
+    const logoUrl = getString(data.logo_url);
 
     return {
       logo_url: logoUrl,

@@ -36,7 +36,7 @@ export default function SubscriptionTypeList() {
       // Response is already formatted by service with {data, totalPages}
       if (response && response.data) {
         // Convert string numbers to actual numbers
-        const processedData = response.data.map((item: any) => ({
+        const processedData = response.data.map((item: SubscriptionType) => ({
           ...item,
           registration_fee: Number(item.registration_fee),
           monthly_fee: Number(item.monthly_fee),
@@ -90,66 +90,68 @@ export default function SubscriptionTypeList() {
   const columns = [
     {
       key: 'name',
-      label: 'Name',
+      label: 'Nama',
       sortable: true,
     },
     {
       key: 'description',
-      label: 'Description',
-      render: (_value: any, row: SubscriptionType) => row.description || '-',
+      label: 'Deskripsi',
+      render: (_value: unknown, row: SubscriptionType) => row.description || '-',
     },
     {
       key: 'registration_fee',
-      label: 'Registration Fee',
-      render: (_value: any, row: SubscriptionType) => formatCurrency(row.registration_fee),
+      label: 'Biaya Pendaftaran',
+      render: (_value: unknown, row: SubscriptionType) => formatCurrency(row.registration_fee),
       align: 'right' as const,
     },
     {
       key: 'monthly_fee',
-      label: 'Monthly Fee',
-      render: (_value: any, row: SubscriptionType) => formatCurrency(row.monthly_fee),
+      label: 'Biaya Bulanan',
+      render: (_value: unknown, row: SubscriptionType) => formatCurrency(row.monthly_fee),
       align: 'right' as const,
     },
     {
       key: 'maintenance_fee',
-      label: 'Maintenance Fee',
-      render: (_value: any, row: SubscriptionType) => formatCurrency(row.maintenance_fee),
+      label: 'Biaya Pemeliharaan',
+      render: (_value: unknown, row: SubscriptionType) => formatCurrency(row.maintenance_fee),
       align: 'right' as const,
     },
     {
       key: 'late_fee_per_day',
-      label: 'Late Fee/Day',
-      render: (_value: any, row: SubscriptionType) => formatCurrency(row.late_fee_per_day),
+      label: 'Denda/Hari',
+      render: (_value: unknown, row: SubscriptionType) => formatCurrency(row.late_fee_per_day),
       align: 'right' as const,
     },
     {
       key: 'max_late_fee',
-      label: 'Max Late Fee',
-      render: (_value: any, row: SubscriptionType) => formatCurrency(row.max_late_fee),
+      label: 'Batas Maks. Denda',
+      render: (_value: unknown, row: SubscriptionType) => formatCurrency(row.max_late_fee),
       align: 'right' as const,
     },
     {
       key: 'created_at',
-      label: 'Created At',
-      render: (_value: any, row: SubscriptionType) => new Date(row.created_at).toLocaleDateString('id-ID'),
+      label: 'Dibuat Pada',
+      render: (_value: unknown, row: SubscriptionType) => new Date(row.created_at).toLocaleDateString('id-ID'),
       align: 'center' as const,
     },
     {
       key: 'actions',
-      label: 'Actions',
-      render: (_value: any, row: SubscriptionType) => (
+      label: 'Aksi',
+      render: (_value: unknown, row: SubscriptionType) => (
         <div className="flex space-x-2">
           <button
             onClick={() => navigate(`/admin/subscriptions/edit/${row.id}`)}
             className="text-blue-600 hover:text-blue-900"
-            title="Edit"
+            title="Ubah"
+            aria-label={`Ubah golongan langganan ${row.name}`}
           >
             <PencilIcon className="w-5 h-5" />
           </button>
           <button
             onClick={() => handleDelete(row.id)}
             className="text-red-600 hover:text-red-900"
-            title="Delete"
+            title="Hapus"
+            aria-label={`Hapus golongan langganan ${row.name}`}
           >
             <TrashIcon className="w-5 h-5" />
           </button>
@@ -163,14 +165,14 @@ export default function SubscriptionTypeList() {
     <div className="space-y-6">
       <PageHeader
         title="Golongan Langganan"
-        subtitle="Manage subscription types and their fee structures"
+        subtitle="Kelola golongan langganan beserta struktur biayanya"
         actions={
           <button
             onClick={() => navigate('/admin/subscriptions/create')}
             className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
           >
             <PlusIcon className="mr-2 h-5 w-5" />
-            Add Subscription Type
+            Tambah Golongan Langganan
           </button>
         }
       />
@@ -186,7 +188,7 @@ export default function SubscriptionTypeList() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">
-                    Total Types
+                    Total Golongan
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
                     {subscriptionTypes.length}
@@ -206,7 +208,7 @@ export default function SubscriptionTypeList() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">
-                    Avg Monthly Fee
+                    Rata-rata Biaya Bulanan
                   </dt>
                   <dd className="text-lg font-medium text-gray-900">
                     {subscriptionTypes.length > 0
@@ -226,7 +228,8 @@ export default function SubscriptionTypeList() {
           <div className="w-full lg:max-w-lg">
           <input
             type="text"
-            placeholder="Search subscription types..."
+            placeholder="Cari golongan langganan..."
+            aria-label="Cari golongan langganan"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
@@ -252,8 +255,8 @@ export default function SubscriptionTypeList() {
         isOpen={deleteTarget !== null}
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
-        title="Hapus Subscription Type"
-        message="Apakah kamu yakin ingin menghapus subscription type ini? Tindakan ini tidak dapat dibatalkan."
+        title="Hapus Golongan Langganan"
+        message="Apakah Anda yakin ingin menghapus golongan langganan ini? Tindakan ini tidak dapat dibatalkan."
         confirmText="Hapus"
         cancelText="Batal"
         type="danger"

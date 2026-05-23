@@ -9,6 +9,7 @@ import type {
   PemakaianTrend,
   BulkImportRow
 } from '../types/usage';
+import { asArray, asRecord, getBoolean, getNumber, getString, mapArray } from '../utils/dataTransform';
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -37,32 +38,30 @@ class PemakaianService {
       if (filters.isAnomaly !== undefined) params.is_anomaly = filters.isAnomaly;
     }
 
-    const response = await apiClient.get(API_ENDPOINTS.WATER_USAGE.LIST, {
-      params,
-    });
-    // response is the full backend body: { status, message, data: [...], meta: {...} }
-    const raw = response;
+    const response = await apiClient.get(API_ENDPOINTS.WATER_USAGE.LIST, { params });
+    const raw = asRecord(response);
 
     // Support both old shape ({ usage_records: [...] , total }) and new PaginatedResponse { status, message, data: [...], meta }
-    let records: any[] = [];
+    let records: unknown[] = [];
     let total = 0;
     let resolvedPage = page;
     let resolvedLimit = limit;
 
-    if (Array.isArray(raw)) {
-      records = raw;
-      total = raw.length;
-    } else if (raw.usage_records && Array.isArray(raw.usage_records)) {
+    if (Array.isArray(response)) {
+      records = response;
+      total = response.length;
+    } else if (Array.isArray(raw.usage_records)) {
       // legacy format
       records = raw.usage_records;
-      total = raw.total || records.length;
-    } else if (raw.data && Array.isArray(raw.data)) {
+      total = getNumber(raw.total, records.length);
+    } else if (Array.isArray(raw.data)) {
       // standard paginated format: { status, message, data: [...], meta: {...} }
       records = raw.data;
-      if (raw.meta) {
-        total = raw.meta.total_items ?? raw.meta.total ?? records.length;
-        resolvedPage = raw.meta.current_page ?? resolvedPage;
-        resolvedLimit = raw.meta.page_size ?? resolvedLimit;
+      const meta = asRecord(raw.meta);
+      if (Object.keys(meta).length > 0) {
+        total = getNumber(meta.total_items ?? meta.total, records.length);
+        resolvedPage = getNumber(meta.current_page, resolvedPage);
+        resolvedLimit = getNumber(meta.page_size, resolvedLimit);
       } else {
         total = records.length;
       }
@@ -71,30 +70,36 @@ class PemakaianService {
       total = 0;
     }
 
-    const mapped: WaterPemakaian[] = records.map((u: any) => ({
-      id: u.id,
-      customerId: u.customer_id ?? u.customerId,
-      customer: u.customer ? {
-        id: u.customer.id,
-        name: u.customer.name ?? '',
-        customerId: u.customer.id,
-        meterNumber: u.customer.meter_number ?? u.customer.meterNumber ?? '',
-        address: u.customer.address ?? '',
-      } : undefined,
-      customerName: u.customer?.name ?? u.customerName ?? '',
-      meterNumber: u.customer?.meter_number ?? u.meterNumber ?? '',
-      usageMonth: u.usage_month ?? u.usageMonth,
-      meterStart: u.meter_start ?? u.meterStart ?? 0,
-      meterEnd: u.meter_end ?? u.meterEnd ?? 0,
-      usageM3: u.usage_m3 ?? u.usageM3 ?? 0,
-      rateId: u.rate_id ?? u.rateId ?? '',
-      ratePerM3: u.rate_per_m3 ?? u.ratePerM3 ?? 0,
-      amountCalculated: u.amount_calculated ?? u.amountCalculated ?? 0,
-      isAnomaly: u.is_anomaly ?? u.isAnomaly ?? false,
-      notes: u.notes ?? '',
-      createdAt: u.created_at ?? u.createdAt ?? '',
-      updatedAt: u.updated_at ?? u.updatedAt ?? '',
-    }));
+    const mapped = mapArray(records, (usage) => {
+      const customer = asRecord(usage.customer);
+
+      return {
+        id: getString(usage.id),
+        customerId: getString(usage.customer_id ?? usage.customerId),
+        customer: Object.keys(customer).length > 0
+          ? {
+              id: getString(customer.id),
+              name: getString(customer.name),
+              customerId: getString(customer.id),
+              meterNumber: getString(customer.meter_number ?? customer.meterNumber),
+              address: getString(customer.address),
+            }
+          : undefined,
+        customerName: getString(customer.name ?? usage.customerName),
+        meterNumber: getString(customer.meter_number ?? usage.meterNumber),
+        usageMonth: getString(usage.usage_month ?? usage.usageMonth),
+        meterStart: getNumber(usage.meter_start ?? usage.meterStart),
+        meterEnd: getNumber(usage.meter_end ?? usage.meterEnd),
+        usageM3: getNumber(usage.usage_m3 ?? usage.usageM3),
+        rateId: getString(usage.rate_id ?? usage.rateId),
+        ratePerM3: getNumber(usage.rate_per_m3 ?? usage.ratePerM3),
+        amountCalculated: getNumber(usage.amount_calculated ?? usage.amountCalculated),
+        isAnomaly: getBoolean(usage.is_anomaly ?? usage.isAnomaly),
+        notes: getString(usage.notes),
+        createdAt: getString(usage.created_at ?? usage.createdAt),
+        updatedAt: getString(usage.updated_at ?? usage.updatedAt),
+      };
+    });
 
     return {
       data: mapped,
@@ -106,10 +111,8 @@ class PemakaianService {
   }
 
   async getWaterPemakaian(id: string): Promise<WaterPemakaian> {
-    const response = await apiClient.get(
-      API_ENDPOINTS.WATER_USAGE.DETAIL(id)
-    );
-    return response.data || response;
+    const response = await apiClient.get(API_ENDPOINTS.WATER_USAGE.DETAIL(id));
+    return response as WaterPemakaian;
   }
 
   async getCustomerPemakaianHistoryById(customerId: string): Promise<PemakaianHistory[]> {
@@ -117,17 +120,16 @@ class PemakaianService {
       params: { customer_id: customerId, page_size: 12 },
     });
     
-    const data = response;
-    // Backend returns paginated format: { status, message, data: [...], meta: {...} }
-    const usageArray: any[] = data.data || data.usage_records || (Array.isArray(data) ? data : []);
+    const data = asRecord(response);
+    const usageArray = data.data ?? data.usage_records ?? response;
     
     // Transform to PemakaianHistory format, already sorted DESC by usage_month from backend
-    return usageArray.map((usage: any) => ({
-      month: usage.usage_month || usage.usageMonth,
-      meterStart: usage.meter_start ?? usage.meterStart ?? 0,
-      meterEnd: usage.meter_end ?? usage.meterEnd ?? 0,
-      usageM3: usage.usage_m3 ?? usage.usageM3 ?? 0,
-      amount: usage.amount_calculated ?? usage.amountCalculated ?? 0,
+    return mapArray(usageArray, (usage) => ({
+      month: getString(usage.usage_month ?? usage.usageMonth),
+      meterStart: getNumber(usage.meter_start ?? usage.meterStart),
+      meterEnd: getNumber(usage.meter_end ?? usage.meterEnd),
+      usageM3: getNumber(usage.usage_m3 ?? usage.usageM3),
+      amount: getNumber(usage.amount_calculated ?? usage.amountCalculated),
     }));
   }
 
@@ -158,7 +160,7 @@ class PemakaianService {
         notes: data.notes,
       }
     );
-    return response.data || response;
+    return response as WaterPemakaian;
   }
 
   async updateWaterPemakaian(
@@ -172,7 +174,7 @@ class PemakaianService {
         notes: data.notes,
       }
     );
-    return response.data || response;
+    return response as WaterPemakaian;
   }
 
   async deleteWaterPemakaian(id: string): Promise<void> {
@@ -188,7 +190,11 @@ class PemakaianService {
       API_ENDPOINTS.WATER_USAGE.BULK_IMPORT,
       { data: rows }
     );
-    return response.data || response;
+    return response as {
+      success: number;
+      failed: number;
+      errors: Array<{ row: number; error: string }>;
+    };
   }
 
   async bulkImportWaterPemakaian(usageMonth: string, records: Array<{ meter_number?: string; customer_id?: string; meter_end: number; notes?: string }>): Promise<{
@@ -201,7 +207,12 @@ class PemakaianService {
       API_ENDPOINTS.WATER_USAGE.BULK_IMPORT,
       { usage_month: usageMonth, records }
     );
-    return response.data || response;
+    return response as {
+      success: number;
+      failed: number;
+      total: number;
+      errors: Array<{ row: number; meter_number: string; error: string }>;
+    };
   }
 
   // Legacy support
@@ -213,13 +224,12 @@ class PemakaianService {
   async getCustomerPemakaianHistory(period: '6months' | '12months' | 'all' = '6months'): Promise<WaterPemakaian[]> {
     const params: Record<string, string> = { period };
     const response = await apiClient.get('/customer/usage/history', { params });
-    const data = response.data || response;
-    return Array.isArray(data) ? data : [];
+    return asArray<WaterPemakaian>(response);
   }
 
   async getCurrentPemakaian(): Promise<WaterPemakaian> {
     const response = await apiClient.get('/customer/usage/current');
-    return response.data || response;
+    return response as WaterPemakaian;
   }
 
   async getPemakaianStats(): Promise<{
@@ -230,7 +240,13 @@ class PemakaianService {
     trend: string;
   }> {
     const response = await apiClient.get('/customer/usage/stats');
-    return response.data || response;
+    return response as {
+      currentMonth: number;
+      lastMonth: number;
+      average: number;
+      total: number;
+      trend: string;
+    };
   }
 }
 

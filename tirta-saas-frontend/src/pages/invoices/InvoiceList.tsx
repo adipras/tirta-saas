@@ -11,7 +11,7 @@ import {
 import { DataTable, type Column } from '../../components/DataTable';
 import invoiceService, { type InvoiceFilters } from '../../services/invoiceService';
 import type { Invoice, InvoiceListStats } from '../../types/invoice';
-import { DashboardStatCard, PageHeader } from '../../components';
+import { ActionIconButton, DashboardStatCard, PageHeader } from '../../components';
 import { formatIDR } from '../../utils/exportUtils';
 import { useToast } from '../../components';
 
@@ -250,14 +250,12 @@ export default function InvoiceList() {
 
   const actions = (invoice: Invoice) => (
     <div className="flex items-center justify-end gap-2 print:hidden">
-      <button
+      <ActionIconButton
+        icon={EyeIcon}
+        label={`Lihat detail tagihan ${invoice.invoiceNumber}`}
+        tone="blue"
         onClick={() => navigate(`/admin/invoices/${invoice.id}`)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-blue-200 text-blue-600 transition hover:bg-blue-50"
-        title="Lihat detail tagihan"
-        aria-label="Lihat detail tagihan"
-      >
-        <EyeIcon className="h-5 w-5" />
-      </button>
+      />
     </div>
   );
 
@@ -273,7 +271,7 @@ export default function InvoiceList() {
               className="inline-flex w-full items-center justify-center rounded-md border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-600 shadow-sm hover:bg-blue-50 sm:w-auto"
             >
               <DocumentTextIcon className="mr-2 h-4 w-4" />
-              Generate Tagihan Air
+              Buat Tagihan Air
             </button>
             <button
               onClick={() => navigate('/admin/invoices/new')}
