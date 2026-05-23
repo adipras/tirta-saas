@@ -42,6 +42,25 @@ export function exportToExcel(
   XLSX.writeFile(wb, filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`);
 }
 
+/**
+ * Generate an Excel template file and trigger browser download.
+ * Row 1 contains column headers; remaining rows are example data.
+ */
+export function generateExcelTemplate(
+  headers: string[],
+  sampleRows: ExportRow[],
+  filename: string
+): void {
+  const aoa = [
+    headers,
+    ...sampleRows.map((row) => headers.map((h) => row[h] ?? '')),
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Template');
+  XLSX.writeFile(wb, filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`);
+}
+
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

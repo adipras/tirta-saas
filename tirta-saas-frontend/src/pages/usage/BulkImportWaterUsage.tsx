@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, ArrowUpTrayIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ArrowUpTrayIcon, CheckCircleIcon, XCircleIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import * as XLSX from 'xlsx';
 import { usageService } from '../../services/usageService';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
+import { generateExcelTemplate } from '../../utils/exportUtils';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
 
@@ -22,14 +24,67 @@ interface ImportErrorEntry {
 
 const EMPTY_ROW: RowEntry = { meter_number: '', meter_end: '', notes: '' };
 
+const USAGE_TEMPLATE_HEADERS = ['meter_number', 'customer_name', 'meter_end', 'notes'];
+const USAGE_TEMPLATE_ROWS = [
+  { meter_number: 'MTR-001', customer_name: 'Budi Santoso', meter_end: 125.5, notes: 'Normal' },
+  { meter_number: 'MTR-002', customer_name: 'Siti Rahayu', meter_end: 980, notes: '' },
+];
+
 export default function BulkImportWaterPemakaian() {
   const navigate = useNavigate();
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [usageMonth, setPemakaianMonth] = useState(new Date().toISOString().slice(0, 7));
   const [rows, setRows] = useState<RowEntry[]>([{ ...EMPTY_ROW }]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: number; failed: number; total: number } | null>(null);
+
+  const parseExcelForUsage = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonRows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+        if (jsonRows.length === 0) {
+          toast.error('File Excel kosong atau tidak memiliki data.');
+          return;
+        }
+
+        const parsed: RowEntry[] = jsonRows
+          .map((row) => {
+            const n: Record<string, string> = {};
+            for (const [k, v] of Object.entries(row)) {
+              n[k.toLowerCase().trim()] = String(v);
+            }
+            return {
+              meter_number: n['meter_number'] || n['no_meter'] || '',
+              meter_end: n['meter_end'] || n['meter_akhir'] || '',
+              notes: n['notes'] || n['catatan'] || '',
+            };
+          })
+          .filter((r) => r.meter_number);
+
+        if (parsed.length === 0) {
+          toast.error('Tidak ada data valid. Pastikan kolom meter_number tersedia di file Excel.');
+          return;
+        }
+
+        setRows(parsed);
+        toast.success(`${parsed.length} baris berhasil dibaca dari file Excel.`);
+      } catch {
+        toast.error('Gagal membaca file Excel. Pastikan format .xlsx valid.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleDownloadExcelTemplate = () => {
+    generateExcelTemplate(USAGE_TEMPLATE_HEADERS, USAGE_TEMPLATE_ROWS, 'template_pemakaian_air');
+  };
 
   const updateRow = (index: number, field: keyof RowEntry, value: string) => {
     setRows(prev => {
@@ -138,6 +193,43 @@ export default function BulkImportWaterPemakaian() {
             onChange={e => setPemakaianMonth(e.target.value)}
             className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
+        </div>
+
+        {/* Upload Excel */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-gray-700">Upload File Excel</label>
+            <button
+              type="button"
+              onClick={handleDownloadExcelTemplate}
+              className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+            >
+              <DocumentArrowDownIcon className="h-3.5 w-3.5 mr-1" />
+              Download Template Excel
+            </button>
+          </div>
+          <div
+            className="border-2 border-dashed border-gray-300 rounded-lg p-5 text-center hover:border-blue-400 transition-colors cursor-pointer"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <ArrowUpTrayIcon className="h-7 w-7 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-600">Klik untuk upload file Excel (.xlsx)</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Kolom: <span className="font-mono">meter_number</span>, <span className="font-mono">customer_name</span> (opsional), <span className="font-mono">meter_end</span>, <span className="font-mono">notes</span>
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) parseExcelForUsage(file);
+                e.target.value = '';
+              }}
+              className="hidden"
+            />
+          </div>
+          <p className="text-xs text-gray-400 mt-1">Data dari Excel akan mengisi tabel di bawah untuk direview sebelum disubmit.</p>
         </div>
 
         {/* Paste CSV hint */}

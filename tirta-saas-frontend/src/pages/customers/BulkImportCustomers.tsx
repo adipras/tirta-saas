@@ -8,9 +8,10 @@ import {
   DocumentArrowDownIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
+import * as XLSX from 'xlsx';
 import { customerService } from '../../services/customerService';
 import { PageHeader, useToast } from '../../components';
-import { exportToCSV } from '../../utils/exportUtils';
+import { exportToCSV, generateExcelTemplate } from '../../utils/exportUtils';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
 interface PreviewRow {
@@ -45,6 +46,7 @@ export default function BulkImportPelanggan() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [displayFileName, setDisplayFileName] = useState<string>('');
   const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
   const [parseError, setParseError] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -53,16 +55,25 @@ export default function BulkImportPelanggan() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setParseError('Hanya file CSV yang didukung.');
+    const name = file.name.toLowerCase();
+    const isCSV = name.endsWith('.csv');
+    const isXLSX = name.endsWith('.xlsx') || name.endsWith('.xls');
+    if (!isCSV && !isXLSX) {
+      setParseError('Hanya file CSV atau Excel (.xlsx) yang didukung.');
       setSelectedFile(null);
+      setDisplayFileName('');
       setPreviewRows([]);
       return;
     }
-    setSelectedFile(file);
+    setDisplayFileName(file.name);
     setParseError('');
     setResult(null);
-    parseCSVFile(file);
+    if (isXLSX) {
+      parseExcelFile(file);
+    } else {
+      setSelectedFile(file);
+      parseCSVFile(file);
+    }
   };
 
   const parseCSVFile = (file: File) => {
@@ -100,8 +111,73 @@ export default function BulkImportPelanggan() {
     reader.readAsText(file);
   };
 
+  const parseExcelFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonRows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+
+        if (jsonRows.length === 0) {
+          setParseError('File Excel kosong atau tidak memiliki data.');
+          setPreviewRows([]);
+          return;
+        }
+
+        // Normalize all headers to lowercase
+        const normalizedRows = jsonRows.map((row) => {
+          const normalized: Record<string, string> = {};
+          for (const [k, v] of Object.entries(row)) {
+            normalized[k.toLowerCase().trim()] = String(v);
+          }
+          return normalized;
+        });
+
+        // Validate required headers
+        const headers = Object.keys(normalizedRows[0]);
+        for (const req of REQUIRED_HEADERS) {
+          if (!headers.includes(req)) {
+            setParseError(`Header wajib tidak ditemukan: "${req}"`);
+            setPreviewRows([]);
+            return;
+          }
+        }
+
+        setPreviewRows(normalizedRows.slice(0, 10) as unknown as PreviewRow[]);
+
+        // Convert to CSV blob and wrap as File so existing submit logic works unchanged
+        const csvLines = [
+          headers.join(','),
+          ...normalizedRows.map((row) =>
+            headers
+              .map((h) => {
+                const val = row[h] ?? '';
+                return val.includes(',') || val.includes('"') || val.includes('\n')
+                  ? `"${val.replace(/"/g, '""')}"`
+                  : val;
+              })
+              .join(',')
+          ),
+        ];
+        const csvBlob = new Blob([csvLines.join('\n')], { type: 'text/csv' });
+        setSelectedFile(new File([csvBlob], 'import.csv', { type: 'text/csv' }));
+        setParseError('');
+      } catch {
+        setParseError('Gagal membaca file Excel. Pastikan format .xlsx valid.');
+        setPreviewRows([]);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   const handleDownloadTemplate = () => {
-    exportToCSV(TEMPLATE_ROWS, 'template_customers.csv');
+    exportToCSV(TEMPLATE_ROWS, 'template_pelanggan.csv');
+  };
+
+  const handleDownloadExcelTemplate = () => {
+    generateExcelTemplate(CSV_HEADERS, TEMPLATE_ROWS, 'template_pelanggan');
   };
 
   const handleSubmit = async () => {
@@ -128,6 +204,7 @@ export default function BulkImportPelanggan() {
 
   const handleReset = () => {
     setSelectedFile(null);
+    setDisplayFileName('');
     setPreviewRows([]);
     setParseError('');
     setResult(null);
@@ -138,7 +215,7 @@ export default function BulkImportPelanggan() {
     <div className="space-y-6">
       <PageHeader
         title="Bulk Import Pelanggan"
-        subtitle="Import banyak pelanggan sekaligus dari file CSV"
+        subtitle="Import banyak pelanggan sekaligus dari file CSV atau Excel"
         actions={
           <button
             onClick={() => navigate('/admin/customers')}
@@ -152,9 +229,9 @@ export default function BulkImportPelanggan() {
 
       {/* Instructions */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-blue-800 mb-2">Format CSV yang Diperlukan</h3>
+        <h3 className="text-sm font-semibold text-blue-800 mb-2">Format File yang Diperlukan</h3>
         <p className="text-sm text-blue-700 mb-2">
-          File CSV harus memiliki header kolom berikut (case-insensitive):
+          File CSV atau Excel harus memiliki kolom berikut (case-insensitive):
         </p>
         <div className="flex flex-wrap gap-2 mb-3">
           {REQUIRED_HEADERS.map((h) => (
@@ -168,41 +245,50 @@ export default function BulkImportPelanggan() {
             </span>
           ))}
         </div>
-        <p className="text-xs text-blue-600">* Wajib diisi</p>
-        <button
-          onClick={handleDownloadTemplate}
-          className="mt-3 inline-flex items-center text-sm text-blue-700 hover:text-blue-900 font-medium"
-        >
-          <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
-          Download Template CSV
-        </button>
+        <p className="text-xs text-blue-600 mb-3">* Wajib diisi</p>
+        <div className="flex flex-wrap gap-4">
+          <button
+            onClick={handleDownloadTemplate}
+            className="inline-flex items-center text-sm text-blue-700 hover:text-blue-900 font-medium"
+          >
+            <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
+            Download Template CSV
+          </button>
+          <button
+            onClick={handleDownloadExcelTemplate}
+            className="inline-flex items-center text-sm text-blue-700 hover:text-blue-900 font-medium"
+          >
+            <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
+            Download Template Excel (.xlsx)
+          </button>
+        </div>
       </div>
 
       {/* File Upload */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-base font-semibold text-gray-900 mb-4">Upload File CSV</h3>
+        <h3 className="text-base font-semibold text-gray-900 mb-4">Upload File CSV atau Excel</h3>
         <div
           className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors cursor-pointer"
           onClick={() => fileInputRef.current?.click()}
         >
           <ArrowUpTrayIcon className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-          {selectedFile ? (
+          {displayFileName ? (
             <div>
-              <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
+              <p className="text-sm font-medium text-gray-900">{displayFileName}</p>
               <p className="text-xs text-gray-500 mt-1">
-                {(selectedFile.size / 1024).toFixed(1)} KB
+                {selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB` : ''}
               </p>
             </div>
           ) : (
             <div>
               <p className="text-sm text-gray-600">Klik untuk pilih file, atau drag & drop</p>
-              <p className="text-xs text-gray-400 mt-1">Hanya file .csv</p>
+              <p className="text-xs text-gray-400 mt-1">Mendukung .csv dan .xlsx</p>
             </div>
           )}
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv"
+            accept=".csv,.xlsx,.xls"
             onChange={handleFileChange}
             className="hidden"
           />
