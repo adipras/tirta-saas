@@ -45,6 +45,87 @@ cd tirta-saas-backend/scripts
 ./seed-subscription-plans.sh
 ```
 
+### Deploy tanpa clone repository di server
+Project ini sekarang mendukung alur deploy berbasis image registry:
+
+1. Push ke branch `main`
+2. GitHub Actions build image backend dan frontend
+3. Image dipublish ke GHCR:
+   - `ghcr.io/adipras/tirta-saas-backend`
+   - `ghcr.io/adipras/tirta-saas-frontend`
+4. GitHub Actions bisa meng-upload runtime bundle ke server, merender `.env`, login ke GHCR, lalu menjalankan Docker Compose lewat SSH
+
+File runtime yang dipakai server:
+- `deploy/runtime/docker-compose.yml`
+- `deploy/runtime/.env.example`
+- `deploy/runtime/render-env.sh`
+- `deploy/runtime/nginx/default.conf.template`
+
+Catatan:
+- Letakkan sertifikat di `certs/live/<domain>/fullchain.pem` dan `certs/live/<domain>/privkey.pem`.
+- Untuk menyalakan monitoring Netdata, jalankan `docker compose --profile monitoring up -d`.
+- Workflow publikasi image ada di `.github/workflows/publish-images.yml`.
+- Workflow bootstrap satu kali ada di `.github/workflows/bootstrap-runtime.yml`.
+
+### Bootstrap server sekali jalan
+Supaya setelah itu cukup `push` dan `tag`, lakukan bootstrap sekali melalui GitHub Actions:
+
+1. Tambahkan secrets berikut di `Settings > Secrets and variables > Actions`:
+   - `DEPLOY_HOST`
+   - `DEPLOY_PORT`
+   - `DEPLOY_USER`
+   - `DEPLOY_PATH`
+   - `DEPLOY_SSH_KEY`
+   - `DEPLOY_KNOWN_HOSTS`
+   - `RUNTIME_MYSQL_ROOT_PASSWORD`
+   - `RUNTIME_MYSQL_PASSWORD`
+   - `RUNTIME_JWT_SECRET`
+   - `GHCR_USERNAME` dan `GHCR_TOKEN` jika package GHCR private
+2. Tambahkan variables berikut:
+   - `RUNTIME_DOMAIN_NAME`
+   - `RUNTIME_MYSQL_DATABASE`
+   - `RUNTIME_MYSQL_USER`
+   - `RUNTIME_AUTO_SEED_ADMIN`
+   - `RUNTIME_ENABLE_INVOICE_SCHEDULER`
+   - `RUNTIME_ENABLE_TRIAL_SCHEDULER`
+   - `RUNTIME_MYSQL_IMAGE` (opsional)
+   - `RUNTIME_NGINX_IMAGE` (opsional)
+   - `RUNTIME_NETDATA_IMAGE` (opsional)
+   - `RUNTIME_NETDATA_HOSTNAME` (opsional)
+3. Pastikan server sudah memiliki Docker + Docker Compose Plugin, dan sertifikat TLS sudah tersedia di `${DEPLOY_PATH}/certs/live/<domain>/`.
+4. Jalankan workflow **Bootstrap runtime server** dengan `ref=main`.
+
+Workflow bootstrap akan:
+- upload `deploy/runtime/` ke server
+- merender `.env` dari secrets/variables GitHub
+- login ke GHCR bila diperlukan
+- menarik image `sha-<shortsha>` dari ref yang dipilih
+- menjalankan `docker compose up -d`
+
+### Redeploy otomatis via tag
+Sekarang tersedia workflow `.github/workflows/deploy-by-tag.yml` untuk redeploy selektif lewat SSH ke server.
+
+Format tag:
+- `deploy-fe-v1.2.3` → redeploy frontend + nginx
+- `deploy-be-v1.2.3` → redeploy backend
+- `deploy-all-v1.2.3` → redeploy backend + frontend + nginx
+
+Contoh:
+```bash
+git checkout main
+git pull --ff-only origin main
+git tag deploy-fe-v1.2.3
+git push origin deploy-fe-v1.2.3
+```
+
+Aturan:
+- Tag harus menunjuk ke commit yang ada di `origin/main`.
+- Workflow akan memakai image immutable `sha-<shortsha>` dari GHCR, jadi deploy tetap mengarah ke commit yang tepat.
+- Frontend deploy juga me-restart `nginx` agar proxy tetap sinkron.
+- Workflow deploy juga akan meng-upload ulang runtime bundle dan merender `.env`, jadi perubahan file deploy ikut terbawa tanpa login manual ke server.
+
+Workflow juga bisa dijalankan manual lewat `workflow_dispatch` jika ingin deploy `fe`, `be`, atau `all` dari ref tertentu di `main`.
+
 ---
 
 ## 🏗️ Arsitektur
@@ -91,9 +172,9 @@ tirta-saas/
 
 | File | Isi |
 |------|-----|
-| `USER_MANUAL.md` | Manual lengkap penggunaan sistem |
+| `USER_MANUAL.md` | Manual penggunaan aplikasi dan panduan operasional umum |
+| `DEPLOYMENT_USER_MANUAL.md` | Panduan setup deploy otomatis GitHub Actions + GHCR + SSH |
 | `FEATURE_STATUS.md` | Status fitur & roadmap enhancement |
-| `PROGRESS.md` | Log progress development per sesi |
 | `tirta-saas-backend/scripts/README_SEEDER.md` | Panduan seeder |
 
 ---

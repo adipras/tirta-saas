@@ -104,8 +104,8 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 
 ### 8. Foundation untuk deployment produksi
 - ✅ Repo sudah punya `docker-compose.yml`
-- ✅ Ada panduan setup VPS, sync repo ke VPS, dan checklist hardening/deploy
-- ✅ Dokumen deploy mengarah ke stack Nginx + Frontend + Backend + MySQL
+- ✅ Ada workflow GitHub Actions untuk publish image dan deploy runtime berbasis GHCR + SSH
+- ✅ Dokumen deploy mengarah ke stack runtime Nginx + Frontend + Backend + MySQL tanpa clone repo di server
 - ✅ Ada catatan operasi seperti TLS, Docker logging, monitoring, backup, dan restore test di dokumen VPS
 
 ---

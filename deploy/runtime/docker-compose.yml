@@ -1,0 +1,129 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  mysql:
+    image: ${MYSQL_IMAGE:-mysql:8.0}
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${MYSQL_USER} -p${MYSQL_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: *default-logging
+    restart: unless-stopped
+    networks:
+      - tirta-net
+
+  backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/adipras/tirta-saas-backend:latest}
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE}
+      DB_USER: ${MYSQL_USER}
+      DB_PASS: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 8081
+      ENV: production
+      GIN_MODE: release
+      AUTO_SEED_ADMIN: ${AUTO_SEED_ADMIN}
+      ENABLE_INVOICE_SCHEDULER: ${ENABLE_INVOICE_SCHEDULER}
+      ENABLE_TRIAL_SCHEDULER: ${ENABLE_TRIAL_SCHEDULER}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - backend_uploads:/app/uploads
+      - backend_storage:/app/storage
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    logging: *default-logging
+    restart: unless-stopped
+    networks:
+      - tirta-net
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/adipras/tirta-saas-frontend:latest}
+    depends_on:
+      - backend
+    logging: *default-logging
+    restart: unless-stopped
+    networks:
+      - tirta-net
+
+  nginx:
+    image: ${NGINX_IMAGE:-nginx:1.27-alpine}
+    depends_on:
+      - frontend
+      - backend
+    environment:
+      DOMAIN_NAME: ${DOMAIN_NAME}
+      NGINX_ENVSUBST_FILTER: DOMAIN_NAME
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx:/etc/nginx/templates:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./www:/var/www/certbot:ro
+    logging: *default-logging
+    restart: unless-stopped
+    networks:
+      - tirta-net
+
+  netdata:
+    image: ${NETDATA_IMAGE:-netdata/netdata:stable}
+    profiles:
+      - monitoring
+    hostname: ${NETDATA_HOSTNAME:-tirta-vps}
+    ports:
+      - "127.0.0.1:19999:19999"
+    cap_add:
+      - SYS_PTRACE
+      - SYS_ADMIN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - netdata_config:/etc/netdata
+      - netdata_lib:/var/lib/netdata
+      - netdata_cache:/var/cache/netdata
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc/os-release:/host/etc/os-release:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    logging: *default-logging
+    restart: unless-stopped
+    networks:
+      - tirta-net
+
+volumes:
+  mysql_data:
+  backend_uploads:
+  backend_storage:
+  netdata_config:
+  netdata_lib:
+  netdata_cache:
+
+networks:
+  tirta-net:
+    driver: bridge

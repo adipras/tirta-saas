@@ -1,5 +1,11 @@
 # Checklist Progress Setup VPS Tirta SaaS (Docker)
 
+> **Catatan historis:** Checklist ini dibuat saat deploy production masih memakai model **repo berada di VPS** dan service dibuild langsung di server.
+>
+> Model deploy resmi sekarang adalah **runtime bundle + GHCR images + GitHub Actions over SSH**.
+>
+> Gunakan checklist ini hanya untuk hardening/infrastruktur server. Untuk alur deploy aktif, lihat `DEPLOYMENT_USER_MANUAL.md`.
+
 Dokumen ini dipakai untuk tracking progres deploy production Tirta SaaS di VPS.
 
 ## Informasi Target

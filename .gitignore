@@ -49,6 +49,8 @@ temp/
 # VPS runtime artifacts
 deploy/certs/
 deploy/www/
+deploy/runtime/certs/
+deploy/runtime/www/
 
 # Database
 *.db

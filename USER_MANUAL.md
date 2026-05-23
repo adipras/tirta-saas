@@ -194,163 +194,60 @@ Before starting tests, verify:
 
 ## Production Operations Guide
 
-Bagian ini dipakai untuk operasional production di VPS Docker (`/opt/tirta-saas/app`).
+Bagian deployment production berbasis **repo di server + build langsung di VPS** sudah tidak menjadi alur utama.
+
+**Alur resmi saat ini:**
+1. push perubahan ke `main`
+2. GitHub Actions publish image ke GHCR
+3. buat tag deploy (`deploy-fe-*`, `deploy-be-*`, atau `deploy-all-*`)
+4. GitHub Actions otomatis upload runtime bundle, render `.env`, lalu menjalankan deploy via SSH
+
+**Dokumen yang dipakai untuk setup dan operasional deploy baru:**
+- `DEPLOYMENT_USER_MANUAL.md`
 
 ### 1. Menjalankan Seeding Jika Diperlukan
 
-**Kapan perlu seed:**
-- tabel `subscription_plan_details` kosong
-- plan default perlu dibentuk ulang
-- ada perubahan definisi plan di source code
+Untuk kebutuhan seeding, tetap gunakan source code repository pada mesin kerja/development, bukan runtime bundle di server.
 
-**Sebelum mulai:**
-1. Pastikan bisa SSH ke VPS.
-2. Jalankan backup database dulu.
-3. Lakukan di maintenance window jika data plan sudah dipakai tenant aktif.
-
-**Langkah step-by-step:**
-
-```bash
-# 1) Login ke VPS
-ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
-
-# 2) Masuk ke folder aplikasi
-cd /opt/tirta-saas/app
-
-# 3) Backup database terlebih dahulu
-/opt/tirta-saas/scripts/backup.sh
-
-# 4) Load env production
-set -a
-. /opt/tirta-saas/app/.env
-set +a
-
-# 5) Cari nama docker network aplikasi
-NETWORK_NAME=$(docker network ls --format '{{.Name}}' | grep '_tirta-net$' | head -n 1)
-
-# 6) Jalankan seeder dari container Go sementara
-docker run --rm \
-  --network "$NETWORK_NAME" \
-  -v /opt/tirta-saas/app/tirta-saas-backend:/app \
-  -w /app \
-  -e DB_HOST=tirta-mysql \
-  -e DB_PORT=3306 \
-  -e DB_NAME="$MYSQL_DATABASE" \
-  -e DB_USER="$MYSQL_USER" \
-  -e DB_PASS="$MYSQL_PASSWORD" \
-  golang:1.24.2-alpine \
-  sh -lc 'apk add --no-cache git >/dev/null && go run ./scripts/seed_subscription_plans'
-```
-
-**Jika muncul prompt:**
-- `Found X existing subscription plans. Do you want to continue? (y/n):`
-- ketik `y` hanya jika Anda memang ingin update plan yang sudah ada
-
-**Verifikasi hasil seed:**
-
-```bash
-docker exec -e MYSQL_PWD="$MYSQL_PASSWORD" tirta-mysql \
-  mysql -u"$MYSQL_USER" -D "$MYSQL_DATABASE" \
-  -e "SELECT plan, name, is_active, display_order FROM subscription_plan_details ORDER BY display_order;"
-```
-
-**Catatan penting:**
-- Seeder membaca env `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`, jadi untuk production Docker perlu dipetakan dari `.env` VPS.
-- Jalur cepat di lokal tetap bisa pakai:
+Jalankan dari root project:
 
 ```bash
 cd tirta-saas-backend
 ./scripts/seed-subscription-plans.sh
 ```
 
+Jika perlu verifikasi hasil seed di production, cek langsung database/container MySQL yang sedang berjalan.
+
 ### 2. Redeploy Backend / Frontend Jika Ada Update
 
-**Prinsip aman di VPS 2 GB RAM:**
-1. Backup database dulu.
-2. `git pull --ff-only` dulu.
-3. Build service **bertahap**, jangan sekaligus bila tidak perlu.
-4. Backend dikerjakan lebih dulu, frontend setelah backend sehat.
-
-#### A. Redeploy backend saja
+Gunakan workflow deploy berbasis tag:
 
 ```bash
-ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
-cd /opt/tirta-saas/app
-
-/opt/tirta-saas/scripts/backup.sh
+git checkout main
 git pull --ff-only origin main
-
-docker compose build backend
-docker compose up -d backend
-
-curl -fsS http://127.0.0.1:8081/health
-docker compose ps
-docker logs --tail 100 tirta-backend
+git push origin main
 ```
 
-#### B. Redeploy frontend saja
+Deploy frontend:
 
 ```bash
-ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
-cd /opt/tirta-saas/app
-
-git pull --ff-only origin main
-
-docker compose build frontend
-docker compose up -d frontend nginx
-
-wget --no-check-certificate --header="Host: tirtautama.net" -qO- https://127.0.0.1/health >/dev/null && echo health-ok
-docker compose ps
-docker logs --tail 100 tirta-frontend
+git tag deploy-fe-v1.0.0
+git push origin deploy-fe-v1.0.0
 ```
 
-#### C. Redeploy backend + frontend
+Deploy backend:
 
 ```bash
-ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
-cd /opt/tirta-saas/app
-
-/opt/tirta-saas/scripts/backup.sh
-git pull --ff-only origin main
-
-# backend dulu
-docker compose build backend
-docker compose up -d backend
-curl -fsS http://127.0.0.1:8081/health
-
-# lalu frontend
-docker compose build frontend
-docker compose up -d frontend nginx
-wget --no-check-certificate --header="Host: tirtautama.net" -qO- https://127.0.0.1/health >/dev/null && echo health-ok
-
-docker compose ps
+git tag deploy-be-v1.0.0
+git push origin deploy-be-v1.0.0
 ```
 
-**Kalau memory sempit saat build:**
+Deploy semua service aplikasi:
 
 ```bash
-sudo fallocate -l 4G /swapfile.deploy
-sudo chmod 600 /swapfile.deploy
-sudo mkswap /swapfile.deploy
-sudo swapon /swapfile.deploy
-free -h
+git tag deploy-all-v1.0.0
+git push origin deploy-all-v1.0.0
 ```
-
-Setelah deploy selesai:
-
-```bash
-sudo swapoff /swapfile.deploy
-sudo rm -f /swapfile.deploy
-free -h
-```
-
-**Fast path yang sudah disediakan:**
-
-```bash
-/opt/tirta-saas/scripts/deploy-update.sh
-```
-
-Gunakan fast path hanya saat server dalam kondisi sehat dan ada cukup resource untuk rebuild.
 
 ### 3. Akses Database Production via DBeaver
 
@@ -363,12 +260,13 @@ Gunakan fast path hanya saat server dalam kondisi sehat dan ada cukup resource u
 ```bash
 ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
 
-cd /opt/tirta-saas/app
+cd /opt/tirta-runtime
 set -a
-. /opt/tirta-saas/app/.env
+. ./.env
 set +a
 
-docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tirta-mysql
+MYSQL_CONTAINER_ID=$(docker compose ps -q mysql)
+docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$MYSQL_CONTAINER_ID"
 
 echo "$MYSQL_DATABASE"
 echo "$MYSQL_USER"
@@ -378,7 +276,7 @@ echo "$MYSQL_USER"
 - `MYSQL_DATABASE`
 - `MYSQL_USER`
 - `MYSQL_PASSWORD`
-- IP container `tirta-mysql`
+- IP container service `mysql`
 
 > Jangan simpan kredensial production di repo atau screenshot yang tidak aman.
 
@@ -415,12 +313,12 @@ ssh -L 13306:172.20.0.2:3306 -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
 
 # cek IP container mungkin berubah setelah recreate
 ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172 \
-  "docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' tirta-mysql"
+  "cd /opt/tirta-runtime && MYSQL_CONTAINER_ID=\$(docker compose ps -q mysql) && docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \"\$MYSQL_CONTAINER_ID\""
 ```
 
 **Catatan penting:**
 - Karena MySQL tidak dipublish ke host publik, tunnel wajib dipakai.
-- IP container bisa berubah setelah `docker compose recreate`, jadi cek ulang jika DBeaver mendadak tidak bisa connect.
+- IP container service `mysql` bisa berubah setelah recreate, jadi cek ulang jika DBeaver mendadak tidak bisa connect.
 - Untuk aktivitas baca data biasa, gunakan user aplikasi. Gunakan `root` hanya jika benar-benar diperlukan.
 
 ---
