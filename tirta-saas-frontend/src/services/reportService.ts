@@ -9,7 +9,7 @@ import type {
   ReportFilters,
   RevenueReport,
 } from '../types/report';
-import { asRecord, getNumber, getString, mapArray } from '../utils/dataTransform';
+import { asRecord, getNumber, getString, mapArray, unwrapResponseData } from '../utils/dataTransform';
 
 class ReportService {
   private serializeFilters(filters?: ReportFilters): Record<string, unknown> | undefined {
@@ -65,7 +65,7 @@ class ReportService {
       API_ENDPOINTS.REPORTS.REVENUE,
       { params: this.serializeFilters(filters) }
     );
-    return this.normalizeRevenueReport(response, filters);
+    return this.normalizeRevenueReport(unwrapResponseData(response), filters);
   }
 
   private normalizePaymentReport(raw: unknown): PaymentReport {
@@ -176,7 +176,7 @@ class ReportService {
       API_ENDPOINTS.REPORTS.PAYMENTS,
       { params: this.serializeFilters(filters) }
     );
-    return this.normalizePaymentReport(response);
+    return this.normalizePaymentReport(unwrapResponseData(response));
   }
 
   async getCustomerAnalytics(filters?: ReportFilters): Promise<CustomerAnalytics> {
@@ -184,7 +184,7 @@ class ReportService {
       API_ENDPOINTS.REPORTS.CUSTOMERS,
       { params: this.serializeFilters(filters) }
     );
-    return this.normalizeCustomerAnalytics(response);
+    return this.normalizeCustomerAnalytics(unwrapResponseData(response));
   }
 
   async getPemakaianReport(filters?: ReportFilters): Promise<PemakaianReport> {
@@ -192,7 +192,7 @@ class ReportService {
       API_ENDPOINTS.REPORTS.USAGE,
       { params: this.serializeFilters(filters) }
     );
-    return this.normalizeUsageReport(response);
+    return this.normalizeUsageReport(unwrapResponseData(response));
   }
 
   async getOutstandingReport(filters?: ReportFilters): Promise<OutstandingReportData> {
@@ -200,7 +200,7 @@ class ReportService {
       API_ENDPOINTS.REPORTS.OUTSTANDING,
       { params: this.serializeFilters(filters) }
     );
-    const data = asRecord(response);
+    const data = asRecord(unwrapResponseData(response));
 
     return {
       totalOutstanding: getNumber(data.totalOutstanding ?? data.total_outstanding),

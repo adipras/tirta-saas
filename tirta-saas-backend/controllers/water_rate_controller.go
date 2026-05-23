@@ -58,7 +58,7 @@ func CreateWaterRate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, rate)
+	helpers.RespondCreated(c, "Tarif air berhasil dibuat", rate)
 }
 
 func GetWaterRates(c *gin.Context) {
@@ -119,7 +119,7 @@ func GetWaterRate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, rate)
+	helpers.RespondSuccess(c, "Detail tarif air berhasil diambil", rate)
 }
 
 // GetCurrentWaterRate godoc
@@ -158,7 +158,7 @@ func GetCurrentWaterRate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, rate)
+	helpers.RespondSuccess(c, "Tarif air aktif berhasil diambil", rate)
 }
 
 func UpdateWaterRate(c *gin.Context) {
@@ -238,7 +238,7 @@ func UpdateWaterRate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, rate)
+	helpers.RespondSuccess(c, "Tarif air berhasil diperbarui", rate)
 }
 
 func DeleteWaterRate(c *gin.Context) {
@@ -271,5 +271,8 @@ func DeleteWaterRate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Tarif air berhasil dihapus"})
+	helpers.RespondSuccess(c, "Tarif air berhasil dihapus", gin.H{
+		"deleted": true,
+		"id":      rate.ID,
+	})
 }

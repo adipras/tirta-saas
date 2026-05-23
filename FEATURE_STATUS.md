@@ -1,375 +1,257 @@
-# Tirta SaaS - Feature Status (February 22, 2026)
+# Tirta SaaS - Feature Status & Production Readiness
 
-## ✅ COMPLETED FEATURES (Production Ready)
+_Dokumen ini menggambarkan kondisi aktual repo saat ini dan mengarah ke kesiapan produksi, bukan sekadar checklist MVP._
 
-### 1. Authentication & Authorization
-- ✅ Admin Login (JWT)
-- ✅ Customer Login (separate JWT)
-- ✅ Platform Owner Registration
-- ✅ Tenant Self-Registration
-- ✅ Role-based Access Control (platform_owner, tenant_admin, meter_reader, finance, customer)
-- ✅ Password Hashing
+**Tanggal audit repo:** 23 Mei 2026
 
-### 2. Tenant Management
-- ✅ Tenant Registration (public)
-- ✅ Tenant Approval/Rejection (platform owner)
-- ✅ Tenant Status Management
-- ✅ Trial Period (14 days)
-- ✅ Trial Expiry Automation
-- ✅ Trial Banner with Days Remaining
-- ✅ Tenant Isolation
+---
 
-### 3. Subscription Management
-- ✅ Subscription Plans (Basic/Pro/Enterprise)
-- ✅ Subscription Upgrade Backend
-- ✅ Subscription Upgrade Frontend
-- ✅ Payment Submission
-- ✅ Platform Owner Verification
-- ✅ Status Tracking (Trial/Pending/Active/Expired)
+## 🎯 Arah dokumen
 
-### 4. Customer Management (Tenant)
+Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing PDAM multi-tenant. Fokus berikutnya bukan lagi sekadar menambah fitur dasar, tetapi:
+
+- menutup gap agar sistem aman dan stabil dipakai tenant nyata
+- merapikan modul yang masih backend-only atau belum fully wired
+- memperkuat operasi produksi: security, monitoring, backup, deploy, dan auditability
+
+---
+
+## ✅ Sudah ada dan sudah terpasang di repo
+
+### 1. Core product flow
+- ✅ Landing page publik
+- ✅ Registrasi akun owner/admin baru (`/register`)
+- ✅ Setup tenant setelah login (`/setup-tenant`)
+- ✅ Login admin berbasis JWT
+- ✅ Login customer berbasis JWT terpisah
+- ✅ Role-based access untuk `platform_owner`, `tenant_admin`, `meter_reader`, `finance`, dan `customer`
+- ✅ Persist session frontend dengan Redux Persist
+
+### 2. Platform owner / SaaS management
+- ✅ Approval / reject registrasi tenant
+- ✅ Tenant management: list, detail, statistik, suspend, activate, delete
+- ✅ Subscription plan management
+- ✅ Assign subscription ke tenant
+- ✅ Verifikasi pembayaran subscription tenant
+- ✅ Platform analytics page + endpoint backend
+- ✅ Platform payment settings: rekening bank + QR code
+
+### 3. Operasional tenant / billing engine
 - ✅ Customer CRUD
-- ✅ Customer Activation/Deactivation
-- ✅ Subscription Assignment
-- ✅ Meter Number Management
-- ✅ Customer Details View
-- ✅ Customer Search by Name / Meter Number
+- ✅ Aktivasi / deaktivasi customer
+- ✅ Detail customer
+- ✅ Subscription type CRUD
+- ✅ Water rate CRUD
+- ✅ Rate history
+- ✅ Water usage CRUD
+- ✅ Riwayat pemakaian per customer
+- ✅ Bulk generate invoice
+- ✅ Invoice CRUD + detail
+- ✅ Manual payment recording
+- ✅ Payment receipt / struk pembayaran
+- ✅ Verifikasi bukti pembayaran customer
+- ✅ Tenant payment settings (logo, rekening bank, QR code)
+- ✅ User management page untuk user operasional tenant
 
-### 5. User Management (Tenant)
-- ✅ Operational User Creation
-- ✅ Role Assignment (meter_reader, finance, service)
-- ✅ Password Generation
-- ✅ User List & Management
+### 4. Import, export, dan reporting
+- ✅ Bulk import customer dari **CSV** dengan template, preview, validasi header, dan error result
+- ✅ Bulk import water usage dari form tabel + paste data tab-separated ke endpoint bulk import
+- ✅ Export **CSV** dan **Excel (.xlsx)** di semua halaman report utama
+- ✅ Export customer CSV endpoint tersedia di backend
+- ✅ Reports dashboard
+- ✅ Revenue report
+- ✅ Customer analytics
+- ✅ Payment report
+- ✅ Usage report
+- ✅ Outstanding report
 
-### 6. Water Rate Management
-- ✅ Water Rate CRUD
-- ✅ Subscription-based Rates
-- ✅ Usage Tier Pricing
-- ✅ Rate History
-- ✅ Effective Date Management
-- ✅ Filter active/inactive rates
+### 5. Customer portal
+- ✅ Customer dashboard
+- ✅ Lihat daftar tagihan
+- ✅ Detail tagihan
+- ✅ Flow bayar tagihan customer
+- ✅ Upload bukti pembayaran customer
+- ✅ Monitor pemakaian air customer
+- ✅ Lihat profil
+- ✅ Edit profil
+- ✅ Ganti password
 
-### 7. Water Usage Tracking
-- ✅ Meter Reading Entry
-- ✅ Usage Calculation
-- ✅ Usage History
-- ✅ Previous Reading Tracking
-- ✅ Monthly Recording
+### 6. Android mobile app & thermal printing
+- ✅ Repo Android native tersedia di `tirta-saas-android/`
+- ✅ App mobile native utama (`app/`) sudah ada dengan Compose + Hilt + Navigation
+- ✅ Modul Android untuk auth, customer, tenant, user, usage, invoice, payment, dan printer sudah ada
+- ✅ App Android `printer-bridge/` untuk bridge printer thermal sudah ada
+- ✅ Frontend receipt sudah mendukung browser print
+- ✅ Integrasi thermal printer bridge di frontend
+- ✅ Indikator status printer bridge di UI
+- ✅ Fallback ke browser print jika bridge tidak aktif
 
-### 8. Invoice Management
-- ✅ Invoice Auto-Generation (Bulk)
-- ✅ Invoice CRUD
-- ✅ Invoice Details View (registration vs monthly)
-- ✅ Payment Status Tracking
-- ✅ Penalty Calculation
-- ✅ Due Date Management
-- ✅ Invoice Numbering (Auto)
-- ✅ Outstanding invoices endpoint (filter by customer)
+### 7. Automation & backend runtime
+- ✅ Scheduler generate invoice bulanan
+- ✅ Scheduler update status invoice overdue harian
+- ✅ Scheduler trial expiry harian
+- ✅ Tenant status middleware
+- ✅ Health endpoint
+- ✅ Performance monitoring middleware
+- ✅ Request tracing middleware
+- ✅ Swagger UI endpoint
 
-### 9. Payment Management
-- ✅ Payment Recording (manual oleh admin)
-- ✅ Payment List (dengan customer & invoice info)
-- ✅ Payment Receipt
-- ✅ Payment Proof Submission (customer upload bukti)
-- ✅ Payment Proof Verification/Rejection (admin)
-- ✅ File Upload (Image/PDF, max 5MB)
-- ✅ Payment History per Customer
-- ✅ Select multiple invoices saat bayar
-
-### 10. Customer Portal
-- ✅ Customer Login
-- ✅ Dashboard with Statistics
-- ✅ View Invoices
-- ✅ Submit Payment Proof
-- ✅ View Payment History
-- ✅ View Water Usage History
-- ✅ Profile Management
-- ✅ Change Password
-
-### 11. Reports & Analytics
-- ✅ Reports Dashboard
-- ✅ Revenue Report
-- ✅ Customer Analytics
-- ✅ Payment Report
-- ✅ Usage Report
-- ✅ Outstanding Report
-
-### 12. Automation
-- ✅ Monthly Invoice Generation (Scheduler)
-- ✅ Invoice Overdue Update (Daily)
-- ✅ Trial Expiry Check (Daily)
-- ✅ Tenant Status Middleware
-
-### 13. UI/UX
-- ✅ Landing Page
-- ✅ Responsive Design
-- ✅ Loading States
-- ✅ Error Handling
-- ✅ Success Messages
-- ✅ Role-based Navigation
-- ✅ Standardized API response format
-- ✅ Admin Sidebar mobile drawer (overlay + hamburger + backdrop)
-- ✅ PageHeader component — dipakai konsisten di 30+ halaman admin
-- ✅ ConfirmModal — menggantikan `window.confirm()` di seluruh app
-- ✅ Toast notifications — menggantikan `alert()` di seluruh app
-- ✅ Customer Portal mobile-friendly (CustomerSidebar drawer, CustomerHeader hamburger)
-
-### 14. Settings - Payment Methods
-- ✅ Bank Account CRUD (GET/POST/PUT/DELETE `/api/payment-methods/bank-accounts`)
-- ✅ QR Code CRUD with image upload (GET/POST/PUT/DELETE `/api/payment-methods/qr-codes`)
-- ✅ QR image file upload & storage (`uploads/tenants/{id}/qr/`)
-- ✅ Static file serving from `/uploads/`
-- ✅ Frontend wired for both Tenant Settings & Platform Settings
-
-### 15. Dashboard & Analytics (Live Data)
-- ✅ Tenant Admin Dashboard — wired to report endpoints (customers, outstanding, usage, revenue)
-- ✅ Platform Analytics — Total Users excludes platform_owner
-
-### 16. Water Usage Bulk Import
-- ✅ Backend POST `/api/water-usage/bulk-import`
-- ✅ Frontend page `/admin/usage/bulk-import` with manual table input + paste CSV
+### 8. Foundation untuk deployment produksi
+- ✅ Repo sudah punya `docker-compose.yml`
+- ✅ Ada panduan setup VPS, sync repo ke VPS, dan checklist hardening/deploy
+- ✅ Dokumen deploy mengarah ke stack Nginx + Frontend + Backend + MySQL
+- ✅ Ada catatan operasi seperti TLS, Docker logging, monitoring, backup, dan restore test di dokumen VPS
 
 ---
 
-## 🟡 PARTIAL / NEEDS IMPROVEMENT
+## 🟡 Sudah ada sebagian, backend-only, atau masih perlu wiring
+
+### 1. Notification system
+- 🟡 Backend untuk notification template dan send notification **sudah ada**
+- 🟡 Belum ada halaman frontend untuk mengelola / mengirim notification
+- 🟡 Pengiriman aktual ke provider email / SMS / WhatsApp **belum diimplementasikan**
+- 🟡 Saat ini controller hanya membuat log lalu menandai status sebagai `SENT`
+
+### 2. Service area management
+- 🟡 Model, controller, dan route backend untuk `service_areas` **sudah ada**
+- 🟡 Belum terlihat page / service frontend untuk fitur ini
+
+### 3. Tariff categories / progressive tariff
+- 🟡 Backend `tariff categories`, `progressive rates`, dan simulasi tagihan **sudah ada**
+- 🟡 Belum terlihat page / service frontend untuk fitur ini
+
+### 4. Monitoring & audit logs
+- 🟡 Endpoint platform untuk audit logs, error logs, system health, dan metrics **sudah ada**
+- 🟡 Belum terlihat UI frontend untuk monitoring ini
+- 🟡 Audit package tersedia, tetapi audit middleware tidak terpasang global di `main.go`
+
+### 5. Pembatasan akses khusus platform owner
+- 🟡 Route `/api/platform/*` masih memakai `AdminOnly()`
+- 🟡 Di kode masih ada TODO untuk `PlatformOwnerOnly` middleware
+- 🟡 Artinya hardening akses platform owner belum final
+
+### 6. Customer payment history
+- 🟡 Endpoint backend `GET /api/customer/payments` dan service frontend sudah ada
+- 🟡 Namun belum ada route / halaman customer khusus riwayat pembayaran di `App.tsx`
+
+### 7. Customer invoice PDF download
+- 🟡 Frontend sudah menyiapkan tombol / service download PDF invoice customer
+- 🟡 Endpoint backend `/api/customer/invoices/:id/pdf` tidak terlihat terdaftar di route saat ini
+
+### 8. Android app maturity
+- 🟡 README Android menandai app native utama masih pada status shell / Phase 1 roadmap mobile
+- 🟡 Jadi mobile app **sudah dikerjakan**, tetapi belum bisa diasumsikan setara penuh dengan seluruh surface web
+
+### 9. Operasional produksi masih lebih banyak terdokumentasi daripada tervalidasi otomatis
+- 🟡 Ada checklist VPS / hardening / monitoring / backup
+- 🟡 Tetapi bukti otomatis di repo untuk health regression, smoke test deploy, atau CI gate belum terlihat kuat
 
 ---
 
-- ✅ Bulk Customer Import (CSV upload + preview + validasi + error report)
+## 🚧 Production gaps yang paling penting
 
-### 17. Export Data
-- ✅ Export CSV — semua halaman report (Revenue, Payment, Outstanding, Usage, Customer Analytics)
-- ✅ Export Excel (.xlsx) — semua halaman report dengan multi-sheet
-- ✅ Export CSV/Excel — Invoice List (berdasarkan filter aktif)
-- ✅ Client-side export menggunakan SheetJS (xlsx) — tidak butuh backend endpoint
+Bagian ini adalah gap yang paling relevan jika targetnya adalah **production system untuk tenant nyata**, bukan sekadar demo atau pilot.
 
----
+### 1. Security & access control
+- 🚧 `PlatformOwnerOnly` middleware belum ada
+- 🚧 Audit trail belum dipasang konsisten secara global
+- 🚧 Belum terlihat hardening permission model yang terukur lewat automated checks
 
-## ⏳ FUTURE ENHANCEMENTS
+### 2. Reliability & verification
+- 🚧 Belum ada automated test suite yang jelas di backend maupun frontend
+- 🚧 Belum ada regression gate yang kuat sebelum deploy
+- 🚧 Belum terlihat smoke test production-ready yang menjadi bagian standar deploy
 
-### High Priority
-1. **Email Notifications** - Trial expiry, invoice reminder, payment confirmation
-2. **Bulk Customer Import** - CSV/Excel upload dengan validasi
+### 3. Observability & incident response
+- 🚧 Endpoint monitoring backend ada, tetapi UI monitoring aplikasi belum ada
+- 🚧 Belum terlihat alerting operasional yang jelas di repo
+- 🚧 Belum terlihat runbook insiden level aplikasi di repo
 
-### Medium Priority
-3. **WhatsApp/SMS Notifications**
-4. **Advanced Analytics** - Charts, forecasting
-5. **Mobile Meter Reading App**
+### 4. Product completeness untuk tenant nyata
+- 🚧 Notification delivery nyata belum ada
+- 🚧 Service area & progressive tariff belum wired end-to-end sampai UI
+- 🚧 Customer payment history dan customer invoice PDF masih belum lengkap wiring-nya
 
-### Low Priority / Nice to Have
-7. Mobile App for Customers
-8. Automated Payment Gateway (Midtrans)
-9. Audit Logging
-10. Multi-language Support (EN/ID)
-
----
-
-## 📊 Completion Status
-
-**Core Features:** ✅ Production Ready  
-**UI/UX Refactor:** ✅ Phases 1–5 Selesai  
-**Active Issues:** 0  
-**Future Enhancements (High):** Email Notifications  
-
-**Overall System Readiness:** ~97% (MVP siap deployment)
-
-**Last Updated:** March 3, 2026
-
-**Last Updated:** February 26, 2026
----
-
-**Last Updated:** February 22, 2026  
-**Status:** Ready for pilot deployment
-
-
-## ✅ COMPLETED FEATURES (Production Ready)
-
-### 1. Authentication & Authorization
-- ✅ Admin Login (JWT)
-- ✅ Customer Login (separate JWT)
-- ✅ Platform Owner Registration
-- ✅ Tenant Self-Registration
-- ✅ Role-based Access Control
-- ✅ Password Hashing
-
-### 2. Tenant Management
-- ✅ Tenant Registration (public)
-- ✅ Tenant Approval/Rejection (platform owner)
-- ✅ Tenant Status Management
-- ✅ Trial Period (14 days)
-- ✅ Trial Expiry Automation
-- ✅ Trial Banner with Days Remaining
-- ✅ Tenant Isolation
-
-### 3. Subscription Management
-- ✅ Subscription Plans (Basic/Pro/Enterprise)
-- ✅ Subscription Upgrade Backend
-- ✅ Subscription Upgrade Frontend
-- ✅ Payment Submission
-- ✅ Platform Owner Verification
-- ✅ Status Tracking (Trial/Pending/Active/Expired)
-
-### 4. Customer Management (Tenant)
-- ✅ Customer CRUD
-- ✅ Customer Activation/Deactivation
-- ✅ Subscription Assignment
-- ✅ Meter Number Management
-- ✅ Customer Details View
-
-### 5. User Management (Tenant)
-- ✅ Operational User Creation
-- ✅ Role Assignment (meter_reader, finance, service)
-- ✅ Password Generation
-- ✅ User List & Management
-
-### 6. Water Rate Management
-- ✅ Water Rate CRUD
-- ✅ Subscription-based Rates
-- ✅ Usage Tier Pricing
-- ✅ Rate History
-- ✅ Effective Date Management
-
-### 7. Water Usage Tracking
-- ✅ Meter Reading Entry
-- ✅ Usage Calculation
-- ✅ Usage History
-- ✅ Previous Reading Tracking
-- ✅ Monthly Recording
-
-### 8. Invoice Management
-- ✅ Invoice Auto-Generation (Bulk)
-- ✅ Invoice CRUD
-- ✅ Invoice Details View
-- ✅ Payment Status Tracking
-- ✅ Penalty Calculation
-- ✅ Due Date Management
-- ✅ Invoice Numbering (Auto)
-
-### 9. Payment Management
-- ✅ Payment Recording
-- ✅ Payment Receipt
-- ✅ Payment Proof Submission
-- ✅ Payment Proof Verification/Rejection
-- ✅ File Upload (Image/PDF)
-- ✅ Payment History
-
-### 10. Customer Portal
-- ✅ Customer Login
-- ✅ Dashboard with Statistics
-- ✅ View Invoices
-- ✅ Submit Payment Proof
-- ✅ View Payment History
-- ✅ View Water Usage History
-- ✅ Profile Management
-- ✅ Change Password
-
-### 11. Reports & Analytics
-- ✅ Reports Dashboard
-- ✅ Revenue Report
-- ✅ Customer Analytics
-- ✅ Payment Report
-- ✅ Usage Report
-- ✅ Outstanding Report
-
-### 12. Settings
-- ✅ Tenant Payment Settings
-- ✅ Platform Payment Settings
-- ✅ Bank Account Management
-- ✅ QR Code Payment
-
-### 13. Automation
-- ✅ Monthly Invoice Generation (Scheduler)
-- ✅ Invoice Overdue Update (Daily)
-- ✅ Trial Expiry Check (Daily)
-- ✅ Tenant Status Middleware
-
-### 14. UI/UX
-- ✅ Landing Page
-- ✅ Responsive Design
-- ✅ Loading States
-- ✅ Error Handling
-- ✅ Success Messages
-- ✅ Role-based Navigation
-
----
-
-## 🟡 PARTIAL / NEEDS IMPROVEMENT
-
-### Platform Owner Dashboard
-- ⚠️ Exists but could be enhanced with:
-  - Real-time statistics
-  - Revenue charts
-  - Growth trends
-  - Tenant activity monitoring
+### 5. Payment & business process automation
+- 🚧 Payment gateway otomatis belum ada
+- 🚧 Bukti bayar masih dominan verifikasi manual
+- 🚧 Belum ada orkestrasi notifikasi invoice jatuh tempo / overdue secara end-to-end
 
 ---
 
 ## ⏳ NOT STARTED / FUTURE ENHANCEMENTS
 
-### High Priority
-1. **Email Notifications** (2-3 hours)
-   - Trial expiry warnings
-   - Invoice reminders
-   - Payment confirmations
-   - Subscription status updates
+### Prioritas produksi tertinggi
+1. **Automated testing & release gate**
+   - backend regression tests
+   - frontend critical flow tests
+   - smoke test setelah deploy
+   - CI gate sebelum merge / release
 
-2. **Bulk Customer Import** (2 hours)
-   - CSV/Excel upload
-   - Data validation
-   - Preview before import
-   - Error reporting
+2. **Security hardening aplikasi**
+   - `PlatformOwnerOnly` middleware
+   - audit logging yang benar-benar aktif di seluruh surface penting
+   - review ulang authorization boundary antar role dan tenant
 
-3. **Export Functionality** (1-2 hours)
-   - Export reports to Excel
-   - Export reports to PDF
-   - Export customer list
-   - Export invoice list
+3. **Operational observability**
+   - dashboard monitoring aplikasi
+   - alerting untuk health/error-rate/resource exhaustion
+   - log aggregation yang siap troubleshooting
 
-### Medium Priority
-4. **WhatsApp/SMS Notifications** (3-4 hours)
-   - Integration with gateway
-   - Template management
-   - Scheduled sending
-   - Delivery tracking
+4. **Backup / restore yang tervalidasi rutin**
+   - jadwal backup yang jelas
+   - restore drill berkala
+   - dokumentasi recovery yang operasional
 
-5. **Mobile Meter Reading App** (1-2 weeks)
-   - React Native/Flutter
-   - Offline capability
-   - Photo upload
-   - Route optimization
+### Prioritas produk tinggi
+5. **Notification delivery nyata**
+   - email provider integration
+   - WhatsApp / SMS provider integration
+   - template management dari UI
+   - reminder invoice / overdue / payment confirmation
 
-6. **Advanced Analytics** (2-3 hours)
-   - Revenue forecasting
-   - Customer churn prediction
-   - Usage pattern analysis
-   - Seasonal trends
+6. **Payment automation**
+   - payment gateway otomatis (mis. Midtrans)
+   - webhook handling
+   - auto reconciliation pembayaran
 
-7. **Multi-language Support** (2-3 hours)
-   - Indonesian (default)
-   - English
-   - Translation management
+7. **End-to-end tariff & area management**
+   - frontend service area management
+   - frontend tariff category / progressive rate
+   - validasi dampak ke invoice calculation
 
-### Low Priority / Nice to Have
-8. **Mobile App for Customers** (2-3 weeks)
-9. **Automated Payment Gateway Integration** (1 week)
-10. **Advanced Reporting (Charts)** (2-3 hours)
-11. **Backup & Restore** (1-2 days)
-12. **Audit Logging** (1-2 days)
-13. **API Documentation (Swagger)** (Already exists, needs update)
-14. **Customer Feedback System** (1-2 days)
+8. **Customer portal completeness**
+   - halaman riwayat pembayaran customer
+   - download PDF invoice customer
+   - notifikasi status pembayaran
 
----
+### Prioritas medium
+9. **Android app productionization**
+   - parity fitur dengan web untuk flow operasional utama
+   - hardening sync/offline flow
+   - release pipeline mobile
 
-## 📊 Completion Status
+10. **Multi-language support**
+    - sistem i18n nyata
+    - resource translation management
 
-**Core Features:** 14/14 (100%) ✅  
-**High Priority Enhancements:** 0/3 (0%)  
-**Medium Priority:** 0/3 (0%)  
-**Low Priority:** 0/6 (0%)
-
-**Overall System Readiness:** 95% (Production Ready for MVP)
+11. **Customer end-user mobile app yang fully productized**
+    - pengalaman setara portal web
+    - payment dan invoice flow yang matang
 
 ---
 
-**Last Updated:** January 6, 2026  
-**Status:** Ready for pilot deployment with selected tenants
+## 📌 Catatan kesiapan produksi saat ini
+
+- Secara fitur bisnis inti, repo ini **sudah lebih dari MVP**: onboarding tenant, billing bulanan, pembayaran, verifikasi bukti, report, dan customer portal dasar sudah ada.
+- Secara produksi, status yang lebih akurat adalah **“functional core is ready, production hardening is still ongoing.”**
+- Pondasi deploy produksi sudah mulai terlihat jelas di repo dan dokumen operasional, tetapi belum cukup kuat untuk disebut fully production-ready tanpa penguatan testing, observability, dan security boundary.
+- Beberapa modul penting masih berada di zona **backend-ready but not fully productized**, terutama notification, monitoring, service area, tariff category progresif, dan sebagian surface customer.
+
+---
+
+## Ringkasan singkat
+
+**Status umum:** Core product sudah usable dan fondasi deploy produksi sudah ada.  
+**Yang paling matang:** billing flow tenant, payment proof flow, reporting, payment settings, scheduler, dan fondasi Android/printer bridge.  
+**Yang paling menentukan untuk production:** automated tests, release gate, observability, audit logging aktif, hardening akses platform owner, dan automation notification/payment.

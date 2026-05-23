@@ -1,22 +1,22 @@
 import { apiClient } from './apiClient';
 import type { CustomerProfil, UpdateProfilDto, ChangePasswordDto } from '../types/customerProfile';
+import { asRecord, getBoolean, unwrapResponseData } from '../utils/dataTransform';
 
 export const customerProfilService = {
   // Get current customer profile
   getProfil: async (): Promise<CustomerProfil> => {
     const response = await apiClient.get('/customer/profile');
-    return response.data;
+    return unwrapResponseData(response) as CustomerProfil;
   },
 
   // Update customer profile
-  updateProfil: async (data: UpdateProfilDto): Promise<CustomerProfil> => {
-    const response = await apiClient.put('/customer/profile', data);
-    return response.data;
+  updateProfil: async (data: UpdateProfilDto): Promise<void> => {
+    await apiClient.put('/customer/profile', data);
   },
 
   // Change password
   changePassword: async (data: ChangePasswordDto): Promise<void> => {
-    await apiClient.post('/customer/change-password', {
+    await apiClient.put('/customer/password', {
       currentPassword: data.currentPassword,
       newPassword: data.newPassword,
     });
@@ -25,6 +25,6 @@ export const customerProfilService = {
   // Verify current password
   verifyPassword: async (password: string): Promise<boolean> => {
     const response = await apiClient.post('/customer/verify-password', { password });
-    return response.data.valid;
+    return getBoolean(asRecord(unwrapResponseData(response)).valid);
   },
 };

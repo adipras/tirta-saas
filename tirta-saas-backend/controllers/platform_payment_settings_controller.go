@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/gin-gonic/gin"
@@ -63,7 +64,7 @@ func GetPlatformPaymentSettings(c *gin.Context) {
 		paymentMethods = append(paymentMethods, "e_wallet")
 	}
 
-	c.JSON(http.StatusOK, responses.PlatformPaymentSettingsResponse{
+	helpers.RespondSuccess(c, "Pengaturan pembayaran platform berhasil diambil", responses.PlatformPaymentSettingsResponse{
 		BankAccounts:   bankAccountInfos,
 		QRCodes:        qrCodeResponses,
 		PaymentMethods: paymentMethods,
@@ -83,7 +84,7 @@ func GetPlatformOwnSettings(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var settings models.TenantSettings
 	if err := config.DB.Where("tenant_id = ?", tenantID.(uuid.UUID)).First(&settings).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -93,7 +94,7 @@ func GetPlatformOwnSettings(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Platform settings retrieved",
@@ -111,7 +112,7 @@ func UpdatePlatformOwnSettings(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var settings models.TenantSettings
 	if err := config.DB.Where("tenant_id = ?", tenantID.(uuid.UUID)).First(&settings).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -121,7 +122,7 @@ func UpdatePlatformOwnSettings(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var req struct {
 		BankName        string `json:"bank_name"`
 		BankAccountName string `json:"bank_account_name"`
@@ -130,7 +131,7 @@ func UpdatePlatformOwnSettings(c *gin.Context) {
 		Phone           string `json:"phone"`
 		Email           string `json:"email"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
 			Status:  "error",
@@ -139,7 +140,7 @@ func UpdatePlatformOwnSettings(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Update settings
 	updates := map[string]interface{}{}
 	if req.BankName != "" {
@@ -160,7 +161,7 @@ func UpdatePlatformOwnSettings(c *gin.Context) {
 	if req.Email != "" {
 		updates["email"] = req.Email
 	}
-	
+
 	if err := config.DB.Model(&settings).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -169,7 +170,7 @@ func UpdatePlatformOwnSettings(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Platform settings updated",

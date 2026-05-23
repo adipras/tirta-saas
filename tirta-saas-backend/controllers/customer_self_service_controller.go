@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/adipras/tirta-saas-backend/utils"
@@ -102,7 +103,7 @@ func GetCustomerProfile(c *gin.Context) {
 		"created_at":   customer.CreatedAt,
 	}
 
-	c.JSON(http.StatusOK, response)
+	helpers.RespondSuccess(c, "Profil pelanggan berhasil diambil", response)
 }
 
 func UpdateCustomerProfile(c *gin.Context) {
@@ -144,7 +145,7 @@ func UpdateCustomerProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Profil berhasil diperbarui"})
+	helpers.RespondSuccess(c, "Profil berhasil diperbarui", gin.H{"updated": true})
 }
 
 func GetCustomerInvoices(c *gin.Context) {
@@ -173,7 +174,7 @@ func GetCustomerInvoices(c *gin.Context) {
 		responses[i] = buildCustomerInvoiceResponse(invoice, &customer.Subscription, tenantSettings)
 	}
 
-	c.JSON(http.StatusOK, responses)
+	helpers.RespondSuccess(c, "Tagihan pelanggan berhasil diambil", responses)
 }
 
 func GetCustomerPayments(c *gin.Context) {
@@ -189,7 +190,7 @@ func GetCustomerPayments(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, payments)
+	helpers.RespondSuccess(c, "Riwayat pembayaran pelanggan berhasil diambil", payments)
 }
 
 func GetCustomerWaterUsage(c *gin.Context) {
@@ -204,7 +205,7 @@ func GetCustomerWaterUsage(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, usage)
+	helpers.RespondSuccess(c, "Riwayat penggunaan air berhasil diambil", usage)
 }
 
 func CustomerMakePayment(c *gin.Context) {
@@ -283,7 +284,7 @@ func CustomerMakePayment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
+	helpers.RespondCreated(c, "Pembayaran berhasil dicatat", gin.H{
 		"message":    "Pembayaran berhasil dicatat",
 		"payment_id": payment.ID,
 		"total_paid": invoice.TotalPaid,
@@ -332,5 +333,5 @@ func ChangeCustomerPassword(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil diubah"})
+	helpers.RespondSuccess(c, "Password berhasil diubah", gin.H{"updated": true})
 }

@@ -575,10 +575,7 @@ func VoidPayment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Pembayaran berhasil dibatalkan",
-		"data":    payment,
-	})
+	helpers.RespondSuccess(c, "Pembayaran berhasil dibatalkan", payment)
 }
 
 func GetPaymentReceipt(c *gin.Context) {
@@ -600,7 +597,7 @@ func GetPaymentReceipt(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, buildPaymentReceiptResponse(payment))
+	helpers.RespondSuccess(c, "Struk pembayaran berhasil diambil", buildPaymentReceiptResponse(payment))
 }
 
 func GeneratePaymentReceipt(c *gin.Context) {

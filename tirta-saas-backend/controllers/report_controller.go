@@ -144,10 +144,10 @@ func GetRevenueReport(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"total_revenue": totalRevenue,
-		"total_payments": paymentCount,
-		"monthly_revenue": monthlyRevenue,
+	helpers.RespondSuccess(c, "Laporan pendapatan berhasil diambil", gin.H{
+		"total_revenue":                totalRevenue,
+		"total_payments":               paymentCount,
+		"monthly_revenue":              monthlyRevenue,
 		"revenue_by_subscription_type": revenueBySubscriptionType,
 		"period": gin.H{
 			"start_date": startDate,
@@ -343,14 +343,14 @@ func GetCustomerReport(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"total_customers":      totalCustomers,
-		"active_customers":     activeCustomers,
-		"inactive_customers":   inactiveCustomers,
-		"suspended_customers":  suspendedCustomers,
-		"customer_growth":      customerGrowth,
-		"status_distribution":  statusDistribution,
-		"top_customers":        topCustomers,
+	helpers.RespondSuccess(c, "Laporan pelanggan berhasil diambil", gin.H{
+		"total_customers":     totalCustomers,
+		"active_customers":    activeCustomers,
+		"inactive_customers":  inactiveCustomers,
+		"suspended_customers": suspendedCustomers,
+		"customer_growth":     customerGrowth,
+		"status_distribution": statusDistribution,
+		"top_customers":       topCustomers,
 		"period": gin.H{
 			"start_date": startDate,
 			"end_date":   endDate,
@@ -420,10 +420,10 @@ func GetUsageReport(c *gin.Context) {
 	}
 
 	var trendRows []struct {
-		UsageMonth   string  `json:"usage_month"`
-		TotalUsage   float64 `json:"total_usage"`
-		AverageUsage float64 `json:"average_usage"`
-		CustomerCount int64  `json:"customer_count"`
+		UsageMonth    string  `json:"usage_month"`
+		TotalUsage    float64 `json:"total_usage"`
+		AverageUsage  float64 `json:"average_usage"`
+		CustomerCount int64   `json:"customer_count"`
 	}
 
 	trendQuery := config.DB.Model(&models.WaterUsage{}).
@@ -455,11 +455,11 @@ func GetUsageReport(c *gin.Context) {
 		}
 
 		usageTrends = append(usageTrends, gin.H{
-			"month":            monthName,
-			"year":             yearValue,
-			"total_usage":      row.TotalUsage,
-			"average_usage":    row.AverageUsage,
-			"customer_count":   row.CustomerCount,
+			"month":          monthName,
+			"year":           yearValue,
+			"total_usage":    row.TotalUsage,
+			"average_usage":  row.AverageUsage,
+			"customer_count": row.CustomerCount,
 		})
 	}
 
@@ -511,10 +511,10 @@ func GetUsageReport(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"total_usage":   totalUsage,
-		"average_usage": averageUsage,
-		"usage_trends":  usageTrends,
+	helpers.RespondSuccess(c, "Laporan pemakaian berhasil diambil", gin.H{
+		"total_usage":    totalUsage,
+		"average_usage":  averageUsage,
+		"usage_trends":   usageTrends,
 		"high_consumers": highConsumers,
 		"period": gin.H{
 			"start_date": startDate,
@@ -659,12 +659,12 @@ func GetPaymentReport(c *gin.Context) {
 	outstandingQuery.Select("COALESCE(SUM(total_amount - total_paid), 0)").Scan(&totalOutstanding)
 
 	var outstandingRows []struct {
-		CustomerID   string  `json:"customer_id"`
-		CustomerName string  `json:"customer_name"`
-		InvoiceNumber string `json:"invoice_number"`
-		Amount       float64 `json:"amount"`
-		DueDate      *time.Time `json:"due_date"`
-		DaysOverdue  int64   `json:"days_overdue"`
+		CustomerID    string     `json:"customer_id"`
+		CustomerName  string     `json:"customer_name"`
+		InvoiceNumber string     `json:"invoice_number"`
+		Amount        float64    `json:"amount"`
+		DueDate       *time.Time `json:"due_date"`
+		DaysOverdue   int64      `json:"days_overdue"`
 	}
 
 	outstandingDetailQuery := config.DB.Model(&models.Invoice{}).
@@ -710,7 +710,7 @@ func GetPaymentReport(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	helpers.RespondSuccess(c, "Laporan pembayaran berhasil diambil", gin.H{
 		"total_collected":          totalCollected,
 		"total_outstanding":        totalOutstanding,
 		"total_payments":           paymentCount,
@@ -742,7 +742,7 @@ func GetOutstandingReport(c *gin.Context) {
 	}
 
 	query := config.DB.Model(&models.Invoice{}).Where("is_paid = ?", false)
-	
+
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
@@ -766,16 +766,16 @@ func GetOutstandingReport(c *gin.Context) {
 	oldestQuery := config.DB.Model(&models.Invoice{}).
 		Select("id as invoice_id, customer_id, total_amount, total_paid, (total_amount - total_paid) as outstanding, created_at").
 		Where("is_paid = ?", false)
-	
+
 	if hasSpecificTenant {
 		oldestQuery = oldestQuery.Where("tenant_id = ?", tenantID)
 	}
-	
+
 	oldestQuery.Order("created_at ASC").
 		Limit(10).
 		Scan(&oldestInvoices)
 
-	c.JSON(http.StatusOK, gin.H{
+	helpers.RespondSuccess(c, "Laporan tunggakan berhasil diambil", gin.H{
 		"total_outstanding": totalOutstanding,
 		"unpaid_count":      invoiceCount,
 		"oldest_invoices":   oldestInvoices,

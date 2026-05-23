@@ -189,7 +189,7 @@ func SubmitPaymentProof(c *gin.Context) {
 	// Load relations
 	config.DB.Preload("Invoice").Preload("Customer").First(&paymentProof, paymentProof.ID)
 
-	c.JSON(http.StatusCreated, buildPaymentProofResponse(&paymentProof))
+	helpers.RespondCreated(c, "Bukti pembayaran berhasil dikirim", buildPaymentProofResponse(&paymentProof))
 }
 
 // GetPaymentProofs godoc
@@ -270,7 +270,7 @@ func GetPaymentProofs(c *gin.Context) {
 		PerPage:       perPage,
 	}
 
-	c.JSON(http.StatusOK, response)
+	helpers.RespondSuccess(c, "Daftar bukti pembayaran berhasil diambil", response)
 }
 
 // GetPaymentProof godoc
@@ -306,7 +306,7 @@ func GetPaymentProof(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, buildPaymentProofResponse(&paymentProof))
+	helpers.RespondSuccess(c, "Detail bukti pembayaran berhasil diambil", buildPaymentProofResponse(&paymentProof))
 }
 
 // VerifyPaymentProof godoc
@@ -444,7 +444,7 @@ func VerifyPaymentProof(c *gin.Context) {
 	// Reload with relations
 	config.DB.Preload("Invoice").Preload("Customer").First(&paymentProof, paymentProof.ID)
 
-	c.JSON(http.StatusOK, buildPaymentProofResponse(&paymentProof))
+	helpers.RespondSuccess(c, "Bukti pembayaran berhasil diverifikasi", buildPaymentProofResponse(&paymentProof))
 }
 
 // RejectPaymentProof godoc
@@ -508,7 +508,7 @@ func RejectPaymentProof(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, buildPaymentProofResponse(&paymentProof))
+	helpers.RespondSuccess(c, "Bukti pembayaran berhasil ditolak", buildPaymentProofResponse(&paymentProof))
 }
 
 func DownloadPaymentProofFile(c *gin.Context) {

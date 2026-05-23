@@ -1,5 +1,6 @@
 import { API_ENDPOINTS, API_ORIGIN } from '../constants/api';
 import { apiClient } from './apiClient';
+import { asArray, asRecord, getNumber, unwrapResponseData } from '../utils/dataTransform';
 
 const STATIC_BASE = API_ORIGIN;
 
@@ -101,7 +102,7 @@ class PaymentProofService {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return withProofUrl(response);
+    return withProofUrl(asRecord(unwrapResponseData(response)));
   }
 
   /**
@@ -114,9 +115,12 @@ class PaymentProofService {
     per_page?: number;
   }): Promise<PaymentProofListResponse> {
     const response = await apiClient.get(this.baseUrl, { params });
+    const payload = asRecord(unwrapResponseData(response));
     return {
-      ...response,
-      payment_proofs: (response.payment_proofs || []).map(withProofUrl),
+      payment_proofs: asArray<Record<string, unknown>>(payload.payment_proofs).map(withProofUrl),
+      total: getNumber(payload.total),
+      page: getNumber(payload.page, params?.page ?? 1),
+      per_page: getNumber(payload.per_page, params?.per_page ?? 10),
     };
   }
 
@@ -125,7 +129,7 @@ class PaymentProofService {
    */
   async getPaymentProof(id: string): Promise<PaymentProof> {
     const response = await apiClient.get(API_ENDPOINTS.PAYMENT_PROOFS.DETAIL(id));
-    return withProofUrl(response);
+    return withProofUrl(asRecord(unwrapResponseData(response)));
   }
 
   /**
@@ -133,7 +137,7 @@ class PaymentProofService {
    */
   async verifyPaymentProof(id: string, data: VerifyPaymentData): Promise<PaymentProof> {
     const response = await apiClient.post(API_ENDPOINTS.PAYMENT_PROOFS.VERIFY(id), data);
-    return withProofUrl(response);
+    return withProofUrl(asRecord(unwrapResponseData(response)));
   }
 
   /**
@@ -141,7 +145,7 @@ class PaymentProofService {
    */
   async rejectPaymentProof(id: string, data: RejectPaymentData): Promise<PaymentProof> {
     const response = await apiClient.post(API_ENDPOINTS.PAYMENT_PROOFS.REJECT(id), data);
-    return withProofUrl(response);
+    return withProofUrl(asRecord(unwrapResponseData(response)));
   }
 }
 

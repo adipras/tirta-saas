@@ -1,6 +1,6 @@
 import { API_ORIGIN } from '../constants/api';
 import { apiClient } from './apiClient';
-import { asArray, asRecord, getString } from '../utils/dataTransform';
+import { asArray, asRecord, getString, unwrapResponseData } from '../utils/dataTransform';
 
 const STATIC_BASE = `${API_ORIGIN}/`;
 
@@ -44,7 +44,7 @@ export interface PlatformPaymentSettings {
 class PlatformPaymentSettingsService {
   async getPlatformPaymentSettings(): Promise<PlatformPaymentSettings> {
     const response = await apiClient.get('/public/platform-payment-settings');
-    const settings = asRecord(response);
+    const settings = asRecord(unwrapResponseData(response));
     const qrCodes = asArray(settings.qr_codes).map((qr) => {
       const code = asRecord(qr);
 
