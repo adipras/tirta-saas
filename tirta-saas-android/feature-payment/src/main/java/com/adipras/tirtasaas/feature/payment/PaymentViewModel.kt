@@ -3,6 +3,7 @@ package com.adipras.tirtasaas.feature.payment
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adipras.tirtasaas.core.network.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,11 +29,19 @@ class PaymentViewModel @Inject constructor(
 
     fun submitPayment(amount: Double, paymentMethod: String, notes: String?) {
         viewModelScope.launch {
+            if (amount <= 0) {
+                _error.value = "Nominal pembayaran harus lebih besar dari nol"
+                return@launch
+            }
+            if (paymentMethod.isBlank()) {
+                _error.value = "Metode pembayaran wajib dipilih"
+                return@launch
+            }
             _isLoading.value = true
             _error.value = null
             repository.createPayment(invoiceId, amount, paymentMethod, notes)
                 .onSuccess { _success.value = true }
-                .onFailure { _error.value = it.message }
+                .onFailure { _error.value = it.userMessage("Gagal menyimpan pembayaran") }
             _isLoading.value = false
         }
     }

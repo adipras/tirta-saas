@@ -14,9 +14,19 @@ import kotlinx.coroutines.launch
 data class AppSessionUiState(
     val isAuthenticated: Boolean = false,
     val tenantStatus: String? = null,
+    val role: String? = null,
+    val userName: String? = null,
+    val tenantName: String? = null,
 ) {
     val isTenantBlocked: Boolean
         get() = tenantStatus?.uppercase() in blockedTenantStatuses
+
+    val blockedTenantMessage: String?
+        get() = when (tenantStatus?.uppercase()) {
+            "SUSPENDED" -> "Tenant sedang ditangguhkan. Hubungi administrator platform untuk mengaktifkan kembali akses."
+            "EXPIRED" -> "Langganan tenant sudah kedaluwarsa. Perpanjang langganan untuk melanjutkan penggunaan aplikasi."
+            else -> null
+        }
 }
 
 private val blockedTenantStatuses = setOf("SUSPENDED", "EXPIRED")
@@ -37,6 +47,9 @@ class AppSessionViewModel @Inject constructor(
                     it.copy(
                         isAuthenticated = sessionState.isAuthenticated,
                         tenantStatus = sessionState.tenantStatus,
+                        role = sessionState.role,
+                        userName = sessionState.userName,
+                        tenantName = sessionState.tenantName,
                     )
                 }
             }

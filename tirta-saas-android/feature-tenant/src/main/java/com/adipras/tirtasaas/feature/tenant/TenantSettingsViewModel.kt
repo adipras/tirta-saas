@@ -2,6 +2,8 @@ package com.adipras.tirtasaas.feature.tenant
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adipras.tirtasaas.core.network.requireData
+import com.adipras.tirtasaas.core.network.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,28 +43,24 @@ class TenantSettingsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             runCatching { tenantApiService.getTenantSettings() }
                 .onSuccess { response ->
-                    val dto = response.data
-                    if (dto != null) {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            companyName = dto.companyName ?: "",
-                            address = dto.address ?: "",
-                            phone = dto.phone ?: "",
-                            email = dto.email ?: "",
-                            website = dto.website ?: "",
-                            timezone = dto.timezone ?: "",
-                            invoiceGenerationDay = dto.invoiceGenerationDay.toString(),
-                            invoiceDueDay = dto.invoiceDueDay.toString(),
-                        )
-                    } else {
-                        _uiState.value = _uiState.value.copy(
-                            isLoading = false,
-                            error = "Pengaturan tidak ditemukan",
-                        )
-                    }
+                    val dto = response.requireData("Pengaturan tidak ditemukan")
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        companyName = dto.companyName ?: "",
+                        address = dto.address ?: "",
+                        phone = dto.phone ?: "",
+                        email = dto.email ?: "",
+                        website = dto.website ?: "",
+                        timezone = dto.timezone ?: "",
+                        invoiceGenerationDay = dto.invoiceGenerationDay.toString(),
+                        invoiceDueDay = dto.invoiceDueDay.toString(),
+                    )
                 }
                 .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = e.userMessage("Gagal memuat pengaturan tenant"),
+                    )
                 }
         }
     }
@@ -91,7 +89,10 @@ class TenantSettingsViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(isSaving = false, saveSuccess = true)
                 }
                 .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(isSaving = false, error = e.message)
+                    _uiState.value = _uiState.value.copy(
+                        isSaving = false,
+                        error = e.userMessage("Gagal menyimpan pengaturan tenant"),
+                    )
                 }
         }
     }

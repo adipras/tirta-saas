@@ -2,6 +2,7 @@ package com.adipras.tirtasaas.feature.tenant
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adipras.tirtasaas.core.network.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,7 +44,7 @@ class TenantListViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = error.message ?: "Gagal memuat data tenant")
+                        it.copy(isLoading = false, errorMessage = error.userMessage("Gagal memuat data tenant"))
                     }
                 }
         }
@@ -63,7 +64,7 @@ class TenantListViewModel @Inject constructor(
         viewModelScope.launch {
             repository.approveTenant(id)
                 .onSuccess { loadTenants() }
-                .onFailure { error -> _uiState.update { it.copy(errorMessage = error.message) } }
+                .onFailure { error -> _uiState.update { it.copy(errorMessage = error.userMessage("Gagal menyetujui tenant")) } }
         }
     }
 
@@ -71,7 +72,7 @@ class TenantListViewModel @Inject constructor(
         viewModelScope.launch {
             repository.suspendTenant(id)
                 .onSuccess { loadTenants() }
-                .onFailure { error -> _uiState.update { it.copy(errorMessage = error.message) } }
+                .onFailure { error -> _uiState.update { it.copy(errorMessage = error.userMessage("Gagal menangguhkan tenant")) } }
         }
     }
 
@@ -79,7 +80,7 @@ class TenantListViewModel @Inject constructor(
         viewModelScope.launch {
             repository.activateTenant(id)
                 .onSuccess { loadTenants() }
-                .onFailure { error -> _uiState.update { it.copy(errorMessage = error.message) } }
+                .onFailure { error -> _uiState.update { it.copy(errorMessage = error.userMessage("Gagal mengaktifkan tenant")) } }
         }
     }
 

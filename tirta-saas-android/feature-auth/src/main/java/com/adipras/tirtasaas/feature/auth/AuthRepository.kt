@@ -19,6 +19,9 @@ class AuthRepository @Inject constructor(
             accessToken = response.token,
             refreshToken = response.refreshToken,
             tenantStatus = tenantStatus,
+            role = response.role.ifBlank { response.user.role },
+            userName = response.user.name,
+            tenantName = response.tenantName ?: response.user.tenantName,
         )
         response
     }
@@ -37,6 +40,9 @@ class AuthRepository @Inject constructor(
             accessToken = response.token,
             refreshToken = response.refreshToken,
             tenantStatus = tenantStatus,
+            role = response.role.ifBlank { response.user.role },
+            userName = response.user.name,
+            tenantName = response.tenantName ?: response.user.tenantName,
         )
         response
     }
@@ -57,7 +63,7 @@ class AuthRepository @Inject constructor(
     private suspend fun ensureTenantAccess(tenantStatus: String?) {
         val normalizedStatus = tenantStatus?.uppercase() ?: return
         if (normalizedStatus == "SUSPENDED" || normalizedStatus == "EXPIRED") {
-            sessionStorage.clearSession()
+            sessionStorage.clearSession(blockedTenantStatus = normalizedStatus)
             throw TenantAccessBlockedException(normalizedStatus)
         }
     }

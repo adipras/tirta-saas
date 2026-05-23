@@ -12,7 +12,7 @@ interface TenantApiService {
     @GET("platform/tenants")
     suspend fun getTenants(
         @Query("page") page: Int = 1,
-        @Query("limit") limit: Int = 20,
+        @Query("page_size") pageSize: Int = 20,
         @Query("search") search: String? = null,
         @Query("status") status: String? = null,
     ): TenantListResponse

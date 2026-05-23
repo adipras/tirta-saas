@@ -2,6 +2,7 @@ package com.adipras.tirtasaas.feature.tenant
 
 import com.adipras.tirtasaas.core.database.dao.TenantSettingsDao
 import com.adipras.tirtasaas.core.database.entity.TenantSettingsEntity
+import com.adipras.tirtasaas.core.network.requireData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -12,13 +13,12 @@ class TenantSettingsRepository @Inject constructor(
     private val tenantApiService: TenantApiService,
     private val tenantSettingsDao: TenantSettingsDao,
 ) {
-    suspend fun fetchAndCache(tenantId: String?): Result<TenantSettingsDto> = runCatching {
-        val id = tenantId ?: error("Tenant id kosong")
-        val response = tenantApiService.getTenantSettings()
-        val settings = response.data ?: error("Tenant settings tidak ditemukan")
-        // persist to local db (map subset of fields)
-        withContext(Dispatchers.IO) {
-            val entity = TenantSettingsEntity(
+suspend fun fetchAndCache(tenantId: String?): Result<TenantSettingsDto> = runCatching {
+    val id = tenantId ?: error("Tenant id kosong")
+    val settings = tenantApiService.getTenantSettings().requireData("Pengaturan tenant tidak ditemukan")
+    // persist to local db (map subset of fields)
+    withContext(Dispatchers.IO) {
+        val entity = TenantSettingsEntity(
                 tenantId = id,
                 billingCycleDay = settings.invoiceGenerationDay,
                 timeZone = settings.timezone ?: "",

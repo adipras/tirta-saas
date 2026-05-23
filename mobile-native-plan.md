@@ -64,13 +64,16 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 - [x] Pasang networking, local DB, DI, dan session handling
 - [x] Implement fitur MVP operasional (usage, invoice, payment screens + navigation)
 - [x] Implement modul printer Bluetooth thermal (feature-printer)
+- [x] Samakan consumer Android aktif ke kontrak backend canonical utama _(DONE: helper `ApiResponse/PagedApiResponse`, tenant list pakai `page_size`, repository utama tidak lagi unwrap data secara sporadis)_
+- [x] Rapikan session context untuk mobile _(DONE: role, nama user, dan tenant name ikut disimpan di session storage)_
+- [x] Rapikan feedback UX inti mobile _(DONE: snackbar/error state lebih konsisten, status invoice dilokalkan, tenant blocked diberi dialog yang jelas)_
 
 ## Scope MVP Mobile
 
 ### Core
 
 - [x] Login dan session management
-- [ ] Dashboard role-based _(BELUM: dashboard saat ini tampilkan semua tombol tanpa filter berdasarkan role)_
+- [x] Dashboard role-based _(DONE: dashboard sekarang memfilter modul berdasarkan role/session context)_
 - [x] Tenant management untuk `platform_owner` (list + detail + actions)
 - [x] Tenant settings untuk `tenant_admin` (Android: endpoint fix + TenantSettingsRepository fix)
 - [x] Tenant user management (CRUD)
@@ -194,6 +197,7 @@ Checklist:
 - [x] Tambah token interceptor (Bearer header otomatis via AuthInterceptor)
 - [x] Tambah token refresh interceptor (auto-refresh saat 401, TokenAuthenticator)
 - [x] Tambah forced logout jika tenant suspended/expired (session tenant guard + auto-redirect to login)
+- [x] Tampilkan alasan tenant blocked di UX _(dialog penjelasan sebelum user kembali ke login)_
 - [ ] Hindari logging data sensitif
 
 ## Stack Final

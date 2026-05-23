@@ -37,68 +37,82 @@ fun InvoiceListScreen(
     val error by viewModel.error.collectAsState()
     val currentPage by viewModel.currentPage.collectAsState()
     val totalPages by viewModel.totalPages.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var filterMonth by remember { mutableStateOf("") }
     var filterStatus by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Tagihan", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(12.dp))
+    LaunchedEffect(error) {
+        error?.let { snackbarHostState.showSnackbar(it) }
+    }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = filterMonth,
-                onValueChange = { filterMonth = it },
-                label = { Text("Bulan (YYYY-MM)") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-            )
-            OutlinedTextField(
-                value = filterStatus,
-                onValueChange = { filterStatus = it },
-                label = { Text("Status") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-            )
-        }
-        Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = {
-                viewModel.applyFilters(
-                    customerId = null,
-                    usageMonth = filterMonth.ifBlank { null },
-                    status = filterStatus.ifBlank { null },
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+            Text("Tagihan", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(12.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = filterMonth,
+                    onValueChange = { filterMonth = it },
+                    label = { Text("Bulan (YYYY-MM)") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
                 )
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Filter") }
-
-        Spacer(Modifier.height(12.dp))
-
-        if (isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                OutlinedTextField(
+                    value = filterStatus,
+                    onValueChange = { filterStatus = it },
+                    label = { Text("Status") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                )
             }
-        } else if (error != null) {
-            Text("Error: $error", color = MaterialTheme.colorScheme.error)
-        } else {
-            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(invoices) { invoice ->
-                    InvoiceCard(invoice = invoice, onClick = { onNavigateToDetail(invoice.id) })
-                }
-            }
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    viewModel.applyFilters(
+                        customerId = null,
+                        usageMonth = filterMonth.ifBlank { null },
+                        status = filterStatus.ifBlank { null },
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Filter") }
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = { viewModel.prevPage() }, enabled = currentPage > 1) {
-                    Icon(Icons.Default.ChevronLeft, contentDescription = "Sebelumnya")
+            Spacer(Modifier.height(12.dp))
+
+            if (isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
                 }
-                Text("$currentPage / $totalPages")
-                IconButton(onClick = { viewModel.nextPage() }, enabled = currentPage < totalPages) {
-                    Icon(Icons.Default.ChevronRight, contentDescription = "Berikutnya")
+            } else if (invoices.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        "Belum ada tagihan yang sesuai filter.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(invoices) { invoice ->
+                        InvoiceCard(invoice = invoice, onClick = { onNavigateToDetail(invoice.id) })
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = { viewModel.prevPage() }, enabled = currentPage > 1) {
+                        Icon(Icons.Default.ChevronLeft, contentDescription = "Sebelumnya")
+                    }
+                    Text("$currentPage / $totalPages")
+                    IconButton(onClick = { viewModel.nextPage() }, enabled = currentPage < totalPages) {
+                        Icon(Icons.Default.ChevronRight, contentDescription = "Berikutnya")
+                    }
                 }
             }
         }
@@ -137,9 +151,16 @@ private fun StatusChip(status: String) {
         "overdue" -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.secondary
     }
+    val label = when (status.lowercase()) {
+        "paid" -> "Lunas"
+        "overdue" -> "Terlambat"
+        "unpaid" -> "Belum Bayar"
+        "void" -> "Dibatalkan"
+        else -> status.replaceFirstChar { it.uppercase() }
+    }
     Surface(color = color.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {
         Text(
-            text = status,
+            text = label,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
             style = MaterialTheme.typography.labelSmall,
             color = color,

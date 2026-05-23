@@ -2,6 +2,8 @@ package com.adipras.tirtasaas.feature.invoice
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adipras.tirtasaas.core.network.itemsOrEmpty
+import com.adipras.tirtasaas.core.network.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,11 +48,11 @@ class InvoiceListViewModel @Inject constructor(
                 usageMonth = filterUsageMonth,
                 status = filterStatus,
             ).onSuccess { response ->
-                _invoices.value = response.data ?: emptyList()
+                _invoices.value = response.itemsOrEmpty()
                 _currentPage.value = response.meta?.currentPage ?: 1
                 _totalPages.value = response.meta?.totalPages ?: 1
             }.onFailure {
-                _error.value = it.message
+                _error.value = it.userMessage("Gagal memuat daftar tagihan")
             }
             _isLoading.value = false
         }

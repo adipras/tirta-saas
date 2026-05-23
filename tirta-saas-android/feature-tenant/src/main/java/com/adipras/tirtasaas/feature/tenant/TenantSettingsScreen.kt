@@ -64,7 +64,7 @@ fun TenantSettingsScreen(
 
     LaunchedEffect(state.error) {
         state.error?.let {
-            snackbarHostState.showSnackbar("Error: $it")
+            snackbarHostState.showSnackbar(it)
         }
     }
 

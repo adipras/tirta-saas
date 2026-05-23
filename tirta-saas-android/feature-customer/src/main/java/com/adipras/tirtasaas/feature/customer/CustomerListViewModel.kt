@@ -2,6 +2,7 @@ package com.adipras.tirtasaas.feature.customer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adipras.tirtasaas.core.network.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,7 +54,7 @@ class CustomerListViewModel @Inject constructor(
                     }
                 }                .onFailure { error ->
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = error.message ?: "Gagal memuat data pelanggan")
+                        it.copy(isLoading = false, errorMessage = error.userMessage("Gagal memuat data pelanggan"))
                     }
                 }
         }
@@ -98,7 +99,7 @@ class CustomerListViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            errorMessage = error.message ?: "Gagal membuat pelanggan",
+                            errorMessage = error.userMessage("Gagal membuat pelanggan"),
                         )
                     }
                 }
@@ -113,7 +114,7 @@ class CustomerListViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _uiState.update {
-                        it.copy(errorMessage = error.message ?: "Gagal memuat paket langganan")
+                        it.copy(errorMessage = error.userMessage("Gagal memuat paket langganan"))
                     }
                 }
         }
@@ -124,7 +125,7 @@ class CustomerListViewModel @Inject constructor(
             repository.setActive(customer.id, !customer.isActive)
                 .onSuccess { loadCustomers(reset = true) }
                 .onFailure { error ->
-                    _uiState.update { it.copy(errorMessage = error.message) }
+                    _uiState.update { it.copy(errorMessage = error.userMessage("Gagal mengubah status pelanggan")) }
                 }
         }
     }

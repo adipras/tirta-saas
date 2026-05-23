@@ -3,6 +3,7 @@ package com.adipras.tirtasaas.feature.tenant
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adipras.tirtasaas.core.network.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,7 +49,7 @@ class TenantDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isLoading = false,
-                            errorMessage = error.message ?: "Gagal memuat detail tenant",
+                            errorMessage = error.userMessage("Gagal memuat detail tenant"),
                         )
                     }
                 }
@@ -99,7 +100,7 @@ class TenantDetailViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         isSaving = false,
-                        errorMessage = error.message ?: "Gagal memperbarui tenant",
+                        errorMessage = error.userMessage("Gagal memperbarui tenant"),
                     )
                 }
             }
@@ -117,7 +118,7 @@ class TenantDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            errorMessage = error.message ?: "Gagal menyetujui tenant",
+                            errorMessage = error.userMessage("Gagal menyetujui tenant"),
                         )
                     }
                 }
@@ -141,7 +142,7 @@ class TenantDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            errorMessage = error.message ?: "Gagal menolak tenant",
+                            errorMessage = error.userMessage("Gagal menolak tenant"),
                         )
                     }
                 }
@@ -159,7 +160,7 @@ class TenantDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            errorMessage = error.message ?: "Gagal menangguhkan tenant",
+                            errorMessage = error.userMessage("Gagal menangguhkan tenant"),
                         )
                     }
                 }
@@ -177,7 +178,7 @@ class TenantDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            errorMessage = error.message ?: "Gagal mengaktifkan tenant",
+                            errorMessage = error.userMessage("Gagal mengaktifkan tenant"),
                         )
                     }
                 }
@@ -201,7 +202,7 @@ class TenantDetailViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(
                             isSaving = false,
-                            errorMessage = error.message ?: "Gagal menghapus tenant",
+                            errorMessage = error.userMessage("Gagal menghapus tenant"),
                         )
                     }
                 }

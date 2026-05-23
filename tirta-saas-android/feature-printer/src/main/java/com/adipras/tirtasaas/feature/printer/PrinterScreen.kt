@@ -100,7 +100,7 @@ fun PrinterScreen(
     }
     LaunchedEffect(state.error) {
         state.error?.let {
-            snackbarHostState.showSnackbar("Error: $it")
+            snackbarHostState.showSnackbar(it)
             viewModel.clearError()
         }
     }

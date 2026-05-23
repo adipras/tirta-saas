@@ -1,6 +1,9 @@
 package com.adipras.tirtasaas.mobile
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,12 +26,6 @@ fun TirtaSaasApp() {
         val navController = rememberNavController()
         val backStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = backStackEntry?.destination?.route
-
-        LaunchedEffect(sessionUiState.isTenantBlocked) {
-            if (sessionUiState.isTenantBlocked) {
-                sessionViewModel.clearBlockedSession()
-            }
-        }
 
         LaunchedEffect(sessionUiState.isAuthenticated, currentRoute) {
             when {
@@ -59,7 +56,21 @@ fun TirtaSaasApp() {
             TirtaNavHost(
                 navController = navController,
                 innerPadding = innerPadding,
+                sessionUiState = sessionUiState,
                 onLogout = sessionViewModel::logout,
+            )
+        }
+
+        if (sessionUiState.isTenantBlocked) {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text("Akses tenant tidak tersedia") },
+                text = { Text(sessionUiState.blockedTenantMessage ?: "Akses tenant sedang dibatasi.") },
+                confirmButton = {
+                    Button(onClick = sessionViewModel::clearBlockedSession) {
+                        Text("Kembali ke login")
+                    }
+                },
             )
         }
     }

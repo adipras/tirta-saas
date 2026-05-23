@@ -2,6 +2,7 @@ package com.adipras.tirtasaas.feature.user
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adipras.tirtasaas.core.network.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,7 +41,7 @@ class UserListViewModel @Inject constructor(
                 }
                 .onFailure { error ->
                     _uiState.update {
-                        it.copy(isLoading = false, errorMessage = error.message ?: "Gagal memuat pengguna")
+                        it.copy(isLoading = false, errorMessage = error.userMessage("Gagal memuat pengguna"))
                     }
                 }
         }
@@ -60,7 +61,7 @@ class UserListViewModel @Inject constructor(
                     loadUsers()
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isSaving = false, errorMessage = error.message) }
+                    _uiState.update { it.copy(isSaving = false, errorMessage = error.userMessage("Gagal membuat pengguna")) }
                 }
         }
     }
@@ -74,7 +75,7 @@ class UserListViewModel @Inject constructor(
                     loadUsers()
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isSaving = false, errorMessage = error.message) }
+                    _uiState.update { it.copy(isSaving = false, errorMessage = error.userMessage("Gagal memperbarui pengguna")) }
                 }
         }
     }
@@ -83,7 +84,7 @@ class UserListViewModel @Inject constructor(
         viewModelScope.launch {
             repository.deleteUser(id)
                 .onSuccess { loadUsers() }
-                .onFailure { error -> _uiState.update { it.copy(errorMessage = error.message) } }
+                .onFailure { error -> _uiState.update { it.copy(errorMessage = error.userMessage("Gagal menghapus pengguna")) } }
         }
     }
 }

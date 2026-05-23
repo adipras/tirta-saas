@@ -139,8 +139,8 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 - 🟡 Endpoint backend `/api/customer/invoices/:id/pdf` tidak terlihat terdaftar di route saat ini
 
 ### 8. Android app maturity
-- 🟡 README Android menandai app native utama masih pada status shell / Phase 1 roadmap mobile
-- 🟡 Jadi mobile app **sudah dikerjakan**, tetapi belum bisa diasumsikan setara penuh dengan seluruh surface web
+- 🟡 App Android utama sekarang sudah punya flow operasional inti, dashboard role-aware, dan alignment contract utama ke backend canonical
+- 🟡 Namun mobile app **masih belum setara penuh** dengan seluruh surface web, terutama monitoring, parity fitur customer portal, dan hardening release pipeline
 
 ### 9. Operasional produksi masih lebih banyak terdokumentasi daripada tervalidasi otomatis
 - 🟡 Ada checklist VPS / hardening / monitoring / backup
@@ -253,5 +253,5 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 ## Ringkasan singkat
 
 **Status umum:** Core product sudah usable dan fondasi deploy produksi sudah ada.  
-**Yang paling matang:** billing flow tenant, payment proof flow, reporting, payment settings, scheduler, dan fondasi Android/printer bridge.  
+**Yang paling matang:** billing flow tenant, payment proof flow, reporting, payment settings, scheduler, dan fondasi Android/printer bridge/mobile operasional inti.
 **Yang paling menentukan untuk production:** automated tests, release gate, observability, audit logging aktif, hardening akses platform owner, dan automation notification/payment.

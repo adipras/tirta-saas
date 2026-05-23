@@ -43,6 +43,7 @@ import com.adipras.tirtasaas.feature.payment.PaymentInputDestination
 import com.adipras.tirtasaas.feature.payment.paymentInputScreen
 import com.adipras.tirtasaas.feature.printer.PrinterDestination
 import com.adipras.tirtasaas.feature.printer.printerScreen
+import com.adipras.tirtasaas.mobile.AppSessionUiState
 
 private const val DASHBOARD_ROUTE = "dashboard"
 
@@ -50,6 +51,7 @@ private const val DASHBOARD_ROUTE = "dashboard"
 fun TirtaNavHost(
     navController: NavHostController,
     innerPadding: PaddingValues,
+    sessionUiState: AppSessionUiState,
     onLogout: () -> Unit,
 ) {
     NavHost(
@@ -58,7 +60,7 @@ fun TirtaNavHost(
         modifier = Modifier.padding(innerPadding),
     ) {
         loginGraph(navController)
-        dashboardGraph(navController, onLogout)
+        dashboardGraph(navController, sessionUiState, onLogout)
         customerListScreen(
             onCustomerClick = { customerId ->
                 navController.navigate(CustomerDetailDestination.createRoute(customerId))
@@ -123,10 +125,12 @@ private fun NavGraphBuilder.loginGraph(navController: NavHostController) {
 
 private fun NavGraphBuilder.dashboardGraph(
     navController: NavHostController,
+    sessionUiState: AppSessionUiState,
     onLogout: () -> Unit,
 ) {
     composable(route = DASHBOARD_ROUTE) {
         DashboardRoute(
+            sessionUiState = sessionUiState,
             onNavigateToCustomers = {
                 navController.navigate(CustomerListDestination.route)
             },
@@ -152,6 +156,7 @@ private fun NavGraphBuilder.dashboardGraph(
 
 @Composable
 private fun DashboardRoute(
+    sessionUiState: AppSessionUiState,
     onNavigateToCustomers: () -> Unit,
     onNavigateToTenants: () -> Unit,
     onNavigateToUsers: () -> Unit,
@@ -160,6 +165,9 @@ private fun DashboardRoute(
     onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
+    val role = sessionUiState.role?.lowercase()
+    val visibleModules = modulesForRole(role)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -170,43 +178,103 @@ private fun DashboardRoute(
             text = "Dashboard",
             style = MaterialTheme.typography.headlineSmall,
         )
-        Button(onClick = onNavigateToCustomers, modifier = Modifier.fillMaxWidth()) {
-            Text("Daftar Pelanggan")
+        val greeting = when {
+            !sessionUiState.userName.isNullOrBlank() && !sessionUiState.tenantName.isNullOrBlank() ->
+                "Halo, ${sessionUiState.userName} • ${sessionUiState.tenantName}"
+            !sessionUiState.userName.isNullOrBlank() -> "Halo, ${sessionUiState.userName}"
+            else -> null
         }
-        Button(
-            onClick = onNavigateToTenants,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Daftar Tenant")
+        if (greeting != null) {
+            Text(
+                text = greeting,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-        Button(
-            onClick = onNavigateToUsers,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Manajemen Pengguna")
+        if (visibleModules.contains(DashboardModule.CUSTOMERS)) {
+            Button(onClick = onNavigateToCustomers, modifier = Modifier.fillMaxWidth()) {
+                Text("Daftar Pelanggan")
+            }
         }
-        Button(
-            onClick = onNavigateToUsages,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Pemakaian Air")
+        if (visibleModules.contains(DashboardModule.TENANTS)) {
+            Button(
+                onClick = onNavigateToTenants,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Daftar Tenant")
+            }
         }
-        Button(
-            onClick = onNavigateToInvoices,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Tagihan")
+        if (visibleModules.contains(DashboardModule.USERS)) {
+            Button(
+                onClick = onNavigateToUsers,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Manajemen Pengguna")
+            }
         }
-        Button(
-            onClick = onNavigateToSettings,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Pengaturan")
+        if (visibleModules.contains(DashboardModule.USAGES)) {
+            Button(
+                onClick = onNavigateToUsages,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Pemakaian Air")
+            }
+        }
+        if (visibleModules.contains(DashboardModule.INVOICES)) {
+            Button(
+                onClick = onNavigateToInvoices,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Tagihan")
+            }
+        }
+        if (visibleModules.contains(DashboardModule.SETTINGS)) {
+            Button(
+                onClick = onNavigateToSettings,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Pengaturan")
+            }
+        }
+        if (visibleModules.isEmpty()) {
+            Text(
+                text = "Belum ada modul operasional mobile yang tersedia untuk peran ini.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Button(onClick = onLogout) {
             Text("Keluar")
         }
     }
+}
+
+private enum class DashboardModule {
+    CUSTOMERS,
+    TENANTS,
+    USERS,
+    USAGES,
+    INVOICES,
+    SETTINGS,
+}
+
+private fun modulesForRole(role: String?): Set<DashboardModule> = when (role) {
+    "platform_owner" -> setOf(DashboardModule.TENANTS)
+    "tenant_admin" -> setOf(
+        DashboardModule.CUSTOMERS,
+        DashboardModule.USERS,
+        DashboardModule.USAGES,
+        DashboardModule.INVOICES,
+        DashboardModule.SETTINGS,
+    )
+    "meter_reader" -> setOf(
+        DashboardModule.CUSTOMERS,
+        DashboardModule.USAGES,
+    )
+    "finance" -> setOf(
+        DashboardModule.INVOICES,
+    )
+    else -> emptySet()
 }
 
 @Composable

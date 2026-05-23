@@ -3,6 +3,7 @@ package com.adipras.tirtasaas.feature.customer
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adipras.tirtasaas.core.network.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -46,7 +47,9 @@ class CustomerDetailViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false, customer = customer) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(isLoading = false, errorMessage = error.userMessage("Gagal memuat detail pelanggan"))
+                    }
                 }
         }
     }
@@ -81,7 +84,9 @@ class CustomerDetailViewModel @Inject constructor(
                     _uiState.update { it.copy(isSaving = false, customer = updated, showEditDialog = false) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isSaving = false, errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(isSaving = false, errorMessage = error.userMessage("Gagal memperbarui pelanggan"))
+                    }
                 }
         }
     }
@@ -94,7 +99,9 @@ class CustomerDetailViewModel @Inject constructor(
                     _uiState.update { it.copy(isSaving = false, showDeleteConfirm = false, deleteSuccess = true) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(isSaving = false, errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(isSaving = false, errorMessage = error.userMessage("Gagal menghapus pelanggan"))
+                    }
                 }
         }
     }
@@ -107,7 +114,9 @@ class CustomerDetailViewModel @Inject constructor(
                     _uiState.update { it.copy(customer = updated) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(errorMessage = error.message) }
+                    _uiState.update {
+                        it.copy(errorMessage = error.userMessage("Gagal mengubah status pelanggan"))
+                    }
                 }
         }
     }

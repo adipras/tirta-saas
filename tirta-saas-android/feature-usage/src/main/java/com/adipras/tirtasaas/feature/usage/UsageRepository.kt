@@ -1,6 +1,7 @@
 package com.adipras.tirtasaas.feature.usage
 
 import com.adipras.tirtasaas.core.network.PagedApiResponse
+import com.adipras.tirtasaas.core.network.requireData
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,12 +30,10 @@ class UsageRepository @Inject constructor(
     }
 
     suspend fun createUsage(request: CreateWaterUsageRequest): Result<WaterUsageDto> = runCatching {
-        val response = api.createWaterUsage(request)
-        response.data ?: error("Gagal membuat data pemakaian")
+        api.createWaterUsage(request).requireData("Gagal membuat data pemakaian")
     }
 
     suspend fun updateUsage(id: String, request: UpdateWaterUsageRequest): Result<WaterUsageDto> = runCatching {
-        val response = api.updateWaterUsage(id, request)
-        response.data ?: error("Gagal memperbarui data pemakaian")
+        api.updateWaterUsage(id, request).requireData("Gagal memperbarui data pemakaian")
     }
 }

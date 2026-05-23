@@ -1,5 +1,6 @@
 package com.adipras.tirtasaas.feature.customer
 
+import com.adipras.tirtasaas.core.network.requireData
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -14,22 +15,19 @@ class CustomerRepository @Inject constructor(
         isActive: Boolean? = null,
     ): Result<CustomerListData> = runCatching {
         val response = customerApiService.getCustomers(page, limit, search, isActive)
-        response.data ?: CustomerListData()
+        response.requireData("Daftar pelanggan tidak tersedia")
     }
 
     suspend fun getCustomer(id: String): Result<CustomerDto> = runCatching {
-        customerApiService.getCustomer(id).data
-            ?: error("Customer tidak ditemukan")
+        customerApiService.getCustomer(id).requireData("Pelanggan tidak ditemukan")
     }
 
     suspend fun createCustomer(request: CreateCustomerRequest): Result<CustomerDto> = runCatching {
-        customerApiService.createCustomer(request).data
-            ?: error("Gagal membuat pelanggan")
+        customerApiService.createCustomer(request).requireData("Gagal membuat pelanggan")
     }
 
     suspend fun updateCustomer(id: String, request: UpdateCustomerRequest): Result<CustomerDto> = runCatching {
-        customerApiService.updateCustomer(id, request).data
-            ?: error("Gagal memperbarui pelanggan")
+        customerApiService.updateCustomer(id, request).requireData("Gagal memperbarui pelanggan")
     }
 
     suspend fun getSubscriptionTypes(): Result<List<SubscriptionTypeDto>> = runCatching {
@@ -43,6 +41,6 @@ class CustomerRepository @Inject constructor(
     suspend fun setActive(id: String, active: Boolean): Result<CustomerDto> = runCatching {
         val response = if (active) customerApiService.activateCustomer(id)
         else customerApiService.deactivateCustomer(id)
-        response.data ?: error("Gagal mengubah status pelanggan")
+        response.requireData("Gagal mengubah status pelanggan")
     }
 }

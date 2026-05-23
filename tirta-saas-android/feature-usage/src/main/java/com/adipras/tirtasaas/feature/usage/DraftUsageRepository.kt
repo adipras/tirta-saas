@@ -2,6 +2,7 @@ package com.adipras.tirtasaas.feature.usage
 
 import com.adipras.tirtasaas.core.database.dao.DraftUsageDao
 import com.adipras.tirtasaas.core.database.entity.DraftUsageEntity
+import com.adipras.tirtasaas.core.network.requireData
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -25,11 +26,9 @@ class DraftUsageRepository @Inject constructor(
         val draft = dao.getPendingDrafts().firstOrNull { it.id == draftId }
             ?: return@withContext false
         try {
-            val response = api.createWaterUsage(draft.toRequest())
-            if (response.data != null) {
-                dao.markSynced(draftId)
-                return@withContext true
-            }
+            api.createWaterUsage(draft.toRequest()).requireData("Sinkronisasi draft gagal")
+            dao.markSynced(draftId)
+            return@withContext true
         } catch (e: Exception) {
             // retry handled by WorkManager
         }

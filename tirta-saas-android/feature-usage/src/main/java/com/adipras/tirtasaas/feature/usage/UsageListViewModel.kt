@@ -2,6 +2,8 @@ package com.adipras.tirtasaas.feature.usage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.adipras.tirtasaas.core.network.itemsOrEmpty
+import com.adipras.tirtasaas.core.network.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,12 +43,15 @@ class UsageListViewModel @Inject constructor(
             ).onSuccess { paged ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    usages = paged.data ?: emptyList(),
+                    usages = paged.itemsOrEmpty(),
                     currentPage = paged.meta?.currentPage ?: 1,
                     totalPages = paged.meta?.totalPages ?: 1,
                 )
             }.onFailure { e ->
-                _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.userMessage("Gagal memuat data pemakaian"),
+                )
             }
         }
     }

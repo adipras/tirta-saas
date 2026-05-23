@@ -42,7 +42,7 @@ class LoginViewModel @Inject constructor(
             }
 
             state.password.isBlank() -> {
-                _uiState.update { it.copy(errorMessage = "Password wajib diisi.") }
+                _uiState.update { it.copy(errorMessage = "Kata sandi wajib diisi.") }
             }
 
             else -> {

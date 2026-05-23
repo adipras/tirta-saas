@@ -1,6 +1,7 @@
 package com.adipras.tirtasaas.feature.invoice
 
 import com.adipras.tirtasaas.core.network.PagedApiResponse
+import com.adipras.tirtasaas.core.network.requireData
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,6 +20,6 @@ class InvoiceRepository @Inject constructor(
     }
 
     suspend fun getInvoice(id: String): Result<InvoiceDto> = runCatching {
-        api.getInvoice(id).data ?: error("Invoice tidak ditemukan")
+        api.getInvoice(id).requireData("Invoice tidak ditemukan")
     }
 }

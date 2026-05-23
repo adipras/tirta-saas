@@ -18,6 +18,9 @@ import javax.inject.Singleton
 data class SessionState(
     val isAuthenticated: Boolean = false,
     val tenantStatus: String? = null,
+    val role: String? = null,
+    val userName: String? = null,
+    val tenantName: String? = null,
 )
 
 @Singleton
@@ -29,6 +32,9 @@ class SessionStorage @Inject constructor(
         SessionState(
             isAuthenticated = preferences[Keys.IS_AUTHENTICATED] ?: (getAccessToken() != null),
             tenantStatus = preferences[Keys.TENANT_STATUS],
+            role = preferences[Keys.ROLE],
+            userName = preferences[Keys.USER_NAME],
+            tenantName = preferences[Keys.TENANT_NAME],
         )
     }
 
@@ -44,6 +50,9 @@ class SessionStorage @Inject constructor(
         accessToken: String,
         refreshToken: String?,
         tenantStatus: String?,
+        role: String?,
+        userName: String?,
+        tenantName: String?,
     ) {
         securePreferences.edit()
             .putString(Keys.ACCESS_TOKEN_NAME, accessToken)
@@ -57,14 +66,36 @@ class SessionStorage @Inject constructor(
             } else {
                 preferences[Keys.TENANT_STATUS] = tenantStatus
             }
+            if (role.isNullOrBlank()) {
+                preferences.remove(Keys.ROLE)
+            } else {
+                preferences[Keys.ROLE] = role
+            }
+            if (userName.isNullOrBlank()) {
+                preferences.remove(Keys.USER_NAME)
+            } else {
+                preferences[Keys.USER_NAME] = userName
+            }
+            if (tenantName.isNullOrBlank()) {
+                preferences.remove(Keys.TENANT_NAME)
+            } else {
+                preferences[Keys.TENANT_NAME] = tenantName
+            }
         }
     }
 
-    suspend fun clearSession() {
+    suspend fun clearSession(blockedTenantStatus: String? = null) {
         securePreferences.edit().clear().apply()
         dataStore.edit { preferences ->
             preferences[Keys.IS_AUTHENTICATED] = false
-            preferences.remove(Keys.TENANT_STATUS)
+            if (blockedTenantStatus.isNullOrBlank()) {
+                preferences.remove(Keys.TENANT_STATUS)
+            } else {
+                preferences[Keys.TENANT_STATUS] = blockedTenantStatus
+            }
+            preferences.remove(Keys.ROLE)
+            preferences.remove(Keys.USER_NAME)
+            preferences.remove(Keys.TENANT_NAME)
         }
     }
 
@@ -82,5 +113,8 @@ class SessionStorage @Inject constructor(
         const val REFRESH_TOKEN_NAME = "refresh_token"
         val IS_AUTHENTICATED = booleanPreferencesKey("is_authenticated")
         val TENANT_STATUS = stringPreferencesKey("tenant_status")
+        val ROLE = stringPreferencesKey("role")
+        val USER_NAME = stringPreferencesKey("user_name")
+        val TENANT_NAME = stringPreferencesKey("tenant_name")
     }
 }

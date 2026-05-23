@@ -16,6 +16,18 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 
+private data class PaymentMethodOption(
+    val code: String,
+    val label: String,
+)
+
+private val paymentMethodOptions = listOf(
+    PaymentMethodOption("cash", "Tunai"),
+    PaymentMethodOption("bank_transfer", "Transfer Bank"),
+    PaymentMethodOption("e_wallet", "Dompet Digital"),
+    PaymentMethodOption("qris", "QRIS"),
+)
+
 object PaymentInputDestination {
     const val routeBase = "payment_input"
     const val ARG = "invoiceId"
@@ -42,13 +54,19 @@ fun PaymentInputScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val success by viewModel.success.collectAsState()
     val error by viewModel.error.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var amount by remember { mutableStateOf("") }
-    var paymentMethod by remember { mutableStateOf("cash") }
+    var paymentMethod by remember { mutableStateOf(paymentMethodOptions.first().code) }
     var notes by remember { mutableStateOf("") }
+    var paymentMethodExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(success) {
         if (success) onSaved()
+    }
+
+    LaunchedEffect(error) {
+        error?.let { snackbarHostState.showSnackbar(it) }
     }
 
     Scaffold(
@@ -62,6 +80,7 @@ fun PaymentInputScreen(
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -79,13 +98,36 @@ fun PaymentInputScreen(
                 singleLine = true,
             )
 
-            OutlinedTextField(
-                value = paymentMethod,
-                onValueChange = { paymentMethod = it },
-                label = { Text("Metode Pembayaran") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
+            ExposedDropdownMenuBox(
+                expanded = paymentMethodExpanded,
+                onExpandedChange = { paymentMethodExpanded = it },
+            ) {
+                OutlinedTextField(
+                    value = paymentMethodOptions.firstOrNull { it.code == paymentMethod }?.label.orEmpty(),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Metode Pembayaran") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    singleLine = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = paymentMethodExpanded) },
+                )
+                ExposedDropdownMenu(
+                    expanded = paymentMethodExpanded,
+                    onDismissRequest = { paymentMethodExpanded = false },
+                ) {
+                    paymentMethodOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.label) },
+                            onClick = {
+                                paymentMethod = option.code
+                                paymentMethodExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
 
             OutlinedTextField(
                 value = notes,
@@ -95,19 +137,19 @@ fun PaymentInputScreen(
                 minLines = 2,
             )
 
-            if (error != null) {
-                Text("Error: $error", color = MaterialTheme.colorScheme.error)
-            }
-
             Spacer(Modifier.weight(1f))
 
             Button(
                 onClick = {
-                    val parsedAmount = amount.toDoubleOrNull() ?: 0.0
+                    val parsedAmount = amount.toDoubleOrNull()
+                    if (parsedAmount == null || parsedAmount <= 0.0) {
+                        viewModel.submitPayment(0.0, paymentMethod, notes.ifBlank { null })
+                        return@Button
+                    }
                     viewModel.submitPayment(parsedAmount, paymentMethod, notes.ifBlank { null })
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading && amount.isNotBlank(),
+                enabled = !isLoading && amount.isNotBlank() && paymentMethod.isNotBlank(),
             ) {
                 if (isLoading) CircularProgressIndicator(Modifier.size(20.dp))
                 else Text("Simpan Pembayaran")
