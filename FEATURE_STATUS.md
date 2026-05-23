@@ -2,7 +2,7 @@
 
 _Dokumen ini menggambarkan kondisi aktual repo saat ini dan mengarah ke kesiapan produksi, bukan sekadar checklist MVP._
 
-**Tanggal audit repo:** 23 Mei 2026
+**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 23 Mei 2026
 
 ---
 
@@ -47,6 +47,7 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 - ✅ Riwayat pemakaian per customer
 - ✅ Bulk generate invoice
 - ✅ Invoice CRUD + detail
+- ✅ Filter invoice per bulan tagihan (usage_month) dengan print per periode
 - ✅ Manual payment recording
 - ✅ Payment receipt / struk pembayaran
 - ✅ Verifikasi bukti pembayaran customer
@@ -55,9 +56,12 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 
 ### 4. Import, export, dan reporting
 - ✅ Bulk import customer dari **CSV** dengan template, preview, validasi header, dan error result
+- ✅ Bulk import customer dari **Excel (.xlsx)** — parse di frontend, dikirim ke backend sebagai CSV
 - ✅ Bulk import water usage dari form tabel + paste data tab-separated ke endpoint bulk import
+- ✅ Bulk import water usage dari **Excel (.xlsx)** — parse di frontend, populate rows untuk review sebelum submit
 - ✅ Export **CSV** dan **Excel (.xlsx)** di semua halaman report utama
 - ✅ Export customer CSV endpoint tersedia di backend
+- ✅ Template Excel download tersedia untuk bulk import (customer dan water usage)
 - ✅ Reports dashboard
 - ✅ Revenue report
 - ✅ Customer analytics
@@ -68,10 +72,12 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 ### 5. Customer portal
 - ✅ Customer dashboard
 - ✅ Lihat daftar tagihan
+- ✅ Filter tagihan per bulan/periode penagihan
 - ✅ Detail tagihan
 - ✅ Flow bayar tagihan customer
 - ✅ Upload bukti pembayaran customer
 - ✅ Monitor pemakaian air customer
+- ✅ Riwayat pembayaran customer (`/customer/payments`)
 - ✅ Lihat profil
 - ✅ Edit profil
 - ✅ Ganti password
@@ -130,19 +136,15 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 - 🟡 Di kode masih ada TODO untuk `PlatformOwnerOnly` middleware
 - 🟡 Artinya hardening akses platform owner belum final
 
-### 6. Customer payment history
-- 🟡 Endpoint backend `GET /api/customer/payments` dan service frontend sudah ada
-- 🟡 Namun belum ada route / halaman customer khusus riwayat pembayaran di `App.tsx`
-
-### 7. Customer invoice PDF download
+### 6. Customer invoice PDF download
 - 🟡 Frontend sudah menyiapkan tombol / service download PDF invoice customer
 - 🟡 Endpoint backend `/api/customer/invoices/:id/pdf` tidak terlihat terdaftar di route saat ini
 
-### 8. Android app maturity
+### 7. Android app maturity
 - 🟡 App Android utama sekarang sudah punya flow operasional inti, dashboard role-aware, dan alignment contract utama ke backend canonical
 - 🟡 Namun mobile app **masih belum setara penuh** dengan seluruh surface web, terutama monitoring, parity fitur customer portal, dan hardening release pipeline
 
-### 9. Operasional produksi masih lebih banyak terdokumentasi daripada tervalidasi otomatis
+### 8. Operasional produksi masih lebih banyak terdokumentasi daripada tervalidasi otomatis
 - 🟡 Ada checklist VPS / hardening / monitoring / backup
 - 🟡 Tetapi bukti otomatis di repo untuk health regression, smoke test deploy, atau CI gate belum terlihat kuat
 
@@ -170,7 +172,8 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 ### 4. Product completeness untuk tenant nyata
 - 🚧 Notification delivery nyata belum ada
 - 🚧 Service area & progressive tariff belum wired end-to-end sampai UI
-- 🚧 Customer payment history dan customer invoice PDF masih belum lengkap wiring-nya
+- ✅ ~~Customer payment history~~ — sudah selesai (commit `dd2c8d0`)
+- 🚧 Customer invoice PDF masih belum lengkap wiring-nya
 
 ### 5. Payment & business process automation
 - 🚧 Payment gateway otomatis belum ada
@@ -221,7 +224,8 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
    - validasi dampak ke invoice calculation
 
 8. **Customer portal completeness**
-   - halaman riwayat pembayaran customer
+   - ✅ ~~halaman riwayat pembayaran customer~~ — selesai
+   - ✅ ~~filter tagihan per bulan/periode~~ — selesai
    - download PDF invoice customer
    - notifikasi status pembayaran
 
@@ -243,15 +247,15 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 
 ## 📌 Catatan kesiapan produksi saat ini
 
-- Secara fitur bisnis inti, repo ini **sudah lebih dari MVP**: onboarding tenant, billing bulanan, pembayaran, verifikasi bukti, report, dan customer portal dasar sudah ada.
+- Secara fitur bisnis inti, repo ini **sudah lebih dari MVP**: onboarding tenant, billing bulanan, pembayaran, verifikasi bukti, report, import Excel, customer portal lengkap (riwayat pembayaran, filter periode tagihan), dan Android/printer bridge sudah ada.
 - Secara produksi, status yang lebih akurat adalah **“functional core is ready, production hardening is still ongoing.”**
 - Pondasi deploy produksi sudah mulai terlihat jelas di repo dan dokumen operasional, tetapi belum cukup kuat untuk disebut fully production-ready tanpa penguatan testing, observability, dan security boundary.
-- Beberapa modul penting masih berada di zona **backend-ready but not fully productized**, terutama notification, monitoring, service area, tariff category progresif, dan sebagian surface customer.
+- Beberapa modul penting masih berada di zona **backend-ready but not fully productized**, terutama notification, monitoring, service area, tariff category progresif, dan customer invoice PDF.
 
 ---
 
 ## Ringkasan singkat
 
 **Status umum:** Core product sudah usable dan fondasi deploy produksi sudah ada.  
-**Yang paling matang:** billing flow tenant, payment proof flow, reporting, payment settings, scheduler, dan fondasi Android/printer bridge/mobile operasional inti.
+**Yang paling matang:** billing flow tenant, payment proof flow, reporting, import Excel, customer portal lengkap, payment settings, scheduler, dan fondasi Android/printer bridge/mobile operasional inti.
 **Yang paling menentukan untuk production:** automated tests, release gate, observability, audit logging aktif, hardening akses platform owner, dan automation notification/payment.
