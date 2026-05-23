@@ -173,7 +173,7 @@ tirta-saas/
 | File | Isi |
 |------|-----|
 | `USER_MANUAL.md` | Manual penggunaan aplikasi dan panduan operasional umum |
-| `DEPLOYMENT_USER_MANUAL.md` | Panduan setup deploy otomatis GitHub Actions + GHCR + SSH |
+| `DEPLOYMENT_USER_MANUAL.md` | Panduan deploy khusus Tirta SaaS berdasarkan flow production terbaru |
 | `FEATURE_STATUS.md` | Status fitur & roadmap enhancement |
 | `tirta-saas-backend/scripts/README_SEEDER.md` | Panduan seeder |
 

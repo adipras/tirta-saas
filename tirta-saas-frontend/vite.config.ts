@@ -78,6 +78,14 @@ export default defineConfig(({ mode }) => {
               return;
             }
 
+            if (
+              normalizedId.includes('/node_modules/react/') ||
+              normalizedId.includes('/node_modules/react-dom/') ||
+              normalizedId.includes('/node_modules/scheduler/')
+            ) {
+              return 'app-vendor';
+            }
+
             if (normalizedId.includes('framer-motion') || normalizedId.includes('lucide-react')) {
               return 'animation-vendor';
             }
@@ -100,7 +108,6 @@ export default defineConfig(({ mode }) => {
 
             if (
               normalizedId.includes('react-router') ||
-              normalizedId.includes('react-dom') ||
               normalizedId.includes('react-redux') ||
               normalizedId.includes('@reduxjs/toolkit') ||
               normalizedId.includes('redux-persist')
