@@ -69,8 +69,9 @@ export default function InvoiceList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<InvoiceFilters['status'] | ''>('');
   const [filterType, setFilterType] = useState<InvoiceFilters['type'] | ''>('');
+  const [filterBulan, setFilterBulan] = useState('');
 
-  const hasActiveFilters = searchTerm !== '' || filterStatus !== '' || filterType !== '';
+  const hasActiveFilters = searchTerm !== '' || filterStatus !== '' || filterType !== '' || filterBulan !== '';
 
   const fetchTagihan = useCallback(async () => {
     try {
@@ -79,6 +80,7 @@ export default function InvoiceList() {
         search: searchTerm || undefined,
         status: filterStatus || undefined,
         type: filterType || undefined,
+        usageMonth: filterBulan || undefined,
       });
       setTagihan(response.data);
       setStats(normalizeStats(response.stats));
@@ -87,7 +89,7 @@ export default function InvoiceList() {
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, filterType, searchTerm, toast]);
+  }, [filterStatus, filterType, filterBulan, searchTerm, toast]);
 
   useEffect(() => {
     fetchTagihan();
@@ -97,6 +99,7 @@ export default function InvoiceList() {
     setSearchTerm('');
     setFilterStatus('');
     setFilterType('');
+    setFilterBulan('');
   };
 
   const handlePrintFilteredList = () => {
@@ -112,12 +115,17 @@ export default function InvoiceList() {
     }
 
     const filterSummary = [
+      filterBulan ? `Bulan: ${new Date(filterBulan + '-01').toLocaleDateString('id-ID', { year: 'numeric', month: 'long' })}` : null,
       searchTerm ? `Pencarian: ${searchTerm}` : null,
       filterStatus ? `Status: ${STATUS_LABELS[filterStatus]}` : null,
       filterType
         ? `Tipe: ${filterType === 'monthly' ? 'Bulanan' : filterType === 'registration' ? 'Registrasi' : 'Manual'}`
         : null,
     ].filter(Boolean);
+
+    const printTitle = filterBulan
+      ? `Daftar Tagihan — ${new Date(filterBulan + '-01').toLocaleDateString('id-ID', { year: 'numeric', month: 'long' })}`
+      : 'Daftar Tagihan';
 
     const rows = invoices.map((invoice, index) => `
       <tr>
@@ -140,7 +148,7 @@ export default function InvoiceList() {
       <html lang="id">
         <head>
           <meta charset="utf-8" />
-          <title>Daftar Tagihan</title>
+          <title>${escapeHtml(printTitle)}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 32px; color: #111827; }
             h1 { margin: 0 0 8px; font-size: 24px; }
@@ -156,7 +164,7 @@ export default function InvoiceList() {
           </style>
         </head>
         <body>
-          <h1>Daftar Tagihan</h1>
+          <h1>${escapeHtml(printTitle)}</h1>
           <p>Dicetak pada ${new Date().toLocaleString('id-ID')}</p>
           <p>${filterSummary.length > 0 ? escapeHtml(filterSummary.join(' | ')) : 'Tanpa filter tambahan'}</p>
 
@@ -336,7 +344,7 @@ export default function InvoiceList() {
             </span>
           )}
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="relative">
             <label htmlFor="invoice-search" className="sr-only">
               Cari nomor invoice, pelanggan, atau nomor meter
@@ -349,6 +357,17 @@ export default function InvoiceList() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-md border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label htmlFor="invoice-filter-bulan" className="sr-only">Filter bulan tagihan</label>
+            <input
+              id="invoice-filter-bulan"
+              type="month"
+              value={filterBulan}
+              onChange={(e) => setFilterBulan(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              placeholder="Pilih bulan"
             />
           </div>
           <div>

@@ -13,7 +13,7 @@ const navigation = [
   { name: 'Dashboard', href: '/customer/dashboard', icon: HomeIcon },
   { name: 'Profil', href: '/customer/profile', icon: UserIcon },
   { name: 'Tagihan', href: '/customer/invoices', icon: DocumentDuplicateIcon },
-  { name: 'Pembayaran', href: '/customer/invoices', icon: CreditCardIcon },
+  { name: 'Pembayaran', href: '/customer/payments', icon: CreditCardIcon },
   { name: 'Pemakaian', href: '/customer/usage', icon: ChartBarIcon },
 ];
 

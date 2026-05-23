@@ -16,6 +16,7 @@ export interface InvoiceFilters {
   type?: 'monthly' | 'registration' | 'manual';
   customerId?: string;
   search?: string;
+  usageMonth?: string; // YYYY-MM format
 }
 
 export interface CreateInvoiceItemPayload {
@@ -265,6 +266,7 @@ class InvoiceService {
       type: filters?.type,
       customer_id: filters?.customerId,
       search: filters?.search,
+      usage_month: filters?.usageMonth,
     };
 
     const response = await apiClient.get<InvoiceListApiResponse>(

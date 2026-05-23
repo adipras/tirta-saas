@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useSearchParams } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './store';
@@ -43,6 +43,7 @@ import {
 import { CustomerProfil, CustomerProfilEdit, ChangePassword } from './pages/customer-profile';
 import { CustomerInvoiceList, CustomerInvoiceDetail } from './pages/customer-invoices';
 import { CustomerPemakaianMonitor } from './pages/customer-usage';
+import { CustomerPaymentHistory } from './pages/customer-payments';
 import { TenantManagement, PlatformAnalytics, SubscriptionPlans } from './pages/platform';
 import { TenantPaymentVerification } from './pages/tenant-payments';
 import { PlatformSubscriptionVerification } from './pages/platform-payments';
@@ -179,7 +180,7 @@ function App() {
               <Route path="profile/change-password" element={<ChangePassword />} />
               <Route path="invoices" element={<CustomerInvoiceList />} />
               <Route path="invoices/:id" element={<CustomerInvoiceDetail />} />
-              <Route path="payments" element={<Navigate to="/customer/invoices" replace />} />
+              <Route path="payments" element={<CustomerPaymentHistory />} />
               <Route path="payments/new" element={<CustomerPaymentLegacyRedirect />} />
               <Route path="payments/info" element={<CustomerPaymentLegacyRedirect />} />
               <Route path="payments/confirm" element={<CustomerPaymentLegacyRedirect />} />
