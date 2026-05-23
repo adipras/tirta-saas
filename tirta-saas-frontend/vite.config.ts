@@ -78,6 +78,10 @@ export default defineConfig(({ mode }) => {
               return;
             }
 
+            if (normalizedId.includes('framer-motion') || normalizedId.includes('lucide-react')) {
+              return 'animation-vendor';
+            }
+
             if (normalizedId.includes('recharts') || normalizedId.includes('d3-')) {
               return 'charts-vendor';
             }
