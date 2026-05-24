@@ -1,5 +1,10 @@
 package com.adipras.tirtasaas.mobile
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
@@ -7,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -21,6 +28,8 @@ import com.adipras.tirtasaas.mobile.ui.TirtaTopBar
 @Composable
 fun TirtaSaasApp() {
     TirtaSaasTheme {
+        RequestNotificationPermissionIfNeeded()
+
         val sessionViewModel: AppSessionViewModel = hiltViewModel()
         val sessionUiState by sessionViewModel.uiState.collectAsStateWithLifecycle()
         val navController = rememberNavController()
@@ -72,6 +81,26 @@ fun TirtaSaasApp() {
                     }
                 },
             )
+        }
+    }
+}
+
+@Composable
+private fun RequestNotificationPermissionIfNeeded() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { }
+
+    LaunchedEffect(Unit) {
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 }

@@ -40,6 +40,8 @@ import com.adipras.tirtasaas.feature.invoice.InvoiceDetailDestination
 import com.adipras.tirtasaas.feature.invoice.invoiceListScreen
 import com.adipras.tirtasaas.feature.invoice.invoiceDetailScreen
 import com.adipras.tirtasaas.feature.payment.PaymentInputDestination
+import com.adipras.tirtasaas.feature.payment.PaymentHistoryDestination
+import com.adipras.tirtasaas.feature.payment.paymentHistoryScreen
 import com.adipras.tirtasaas.feature.payment.paymentInputScreen
 import com.adipras.tirtasaas.feature.printer.PrinterDestination
 import com.adipras.tirtasaas.feature.printer.printerScreen
@@ -107,6 +109,11 @@ fun TirtaNavHost(
             onSaved = { navController.popBackStack() },
             onBack = { navController.popBackStack() },
         )
+        paymentHistoryScreen(
+            onReprintReceipt = { invoiceId ->
+                navController.navigate(PrinterDestination.createRoute(invoiceId))
+            },
+        )
         printerScreen(
             onBack = { navController.popBackStack() },
         )
@@ -157,6 +164,9 @@ private fun NavGraphBuilder.dashboardGraph(
             onNavigateToMonitoring = {
                 navController.navigate(MonitoringDestination.route)
             },
+            onNavigateToPayments = {
+                navController.navigate(PaymentHistoryDestination.route)
+            },
             onLogout = onLogout,
         )
     }
@@ -172,6 +182,7 @@ private fun DashboardRoute(
     onNavigateToInvoices: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToMonitoring: () -> Unit,
+    onNavigateToPayments: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val role = sessionUiState.role?.lowercase()
@@ -237,6 +248,14 @@ private fun DashboardRoute(
                 Text("Tagihan")
             }
         }
+        if (visibleModules.contains(DashboardModule.PAYMENTS)) {
+            Button(
+                onClick = onNavigateToPayments,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Riwayat Pembayaran")
+            }
+        }
         if (visibleModules.contains(DashboardModule.SETTINGS)) {
             Button(
                 onClick = onNavigateToSettings,
@@ -272,6 +291,7 @@ private enum class DashboardModule {
     USERS,
     USAGES,
     INVOICES,
+    PAYMENTS,
     SETTINGS,
     MONITORING,
 }
@@ -286,6 +306,7 @@ private fun modulesForRole(role: String?): Set<DashboardModule> = when (role) {
         DashboardModule.USERS,
         DashboardModule.USAGES,
         DashboardModule.INVOICES,
+        DashboardModule.PAYMENTS,
         DashboardModule.SETTINGS,
         DashboardModule.MONITORING,
     )
@@ -295,6 +316,7 @@ private fun modulesForRole(role: String?): Set<DashboardModule> = when (role) {
     )
     "finance" -> setOf(
         DashboardModule.INVOICES,
+        DashboardModule.PAYMENTS,
     )
     else -> emptySet()
 }
@@ -319,6 +341,7 @@ fun topBarTitleForRoute(route: String?): String = when {
     route?.startsWith(InvoiceListDestination.route) == true -> "Tagihan"
     route?.startsWith(InvoiceDetailDestination.routeBase + "/") == true -> "Detail Tagihan"
     route?.startsWith(PaymentInputDestination.routeBase + "/") == true -> "Input Pembayaran"
+    route?.startsWith(PaymentHistoryDestination.route) == true -> "Riwayat Pembayaran"
     route?.startsWith(PrinterDestination.routeBase + "/") == true -> "Cetak Struk"
     route?.startsWith(TenantSettingsDestination.route) == true -> "Pengaturan"
     route?.startsWith(MonitoringDestination.route) == true -> "Monitoring Operasional"

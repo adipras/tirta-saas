@@ -19,9 +19,22 @@ class DraftUsageSyncWorker @AssistedInject constructor(
         val draftId = inputData.getString("draft_id") ?: return Result.failure()
         return try {
             val ok = repository.syncOne(draftId)
-            if (ok) Result.success(workDataOf("draft_id" to draftId)) else Result.retry()
+            if (ok) {
+                DraftSyncNotifier.notifySuccess(applicationContext, draftId)
+                Result.success(workDataOf("draft_id" to draftId))
+            } else if (runAttemptCount >= 3) {
+                DraftSyncNotifier.notifyFailure(applicationContext, draftId)
+                Result.failure(workDataOf("draft_id" to draftId))
+            } else {
+                Result.retry()
+            }
         } catch (e: Exception) {
-            Result.retry()
+            if (runAttemptCount >= 3) {
+                DraftSyncNotifier.notifyFailure(applicationContext, draftId)
+                Result.failure(workDataOf("draft_id" to draftId))
+            } else {
+                Result.retry()
+            }
         }
     }
 }

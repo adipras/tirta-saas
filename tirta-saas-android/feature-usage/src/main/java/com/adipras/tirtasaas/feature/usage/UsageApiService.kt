@@ -2,9 +2,12 @@ package com.adipras.tirtasaas.feature.usage
 
 import com.adipras.tirtasaas.core.network.ApiResponse
 import com.adipras.tirtasaas.core.network.PagedApiResponse
+import okhttp3.MultipartBody
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -29,5 +32,12 @@ interface UsageApiService {
     suspend fun updateWaterUsage(
         @Path("id") id: String,
         @Body request: UpdateWaterUsageRequest,
+    ): ApiResponse<WaterUsageDto>
+
+    @Multipart
+    @POST("water-usage/{id}/photo")
+    suspend fun uploadWaterUsagePhoto(
+        @Path("id") id: String,
+        @Part photo: MultipartBody.Part,
     ): ApiResponse<WaterUsageDto>
 }

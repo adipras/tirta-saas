@@ -13,6 +13,7 @@ data class WaterUsageDto(
     @SerialName("meter_end") val meterEnd: Double,
     @SerialName("usage_m3") val usageM3: Double = 0.0,
     @SerialName("amount_calculated") val amountCalculated: Double = 0.0,
+    @SerialName("photo_url") val photoUrl: String = "",
     @SerialName("is_draft") val isDraft: Boolean = false,
     @SerialName("created_at") val createdAt: String? = null,
 )

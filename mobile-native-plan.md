@@ -92,9 +92,9 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 - [x] Offline draft water usage (DraftUsageEntity, DraftUsageDao, DraftUsageRepository)
 - [x] Sync queue untuk input lapangan (SyncQueueEntity, SyncQueueDao, DraftUsageSyncWorker + HiltWorkerFactory)
 - [x] Filter customer by service area / route _(DONE: backend `GET /api/customers` support query `service_area_id` + `reading_route_id`, Android customer list tambah dropdown area layanan + filter route ID)_
-- [ ] Upload foto meter
-- [ ] Reprint receipt dari riwayat
-- [ ] Push notification
+- [x] Upload foto meter _(DONE: backend menambah endpoint `POST /api/water-usage/:id/photo` + static serve `/uploads/water-usage`, Android `UsageFormScreen` mendukung pilih & upload foto meter lalu simpan `photo_url` ke data pemakaian)_
+- [x] Reprint receipt dari riwayat _(DONE: Android tambah `PaymentHistoryScreen` + `PaymentHistoryViewModel`, tombol reprint navigasi ke `PrinterScreen` menggunakan `invoice_id`)_
+- [x] Push notification _(DONE: Android menambahkan notifikasi sistem untuk hasil sinkronisasi draft pemakaian; permission `POST_NOTIFICATIONS` diminta saat app dibuka pada Android 13+, worker sinkronisasi mengirim notifikasi sukses/gagal)_
 
 ## API Contract Target
 
@@ -198,7 +198,7 @@ Checklist:
 - [x] Tambah token refresh interceptor (auto-refresh saat 401, TokenAuthenticator)
 - [x] Tambah forced logout jika tenant suspended/expired (session tenant guard + auto-redirect to login)
 - [x] Tampilkan alasan tenant blocked di UX _(dialog penjelasan sebelum user kembali ke login)_
-- [ ] Hindari logging data sensitif
+- [x] Hindari logging data sensitif _(DONE: OkHttp logging interceptor sekarang redact header `Authorization`, `Cookie`, dan `Set-Cookie`)_
 
 ## Stack Final
 
@@ -272,7 +272,7 @@ Checklist:
 - [x] Simpan preferred printer (PrinterPreferenceRepository via DataStore)
 - [x] PrinterScreen dengan FAB cetak + daftar paired devices + status koneksi
 - [x] InvoiceDetailScreen: FAB "Cetak Struk" → navigate ke PrinterScreen
-- [ ] Reprint flow dari riwayat pembayaran (belum)
+- [x] Reprint flow dari riwayat pembayaran _(DONE: route `payment_history` aktif, list pembayaran paginated, aksi "Reprint Struk" terhubung ke flow printer)_
 
 ### Phase 5 - Stabilization
 
@@ -317,3 +317,7 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [x] Frontend service fix (2026-05-08): invoiceService/usageService/paymentService — query param limit→page_size, response unwrapping fix, pagination dari meta field
 - [x] Android monitoring baseline (2026-05-25): modul `feature-monitoring` ditambahkan, terintegrasi ke dashboard + navigasi, memuat ringkasan laporan revenue/customer/usage/payment/outstanding dari endpoint `/api/reports/*`
 - [x] Customer area/route filter (2026-05-25): backend request/response customer diperluas dengan service area + reading route; Android `feature-customer` menambah filter area layanan dan route ID serta menampilkan label area/route di kartu pelanggan
+- [x] Security hardening logging (2026-05-25): `NetworkModule` menambahkan redaksi header sensitif (`Authorization`, `Cookie`, `Set-Cookie`) pada HTTP logging interceptor
+- [x] Reprint receipt from payment history (2026-05-25): `feature-payment` menambah `PaymentHistoryScreen` + `PaymentHistoryViewModel`, dashboard menambah menu "Riwayat Pembayaran", dan aksi reprint langsung navigasi ke `PrinterScreen` per `invoiceId`
+- [x] Upload foto meter (2026-05-25): backend `water_usage_controller` menambah upload multipart `photo` dan expose `photo_url`; Android `feature-usage` menambah alur image picker + upload foto meter pada form input/update pemakaian
+- [x] Push notification baseline (2026-05-25): notifikasi lokal ditambahkan untuk status sinkronisasi draft pemakaian (sukses/gagal), termasuk request runtime permission notifikasi Android 13+ dan fallback simpan draft lokal + enqueue WorkManager saat kirim draft ke server gagal

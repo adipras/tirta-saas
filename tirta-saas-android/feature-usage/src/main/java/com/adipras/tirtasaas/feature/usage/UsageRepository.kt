@@ -2,6 +2,9 @@ package com.adipras.tirtasaas.feature.usage
 
 import com.adipras.tirtasaas.core.network.PagedApiResponse
 import com.adipras.tirtasaas.core.network.requireData
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,5 +38,16 @@ class UsageRepository @Inject constructor(
 
     suspend fun updateUsage(id: String, request: UpdateWaterUsageRequest): Result<WaterUsageDto> = runCatching {
         api.updateWaterUsage(id, request).requireData("Gagal memperbarui data pemakaian")
+    }
+
+    suspend fun uploadUsagePhoto(
+        id: String,
+        fileName: String,
+        mimeType: String,
+        bytes: ByteArray,
+    ): Result<WaterUsageDto> = runCatching {
+        val requestBody = bytes.toRequestBody(mimeType.toMediaTypeOrNull())
+        val part = MultipartBody.Part.createFormData("photo", fileName, requestBody)
+        api.uploadWaterUsagePhoto(id, part).requireData("Gagal mengunggah foto meter")
     }
 }

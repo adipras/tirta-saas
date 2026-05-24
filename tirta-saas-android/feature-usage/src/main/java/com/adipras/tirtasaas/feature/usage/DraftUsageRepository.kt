@@ -24,7 +24,7 @@ class DraftUsageRepository @Inject constructor(
     /** Sync one pending draft to the server. Returns true if succeeded. */
     suspend fun syncOne(draftId: String): Boolean = withContext(Dispatchers.IO) {
         val draft = dao.getPendingDrafts().firstOrNull { it.id == draftId }
-            ?: return@withContext false
+            ?: return@withContext true
         try {
             api.createWaterUsage(draft.toRequest()).requireData("Sinkronisasi draft gagal")
             dao.markSynced(draftId)

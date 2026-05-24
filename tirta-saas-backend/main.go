@@ -111,6 +111,7 @@ func main() {
 	r.Static("/uploads/logos", "./uploads/logos")
 	r.Static("/uploads/platform/qr", "./uploads/platform/qr")
 	r.Static("/uploads/tenants", "./uploads/tenants")
+	r.Static("/uploads/water-usage", "./uploads/water-usage")
 
 	// Register all application routes
 	routes.PublicRoutes(r) // Public routes (no auth required)

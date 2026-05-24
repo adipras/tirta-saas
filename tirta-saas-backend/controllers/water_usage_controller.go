@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
@@ -10,6 +11,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -117,6 +119,7 @@ func CreateWaterUsage(c *gin.Context) {
 				MeterEnd:         existing.MeterEnd,
 				UsageM3:          existing.UsageM3,
 				AmountCalculated: existing.AmountCalculated,
+				PhotoURL:         existing.PhotoURL,
 				IsDraft:          existing.IsDraft,
 				CreatedAt:        existing.CreatedAt,
 			}
@@ -154,6 +157,7 @@ func CreateWaterUsage(c *gin.Context) {
 		MeterEnd:         usage.MeterEnd,
 		UsageM3:          usage.UsageM3,
 		AmountCalculated: usage.AmountCalculated,
+		PhotoURL:         usage.PhotoURL,
 		IsDraft:          usage.IsDraft,
 		CreatedAt:        usage.CreatedAt,
 	}
@@ -248,6 +252,7 @@ func GetWaterUsages(c *gin.Context) {
 			MeterEnd:         record.MeterEnd,
 			UsageM3:          record.UsageM3,
 			AmountCalculated: record.AmountCalculated,
+			PhotoURL:         record.PhotoURL,
 			IsDraft:          record.IsDraft,
 			CreatedAt:        record.CreatedAt,
 		}
@@ -305,6 +310,7 @@ func GetWaterUsageByID(c *gin.Context) {
 		MeterEnd:         usage.MeterEnd,
 		UsageM3:          usage.UsageM3,
 		AmountCalculated: usage.AmountCalculated,
+		PhotoURL:         usage.PhotoURL,
 		IsDraft:          usage.IsDraft,
 		CreatedAt:        usage.CreatedAt,
 	}
@@ -412,10 +418,65 @@ func UpdateWaterUsage(c *gin.Context) {
 		MeterEnd:         usage.MeterEnd,
 		UsageM3:          usage.UsageM3,
 		AmountCalculated: usage.AmountCalculated,
+		PhotoURL:         usage.PhotoURL,
 		IsDraft:          usage.IsDraft,
 		CreatedAt:        usage.CreatedAt,
 	}
 	helpers.RespondSuccess(c, "Data pencatatan meter berhasil diperbarui", response)
+}
+
+func UploadWaterUsagePhoto(c *gin.Context) {
+	id := c.Param("id")
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var usage models.WaterUsage
+	if err := config.DB.Where("id = ? AND tenant_id = ?", id, tenantID).First(&usage).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Data tidak ditemukan"})
+		return
+	}
+
+	file, err := c.FormFile("photo")
+	if err != nil || file == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Foto meter wajib diunggah"})
+		return
+	}
+
+	uploadConfig := utils.DefaultImageUploadConfig()
+	uploadConfig.UploadDir = fmt.Sprintf("uploads/water-usage/%s", tenantID.String())
+	uploadPath, err := utils.SaveUploadedFile(file, uploadConfig)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Gagal mengunggah foto meter: " + err.Error()})
+		return
+	}
+
+	normalizedPath := strings.ReplaceAll(uploadPath, "\\", "/")
+	if usage.PhotoURL != "" && usage.PhotoURL != normalizedPath {
+		_ = utils.DeleteFile(usage.PhotoURL)
+	}
+
+	if err := config.DB.Model(&usage).Update("photo_url", normalizedPath).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan foto meter"})
+		return
+	}
+	usage.PhotoURL = normalizedPath
+
+	response := responses.WaterUsageResponse{
+		ID:               usage.ID,
+		CustomerID:       usage.CustomerID,
+		UsageMonth:       usage.UsageMonth,
+		MeterStart:       usage.MeterStart,
+		MeterEnd:         usage.MeterEnd,
+		UsageM3:          usage.UsageM3,
+		AmountCalculated: usage.AmountCalculated,
+		PhotoURL:         usage.PhotoURL,
+		IsDraft:          usage.IsDraft,
+		CreatedAt:        usage.CreatedAt,
+	}
+	helpers.RespondSuccess(c, "Foto meter berhasil diunggah", response)
 }
 
 func DeleteWaterUsage(c *gin.Context) {

@@ -1,5 +1,8 @@
 package com.adipras.tirtasaas.feature.usage
 
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +27,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -32,6 +37,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 object UsageFormDestination {
     const val route = "usage_form"
@@ -63,6 +70,37 @@ fun UsageFormScreen(
     viewModel: UsageFormViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val photoPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+            val fileName = run {
+                var name: String? = null
+                context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                        if (idx >= 0) {
+                            name = cursor.getString(idx)
+                        }
+                    }
+                }
+                name ?: "meter-photo-${System.currentTimeMillis()}.jpg"
+            }
+            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            if (bytes == null || bytes.isEmpty()) {
+                return@launch
+            }
+            viewModel.uploadPhoto(
+                fileName = fileName.lowercase(Locale.getDefault()),
+                mimeType = mimeType,
+                bytes = bytes,
+            )
+        }
+    }
 
     LaunchedEffect(state.saveSuccess) {
         if (state.saveSuccess) onSaved()
@@ -128,6 +166,26 @@ fun UsageFormScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = state.isDraft, onCheckedChange = viewModel::onDraftChange)
                 Text("Simpan sebagai draft")
+            }
+
+            if (usageId != null) {
+                Button(
+                    onClick = { photoPicker.launch("image/*") },
+                    enabled = !state.isUploadingPhoto,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (state.isUploadingPhoto) {
+                        CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                    }
+                    Text(if (state.photoUrl.isBlank()) "Upload Foto Meter" else "Ganti Foto Meter")
+                }
+                if (state.photoUrl.isNotBlank()) {
+                    Text(
+                        text = "Foto tersimpan: ${state.photoUrl}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             if (state.error != null) {
