@@ -64,6 +64,12 @@ fun UsageListScreen(
     LaunchedEffect(state.error) {
         state.error?.let { snackbarHostState.showSnackbar(it) }
     }
+    LaunchedEffect(state.notice) {
+        state.notice?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.consumeNotice()
+        }
+    }
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Pemakaian Air") }) },
@@ -90,6 +96,23 @@ fun UsageListScreen(
                 )
                 TextButton(onClick = { viewModel.applyFilter(filterMonth.ifBlank { null }, null) }) {
                     Text("Filter")
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Draft pending: ${state.pendingDraftCount}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                TextButton(
+                    onClick = viewModel::syncPendingDrafts,
+                    enabled = !state.isSyncingDrafts,
+                ) {
+                    Text(if (state.isSyncingDrafts) "Menjadwalkan..." else "Sinkronkan Draft")
                 }
             }
 

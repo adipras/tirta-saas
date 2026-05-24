@@ -93,6 +93,7 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 - [x] Sync queue untuk input lapangan (SyncQueueEntity, SyncQueueDao, DraftUsageSyncWorker + HiltWorkerFactory)
 - [x] Filter customer by service area / route _(DONE: backend `GET /api/customers` support query `service_area_id` + `reading_route_id`, Android customer list tambah dropdown area layanan + filter route ID)_
 - [x] Upload foto meter _(DONE: backend menambah endpoint `POST /api/water-usage/:id/photo` + static serve `/uploads/water-usage`, Android `UsageFormScreen` mendukung pilih & upload foto meter lalu simpan `photo_url` ke data pemakaian)_
+- [ ] OCR foto meter -> meter usage text _(Rencana: ekstrak angka meter dari foto via OCR, parse ke `meter_end`, simpan confidence + raw text, dan wajib konfirmasi manual user saat confidence rendah)_
 - [x] Reprint receipt dari riwayat _(DONE: Android tambah `PaymentHistoryScreen` + `PaymentHistoryViewModel`, tombol reprint navigasi ke `PrinterScreen` menggunakan `invoice_id`)_
 - [x] Push notification _(DONE: Android menambahkan notifikasi sistem untuk hasil sinkronisasi draft pemakaian; permission `POST_NOTIFICATIONS` diminta saat app dibuka pada Android 13+, worker sinkronisasi mengirim notifikasi sukses/gagal)_
 
@@ -167,7 +168,7 @@ Checklist:
 - [x] Tambah entity draft water usage (DraftUsageEntity + DraftUsageDao)
 - [x] Tambah sync queue (SyncQueueEntity + SyncQueueDao)
 - [x] Tambah worker untuk retry sync (DraftUsageSyncWorker + @HiltWorker + HiltWorkerFactory)
-- [ ] Definisikan conflict resolution untuk data usage
+- [ ] Definisikan conflict resolution untuk data usage _(PARTIAL: validasi format bulan ditambahkan di form, retry manual sinkronisasi draft tersedia dari Usage List, namun aturan conflict final antar-device masih perlu diformalisasi di backend + mobile)_
 
 ## Modul Bluetooth Printer
 
@@ -276,8 +277,8 @@ Checklist:
 
 ### Phase 5 - Stabilization
 
-- [ ] Hardening error handling
-- [ ] Hardening sync
+- [ ] Hardening error handling _(PARTIAL: `UsageFormViewModel` menambahkan validasi format bulan `YYYY-MM` dan handling error baca file foto meter agar tidak silent failure)_
+- [ ] Hardening sync _(PARTIAL: `UsageListScreen` menambahkan kontrol "Sinkronkan Draft" manual + indikator jumlah draft pending; scheduling worker diekstrak ke `DraftSyncScheduler`)_
 - [ ] QA multi-role
 - [ ] Bug fixing
 - [ ] Release configuration
@@ -321,3 +322,5 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [x] Reprint receipt from payment history (2026-05-25): `feature-payment` menambah `PaymentHistoryScreen` + `PaymentHistoryViewModel`, dashboard menambah menu "Riwayat Pembayaran", dan aksi reprint langsung navigasi ke `PrinterScreen` per `invoiceId`
 - [x] Upload foto meter (2026-05-25): backend `water_usage_controller` menambah upload multipart `photo` dan expose `photo_url`; Android `feature-usage` menambah alur image picker + upload foto meter pada form input/update pemakaian
 - [x] Push notification baseline (2026-05-25): notifikasi lokal ditambahkan untuk status sinkronisasi draft pemakaian (sukses/gagal), termasuk request runtime permission notifikasi Android 13+ dan fallback simpan draft lokal + enqueue WorkManager saat kirim draft ke server gagal
+- [x] Stabilization partial (2026-05-25): hardening usage flow ditingkatkan dengan validasi bulan pemakaian, error handling pemrosesan foto meter, tombol sinkronisasi draft manual di Usage List, serta scheduler sinkronisasi draft terpusat (`DraftSyncScheduler`)
+- [x] Backlog documented (2026-05-25): rencana fitur OCR foto meter ditambahkan ke enhancement dengan pendekatan semi-otomatis (confidence threshold + manual confirmation)

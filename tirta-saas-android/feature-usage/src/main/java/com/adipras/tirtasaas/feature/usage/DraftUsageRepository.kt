@@ -21,6 +21,10 @@ class DraftUsageRepository @Inject constructor(
         dao.getPendingDrafts()
     }
 
+    suspend fun getPendingDraftIds(): List<String> = withContext(Dispatchers.IO) {
+        dao.getPendingDrafts().map { it.id }
+    }
+
     /** Sync one pending draft to the server. Returns true if succeeded. */
     suspend fun syncOne(draftId: String): Boolean = withContext(Dispatchers.IO) {
         val draft = dao.getPendingDrafts().firstOrNull { it.id == draftId }

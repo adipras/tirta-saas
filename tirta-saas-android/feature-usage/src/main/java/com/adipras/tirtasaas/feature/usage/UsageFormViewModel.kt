@@ -4,13 +4,6 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.work.BackoffPolicy
-import androidx.work.Constraints
-import androidx.work.ExistingWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.workDataOf
 import com.adipras.tirtasaas.core.database.entity.DraftUsageEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,7 +13,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 data class UsageFormUiState(
@@ -90,6 +82,10 @@ class UsageFormViewModel @Inject constructor(
             _uiState.value = s.copy(error = "Customer dan bulan wajib diisi")
             return
         }
+        if (!USAGE_MONTH_REGEX.matches(s.usageMonth)) {
+            _uiState.value = s.copy(error = "Format bulan tidak valid. Gunakan YYYY-MM")
+            return
+        }
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true, error = null)
             val result = if (s.usageId == null) {
@@ -129,7 +125,7 @@ class UsageFormViewModel @Inject constructor(
                             createdAt = Instant.now().toString(),
                         ),
                     )
-                    enqueueDraftSync(draftId)
+                    DraftSyncScheduler.enqueue(appContext, draftId)
                     _uiState.value = _uiState.value.copy(
                         isSaving = false,
                         saveSuccess = true,
@@ -176,21 +172,11 @@ class UsageFormViewModel @Inject constructor(
         }
     }
 
-    private fun enqueueDraftSync(draftId: String) {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
+    fun onPhotoReadFailed(message: String) {
+        _uiState.value = _uiState.value.copy(error = message)
+    }
 
-        val request = OneTimeWorkRequestBuilder<DraftUsageSyncWorker>()
-            .setInputData(workDataOf("draft_id" to draftId))
-            .setConstraints(constraints)
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
-            .build()
-
-        WorkManager.getInstance(appContext).enqueueUniqueWork(
-            "draft-sync-$draftId",
-            ExistingWorkPolicy.REPLACE,
-            request,
-        )
+    companion object {
+        private val USAGE_MONTH_REGEX = Regex("""^\d{4}-(0[1-9]|1[0-2])$""")
     }
 }

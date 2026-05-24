@@ -77,28 +77,33 @@ fun UsageFormScreen(
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
-            val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
-            val fileName = run {
-                var name: String? = null
-                context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                        if (idx >= 0) {
-                            name = cursor.getString(idx)
+            runCatching {
+                val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+                val fileName = run {
+                    var name: String? = null
+                    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                            if (idx >= 0) {
+                                name = cursor.getString(idx)
+                            }
                         }
                     }
+                    name ?: "meter-photo-${System.currentTimeMillis()}.jpg"
                 }
-                name ?: "meter-photo-${System.currentTimeMillis()}.jpg"
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes == null || bytes.isEmpty()) {
+                    viewModel.onPhotoReadFailed("Gagal membaca file foto meter")
+                    return@runCatching
+                }
+                viewModel.uploadPhoto(
+                    fileName = fileName.lowercase(Locale.getDefault()),
+                    mimeType = mimeType,
+                    bytes = bytes,
+                )
+            }.onFailure {
+                viewModel.onPhotoReadFailed("Gagal memproses foto meter")
             }
-            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            if (bytes == null || bytes.isEmpty()) {
-                return@launch
-            }
-            viewModel.uploadPhoto(
-                fileName = fileName.lowercase(Locale.getDefault()),
-                mimeType = mimeType,
-                bytes = bytes,
-            )
         }
     }
 
