@@ -2,18 +2,23 @@ package controllers
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
+	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/adipras/tirta-saas-backend/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+var invoiceFilenameSanitizer = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
 
 type customerInvoiceResponse struct {
 	ID                  uuid.UUID  `json:"id"`
@@ -76,6 +81,21 @@ func buildCustomerInvoiceResponse(invoice models.Invoice, subscription *models.S
 		PaidDate:            invoice.PaidDate,
 		CreatedAt:           invoice.CreatedAt,
 	}
+}
+
+func getCustomerInvoiceDetail(customerID, tenantID, invoiceID uuid.UUID) (responses.InvoiceResponse, models.TenantSettings, error) {
+	var invoice models.Invoice
+	if err := config.DB.Preload("Customer").Preload("Customer.Subscription").
+		Where("id = ? AND customer_id = ? AND tenant_id = ?", invoiceID, customerID, tenantID).
+		First(&invoice).Error; err != nil {
+		return responses.InvoiceResponse{}, models.TenantSettings{}, err
+	}
+
+	tenantSettings := services.LoadTenantSettings(tenantID)
+	response := buildInvoiceResponse(invoice, tenantSettings, time.Time{})
+	attachInvoiceUsageReadings(&response, tenantID)
+
+	return response, tenantSettings, nil
 }
 
 func GetCustomerProfile(c *gin.Context) {
@@ -175,6 +195,57 @@ func GetCustomerInvoices(c *gin.Context) {
 	}
 
 	helpers.RespondSuccess(c, "Tagihan pelanggan berhasil diambil", responses)
+}
+
+func GetCustomerInvoice(c *gin.Context) {
+	customerID := c.MustGet("customer_id").(uuid.UUID)
+	tenantID := c.MustGet("tenant_id").(uuid.UUID)
+
+	invoiceID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tagihan tidak valid"})
+		return
+	}
+
+	response, _, err := getCustomerInvoiceDetail(customerID, tenantID, invoiceID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Tagihan tidak ditemukan"})
+		return
+	}
+
+	helpers.RespondSuccess(c, "Detail tagihan pelanggan berhasil diambil", response)
+}
+
+func DownloadCustomerInvoicePDF(c *gin.Context) {
+	customerID := c.MustGet("customer_id").(uuid.UUID)
+	tenantID := c.MustGet("tenant_id").(uuid.UUID)
+
+	invoiceID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tagihan tidak valid"})
+		return
+	}
+
+	invoice, tenantSettings, err := getCustomerInvoiceDetail(customerID, tenantID, invoiceID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Tagihan tidak ditemukan"})
+		return
+	}
+
+	pdfBytes, err := services.GenerateInvoicePDF(invoice, tenantSettings.CompanyName, tenantSettings)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat PDF tagihan"})
+		return
+	}
+
+	filename := invoiceFilenameSanitizer.ReplaceAllString(strings.TrimSpace(invoice.InvoiceNumber), "-")
+	if filename == "" {
+		filename = invoice.ID.String()
+	}
+
+	c.Header("Content-Type", "application/pdf")
+	c.Header("Content-Disposition", `attachment; filename="invoice-`+filename+`.pdf"`)
+	c.Data(http.StatusOK, "application/pdf", pdfBytes)
 }
 
 func GetCustomerPayments(c *gin.Context) {
@@ -316,6 +387,7 @@ func ChangeCustomerPassword(c *gin.Context) {
 
 	// Verify current password
 	if !utils.CheckPasswordHash(input.CurrentPassword, customer.Password) {
+		audit.LogPasswordChange(c, "customer", customer.ID, false)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Password saat ini salah"})
 		return
 	}
@@ -323,15 +395,18 @@ func ChangeCustomerPassword(c *gin.Context) {
 	// Hash new password
 	hashedPassword, err := utils.HashPassword(input.NewPassword)
 	if err != nil {
+		audit.LogPasswordChange(c, "customer", customer.ID, false)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengenkripsi password"})
 		return
 	}
 
 	// Update password
 	if err := config.DB.Model(&customer).Update("password", hashedPassword).Error; err != nil {
+		audit.LogPasswordChange(c, "customer", customer.ID, false)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui password"})
 		return
 	}
 
+	audit.LogPasswordChange(c, "customer", customer.ID, true)
 	helpers.RespondSuccess(c, "Password berhasil diubah", gin.H{"updated": true})
 }

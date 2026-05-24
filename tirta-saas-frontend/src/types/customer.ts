@@ -7,6 +7,8 @@ export interface Customer {
   address: string;
   subscription_id: string;
   subscription: SubscriptionType;
+  service_area_id?: string;
+  service_area_name?: string;
   is_active: boolean;
   tenant_id: string;
   created_at: string;
@@ -32,6 +34,7 @@ export interface CreateCustomerDto {
   email: string;
   password: string;
   subscription_id: string;
+  service_area_id?: string;
   phone?: string;
   address?: string;
 }
@@ -39,6 +42,7 @@ export interface CreateCustomerDto {
 export interface UpdateCustomerDto {
   name: string;
   subscription_id: string;
+  service_area_id?: string;
   phone?: string;
   address?: string;
 }

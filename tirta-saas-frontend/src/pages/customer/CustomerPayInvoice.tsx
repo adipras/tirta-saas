@@ -43,7 +43,7 @@ const CustomerPayInvoice: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      const data = await invoiceService.getInvoiceById(invoiceId);
+      const data = await invoiceService.getCustomerInvoiceById(invoiceId);
       setInvoice(data);
       setFormData((prev) => ({
         ...prev,

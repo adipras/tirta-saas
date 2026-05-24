@@ -2,7 +2,7 @@
 
 _Dokumen ini menggambarkan kondisi aktual repo saat ini dan mengarah ke kesiapan produksi, bukan sekadar checklist MVP._
 
-**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 23 Mei 2026
+**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 25 Mei 2026
 
 ---
 
@@ -120,7 +120,9 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 
 ### 2. Service area management
 - 🟡 Model, controller, dan route backend untuk `service_areas` **sudah ada**
-- 🟡 Belum terlihat page / service frontend untuk fitur ini
+- ✅ Frontend admin untuk list, tambah, ubah, hapus, dan filter `service_areas` kini sudah terpasang
+- ✅ Service area kini sudah bisa dipilih dari form create/edit customer agar segmentasi wilayah terpakai end-to-end
+- ✅ Controller backend `service_areas` kini sudah konsisten membaca `tenant_id` dari context JWT
 
 ### 3. Tariff categories / progressive tariff
 - 🟡 Backend `tariff categories`, `progressive rates`, dan simulasi tagihan **sudah ada**
@@ -129,16 +131,20 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 ### 4. Monitoring & audit logs
 - 🟡 Endpoint platform untuk audit logs, error logs, system health, dan metrics **sudah ada**
 - 🟡 Belum terlihat UI frontend untuk monitoring ini
-- 🟡 Audit package tersedia, tetapi audit middleware tidak terpasang global di `main.go`
+- ✅ Audit middleware global backend kini aktif untuk request autentikasi sensitif (`POST` / `PUT` / `PATCH` / `DELETE`)
+- ✅ Audit domain-level juga sudah diperluas ke auth flow sensitif: admin login, customer login, logout, dan ganti password customer
 
 ### 5. Pembatasan akses khusus platform owner
-- 🟡 Route `/api/platform/*` masih memakai `AdminOnly()`
-- 🟡 Di kode masih ada TODO untuk `PlatformOwnerOnly` middleware
-- 🟡 Artinya hardening akses platform owner belum final
+- ✅ Route `/api/platform/*` kini memakai `PlatformOwnerOnly()`
+- ✅ `JWTAuthMiddleware` kini mewajibkan `tenant_id` untuk role tenant-scoped
+- ✅ Boundary platform owner kini konsisten memakai role canonical `platform_owner` di middleware, controller tenant-user, helper tenant context, analytics query, dan seeder/script platform admin tanpa compatibility layer tambahan
+- ✅ Hanya `platform_owner` yang boleh lolos autentikasi tanpa `tenant_id`
+- 🟡 Review authorization boundary lintas seluruh surface tenant masih tetap perlu dilanjutkan
 
 ### 6. Customer invoice PDF download
-- 🟡 Frontend sudah menyiapkan tombol / service download PDF invoice customer
-- 🟡 Endpoint backend `/api/customer/invoices/:id/pdf` tidak terlihat terdaftar di route saat ini
+- ✅ Endpoint backend customer invoice detail kini tersedia di `/api/customer/invoices/:id`
+- ✅ Endpoint backend PDF customer invoice kini tersedia di `/api/customer/invoices/:id/pdf`
+- ✅ Frontend customer portal kini memakai endpoint customer-specific untuk detail tagihan, payment info, payment confirmation, dan unduh PDF
 
 ### 7. Android app maturity
 - 🟡 App Android utama sekarang sudah punya flow operasional inti, dashboard role-aware, dan alignment contract utama ke backend canonical
@@ -155,9 +161,9 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 Bagian ini adalah gap yang paling relevan jika targetnya adalah **production system untuk tenant nyata**, bukan sekadar demo atau pilot.
 
 ### 1. Security & access control
-- 🚧 `PlatformOwnerOnly` middleware belum ada
-- 🚧 Audit trail belum dipasang konsisten secara global
-- 🚧 Belum terlihat hardening permission model yang terukur lewat automated checks
+- ✅ ~~`PlatformOwnerOnly` middleware belum ada~~ — selesai pada sesi hardening 25 Mei 2026
+- 🟡 Audit trail request sensitif backend sudah aktif secara global dan auth flow utama sudah tercakup, tetapi audit domain-level belum merata di seluruh surface
+- 🟡 Boundary role platform vs tenant sudah lebih konsisten, tetapi hardening permission model masih belum terukur lewat automated checks
 
 ### 2. Reliability & verification
 - 🚧 Belum ada automated test suite yang jelas di backend maupun frontend
@@ -171,9 +177,10 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 
 ### 4. Product completeness untuk tenant nyata
 - 🚧 Notification delivery nyata belum ada
-- 🚧 Service area & progressive tariff belum wired end-to-end sampai UI
+- 🚧 Progressive tariff belum wired end-to-end sampai UI
+- ✅ ~~Service area belum wired end-to-end sampai UI~~ — selesai pada sesi wiring 25 Mei 2026
 - ✅ ~~Customer payment history~~ — sudah selesai (commit `dd2c8d0`)
-- 🚧 Customer invoice PDF masih belum lengkap wiring-nya
+- ✅ ~~Customer invoice PDF masih belum lengkap wiring-nya~~ — selesai pada sesi wiring 25 Mei 2026
 
 ### 5. Payment & business process automation
 - 🚧 Payment gateway otomatis belum ada
@@ -192,9 +199,9 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
    - CI gate sebelum merge / release
 
 2. **Security hardening aplikasi**
-   - `PlatformOwnerOnly` middleware
-   - audit logging yang benar-benar aktif di seluruh surface penting
-   - review ulang authorization boundary antar role dan tenant
+   - ✅ ~~`PlatformOwnerOnly` middleware~~
+   - 🟡 audit logging global untuk request sensitif backend sudah aktif; auth flow utama sudah tercakup, tetapi coverage audit domain-level masih perlu diperluas
+   - 🟡 review authorization boundary antar role dan tenant sudah berjalan; konsistensi role platform-level sudah diperbaiki dan hanya `platform_owner` yang boleh tanpa `tenant_id`
 
 3. **Operational observability**
    - dashboard monitoring aplikasi
@@ -219,14 +226,14 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
    - auto reconciliation pembayaran
 
 7. **End-to-end tariff & area management**
-   - frontend service area management
+   - ✅ ~~frontend service area management~~
    - frontend tariff category / progressive rate
    - validasi dampak ke invoice calculation
 
 8. **Customer portal completeness**
    - ✅ ~~halaman riwayat pembayaran customer~~ — selesai
    - ✅ ~~filter tagihan per bulan/periode~~ — selesai
-   - download PDF invoice customer
+   - ✅ ~~download PDF invoice customer~~
    - notifikasi status pembayaran
 
 ### Prioritas medium
@@ -250,7 +257,12 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 - Secara fitur bisnis inti, repo ini **sudah lebih dari MVP**: onboarding tenant, billing bulanan, pembayaran, verifikasi bukti, report, import Excel, customer portal lengkap (riwayat pembayaran, filter periode tagihan), dan Android/printer bridge sudah ada.
 - Secara produksi, status yang lebih akurat adalah **“functional core is ready, production hardening is still ongoing.”**
 - Pondasi deploy produksi sudah mulai terlihat jelas di repo dan dokumen operasional, tetapi belum cukup kuat untuk disebut fully production-ready tanpa penguatan testing, observability, dan security boundary.
-- Beberapa modul penting masih berada di zona **backend-ready but not fully productized**, terutama notification, monitoring, service area, tariff category progresif, dan customer invoice PDF.
+- Beberapa modul penting masih berada di zona **backend-ready but not fully productized**, terutama notification, monitoring, dan tariff category progresif.
+- Progress hardening terbaru: route platform owner sudah dipisahkan dari `AdminOnly`, validasi JWT tenant-scoped diperketat, dan audit middleware backend sudah aktif untuk request sensitif terautentikasi.
+- Progress lanjutan sesi ini: pengecekan role platform-level juga sudah dinormalisasi di controller tenant-user, helper tenant context, query analytics, dan utilitas seeder/platform admin agar akses tanpa `tenant_id` tetap konsisten untuk surface platform.
+- Progress lanjutan terbaru: audit auth flow utama kini sudah tercatat di backend dan boundary JWT tanpa `tenant_id` diketatkan kembali agar hanya berlaku untuk `platform_owner`.
+- Progress lanjutan terbaru: frontend service area management kini sudah tersedia, assignment area layanan sudah masuk ke form customer, dan backend service area sudah diselaraskan dengan context `tenant_id` berbasis UUID dari JWT middleware.
+- Progress produk terbaru: wiring customer invoice detail + PDF download kini sudah lengkap di backend dan frontend customer portal memakai endpoint customer-specific yang sesuai.
 
 ---
 

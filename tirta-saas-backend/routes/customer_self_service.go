@@ -17,6 +17,8 @@ func CustomerSelfServiceRoutes(r *gin.Engine) {
 
 	// Data access
 	group.GET("/invoices", controllers.GetCustomerInvoices)
+	group.GET("/invoices/:id", controllers.GetCustomerInvoice)
+	group.GET("/invoices/:id/pdf", controllers.DownloadCustomerInvoicePDF)
 	group.GET("/payments", controllers.GetCustomerPayments)
 	group.GET("/water-usage", controllers.GetCustomerWaterUsage)
 

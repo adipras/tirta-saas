@@ -31,7 +31,7 @@ export default function CustomerInvoiceDetail() {
     try {
       setLoading(true);
       setError(null);
-      const data = await invoiceService.getInvoiceById(id);
+      const data = await invoiceService.getCustomerInvoiceById(id);
       setInvoice(data);
     } catch (err: unknown) {
       setInvoice(null);

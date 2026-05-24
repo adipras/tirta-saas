@@ -16,6 +16,7 @@ import {
   ClipboardDocumentListIcon,
   CheckBadgeIcon,
   UsersIcon,
+  MapIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useAppSelector } from '../hooks/redux';
@@ -43,6 +44,7 @@ const settingsNavigation = [
   { name: 'Langganan & Pembayaran', href: '/admin/subscription/upgrade', icon: CheckBadgeIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Golongan Langganan', href: '/admin/subscriptions', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Tarif Air', href: '/admin/water-rates', icon: CurrencyDollarIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Area Layanan', href: '/admin/service-areas', icon: MapIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Manajemen Pengguna', href: '/admin/users', icon: UsersIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Pengaturan Tenant', href: '/admin/settings', icon: CogIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
 ];

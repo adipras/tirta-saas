@@ -7,11 +7,10 @@ import (
 )
 
 func PlatformRoutes(r *gin.Engine) {
-	// Platform owner routes - requires special platform owner authentication
-	// For now, we'll use AdminOnly middleware but in production you should have PlatformOwnerOnly middleware
+	// Platform owner routes - requires dedicated platform owner authorization
 	platform := r.Group("/api/platform")
 	platform.Use(middleware.JWTAuthMiddleware())
-	platform.Use(middleware.AdminOnly()) // TODO: Create PlatformOwnerOnly middleware
+	platform.Use(middleware.PlatformOwnerOnly())
 	{
 		// Tenant Registration & Approval
 		platform.GET("/tenants/pending", controllers.GetPendingTenants)

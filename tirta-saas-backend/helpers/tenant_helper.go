@@ -19,7 +19,7 @@ func GetTenantIDFromContext(c *gin.Context) (uuid.UUID, bool, error) {
 	}
 
 	// Platform owner can access all tenants or specify tenant_id
-	if role == string(constants.RolePlatformOwner) {
+	if roleStr, ok := role.(string); ok && constants.UserRole(roleStr) == constants.RolePlatformOwner {
 		if tenantIDParam := c.Query("tenant_id"); tenantIDParam != "" {
 			parsedID, err := uuid.Parse(tenantIDParam)
 			if err != nil {
@@ -55,7 +55,7 @@ func RequireTenantID(c *gin.Context) (uuid.UUID, error) {
 	}
 
 	// Platform owner must specify tenant_id
-	if role == string(constants.RolePlatformOwner) {
+	if roleStr, ok := role.(string); ok && constants.UserRole(roleStr) == constants.RolePlatformOwner {
 		tenantIDParam := c.Query("tenant_id")
 		if tenantIDParam == "" {
 			return uuid.Nil, errors.New("tenant_id parameter is required for platform owner")

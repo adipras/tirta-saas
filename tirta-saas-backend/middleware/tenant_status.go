@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -14,9 +15,11 @@ func CheckTenantStatus() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Skip check for platform owner (they don't have tenant restrictions)
 		role, exists := c.Get("role")
-		if exists && role == "platform_owner" {
-			c.Next()
-			return
+		if exists {
+			if roleStr, ok := role.(string); ok && constants.UserRole(roleStr) == constants.RolePlatformOwner {
+				c.Next()
+				return
+			}
 		}
 
 		// Get tenant ID from context (set by JWT middleware)

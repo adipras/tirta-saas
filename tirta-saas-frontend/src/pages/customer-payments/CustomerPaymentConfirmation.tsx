@@ -54,7 +54,7 @@ export default function CustomerPaymentConfirmation() {
   const loadInvoice = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await invoiceService.getInvoiceById(invoiceId!);
+      const data = await invoiceService.getCustomerInvoiceById(invoiceId!);
       setInvoice(data);
       setFormData((prev) => ({
         ...prev,

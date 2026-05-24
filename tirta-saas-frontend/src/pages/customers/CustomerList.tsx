@@ -160,6 +160,12 @@ export default function CustomerList() {
       render: (_value: unknown, item: Customer) => item.subscription?.name || '-',
     },
     {
+      key: 'service_area_name',
+      label: 'Area Layanan',
+      render: (_value: unknown, item: Customer) => item.service_area_name || '-',
+      hideOnMobile: true,
+    },
+    {
       key: 'is_active',
       label: 'Status',
       sortable: true,

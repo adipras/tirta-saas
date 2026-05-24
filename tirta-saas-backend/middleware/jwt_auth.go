@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -73,7 +74,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Platform owner might not have tenant_id
+		// Platform owner might not have tenant_id, but tenant-scoped roles must always have one.
 		var tenantID *uuid.UUID
 		if tenantIDStr != "" && tenantIDStr != "null" {
 			tid, err := uuid.Parse(tenantIDStr)
@@ -83,6 +84,10 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 				return
 			}
 			tenantID = &tid
+		} else if constants.IsTenantScopedRole(role) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Tenant ID wajib untuk role ini"})
+			c.Abort()
+			return
 		}
 
 		// Simpan ke context

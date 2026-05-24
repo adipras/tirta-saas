@@ -8,6 +8,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/config"
 	_ "github.com/adipras/tirta-saas-backend/docs"
 	"github.com/adipras/tirta-saas-backend/middleware"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/pkg/logger"
 	"github.com/adipras/tirta-saas-backend/pkg/seeder"
 	"github.com/adipras/tirta-saas-backend/routes"
@@ -102,6 +103,7 @@ func main() {
 	r.Use(middleware.HandleTrailingSlash())
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.RequestTracingMiddleware())
+	r.Use(audit.AuditMiddleware())
 	r.Use(middleware.PerformanceMonitoringMiddleware())
 
 	// Swagger UI endpoint for API documentation

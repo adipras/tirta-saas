@@ -124,6 +124,13 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/water-rates/${id}`,
     CURRENT: '/water-rates/current',
   },
+  SERVICE_AREAS: {
+    LIST: '/service-areas',
+    CREATE: '/service-areas',
+    DETAIL: (id: string) => `/service-areas/${id}`,
+    UPDATE: (id: string) => `/service-areas/${id}`,
+    DELETE: (id: string) => `/service-areas/${id}`,
+  },
   REPORTS: {
     REVENUE: '/reports/revenue',
     CUSTOMERS: '/reports/customers',

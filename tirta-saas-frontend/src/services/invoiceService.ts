@@ -316,6 +316,18 @@ class InvoiceService {
     };
   }
 
+  async getCustomerInvoiceById(id: string): Promise<InvoiceDetails> {
+    const response = await apiClient.get<SuccessEnvelope<RawInvoice> | RawInvoice>(`/customer/invoices/${id}`);
+    const inv = unwrapInvoice(response);
+
+    const mapped = mapInvoice(inv);
+    return {
+      ...mapped,
+      items: mapped.items || [],
+      paymentHistory: inv.payment_history || [],
+    };
+  }
+
   async createInvoice(data: CreateInvoicePayload): Promise<Invoice> {
     const response = await apiClient.post<RawInvoice>(API_ENDPOINTS.INVOICES.CREATE, {
       customer_id: data.customerId,

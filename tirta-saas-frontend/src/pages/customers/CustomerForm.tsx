@@ -3,7 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import customerService from '../../services/customerService';
+import serviceAreaService from '../../services/serviceAreaService';
 import type { CreateCustomerDto, UpdateCustomerDto, SubscriptionType } from '../../types/customer';
+import type { ServiceArea } from '../../types/serviceArea';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
 
@@ -13,6 +15,7 @@ interface CustomerFormData {
   email: string;
   password: string;
   subscription_id: string;
+  service_area_id?: string;
   phone?: string;
   address?: string;
 }
@@ -29,6 +32,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
+  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
   
   const {
     register,
@@ -57,6 +61,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
         email: customer.email,
         password: '', // Cannot edit password
         subscription_id: customer.subscription_id,
+        service_area_id: customer.service_area_id || '',
         phone: customer.phone || '',
         address: customer.address || '',
       });
@@ -68,22 +73,38 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
     }
   }, [navigate, reset, toast]);
 
+  const fetchServiceAreas = useCallback(async () => {
+    try {
+      const items = await serviceAreaService.getServiceAreas();
+      setServiceAreas(items.filter((area) => area.is_active));
+    } catch {
+      setServiceAreas([]);
+    }
+  }, []);
+
   useEffect(() => {
     void fetchSubscriptionTypes();
+    void fetchServiceAreas();
     if (mode === 'edit' && id) {
       void fetchCustomer(id);
     }
-  }, [fetchCustomer, fetchSubscriptionTypes, id, mode]);
+  }, [fetchCustomer, fetchServiceAreas, fetchSubscriptionTypes, id, mode]);
 
   const onSubmit = async (data: CustomerFormData) => {
     try {
       setSaving(true);
       
       if (mode === 'create') {
-        await customerService.createCustomer(data as CreateCustomerDto);
+        await customerService.createCustomer({
+          ...data,
+          service_area_id: data.service_area_id || undefined,
+        } as CreateCustomerDto);
         toast.success('Pelanggan berhasil ditambahkan');
       } else if (mode === 'edit' && id) {
-        await customerService.updateCustomer(id, data as UpdateCustomerDto);
+        await customerService.updateCustomer(id, {
+          ...data,
+          service_area_id: data.service_area_id || undefined,
+        } as UpdateCustomerDto);
         toast.success('Pelanggan berhasil diperbarui');
       }
       
@@ -245,6 +266,27 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                     {errors.subscription_id && (
                       <p className="mt-2 text-sm text-red-600">{errors.subscription_id.message}</p>
                     )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="service_area_id" className="block text-sm font-medium text-gray-700">
+                      Area Layanan
+                    </label>
+                    <select
+                      {...register('service_area_id')}
+                      id="service_area_id"
+                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
+                    >
+                      <option value="">Pilih area layanan</option>
+                      {serviceAreas.map((area) => (
+                        <option key={area.id} value={area.id}>
+                          {area.code} - {area.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Opsional. Gunakan untuk mengelompokkan pelanggan berdasarkan wilayah layanan.
+                    </p>
                   </div>
 
                   {/* Address */}

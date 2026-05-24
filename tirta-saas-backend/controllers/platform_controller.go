@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
@@ -1205,8 +1206,8 @@ func GetPlatformUsageAnalytics(c *gin.Context) {
 	// Overall app usage stats (not water usage)
 	// Exclude platform_owner from user counts as they are system admins, not tenant users
 	var totalUsers, activeUsers, totalCustomers int64
-	config.DB.Model(&models.User{}).Where("role != ?", "platform_owner").Count(&totalUsers)
-	config.DB.Model(&models.User{}).Where("is_active = ? AND role != ?", true, "platform_owner").Count(&activeUsers)
+	config.DB.Model(&models.User{}).Where("role != ?", string(constants.RolePlatformOwner)).Count(&totalUsers)
+	config.DB.Model(&models.User{}).Where("is_active = ? AND role != ?", true, string(constants.RolePlatformOwner)).Count(&activeUsers)
 	config.DB.Model(&models.Customer{}).Count(&totalCustomers)
 	analytics.TotalUsers = int(totalUsers)
 	analytics.ActiveUsers = int(activeUsers)

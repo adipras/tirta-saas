@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/pkg/logger"
 
@@ -39,8 +40,25 @@ func NewAuditService() *AuditService {
 	}
 }
 
+func (s *AuditService) getDB() *gorm.DB {
+	if s.db != nil {
+		return s.db
+	}
+
+	return config.DB
+}
+
 // Log creates an audit log entry
 func (s *AuditService) Log(c *gin.Context, entry AuditEntry) error {
+	db := s.getDB()
+	if db == nil {
+		logger.Warn("Audit log skipped because database is not ready", map[string]interface{}{
+			"resource": entry.Resource,
+			"action":   entry.Action,
+		})
+		return nil
+	}
+
 	// Extract context information
 	var userID, customerID, tenantID *uuid.UUID
 
@@ -62,7 +80,22 @@ func (s *AuditService) Log(c *gin.Context, entry AuditEntry) error {
 		}
 	}
 
-	// If no tenant ID in context, skip audit (may be unauthenticated endpoint)
+	// Platform-owner requests do not belong to a tenant but still need audit coverage.
+	if tenantID == nil {
+		if role, exists := c.Get("role"); exists {
+			if roleStr, ok := role.(string); ok && constants.UserRole(roleStr) == constants.RolePlatformOwner {
+				platformScopeTenantID := uuid.Nil
+				tenantID = &platformScopeTenantID
+
+				if entry.Metadata == nil {
+					entry.Metadata = map[string]interface{}{}
+				}
+				entry.Metadata["scope"] = "platform"
+			}
+		}
+	}
+
+	// If there is still no tenant scope, skip audit (may be unauthenticated endpoint).
 	if tenantID == nil {
 		return nil
 	}
@@ -130,7 +163,7 @@ func (s *AuditService) Log(c *gin.Context, entry AuditEntry) error {
 	}
 
 	// Save to database
-	if err := s.db.Create(&auditLog).Error; err != nil {
+	if err := db.Create(&auditLog).Error; err != nil {
 		logger.Error("Failed to create audit log", err, map[string]interface{}{
 			"audit_entry": entry,
 			"tenant_id":   tenantID,
@@ -140,15 +173,15 @@ func (s *AuditService) Log(c *gin.Context, entry AuditEntry) error {
 
 	// Also log to structured logger for immediate visibility
 	logFields := map[string]interface{}{
-		"audit_id":    auditLog.ID,
-		"action":      string(entry.Action),
-		"resource":    entry.Resource,
-		"level":       string(entry.Level),
-		"success":     entry.Success,
-		"tenant_id":   tenantID,
-		"ip_address":  auditLog.IPAddress,
-		"endpoint":    auditLog.Endpoint,
-		"method":      auditLog.Method,
+		"audit_id":   auditLog.ID,
+		"action":     string(entry.Action),
+		"resource":   entry.Resource,
+		"level":      string(entry.Level),
+		"success":    entry.Success,
+		"tenant_id":  tenantID,
+		"ip_address": auditLog.IPAddress,
+		"endpoint":   auditLog.Endpoint,
+		"method":     auditLog.Method,
 	}
 
 	if userID != nil {
@@ -237,6 +270,26 @@ func LogLogin(c *gin.Context, userType, identifier string, success bool, errorMs
 		Metadata: map[string]interface{}{
 			"user_type":  userType,
 			"identifier": identifier,
+		},
+	})
+}
+
+// LogLogout audits logout attempts
+func LogLogout(c *gin.Context, userType string, success bool, errorMsg string) {
+	level := models.LevelInfo
+	if !success {
+		level = models.LevelWarning
+	}
+
+	auditService.Log(c, AuditEntry{
+		Action:       models.ActionLogout,
+		Resource:     userType,
+		Level:        level,
+		Description:  "Logout for " + userType,
+		Success:      success,
+		ErrorMessage: errorMsg,
+		Metadata: map[string]interface{}{
+			"user_type": userType,
 		},
 	})
 }
@@ -347,27 +400,43 @@ func AuditMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
-		// Only audit authenticated requests
-		if _, exists := c.Get("tenant_id"); !exists {
+		// Only audit authenticated requests.
+		if _, hasUser := c.Get("user_id"); !hasUser {
+			if _, hasCustomer := c.Get("customer_id"); !hasCustomer {
+				return
+			}
+		}
+
+		action, shouldAudit := actionForMethod(c.Request.Method)
+		if !shouldAudit {
 			return
 		}
 
-		// Determine if this is a sensitive operation
-		method := c.Request.Method
-		if method == "POST" || method == "PUT" || method == "DELETE" {
-			level := models.LevelInfo
-			if method == "DELETE" {
-				level = models.LevelWarning
-			}
-
-			auditService.Log(c, AuditEntry{
-				Action:      models.AuditAction(method),
-				Resource:    "api_request",
-				Level:       level,
-				Description: "API request: " + method + " " + path,
-				Success:     c.Writer.Status() < 400,
-			})
+		level := models.LevelInfo
+		if c.Request.Method == "DELETE" {
+			level = models.LevelWarning
 		}
+
+		auditService.Log(c, AuditEntry{
+			Action:      action,
+			Resource:    "api_request",
+			Level:       level,
+			Description: "API request: " + c.Request.Method + " " + path,
+			Success:     c.Writer.Status() < 400,
+		})
+	}
+}
+
+func actionForMethod(method string) (models.AuditAction, bool) {
+	switch method {
+	case "POST":
+		return models.ActionCreate, true
+	case "PUT", "PATCH":
+		return models.ActionUpdate, true
+	case "DELETE":
+		return models.ActionDelete, true
+	default:
+		return "", false
 	}
 }
 

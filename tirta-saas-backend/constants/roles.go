@@ -5,60 +5,69 @@ type UserRole string
 const (
 	// Platform-level roles
 	RolePlatformOwner UserRole = "platform_owner"
-	
+
 	// Tenant-level roles
-	RoleTenantAdmin   UserRole = "tenant_admin"
-	RoleMeterReader   UserRole = "meter_reader"
-	RoleFinance       UserRole = "finance"
-	RoleService       UserRole = "service"
-	
+	RoleTenantAdmin UserRole = "tenant_admin"
+	RoleMeterReader UserRole = "meter_reader"
+	RoleFinance     UserRole = "finance"
+	RoleService     UserRole = "service"
+
 	// Customer role (existing)
-	RoleCustomer      UserRole = "customer"
+	RoleCustomer UserRole = "customer"
 )
+
+func IsTenantScopedRole(role string) bool {
+	switch UserRole(role) {
+	case RoleTenantAdmin, RoleMeterReader, RoleFinance, RoleService, RoleCustomer:
+		return true
+	default:
+		return false
+	}
+}
 
 // Permission sets for each role
 type Permission string
 
 const (
 	// Platform permissions
-	PermManageTenants        Permission = "manage_tenants"
-	PermViewAllTenants       Permission = "view_all_tenants"
-	PermSystemConfiguration  Permission = "system_configuration"
-	
+	PermManageTenants       Permission = "manage_tenants"
+	PermViewAllTenants      Permission = "view_all_tenants"
+	PermSystemConfiguration Permission = "system_configuration"
+
 	// Tenant management permissions
-	PermManageTenantUsers    Permission = "manage_tenant_users"
-	PermManageSubscriptions  Permission = "manage_subscriptions"
-	PermManageWaterRates     Permission = "manage_water_rates"
-	
+	PermManageTenantUsers   Permission = "manage_tenant_users"
+	PermManageSubscriptions Permission = "manage_subscriptions"
+	PermManageWaterRates    Permission = "manage_water_rates"
+
 	// Customer management permissions
-	PermManageCustomers      Permission = "manage_customers"
-	PermViewCustomers        Permission = "view_customers"
-	
+	PermManageCustomers Permission = "manage_customers"
+	PermViewCustomers   Permission = "view_customers"
+
 	// Water usage permissions
-	PermRecordWaterUsage     Permission = "record_water_usage"
-	PermViewWaterUsage       Permission = "view_water_usage"
-	PermEditWaterUsage       Permission = "edit_water_usage"
-	
+	PermRecordWaterUsage Permission = "record_water_usage"
+	PermViewWaterUsage   Permission = "view_water_usage"
+	PermEditWaterUsage   Permission = "edit_water_usage"
+
 	// Invoice permissions
-	PermGenerateInvoices     Permission = "generate_invoices"
-	PermViewInvoices         Permission = "view_invoices"
-	PermEditInvoices         Permission = "edit_invoices"
-	
+	PermGenerateInvoices Permission = "generate_invoices"
+	PermViewInvoices     Permission = "view_invoices"
+	PermEditInvoices     Permission = "edit_invoices"
+
 	// Payment permissions
-	PermRecordPayments       Permission = "record_payments"
-	PermViewPayments         Permission = "view_payments"
-	PermManagePayments       Permission = "manage_payments"
-	
+	PermRecordPayments Permission = "record_payments"
+	PermViewPayments   Permission = "view_payments"
+	PermManagePayments Permission = "manage_payments"
+
 	// Service permissions
-	PermManageInventory      Permission = "manage_inventory"
-	PermManageInstallations  Permission = "manage_installations"
-	PermManageRepairs        Permission = "manage_repairs"
-	
+	PermManageInventory     Permission = "manage_inventory"
+	PermManageInstallations Permission = "manage_installations"
+	PermManageRepairs       Permission = "manage_repairs"
+
 	// Customer self-service permissions
-	PermViewOwnProfile       Permission = "view_own_profile"
-	PermViewOwnInvoices      Permission = "view_own_invoices"
-	PermViewOwnUsage         Permission = "view_own_usage"
-	PermMakePayments         Permission = "make_payments"
+	PermViewOwnProfile  Permission = "view_own_profile"
+	PermViewOwnInvoices Permission = "view_own_invoices"
+	PermViewOwnUsage    Permission = "view_own_usage"
+	PermMakePayments    Permission = "make_payments"
 )
 
 // RolePermissions maps each role to its allowed permissions
@@ -149,7 +158,7 @@ func HasPermission(role UserRole, permission Permission) bool {
 	if !exists {
 		return false
 	}
-	
+
 	for _, p := range permissions {
 		if p == permission {
 			return true

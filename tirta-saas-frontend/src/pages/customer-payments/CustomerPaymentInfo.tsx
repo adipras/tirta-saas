@@ -54,7 +54,7 @@ export default function CustomerPaymentInfo() {
     try {
       setLoading(true);
       setInvoiceError(null);
-      const data = await invoiceService.getInvoiceById(invoiceId!);
+      const data = await invoiceService.getCustomerInvoiceById(invoiceId!);
       setInvoice(data);
     } catch (err: unknown) {
       const message = extractApiErrorMessage(err, 'Gagal memuat tagihan. Silakan coba lagi.');

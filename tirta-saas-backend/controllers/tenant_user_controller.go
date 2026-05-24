@@ -42,7 +42,7 @@ func (tc *TenantUserController) CreateTenantUser(c *gin.Context) {
 	// Get current user context
 	currentUserID := c.MustGet("user_id").(uuid.UUID)
 	currentRole := constants.UserRole(c.MustGet("role").(string))
-	
+
 	// Platform owners can create users for any tenant
 	var tenantID *uuid.UUID
 	if currentRole == constants.RolePlatformOwner {
@@ -55,7 +55,7 @@ func (tc *TenantUserController) CreateTenantUser(c *gin.Context) {
 		// Tenant admins can only create users for their own tenant
 		tid := c.MustGet("tenant_id").(uuid.UUID)
 		tenantID = &tid
-		
+
 		// Ensure tenant admins can only create allowed roles
 		allowedRoles := constants.GetTenantRoles()
 		roleAllowed := false
@@ -332,9 +332,9 @@ func (tc *TenantUserController) DeleteTenantUser(c *gin.Context) {
 // @Router /api/tenant-users/roles [get]
 func (tc *TenantUserController) GetAvailableRoles(c *gin.Context) {
 	currentRole := constants.UserRole(c.MustGet("role").(string))
-	
+
 	var roles []map[string]string
-	
+
 	if currentRole == constants.RolePlatformOwner {
 		// Platform owner can assign all roles
 		allRoles := []constants.UserRole{
@@ -343,7 +343,7 @@ func (tc *TenantUserController) GetAvailableRoles(c *gin.Context) {
 			constants.RoleFinance,
 			constants.RoleService,
 		}
-		
+
 		for _, role := range allRoles {
 			roles = append(roles, map[string]string{
 				"value": string(role),
@@ -359,7 +359,7 @@ func (tc *TenantUserController) GetAvailableRoles(c *gin.Context) {
 			})
 		}
 	}
-	
+
 	c.JSON(http.StatusOK, roles)
 }
 

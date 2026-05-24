@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
@@ -38,12 +39,15 @@ func (ctrl *ServiceAreaController) CreateServiceArea(c *gin.Context) {
 		return
 	}
 
-	tenantID := c.GetString("tenant_id")
-	tenantUUID, _ := uuid.Parse(tenantID)
+	tenantUUID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	// Check if code already exists
 	var existing models.ServiceArea
-	if err := ctrl.DB.Where("tenant_id = ? AND code = ?", tenantID, req.Code).First(&existing).Error; err == nil {
+	if err := ctrl.DB.Where("tenant_id = ? AND code = ?", tenantUUID, req.Code).First(&existing).Error; err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "Service area code already exists"})
 		return
 	}
@@ -89,7 +93,11 @@ func (ctrl *ServiceAreaController) CreateServiceArea(c *gin.Context) {
 // @Failure 401 {object} map[string]interface{}
 // @Router /api/service-areas [get]
 func (ctrl *ServiceAreaController) GetServiceAreas(c *gin.Context) {
-	tenantID := c.GetString("tenant_id")
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	areaType := c.Query("type")
 
 	var serviceAreas []models.ServiceArea
@@ -122,7 +130,11 @@ func (ctrl *ServiceAreaController) GetServiceAreas(c *gin.Context) {
 // GetServiceArea gets a single service area
 func (ctrl *ServiceAreaController) GetServiceArea(c *gin.Context) {
 	areaID := c.Param("id")
-	tenantID := c.GetString("tenant_id")
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	parsedID, err := uuid.Parse(areaID)
 	if err != nil {
@@ -150,7 +162,11 @@ func (ctrl *ServiceAreaController) GetServiceArea(c *gin.Context) {
 // UpdateServiceArea updates a service area
 func (ctrl *ServiceAreaController) UpdateServiceArea(c *gin.Context) {
 	areaID := c.Param("id")
-	tenantID := c.GetString("tenant_id")
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	var req requests.UpdateServiceAreaRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -190,7 +206,11 @@ func (ctrl *ServiceAreaController) UpdateServiceArea(c *gin.Context) {
 // DeleteServiceArea deletes a service area
 func (ctrl *ServiceAreaController) DeleteServiceArea(c *gin.Context) {
 	areaID := c.Param("id")
-	tenantID := c.GetString("tenant_id")
+	tenantID, err := helpers.RequireTenantID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	parsedID, err := uuid.Parse(areaID)
 	if err != nil {

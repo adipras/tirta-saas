@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"net/http"
 	"github.com/adipras/tirta-saas-backend/constants"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -31,9 +31,9 @@ func RequirePermission(permissions ...constants.Permission) gin.HandlerFunc {
 
 		if !hasPermission {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Access denied. Insufficient permissions",
+				"error":                "Access denied. Insufficient permissions",
 				"required_permissions": permissions,
-				"user_role": role,
+				"user_role":            role,
 			})
 			c.Abort()
 			return
@@ -54,7 +54,7 @@ func RequireRole(roles ...constants.UserRole) gin.HandlerFunc {
 		}
 
 		userRole := constants.UserRole(roleInterface.(string))
-		
+
 		// Check if user has one of the required roles
 		hasRole := false
 		for _, role := range roles {
@@ -66,9 +66,9 @@ func RequireRole(roles ...constants.UserRole) gin.HandlerFunc {
 
 		if !hasRole {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Access denied. Invalid role",
+				"error":          "Access denied. Invalid role",
 				"required_roles": roles,
-				"user_role": userRole,
+				"user_role":      userRole,
 			})
 			c.Abort()
 			return
@@ -106,9 +106,11 @@ func RequireTenantUser() gin.HandlerFunc {
 func EnsureSameTenant(getTenantIDFunc func(c *gin.Context) (uuid.UUID, error)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Platform owners can access any tenant's data
-		if role, _ := c.Get("role"); role == string(constants.RolePlatformOwner) {
-			c.Next()
-			return
+		if role, ok := c.Get("role"); ok {
+			if roleStr, ok := role.(string); ok && constants.UserRole(roleStr) == constants.RolePlatformOwner {
+				c.Next()
+				return
+			}
 		}
 
 		userTenantID, exists := c.Get("tenant_id")

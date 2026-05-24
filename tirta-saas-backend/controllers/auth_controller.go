@@ -8,6 +8,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/adipras/tirta-saas-backend/utils"
 
@@ -82,6 +83,20 @@ type LoginInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
+func setAuditUserContext(c *gin.Context, user models.User) {
+	c.Set("user_id", user.ID)
+	c.Set("role", user.Role)
+	if user.TenantID != nil {
+		c.Set("tenant_id", *user.TenantID)
+	}
+}
+
+func setAuditCustomerContext(c *gin.Context, customer models.Customer) {
+	c.Set("customer_id", customer.ID)
+	c.Set("tenant_id", customer.TenantID)
+	c.Set("role", string(constants.RoleCustomer))
+}
+
 // Login authenticates a user
 // @Summary User login
 // @Description Authenticate user and get JWT token
@@ -104,8 +119,10 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email tidak ditemukan"})
 		return
 	}
+	setAuditUserContext(c, user)
 
 	if !utils.CheckPasswordHash(input.Password, user.Password) {
+		audit.LogLogin(c, user.Role, input.Email, false, "invalid password")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Password salah"})
 		return
 	}
@@ -113,10 +130,12 @@ func Login(c *gin.Context) {
 	authService := services.NewAuthService(config.DB)
 	authPayload, err := authService.CreateSession(user, c.ClientIP(), c.GetHeader("User-Agent"))
 	if err != nil {
+		audit.LogLogin(c, user.Role, input.Email, false, "session creation failed")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat sesi login"})
 		return
 	}
 
+	audit.LogLogin(c, user.Role, input.Email, true, "")
 	c.JSON(http.StatusOK, authPayload)
 }
 
@@ -175,10 +194,12 @@ func Logout(c *gin.Context) {
 
 	authService := services.NewAuthService(config.DB)
 	if err := authService.InvalidateUserSessions(userID); err != nil {
+		audit.LogLogout(c, "user", false, "session invalidation failed")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal logout"})
 		return
 	}
 
+	audit.LogLogout(c, "user", true, "")
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Logout berhasil",
 	})
@@ -366,23 +387,28 @@ func CustomerLogin(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email tidak ditemukan"})
 		return
 	}
+	setAuditCustomerContext(c, customer)
 
 	if !utils.CheckPasswordHash(input.Password, customer.Password) {
+		audit.LogLogin(c, "customer", input.Email, false, "invalid password")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Password salah"})
 		return
 	}
 
 	if !customer.IsActive {
+		audit.LogLogin(c, "customer", input.Email, false, "customer inactive")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Akun belum aktif. Silakan lakukan pembayaran pendaftaran terlebih dahulu"})
 		return
 	}
 
 	token, err := utils.GenerateCustomerJWT(customer.ID, customer.TenantID)
 	if err != nil {
+		audit.LogLogin(c, "customer", input.Email, false, "token generation failed")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat token"})
 		return
 	}
 
+	audit.LogLogin(c, "customer", input.Email, true, "")
 	c.JSON(http.StatusOK, gin.H{
 		"token":        token,
 		"meter_number": customer.MeterNumber,

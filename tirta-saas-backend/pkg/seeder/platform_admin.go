@@ -24,9 +24,9 @@ func SeedDefaultPlatformAdmin() error {
 	// Check if platform admin already exists
 	var count int64
 	err := db.Model(&models.User{}).
-		Where("role = ?", constants.RolePlatformOwner).
+		Where("role = ?", string(constants.RolePlatformOwner)).
 		Count(&count).Error
-	
+
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func SeedMultiplePlatformAdmins(admins []PlatformAdminSeeder) error {
 		// Check if email already exists
 		var existing models.User
 		err := db.Where("email = ?", admin.Email).First(&existing).Error
-		
+
 		if err == nil {
 			log.Printf("⚠️  Admin with email %s already exists, skipping...", admin.Email)
 			continue
