@@ -13,8 +13,17 @@ class CustomerRepository @Inject constructor(
         limit: Int = 20,
         search: String? = null,
         isActive: Boolean? = null,
+        serviceAreaId: String? = null,
+        readingRouteId: String? = null,
     ): Result<CustomerListData> = runCatching {
-        val response = customerApiService.getCustomers(page, limit, search, isActive)
+        val response = customerApiService.getCustomers(
+            page = page,
+            limit = limit,
+            search = search,
+            isActive = isActive,
+            serviceAreaId = serviceAreaId,
+            readingRouteId = readingRouteId,
+        )
         response.requireData("Daftar pelanggan tidak tersedia")
     }
 
@@ -32,6 +41,10 @@ class CustomerRepository @Inject constructor(
 
     suspend fun getSubscriptionTypes(): Result<List<SubscriptionTypeDto>> = runCatching {
         customerApiService.getSubscriptionTypes()
+    }
+
+    suspend fun getServiceAreas(): Result<List<ServiceAreaDto>> = runCatching {
+        customerApiService.getServiceAreas().data
     }
 
     suspend fun deleteCustomer(id: String): Result<Unit> = runCatching {

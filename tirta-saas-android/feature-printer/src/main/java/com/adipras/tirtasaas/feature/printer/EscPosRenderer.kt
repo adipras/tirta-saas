@@ -42,7 +42,8 @@ class EscPosRenderer @Inject constructor() {
         sb.append(divider()).append("\n")
         sb.append(line("TOTAL:", formatRp(receipt.totalAmount))).append("\n")
         if (receipt.totalPaid > 0) sb.append(line("Dibayar:", formatRp(receipt.totalPaid))).append("\n")
-        if (receipt.dueDate != null) sb.append(line("Jatuh Tempo:", receipt.dueDate)).append("\n")
+        val dueDate = receipt.dueDate
+        if (!dueDate.isNullOrBlank()) sb.append(line("Jatuh Tempo:", dueDate)).append("\n")
         if (receipt.footerText.isNotBlank()) {
             sb.append(divider()).append("\n")
             sb.append(center(receipt.footerText)).append("\n")

@@ -16,6 +16,44 @@ import (
 	"github.com/google/uuid"
 )
 
+func mapCustomerResponse(customer models.Customer) responses.CustomerResponse {
+	response := responses.CustomerResponse{
+		ID:             customer.ID,
+		MeterNumber:    customer.MeterNumber,
+		Name:           customer.Name,
+		Email:          customer.Email,
+		Address:        customer.Address,
+		Phone:          customer.Phone,
+		SubscriptionID: customer.SubscriptionID,
+		ServiceAreaID:  customer.ServiceAreaID,
+		ReadingRouteID: customer.ReadingRouteID,
+		IsActive:       customer.IsActive,
+		CreatedAt:      customer.CreatedAt,
+	}
+
+	if customer.Subscription.ID != uuid.Nil {
+		response.Subscription = &responses.SubscriptionTypeResponse{
+			ID:              customer.Subscription.ID,
+			Name:            customer.Subscription.Name,
+			Description:     customer.Subscription.Description,
+			RegistrationFee: customer.Subscription.RegistrationFee,
+			MonthlyFee:      customer.Subscription.MonthlyFee,
+			MaintenanceFee:  customer.Subscription.MaintenanceFee,
+			LateFeePerDay:   customer.Subscription.LateFeePerDay,
+			MaxLateFee:      customer.Subscription.MaxLateFee,
+		}
+	}
+
+	if customer.ServiceArea != nil {
+		response.ServiceAreaName = customer.ServiceArea.Name
+	}
+	if customer.ReadingRoute != nil {
+		response.ReadingRouteName = customer.ReadingRoute.Name
+	}
+
+	return response
+}
+
 // CreateCustomer godoc
 // @Summary Create new customer
 // @Description Create a new customer with subscription
@@ -57,7 +95,7 @@ func CreateCustomer(c *gin.Context) {
 
 	// Begin transaction for customer creation and invoice generation
 	tx := config.DB.Begin()
-	
+
 	// Buat Customer
 	customer := models.Customer{
 		MeterNumber:    req.MeterNumber,
@@ -67,6 +105,8 @@ func CreateCustomer(c *gin.Context) {
 		Phone:          req.Phone,
 		Address:        req.Address,
 		SubscriptionID: req.SubscriptionID,
+		ServiceAreaID:  req.ServiceAreaID,
+		ReadingRouteID: req.ReadingRouteID,
 		IsActive:       false,
 		TenantID:       tenantID,
 	}
@@ -104,7 +144,7 @@ func CreateCustomer(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create registration invoice"})
 		return
 	}
-	
+
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete customer registration"})
@@ -112,16 +152,7 @@ func CreateCustomer(c *gin.Context) {
 	}
 
 	// Respon
-	response := responses.CustomerResponse{
-		ID:             customer.ID,
-		MeterNumber:    customer.MeterNumber,
-		Name:           customer.Name,
-		Email:          customer.Email,
-		Address:        customer.Address,
-		Phone:          customer.Phone,
-		SubscriptionID: customer.SubscriptionID,
-		IsActive:       customer.IsActive,
-	}
+	response := mapCustomerResponse(customer)
 	helpers.RespondCreated(c, "Customer created successfully", response)
 }
 
@@ -143,11 +174,31 @@ func GetCustomers(c *gin.Context) {
 	}
 
 	var customers []models.Customer
-	query := config.DB.Preload("Subscription")
-	
+	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute")
+
 	// If has specific tenant, filter by it
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
+	}
+
+	serviceAreaID := c.Query("service_area_id")
+	if serviceAreaID != "" {
+		parsedID, parseErr := uuid.Parse(serviceAreaID)
+		if parseErr != nil {
+			helpers.RespondError(c, http.StatusBadRequest, "service_area_id tidak valid", parseErr)
+			return
+		}
+		query = query.Where("service_area_id = ?", parsedID)
+	}
+
+	readingRouteID := c.Query("reading_route_id")
+	if readingRouteID != "" {
+		parsedID, parseErr := uuid.Parse(readingRouteID)
+		if parseErr != nil {
+			helpers.RespondError(c, http.StatusBadRequest, "reading_route_id tidak valid", parseErr)
+			return
+		}
+		query = query.Where("reading_route_id = ?", parsedID)
 	}
 	// If no specific tenant (platform owner without filter), return all
 
@@ -159,33 +210,7 @@ func GetCustomers(c *gin.Context) {
 	// Convert to response format
 	customerResponses := make([]responses.CustomerResponse, len(customers))
 	for i, customer := range customers {
-		resp := responses.CustomerResponse{
-			ID:             customer.ID,
-			MeterNumber:    customer.MeterNumber,
-			Name:           customer.Name,
-			Email:          customer.Email,
-			Address:        customer.Address,
-			Phone:          customer.Phone,
-			SubscriptionID: customer.SubscriptionID,
-			IsActive:       customer.IsActive,
-			CreatedAt:      customer.CreatedAt,
-		}
-		
-		// Include subscription if loaded
-		if customer.Subscription.ID != uuid.Nil {
-			resp.Subscription = &responses.SubscriptionTypeResponse{
-				ID:              customer.Subscription.ID,
-				Name:            customer.Subscription.Name,
-				Description:     customer.Subscription.Description,
-				RegistrationFee: customer.Subscription.RegistrationFee,
-				MonthlyFee:      customer.Subscription.MonthlyFee,
-				MaintenanceFee:  customer.Subscription.MaintenanceFee,
-				LateFeePerDay:   customer.Subscription.LateFeePerDay,
-				MaxLateFee:      customer.Subscription.MaxLateFee,
-			}
-		}
-		
-		customerResponses[i] = resp
+		customerResponses[i] = mapCustomerResponse(customer)
 	}
 
 	response := responses.CustomerListResponse{
@@ -214,47 +239,21 @@ func GetCustomer(c *gin.Context) {
 		return
 	}
 	id := c.Param("id")
-	
+
 	var customer models.Customer
-	query := config.DB.Preload("Subscription").Where("id = ?", id)
-	
+	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute").Where("id = ?", id)
+
 	// If has specific tenant, add tenant filter
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	
+
 	if err := query.First(&customer).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
 		return
 	}
-	
-	response := responses.CustomerResponse{
-		ID:             customer.ID,
-		MeterNumber:    customer.MeterNumber,
-		Name:           customer.Name,
-		Email:          customer.Email,
-		Address:        customer.Address,
-		Phone:          customer.Phone,
-		SubscriptionID: customer.SubscriptionID,
-		IsActive:       customer.IsActive,
-		CreatedAt:      customer.CreatedAt,
-	}
-	
-	// Include subscription if loaded
-	if customer.Subscription.ID != uuid.Nil {
-		response.Subscription = &responses.SubscriptionTypeResponse{
-			ID:              customer.Subscription.ID,
-			Name:            customer.Subscription.Name,
-			Description:     customer.Subscription.Description,
-			RegistrationFee: customer.Subscription.RegistrationFee,
-			MonthlyFee:      customer.Subscription.MonthlyFee,
-			MaintenanceFee:  customer.Subscription.MaintenanceFee,
-			LateFeePerDay:   customer.Subscription.LateFeePerDay,
-			MaxLateFee:      customer.Subscription.MaxLateFee,
-		}
-	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, mapCustomerResponse(customer))
 }
 
 // ActivateCustomer godoc
@@ -278,8 +277,8 @@ func ActivateCustomer(c *gin.Context) {
 	id := c.Param("id")
 
 	var customer models.Customer
-	query := config.DB.Preload("Subscription").Where("id = ?", id)
-	
+	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute").Where("id = ?", id)
+
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
@@ -296,32 +295,7 @@ func ActivateCustomer(c *gin.Context) {
 	}
 	customer.IsActive = true
 
-	response := responses.CustomerResponse{
-		ID:             customer.ID,
-		MeterNumber:    customer.MeterNumber,
-		Name:           customer.Name,
-		Email:          customer.Email,
-		Address:        customer.Address,
-		Phone:          customer.Phone,
-		SubscriptionID: customer.SubscriptionID,
-		IsActive:       customer.IsActive,
-		CreatedAt:      customer.CreatedAt,
-	}
-
-	if customer.Subscription.ID != uuid.Nil {
-		response.Subscription = &responses.SubscriptionTypeResponse{
-			ID:              customer.Subscription.ID,
-			Name:            customer.Subscription.Name,
-			Description:     customer.Subscription.Description,
-			RegistrationFee: customer.Subscription.RegistrationFee,
-			MonthlyFee:      customer.Subscription.MonthlyFee,
-			MaintenanceFee:  customer.Subscription.MaintenanceFee,
-			LateFeePerDay:   customer.Subscription.LateFeePerDay,
-			MaxLateFee:      customer.Subscription.MaxLateFee,
-		}
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, mapCustomerResponse(customer))
 }
 
 // DeactivateCustomer godoc
@@ -345,8 +319,8 @@ func DeactivateCustomer(c *gin.Context) {
 	id := c.Param("id")
 
 	var customer models.Customer
-	query := config.DB.Preload("Subscription").Where("id = ?", id)
-	
+	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute").Where("id = ?", id)
+
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
@@ -363,32 +337,7 @@ func DeactivateCustomer(c *gin.Context) {
 	}
 	customer.IsActive = false
 
-	response := responses.CustomerResponse{
-		ID:             customer.ID,
-		MeterNumber:    customer.MeterNumber,
-		Name:           customer.Name,
-		Email:          customer.Email,
-		Address:        customer.Address,
-		Phone:          customer.Phone,
-		SubscriptionID: customer.SubscriptionID,
-		IsActive:       customer.IsActive,
-		CreatedAt:      customer.CreatedAt,
-	}
-
-	if customer.Subscription.ID != uuid.Nil {
-		response.Subscription = &responses.SubscriptionTypeResponse{
-			ID:              customer.Subscription.ID,
-			Name:            customer.Subscription.Name,
-			Description:     customer.Subscription.Description,
-			RegistrationFee: customer.Subscription.RegistrationFee,
-			MonthlyFee:      customer.Subscription.MonthlyFee,
-			MaintenanceFee:  customer.Subscription.MaintenanceFee,
-			LateFeePerDay:   customer.Subscription.LateFeePerDay,
-			MaxLateFee:      customer.Subscription.MaxLateFee,
-		}
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, mapCustomerResponse(customer))
 }
 
 // UpdateCustomer godoc
@@ -414,12 +363,12 @@ func UpdateCustomer(c *gin.Context) {
 
 	var customer models.Customer
 	query := config.DB.Where("id = ?", id)
-	
+
 	// If has specific tenant, add tenant filter
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	
+
 	if err := query.First(&customer).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Pelanggan tidak ditemukan"})
 		return
@@ -435,23 +384,15 @@ func UpdateCustomer(c *gin.Context) {
 	customer.Address = input.Address
 	customer.Phone = input.Phone
 	customer.SubscriptionID = input.SubscriptionID
+	customer.ServiceAreaID = input.ServiceAreaID
+	customer.ReadingRouteID = input.ReadingRouteID
 
-	if err := config.DB.Model(&customer).Select("Name", "Address", "Phone", "SubscriptionID").Updates(&customer).Error; err != nil {
+	if err := config.DB.Model(&customer).Select("Name", "Address", "Phone", "SubscriptionID", "ServiceAreaID", "ReadingRouteID").Updates(&customer).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui pelanggan"})
 		return
 	}
 
-	response := responses.CustomerResponse{
-		ID:             customer.ID,
-		MeterNumber:    customer.MeterNumber,
-		Name:           customer.Name,
-		Email:          customer.Email,
-		Address:        customer.Address,
-		Phone:          customer.Phone,
-		SubscriptionID: customer.SubscriptionID,
-		IsActive:       customer.IsActive,
-	}
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, mapCustomerResponse(customer))
 }
 
 // DeleteCustomer godoc
@@ -475,7 +416,7 @@ func DeleteCustomer(c *gin.Context) {
 	id := c.Param("id")
 
 	query := config.DB.Where("id = ?", id)
-	
+
 	// If has specific tenant, add tenant filter
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)

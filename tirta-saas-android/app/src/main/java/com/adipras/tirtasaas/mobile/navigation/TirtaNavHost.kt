@@ -43,6 +43,8 @@ import com.adipras.tirtasaas.feature.payment.PaymentInputDestination
 import com.adipras.tirtasaas.feature.payment.paymentInputScreen
 import com.adipras.tirtasaas.feature.printer.PrinterDestination
 import com.adipras.tirtasaas.feature.printer.printerScreen
+import com.adipras.tirtasaas.feature.monitoring.MonitoringDestination
+import com.adipras.tirtasaas.feature.monitoring.monitoringScreen
 import com.adipras.tirtasaas.mobile.AppSessionUiState
 
 private const val DASHBOARD_ROUTE = "dashboard"
@@ -108,6 +110,9 @@ fun TirtaNavHost(
         printerScreen(
             onBack = { navController.popBackStack() },
         )
+        monitoringScreen(
+            onBack = { navController.popBackStack() },
+        )
     }
 }
 
@@ -149,6 +154,9 @@ private fun NavGraphBuilder.dashboardGraph(
             onNavigateToSettings = {
                 navController.navigate(TenantSettingsDestination.route)
             },
+            onNavigateToMonitoring = {
+                navController.navigate(MonitoringDestination.route)
+            },
             onLogout = onLogout,
         )
     }
@@ -163,6 +171,7 @@ private fun DashboardRoute(
     onNavigateToUsages: () -> Unit,
     onNavigateToInvoices: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToMonitoring: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val role = sessionUiState.role?.lowercase()
@@ -236,6 +245,14 @@ private fun DashboardRoute(
                 Text("Pengaturan")
             }
         }
+        if (visibleModules.contains(DashboardModule.MONITORING)) {
+            Button(
+                onClick = onNavigateToMonitoring,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Monitoring Operasional")
+            }
+        }
         if (visibleModules.isEmpty()) {
             Text(
                 text = "Belum ada modul operasional mobile yang tersedia untuk peran ini.",
@@ -256,16 +273,21 @@ private enum class DashboardModule {
     USAGES,
     INVOICES,
     SETTINGS,
+    MONITORING,
 }
 
 private fun modulesForRole(role: String?): Set<DashboardModule> = when (role) {
-    "platform_owner" -> setOf(DashboardModule.TENANTS)
+    "platform_owner" -> setOf(
+        DashboardModule.TENANTS,
+        DashboardModule.MONITORING,
+    )
     "tenant_admin" -> setOf(
         DashboardModule.CUSTOMERS,
         DashboardModule.USERS,
         DashboardModule.USAGES,
         DashboardModule.INVOICES,
         DashboardModule.SETTINGS,
+        DashboardModule.MONITORING,
     )
     "meter_reader" -> setOf(
         DashboardModule.CUSTOMERS,
@@ -299,5 +321,6 @@ fun topBarTitleForRoute(route: String?): String = when {
     route?.startsWith(PaymentInputDestination.routeBase + "/") == true -> "Input Pembayaran"
     route?.startsWith(PrinterDestination.routeBase + "/") == true -> "Cetak Struk"
     route?.startsWith(TenantSettingsDestination.route) == true -> "Pengaturan"
+    route?.startsWith(MonitoringDestination.route) == true -> "Monitoring Operasional"
     else -> "Masuk"
 }

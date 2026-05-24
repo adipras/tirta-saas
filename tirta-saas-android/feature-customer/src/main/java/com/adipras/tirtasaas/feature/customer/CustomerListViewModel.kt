@@ -21,6 +21,9 @@ data class CustomerListUiState(
     val isSaving: Boolean = false,
     val showCreateDialog: Boolean = false,
     val subscriptionTypes: List<SubscriptionTypeDto> = emptyList(),
+    val serviceAreas: List<ServiceAreaDto> = emptyList(),
+    val selectedServiceAreaId: String? = null,
+    val readingRouteIdFilter: String = "",
 )
 
 @HiltViewModel
@@ -34,13 +37,21 @@ class CustomerListViewModel @Inject constructor(
     init {
         loadCustomers()
         loadSubscriptionTypes()
+        loadServiceAreas()
     }
 
     fun loadCustomers(page: Int = 1, reset: Boolean = true) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val query = _uiState.value.searchQuery.takeIf { it.isNotBlank() }
-            repository.getCustomers(page = page, search = query)
+            val serviceAreaId = _uiState.value.selectedServiceAreaId
+            val readingRouteId = _uiState.value.readingRouteIdFilter.takeIf { it.isNotBlank() }
+            repository.getCustomers(
+                page = page,
+                search = query,
+                serviceAreaId = serviceAreaId,
+                readingRouteId = readingRouteId,
+            )
                 .onSuccess { response ->
                     val newList = if (reset) response.customers
                     else _uiState.value.customers + response.customers
@@ -52,7 +63,8 @@ class CustomerListViewModel @Inject constructor(
                             currentPage = page,
                         )
                     }
-                }                .onFailure { error ->
+                }
+                .onFailure { error ->
                     _uiState.update {
                         it.copy(isLoading = false, errorMessage = error.userMessage("Gagal memuat data pelanggan"))
                     }
@@ -62,6 +74,19 @@ class CustomerListViewModel @Inject constructor(
 
     fun onSearchQueryChange(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
+        loadCustomers(reset = true)
+    }
+
+    fun onServiceAreaFilterChange(serviceAreaId: String?) {
+        _uiState.update { it.copy(selectedServiceAreaId = serviceAreaId) }
+        loadCustomers(reset = true)
+    }
+
+    fun onReadingRouteFilterChange(routeId: String) {
+        _uiState.update { it.copy(readingRouteIdFilter = routeId) }
+    }
+
+    fun applyRouteFilter() {
         loadCustomers(reset = true)
     }
 
@@ -115,6 +140,20 @@ class CustomerListViewModel @Inject constructor(
                 .onFailure { error ->
                     _uiState.update {
                         it.copy(errorMessage = error.userMessage("Gagal memuat paket langganan"))
+                    }
+                }
+        }
+    }
+
+    private fun loadServiceAreas() {
+        viewModelScope.launch {
+            repository.getServiceAreas()
+                .onSuccess { areas ->
+                    _uiState.update { it.copy(serviceAreas = areas) }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(errorMessage = error.userMessage("Gagal memuat daftar area layanan"))
                     }
                 }
         }

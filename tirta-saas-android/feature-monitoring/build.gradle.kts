@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "com.adipras.tirtasaas.feature.auth"
+    namespace = "com.adipras.tirtasaas.feature.monitoring"
     compileSdk = 34
 
     defaultConfig {
@@ -40,11 +40,10 @@ kapt {
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:network"))
-    implementation(project(":core:security"))
-    implementation(project(":feature-tenant"))
 
     implementation(libs.retrofit)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.android)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.lifecycle.viewmodel.compose)

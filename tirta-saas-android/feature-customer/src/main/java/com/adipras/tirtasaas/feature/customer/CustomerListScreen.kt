@@ -81,22 +81,34 @@ internal fun CustomerListRoute(
         onAddClick = viewModel::showCreateDialog,
         onDismissCreateDialog = viewModel::dismissCreateDialog,
         onSearchQueryChange = viewModel::onSearchQueryChange,
+        onServiceAreaFilterChange = viewModel::onServiceAreaFilterChange,
+        onReadingRouteFilterChange = viewModel::onReadingRouteFilterChange,
+        onApplyRouteFilter = viewModel::applyRouteFilter,
         onCreateCustomer = viewModel::createCustomer,
         onCustomerClick = onCustomerClick,
     )
 }
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 internal fun CustomerListScreen(
     uiState: CustomerListUiState,
     snackbarHostState: SnackbarHostState,
     onAddClick: () -> Unit,
     onDismissCreateDialog: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
+    onServiceAreaFilterChange: (String?) -> Unit,
+    onReadingRouteFilterChange: (String) -> Unit,
+    onApplyRouteFilter: () -> Unit,
     onCreateCustomer: (CreateCustomerRequest) -> Unit,
     onCustomerClick: (String) -> Unit,
 ) {
     val listState = rememberLazyListState()
+    var areaDropdownExpanded by remember { mutableStateOf(false) }
+    val selectedAreaName = uiState.serviceAreas
+        .firstOrNull { it.id == uiState.selectedServiceAreaId }
+        ?.name
+        ?: "Semua Area"
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -122,6 +134,64 @@ internal fun CustomerListScreen(
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 singleLine = true,
             )
+
+            Spacer(Modifier.height(8.dp))
+
+            ExposedDropdownMenuBox(
+                expanded = areaDropdownExpanded,
+                onExpandedChange = { areaDropdownExpanded = it },
+            ) {
+                OutlinedTextField(
+                    value = selectedAreaName,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Area Layanan") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = areaDropdownExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                )
+                ExposedDropdownMenu(
+                    expanded = areaDropdownExpanded,
+                    onDismissRequest = { areaDropdownExpanded = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Semua Area") },
+                        onClick = {
+                            areaDropdownExpanded = false
+                            onServiceAreaFilterChange(null)
+                        },
+                    )
+                    uiState.serviceAreas.forEach { area ->
+                        DropdownMenuItem(
+                            text = { Text("${area.code} - ${area.name}") },
+                            onClick = {
+                                areaDropdownExpanded = false
+                                onServiceAreaFilterChange(area.id)
+                            },
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = uiState.readingRouteIdFilter,
+                onValueChange = onReadingRouteFilterChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Reading Route ID (opsional)") },
+                singleLine = true,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            TextButton(
+                onClick = onApplyRouteFilter,
+                modifier = Modifier.align(Alignment.End),
+            ) {
+                Text("Terapkan Filter Route")
+            }
 
             Spacer(Modifier.height(8.dp))
 
@@ -203,6 +273,20 @@ private fun CustomerListItem(
                             text = it.name,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    if (!customer.serviceAreaName.isNullOrBlank()) {
+                        Text(
+                            text = "Area: ${customer.serviceAreaName}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (!customer.readingRouteName.isNullOrBlank()) {
+                        Text(
+                            text = "Route: ${customer.readingRouteName}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }

@@ -15,6 +15,8 @@ interface CustomerApiService {
         @Query("limit") limit: Int = 20,
         @Query("search") search: String? = null,
         @Query("is_active") isActive: Boolean? = null,
+        @Query("service_area_id") serviceAreaId: String? = null,
+        @Query("reading_route_id") readingRouteId: String? = null,
     ): CustomerListResponse
 
     @GET("customers/{id}")
@@ -31,6 +33,9 @@ interface CustomerApiService {
 
     @GET("subscription-types")
     suspend fun getSubscriptionTypes(): List<SubscriptionTypeDto>
+
+    @GET("service-areas")
+    suspend fun getServiceAreas(): ServiceAreaListResponse
 
     @DELETE("customers/{id}")
     suspend fun deleteCustomer(@Path("id") id: String)

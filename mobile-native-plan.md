@@ -32,9 +32,9 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 
 ### Android
 
-- Belum menjadi aplikasi operasional native penuh
-- Saat ini baru ada bootstrap Gradle dan modul `printer-bridge`
-- Modul utama mobile app masih perlu dibangun dari nol
+- Sudah menjadi aplikasi operasional native modular berbasis Jetpack Compose (`app` + `core/*` + `feature-*`)
+- Modul domain utama sudah tersedia: auth, tenant, user, customer, usage, invoice, payment, printer
+- `printer-bridge` tetap ada sebagai app bridge terpisah untuk skenario integrasi printer tertentu
 
 ## Gap yang Harus Dibereskan
 
@@ -85,13 +85,13 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 - [x] Monitoring invoice (Android: InvoiceApiService, InvoiceRepository, InvoiceListViewModel, InvoiceDetailViewModel, InvoiceListScreen, InvoiceDetailScreen, DI)
 - [x] Input payment (Android: PaymentApiService, PaymentRepository, PaymentViewModel, PaymentInputScreen, DI)
 - [x] Print receipt ke thermal printer (feature-printer: BluetoothPrinterManager, EscPosRenderer, PrintQueueManager, PrinterScreen)
-- [ ] Monitoring operasional dasar _(BELUM: modul `feature-monitoring` belum dibuat)_
+- [x] Monitoring operasional dasar _(DONE: modul `feature-monitoring` sudah dibuat dengan dashboard ringkasan revenue, pembayaran, tunggakan, pelanggan, dan pemakaian)_
 
 ### Enhancement
 
 - [x] Offline draft water usage (DraftUsageEntity, DraftUsageDao, DraftUsageRepository)
 - [x] Sync queue untuk input lapangan (SyncQueueEntity, SyncQueueDao, DraftUsageSyncWorker + HiltWorkerFactory)
-- [ ] Filter customer by service area / route
+- [x] Filter customer by service area / route _(DONE: backend `GET /api/customers` support query `service_area_id` + `reading_route_id`, Android customer list tambah dropdown area layanan + filter route ID)_
 - [ ] Upload foto meter
 - [ ] Reprint receipt dari riwayat
 - [ ] Push notification
@@ -140,7 +140,7 @@ tirta-saas-android/
 ├── feature-usage/
 ├── feature-invoice/
 ├── feature-payment/
-├── feature-monitoring/   ← belum dibuat
+├── feature-monitoring/
 ├── feature-printer/
 ├── printer-core/         ← belum dibuat (printer-bridge berdiri sendiri)
 └── printer-bridge/
@@ -149,7 +149,7 @@ tirta-saas-android/
 Flow utama:
 
 ```text
-UI -> ViewModel -> UseCase -> Repository -> API / Local DB
+UI -> ViewModel -> Repository -> API / Local DB
 ```
 
 ## Data Layer dan Offline Strategy
@@ -315,3 +315,5 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [x] Phase 4 selesai (2026-05-08): feature-printer module — BluetoothPrinterManager, EscPosRenderer (58mm ESC/POS), PrintQueueManager (retry max 3), PrinterPreferenceRepository (DataStore), PrinterViewModel, PrinterScreen, Bluetooth permission handling Android 12+
 - [x] feature-printer code refined (2026-05-08): cleanup build.gradle.kts, slim down BluetoothPrinterManager/EscPosRenderer/PrinterScreen
 - [x] Frontend service fix (2026-05-08): invoiceService/usageService/paymentService — query param limit→page_size, response unwrapping fix, pagination dari meta field
+- [x] Android monitoring baseline (2026-05-25): modul `feature-monitoring` ditambahkan, terintegrasi ke dashboard + navigasi, memuat ringkasan laporan revenue/customer/usage/payment/outstanding dari endpoint `/api/reports/*`
+- [x] Customer area/route filter (2026-05-25): backend request/response customer diperluas dengan service area + reading route; Android `feature-customer` menambah filter area layanan dan route ID serta menampilkan label area/route di kartu pelanggan
