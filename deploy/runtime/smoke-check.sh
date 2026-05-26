@@ -46,6 +46,17 @@ check_https() {
     -o "$output_file"
 }
 
+assert_contains() {
+  file_path="$1"
+  pattern="$2"
+  error_message="$3"
+
+  if ! grep -qi "$pattern" "$file_path"; then
+    echo "$error_message" >&2
+    return 1
+  fi
+}
+
 wait_for_http() {
   path="$1"
   output_file="$2"
@@ -73,13 +84,20 @@ case "$DEPLOY_TARGET" in
     wait_for_running frontend
     wait_for_running nginx
     wait_for_http / /tmp/tirta-smoke-home.html
-    grep -qi "<html" /tmp/tirta-smoke-home.html
+    wait_for_http /admin/login /tmp/tirta-smoke-admin-login.html
+    wait_for_http /customer/login /tmp/tirta-smoke-customer-login.html
+    assert_contains /tmp/tirta-smoke-home.html "<html" "Frontend root did not return HTML"
+    assert_contains /tmp/tirta-smoke-admin-login.html "<html" "Admin login deep link did not return HTML shell"
+    assert_contains /tmp/tirta-smoke-customer-login.html "<html" "Customer login deep link did not return HTML shell"
     ;;
   be)
     wait_for_running backend
     wait_for_running nginx
     wait_for_http /health /tmp/tirta-smoke-health.json
-    grep -qi '"status"' /tmp/tirta-smoke-health.json
+    wait_for_http /api/public/subscription-plans /tmp/tirta-smoke-subscription-plans.json
+    assert_contains /tmp/tirta-smoke-health.json '"status"' "Health endpoint response missing status field"
+    assert_contains /tmp/tirta-smoke-subscription-plans.json '"status":"success"' "Public subscription plans endpoint did not return success status"
+    assert_contains /tmp/tirta-smoke-subscription-plans.json '"data"' "Public subscription plans endpoint response missing data payload"
     ;;
   all)
     wait_for_running backend
@@ -87,8 +105,15 @@ case "$DEPLOY_TARGET" in
     wait_for_running nginx
     wait_for_http /health /tmp/tirta-smoke-health.json
     wait_for_http / /tmp/tirta-smoke-home.html
-    grep -qi '"status"' /tmp/tirta-smoke-health.json
-    grep -qi "<html" /tmp/tirta-smoke-home.html
+    wait_for_http /admin/login /tmp/tirta-smoke-admin-login.html
+    wait_for_http /customer/login /tmp/tirta-smoke-customer-login.html
+    wait_for_http /api/public/subscription-plans /tmp/tirta-smoke-subscription-plans.json
+    assert_contains /tmp/tirta-smoke-health.json '"status"' "Health endpoint response missing status field"
+    assert_contains /tmp/tirta-smoke-home.html "<html" "Frontend root did not return HTML"
+    assert_contains /tmp/tirta-smoke-admin-login.html "<html" "Admin login deep link did not return HTML shell"
+    assert_contains /tmp/tirta-smoke-customer-login.html "<html" "Customer login deep link did not return HTML shell"
+    assert_contains /tmp/tirta-smoke-subscription-plans.json '"status":"success"' "Public subscription plans endpoint did not return success status"
+    assert_contains /tmp/tirta-smoke-subscription-plans.json '"data"' "Public subscription plans endpoint response missing data payload"
     ;;
   *)
     echo "Unsupported DEPLOY_TARGET: $DEPLOY_TARGET" >&2

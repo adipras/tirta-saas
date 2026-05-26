@@ -316,6 +316,68 @@ func LogPayment(c *gin.Context, invoiceID, paymentID uuid.UUID, amount float64, 
 	})
 }
 
+// LogPaymentProofSubmission audits customer payment-proof submission.
+func LogPaymentProofSubmission(c *gin.Context, paymentProofID, invoiceID uuid.UUID, amount float64) {
+	auditService.Log(c, AuditEntry{
+		Action:      models.ActionCreate,
+		Resource:    "payment_proof",
+		ResourceID:  &paymentProofID,
+		Level:       models.LevelInfo,
+		Description: "Payment proof submitted",
+		Success:     true,
+		Metadata: map[string]interface{}{
+			"invoice_id": invoiceID,
+			"amount":     amount,
+			"status":     "PENDING",
+		},
+	})
+}
+
+// LogPaymentProofVerification audits payment-proof approval and its resulting payment.
+func LogPaymentProofVerification(c *gin.Context, paymentProofID, invoiceID, paymentID uuid.UUID, amount float64, previousStatus, newStatus string) {
+	auditService.Log(c, AuditEntry{
+		Action:      models.ActionPayment,
+		Resource:    "payment_proof",
+		ResourceID:  &paymentProofID,
+		Level:       models.LevelWarning,
+		Description: "Payment proof verified",
+		OldValues: map[string]interface{}{
+			"status": previousStatus,
+		},
+		NewValues: map[string]interface{}{
+			"status": newStatus,
+		},
+		Success: true,
+		Metadata: map[string]interface{}{
+			"invoice_id": invoiceID,
+			"payment_id": paymentID,
+			"amount":     amount,
+		},
+	})
+}
+
+// LogPaymentProofRejection audits payment-proof rejection by tenant staff.
+func LogPaymentProofRejection(c *gin.Context, paymentProofID, invoiceID uuid.UUID, previousStatus, reason string) {
+	auditService.Log(c, AuditEntry{
+		Action:      models.ActionUpdate,
+		Resource:    "payment_proof",
+		ResourceID:  &paymentProofID,
+		Level:       models.LevelWarning,
+		Description: "Payment proof rejected",
+		OldValues: map[string]interface{}{
+			"status": previousStatus,
+		},
+		NewValues: map[string]interface{}{
+			"status": "REJECTED",
+			"reason": reason,
+		},
+		Success: true,
+		Metadata: map[string]interface{}{
+			"invoice_id": invoiceID,
+		},
+	})
+}
+
 // LogPasswordChange audits password changes
 func LogPasswordChange(c *gin.Context, userType string, userID uuid.UUID, success bool) {
 	level := models.LevelWarning

@@ -136,7 +136,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - 🟡 Endpoint platform untuk audit logs, error logs, system health, dan metrics **sudah ada**
 - 🟡 Belum terlihat UI frontend untuk monitoring ini
 - ✅ Audit middleware global backend kini aktif untuk request autentikasi sensitif (`POST` / `PUT` / `PATCH` / `DELETE`)
-- ✅ Audit domain-level juga sudah diperluas ke auth flow sensitif: admin login, customer login, logout, dan ganti password customer
+- ✅ Audit domain-level juga sudah diperluas ke auth flow sensitif: admin login, customer login, logout, ganti password customer, dan flow bukti pembayaran (`submit`, `verify`, `reject`)
 
 ### 5. Pembatasan akses khusus platform owner
 - ✅ Route `/api/platform/*` kini memakai `PlatformOwnerOnly()`
@@ -162,8 +162,8 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 ### 8. Operasional produksi masih lebih banyak terdokumentasi daripada tervalidasi otomatis
 - 🟡 Ada checklist VPS / hardening / monitoring / backup
 - ✅ Workflow validasi repo kini sudah menjalankan `go test`, `go build`, `npm run lint`, `npm run test`, dan `npm run build` untuk PR / push `main`
-- ✅ Workflow deploy/bootstrap kini menjalankan smoke check pasca-deploy untuk memastikan nginx/frontend root dan backend `/health` benar-benar responsif
-- 🟡 Regression test awal sudah mulai ada di backend dan frontend, tetapi coverage flow bisnis kritis masih perlu diperluas
+- ✅ Workflow deploy/bootstrap kini menjalankan smoke check pasca-deploy untuk memastikan nginx/frontend root, deep-link publik SPA (`/admin/login`, `/customer/login`), backend `/health`, dan endpoint publik `/api/public/subscription-plans` benar-benar responsif
+- 🟡 Regression test awal sudah mulai ada di backend dan frontend, termasuk auth guard, permission/tenant boundary middleware backend, snapshot billing invoice backend, login admin/customer, notification bell, invoice detail customer, payment confirmation customer, payment proof detail action, tenant payment verification, admin payment list, payment reporting, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch), tetapi coverage flow bisnis kritis masih perlu diperluas
 
 ---
 
@@ -173,13 +173,13 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 
 ### 1. Security & access control
 - ✅ ~~`PlatformOwnerOnly` middleware belum ada~~ — selesai pada sesi hardening 25 Mei 2026
-- 🟡 Audit trail request sensitif backend sudah aktif secara global dan auth flow utama sudah tercakup, tetapi audit domain-level belum merata di seluruh surface
-- 🟡 Boundary role platform vs tenant sudah lebih konsisten, tetapi hardening permission model masih belum terukur lewat automated checks
+- 🟡 Audit trail request sensitif backend sudah aktif secara global, auth flow utama dan flow bukti pembayaran kini sudah tercakup, tetapi audit domain-level belum merata di seluruh surface
+- 🟡 Boundary role platform vs tenant sudah lebih konsisten, dan regression test backend kini sudah mulai mengukur middleware permission/tenant boundary (`PlatformOwnerOnly`, `RequirePermission`, `RequireTenantUser`, `EnsureSameTenant`), tetapi coverage authorization lintas seluruh surface masih belum lengkap
 
 ### 2. Reliability & verification
-- 🟡 Suite test masih sangat awal — backend kini sudah punya regression test untuk boundary JWT auth, dan frontend kini sudah punya test awal untuk `PrivateRoute` serta branching `AdminLogin`, tetapi coverage flow bisnis masih belum memadai
+- 🟡 Suite test masih sangat awal — backend kini sudah punya regression test untuk boundary JWT auth, permission/tenant boundary middleware, serta kalkulasi snapshot billing / status pembayaran invoice, dan frontend kini sudah punya test awal untuk `PrivateRoute`, branching `AdminLogin`, `CustomerLogin`, interaction `NotificationBell`, customer invoice detail, customer payment confirmation, payment proof detail action, tenant payment verification, admin payment list, payment reporting, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch), tetapi coverage flow bisnis masih belum memadai
 - ✅ CI gate dasar kini sudah ada untuk backend/frontend sebelum publish image
-- ✅ Smoke check pasca-deploy dasar kini sudah menjadi bagian workflow deploy dan bootstrap runtime
+- ✅ Smoke check pasca-deploy kini sudah menjadi bagian workflow deploy dan bootstrap runtime, dan sudah mencakup deep-link publik frontend serta endpoint API publik yang dipakai landing page
 
 ### 3. Observability & incident response
 - 🚧 Endpoint monitoring backend ada, tetapi UI monitoring aplikasi belum ada
@@ -268,13 +268,14 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 ### Prioritas produksi tertinggi
 1. **Automated testing & release gate**
    - ✅ regression test backend awal untuk boundary JWT auth
-   - 🟡 frontend critical flow tests awal sudah ada untuk auth guard dan admin login branching
+   - ✅ regression test backend awal untuk permission/tenant boundary middleware
+   - 🟡 frontend critical flow tests awal sudah ada untuk auth guard, admin/customer login branching, notification bell, customer invoice detail, customer payment confirmation, payment proof detail action, tenant payment verification, admin payment list, payment reporting, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch)
    - ✅ smoke test setelah deploy (dasar)
    - ✅ CI gate dasar sebelum merge / release
 
 2. **Security hardening aplikasi**
    - ✅ ~~`PlatformOwnerOnly` middleware~~
-   - 🟡 audit logging global untuk request sensitif backend sudah aktif; auth flow utama sudah tercakup, tetapi coverage audit domain-level masih perlu diperluas
+   - 🟡 audit logging global untuk request sensitif backend sudah aktif; auth flow utama dan flow bukti pembayaran sudah tercakup, tetapi coverage audit domain-level masih perlu diperluas
    - 🟡 review authorization boundary antar role dan tenant sudah berjalan; konsistensi role platform-level sudah diperbaiki dan hanya `platform_owner` yang boleh tanpa `tenant_id`
 
 3. **Operational observability**
@@ -309,6 +310,8 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
    - ✅ ~~filter tagihan per bulan/periode~~ — selesai
    - ✅ ~~download PDF invoice customer~~
    - notifikasi status pembayaran
+   - catatan: route notification page khusus customer/admin belum ada; surface notifikasi yang aktif saat ini masih navbar bell/dropdown
+   - catatan: `PaymentSuccess` masih ada sebagai komponen legacy, tetapi belum dipakai oleh route aktif customer
 
 ### Prioritas medium
 9. **Android app productionization**
@@ -340,7 +343,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Progress produk terbaru: wiring customer invoice detail + PDF download kini sudah lengkap di backend dan frontend customer portal memakai endpoint customer-specific yang sesuai.
 - Progress hardening terbaru: repo kini punya workflow validasi otomatis untuk backend/frontend, publish image diblokir oleh gate validasi, dan regression test backend awal untuk boundary JWT auth sudah masuk.
 - Progress hardening terbaru: workflow deploy/bootstrap kini juga menjalankan smoke check pasca-deploy untuk memverifikasi root frontend dan health backend setelah runtime dinaikkan.
-- Progress hardening terbaru: frontend kini juga punya baseline test otomatis untuk auth guard (`PrivateRoute`) dan branching login admin, dan workflow validasi repo sudah ikut menjalankan `npm run test`.
+- Progress hardening terbaru: frontend kini juga punya baseline test otomatis untuk auth guard (`PrivateRoute`), branching login admin/customer, interaction notification bell, customer invoice detail, dan customer payment confirmation, dan workflow validasi repo sudah ikut menjalankan `npm run test`.
 - Progress dokumentasi terbaru: status Android native kini digabung ke dokumen ini agar tracking mobile/web/backend berada pada satu sumber kebenaran.
 
 ---

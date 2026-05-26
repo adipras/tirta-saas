@@ -10,6 +10,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/adipras/tirta-saas-backend/services"
@@ -220,6 +221,7 @@ func SubmitPaymentProof(c *gin.Context) {
 
 	// Load relations
 	config.DB.Preload("Invoice").Preload("Customer").First(&paymentProof, paymentProof.ID)
+	audit.LogPaymentProofSubmission(c, paymentProof.ID, paymentProof.InvoiceID, paymentProof.Amount)
 
 	helpers.RespondCreated(c, "Bukti pembayaran berhasil dikirim", buildPaymentProofResponse(&paymentProof))
 }
@@ -387,6 +389,7 @@ func VerifyPaymentProof(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Payment proof already processed"})
 		return
 	}
+	previousStatus := string(paymentProof.Status)
 
 	snapshot := services.CalculateInvoiceAmountSnapshot(
 		paymentProof.Invoice,
@@ -494,6 +497,15 @@ func VerifyPaymentProof(c *gin.Context) {
 
 	// Reload with relations
 	config.DB.Preload("Invoice").Preload("Customer").First(&paymentProof, paymentProof.ID)
+	audit.LogPaymentProofVerification(
+		c,
+		paymentProof.ID,
+		paymentProof.InvoiceID,
+		payment.ID,
+		paymentProof.Amount,
+		previousStatus,
+		string(paymentProof.Status),
+	)
 
 	helpers.RespondSuccess(c, "Bukti pembayaran berhasil diverifikasi", buildPaymentProofResponse(&paymentProof))
 }
@@ -546,6 +558,7 @@ func RejectPaymentProof(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Payment proof already processed"})
 		return
 	}
+	previousStatus := string(paymentProof.Status)
 
 	tx := config.DB.Begin()
 	defer func() {
@@ -592,6 +605,7 @@ func RejectPaymentProof(c *gin.Context) {
 		return
 	}
 
+	audit.LogPaymentProofRejection(c, paymentProof.ID, paymentProof.InvoiceID, previousStatus, req.RejectionReason)
 	helpers.RespondSuccess(c, "Bukti pembayaran berhasil ditolak", buildPaymentProofResponse(&paymentProof))
 }
 
