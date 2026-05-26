@@ -154,7 +154,8 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 
 ### 8. Operasional produksi masih lebih banyak terdokumentasi daripada tervalidasi otomatis
 - 🟡 Ada checklist VPS / hardening / monitoring / backup
-- 🟡 Tetapi bukti otomatis di repo untuk health regression, smoke test deploy, atau CI gate belum terlihat kuat
+- ✅ Workflow validasi repo kini sudah menjalankan `go test`, `go build`, `npm run lint`, dan `npm run build` untuk PR / push `main`
+- 🟡 Regression test backend awal untuk boundary JWT auth sudah ada, tetapi coverage flow bisnis kritis dan smoke test deploy masih perlu diperluas
 
 ---
 
@@ -168,8 +169,8 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 - 🟡 Boundary role platform vs tenant sudah lebih konsisten, tetapi hardening permission model masih belum terukur lewat automated checks
 
 ### 2. Reliability & verification
-- 🚧 Belum ada automated test suite yang jelas di backend maupun frontend
-- 🚧 Belum ada regression gate yang kuat sebelum deploy
+- 🟡 Suite test masih sangat awal — backend kini sudah punya regression test untuk boundary JWT auth, tetapi coverage flow bisnis/frontend masih belum memadai
+- ✅ CI gate dasar kini sudah ada untuk backend/frontend sebelum publish image
 - 🚧 Belum terlihat smoke test production-ready yang menjadi bagian standar deploy
 
 ### 3. Observability & incident response
@@ -195,10 +196,10 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 
 ### Prioritas produksi tertinggi
 1. **Automated testing & release gate**
-   - backend regression tests
+   - ✅ regression test backend awal untuk boundary JWT auth
    - frontend critical flow tests
    - smoke test setelah deploy
-   - CI gate sebelum merge / release
+   - ✅ CI gate dasar sebelum merge / release
 
 2. **Security hardening aplikasi**
    - ✅ ~~`PlatformOwnerOnly` middleware~~
@@ -265,6 +266,7 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 - Progress lanjutan terbaru: audit auth flow utama kini sudah tercatat di backend dan boundary JWT tanpa `tenant_id` diketatkan kembali agar hanya berlaku untuk `platform_owner`.
 - Progress lanjutan terbaru: frontend service area management kini sudah tersedia, assignment area layanan sudah masuk ke form customer, dan backend service area sudah diselaraskan dengan context `tenant_id` berbasis UUID dari JWT middleware.
 - Progress produk terbaru: wiring customer invoice detail + PDF download kini sudah lengkap di backend dan frontend customer portal memakai endpoint customer-specific yang sesuai.
+- Progress hardening terbaru: repo kini punya workflow validasi otomatis untuk backend/frontend, publish image diblokir oleh gate validasi, dan regression test backend awal untuk boundary JWT auth sudah masuk.
 
 ---
 

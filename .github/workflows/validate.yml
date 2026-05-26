@@ -1,0 +1,59 @@
+name: Validate application
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tirta-saas-backend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tirta-saas-backend/go.mod
+          cache-dependency-path: tirta-saas-backend/go.sum
+
+      - name: Run backend tests
+        env:
+          JWT_SECRET: ci-test-secret
+        run: go test ./...
+
+      - name: Build backend
+        run: go build ./...
+
+  frontend:
+    name: Frontend validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tirta-saas-frontend
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tirta-saas-frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Lint frontend
+        run: npm run lint
+
+      - name: Build frontend
+        run: npm run build
