@@ -127,7 +127,7 @@ jobs:
           set -euo pipefail
 
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_PATH'"
-          tar -C deploy/runtime -czf - docker-compose.yml .env.example render-env.sh nginx | \
+          tar -C deploy/runtime -czf - docker-compose.yml .env.example render-env.sh smoke-check.sh nginx | \
             ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "tar -xzf - -C '$DEPLOY_PATH'"
 
       - name: Log server into GHCR
@@ -181,3 +181,11 @@ jobs:
 
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
             "cd '$DEPLOY_PATH' && docker compose pull && docker compose up -d"
+
+      - name: Run post-bootstrap smoke checks
+        if: ${{ env.START_STACK == 'true' }}
+        run: |
+          set -euo pipefail
+
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "DEPLOY_PATH='$DEPLOY_PATH' DOMAIN_NAME='$DOMAIN_NAME' DEPLOY_TARGET='all' sh '$DEPLOY_PATH/smoke-check.sh'"

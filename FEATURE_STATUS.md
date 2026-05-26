@@ -2,7 +2,7 @@
 
 _Dokumen ini menggambarkan kondisi aktual repo saat ini dan mengarah ke kesiapan produksi, bukan sekadar checklist MVP._
 
-**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 25 Mei 2026
+**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 26 Mei 2026
 
 ---
 
@@ -13,6 +13,8 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 - menutup gap agar sistem aman dan stabil dipakai tenant nyata
 - merapikan modul yang masih backend-only atau belum fully wired
 - memperkuat operasi produksi: security, monitoring, backup, deploy, dan auditability
+
+Dokumen ini juga menjadi **single source of truth** untuk status mobile native Android. Detail yang sebelumnya tersebar di `mobile-native-plan.md` sudah digabung ke sini agar tidak terjadi redundansi catatan dan konflik prioritas pengerjaan.
 
 ---
 
@@ -150,12 +152,18 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 
 ### 7. Android app maturity
 - 🟡 App Android utama sekarang sudah punya flow operasional inti, dashboard role-aware, dan alignment contract utama ke backend canonical
-- 🟡 Namun mobile app **masih belum setara penuh** dengan seluruh surface web, terutama monitoring, parity fitur customer portal, dan hardening release pipeline
+- ✅ Arsitektur native utama sudah berjalan dengan Compose + Hilt + Clean Architecture + MVVM, terpisah dari web dan tanpa WebView
+- ✅ Modul Android inti sudah aktif: auth, tenant, tenant settings, user, customer, usage, invoice, payment, monitoring, dan printer
+- ✅ Flow operasional lapangan utama sudah tersedia: input/update water usage, offline draft, sync queue, upload foto meter, monitoring invoice, input payment, riwayat payment + reprint receipt
+- ✅ Integrasi printer thermal native sudah matang untuk paired Bluetooth Classic, preferred printer, print queue, retry gagal cetak, dan ESC/POS receipt rendering
+- ✅ Mobile security/session foundation sudah ada: JWT login, secure token storage, auto refresh, tenant status guard, dan redaksi header sensitif di network logging
+- 🟡 Namun mobile app **masih belum setara penuh** dengan seluruh surface web, terutama parity customer portal/end-user surface, QA multi-role, hardening sync conflict, dan release pipeline mobile
 
 ### 8. Operasional produksi masih lebih banyak terdokumentasi daripada tervalidasi otomatis
 - 🟡 Ada checklist VPS / hardening / monitoring / backup
-- ✅ Workflow validasi repo kini sudah menjalankan `go test`, `go build`, `npm run lint`, dan `npm run build` untuk PR / push `main`
-- 🟡 Regression test backend awal untuk boundary JWT auth sudah ada, tetapi coverage flow bisnis kritis dan smoke test deploy masih perlu diperluas
+- ✅ Workflow validasi repo kini sudah menjalankan `go test`, `go build`, `npm run lint`, `npm run test`, dan `npm run build` untuk PR / push `main`
+- ✅ Workflow deploy/bootstrap kini menjalankan smoke check pasca-deploy untuk memastikan nginx/frontend root dan backend `/health` benar-benar responsif
+- 🟡 Regression test awal sudah mulai ada di backend dan frontend, tetapi coverage flow bisnis kritis masih perlu diperluas
 
 ---
 
@@ -169,9 +177,9 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 - 🟡 Boundary role platform vs tenant sudah lebih konsisten, tetapi hardening permission model masih belum terukur lewat automated checks
 
 ### 2. Reliability & verification
-- 🟡 Suite test masih sangat awal — backend kini sudah punya regression test untuk boundary JWT auth, tetapi coverage flow bisnis/frontend masih belum memadai
+- 🟡 Suite test masih sangat awal — backend kini sudah punya regression test untuk boundary JWT auth, dan frontend kini sudah punya test awal untuk `PrivateRoute` serta branching `AdminLogin`, tetapi coverage flow bisnis masih belum memadai
 - ✅ CI gate dasar kini sudah ada untuk backend/frontend sebelum publish image
-- 🚧 Belum terlihat smoke test production-ready yang menjadi bagian standar deploy
+- ✅ Smoke check pasca-deploy dasar kini sudah menjadi bagian workflow deploy dan bootstrap runtime
 
 ### 3. Observability & incident response
 - 🚧 Endpoint monitoring backend ada, tetapi UI monitoring aplikasi belum ada
@@ -192,13 +200,76 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 
 ---
 
+## 📱 Status mobile native Android
+
+Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpisah.
+
+### Prinsip kerja
+- Mobile app adalah channel native **terpisah** dari web dan tidak memakai WebView
+- Web dan mobile terhubung hanya lewat backend REST API
+- Perubahan contract backend yang memengaruhi channel aktif harus diikuti penyesuaian web/mobile agar behavior tetap sinkron
+
+### Kondisi implementasi saat ini
+- ✅ App native utama sudah modular (`app`, `core/*`, `feature-*`) dan `printer-bridge` tetap tersedia sebagai app terpisah untuk kebutuhan bridge printer tertentu
+- ✅ Core stack mobile sudah terpasang: Retrofit + OkHttp + Kotlinx Serialization, Room, Hilt, WorkManager, DataStore, EncryptedSharedPreferences, dan Timber
+- ✅ Session mobile sudah menyimpan role, nama user, tenant name, token, dan refresh flow dengan guard tenant blocked/suspended
+- ✅ Contract alignment penting untuk mobile sudah dikerjakan di backend: `auth/refresh`, `auth/logout`, `auth/me`, permission role operasional, idempotent usage create, dan receipt payload untuk printer
+- 🟡 Response backend lintas controller masih belum seragam penuh dan pagination/filtering/sorting belum sepenuhnya standar di semua surface
+
+### Scope mobile yang sudah matang
+- ✅ Login dan session management
+- ✅ Dashboard role-based
+- ✅ Tenant management untuk `platform_owner`
+- ✅ Tenant settings untuk `tenant_admin`
+- ✅ Tenant user CRUD
+- ✅ Customer list/detail/create/activation
+- ✅ Water usage list/create/update
+- ✅ Offline draft water usage + sync queue + retry worker
+- ✅ Filter customer by service area / route
+- ✅ Upload foto meter
+- ✅ Monitoring invoice + detail invoice
+- ✅ Input payment
+- ✅ Riwayat pembayaran + reprint receipt
+- ✅ Monitoring operasional dasar dari endpoint reports
+- ✅ Print receipt ke Bluetooth thermal printer
+- ✅ Push notification lokal untuk status sinkronisasi draft pemakaian
+
+### Gap mobile yang masih tersisa
+- 🚧 Standardisasi response backend dan standardisasi pagination/filter/sorting lintas seluruh endpoint yang masih belum konsisten
+- 🚧 Verifikasi kompatibilitas web setelah perubahan contract backend pada surface tenant, customer, auth, payment, dan receipt masih belum selesai penuh
+- 🚧 Customer cache offline belum ada
+- 🚧 Conflict resolution final untuk sinkronisasi data usage antar-device belum diformalisasi penuh
+- 🚧 OCR foto meter masih backlog
+- 🚧 Hardening error handling dan sync masih perlu dilanjutkan
+- 🚧 QA multi-role, bug fixing, dan release configuration mobile masih tersisa
+- 🚧 Release pipeline Android masih belum siap produksi
+
+### Risiko utama mobile
+| Risiko | Mitigasi saat ini |
+|---|---|
+| Bluetooth printer tidak stabil | Queue tunggal, reconnect, retry terbatas |
+| Backend contract berubah | Web/mobile ikut diselaraskan saat contract berubah |
+| Response backend belum seragam | Refactor bertahap ke response standar |
+| Sync conflict data lapangan | Draft, retry policy, dan backlog conflict handling |
+| Multi-tenant complexity | Tenant context wajib konsisten dari JWT |
+| Role operasional berubah | Middleware permission backend dirapikan agar contract akses lebih stabil |
+
+### Prioritas mobile berikutnya
+1. Finalisasi standardisasi contract backend yang masih parsial
+2. Selesaikan verifikasi parity web setelah perubahan contract mobile-driven
+3. Hardening sync/offline conflict handling
+4. QA multi-role dan stabilisasi bug
+5. Siapkan release pipeline Android
+
+---
+
 ## ⏳ NOT STARTED / FUTURE ENHANCEMENTS
 
 ### Prioritas produksi tertinggi
 1. **Automated testing & release gate**
    - ✅ regression test backend awal untuk boundary JWT auth
-   - frontend critical flow tests
-   - smoke test setelah deploy
+   - 🟡 frontend critical flow tests awal sudah ada untuk auth guard dan admin login branching
+   - ✅ smoke test setelah deploy (dasar)
    - ✅ CI gate dasar sebelum merge / release
 
 2. **Security hardening aplikasi**
@@ -243,6 +314,7 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 9. **Android app productionization**
    - parity fitur dengan web untuk flow operasional utama
    - hardening sync/offline flow
+   - QA multi-role + release configuration
    - release pipeline mobile
 
 10. **Multi-language support**
@@ -267,6 +339,9 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 - Progress lanjutan terbaru: frontend service area management kini sudah tersedia, assignment area layanan sudah masuk ke form customer, dan backend service area sudah diselaraskan dengan context `tenant_id` berbasis UUID dari JWT middleware.
 - Progress produk terbaru: wiring customer invoice detail + PDF download kini sudah lengkap di backend dan frontend customer portal memakai endpoint customer-specific yang sesuai.
 - Progress hardening terbaru: repo kini punya workflow validasi otomatis untuk backend/frontend, publish image diblokir oleh gate validasi, dan regression test backend awal untuk boundary JWT auth sudah masuk.
+- Progress hardening terbaru: workflow deploy/bootstrap kini juga menjalankan smoke check pasca-deploy untuk memverifikasi root frontend dan health backend setelah runtime dinaikkan.
+- Progress hardening terbaru: frontend kini juga punya baseline test otomatis untuk auth guard (`PrivateRoute`) dan branching login admin, dan workflow validasi repo sudah ikut menjalankan `npm run test`.
+- Progress dokumentasi terbaru: status Android native kini digabung ke dokumen ini agar tracking mobile/web/backend berada pada satu sumber kebenaran.
 
 ---
 
