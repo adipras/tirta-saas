@@ -52,10 +52,10 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 ### Frontend
 
 - [x] Sesuaikan service jika contract backend berubah _(DONE: invoice/usage/payment services disesuaikan dengan paginated response backend)_
-- [ ] Sesuaikan constants endpoint jika route berubah
+- [ ] Sesuaikan constants endpoint jika route berubah _(DEFERRED: pengerjaan web di environment ini di-skip; lanjut di WSL)_
 - [x] Sesuaikan mapper/normalizer jika response backend dirapikan _(DONE: fix query param `limit` → `page_size`, fix response unwrapping agar `meta` tidak hilang)_
-- [ ] Pastikan auth flow web tetap jalan setelah perubahan backend
-- [ ] Pastikan flow tenant, customer, usage, invoice, payment, dan receipt tetap kompatibel
+- [ ] Pastikan auth flow web tetap jalan setelah perubahan backend _(DEFERRED: verifikasi dijadwalkan di environment WSL)_
+- [ ] Pastikan flow tenant, customer, usage, invoice, payment, dan receipt tetap kompatibel _(DEFERRED: verifikasi dijadwalkan di environment WSL)_
 
 ### Android
 
@@ -326,3 +326,5 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [x] Backlog documented (2026-05-25): rencana fitur OCR foto meter ditambahkan ke enhancement dengan pendekatan semi-otomatis (confidence threshold + manual confirmation)
 - [x] Backend role permission stabilization (2026-05-26): route `water-usage`, `invoice`, dan `payment` kini memakai permission-based middleware per endpoint (`PermRecord/View/Edit/Manage*`), menggantikan `AdminOnly()` agar akses `meter_reader` dan `finance` sesuai matriks role
 - [x] Frontend guard alignment (2026-05-26): `PrivateRoute` diperbarui agar role `finance` dapat mengakses route admin (`requiredRole="admin"`) sehingga sejalan dengan perubahan permission backend operasional
+- [x] Frontend guard refinement (2026-05-26): `PrivateRoute` dirapikan menggunakan daftar role admin-operasional terpusat (`platform_owner`, `tenant_admin`, `meter_reader`, `finance`, `service`) untuk mencegah ketertinggalan role saat policy backend berubah
+- [ ] Web verification deferred (2026-05-26): sesuai keputusan sesi ini, pengerjaan/verifikasi web di-skip pada environment sekarang dan akan dilanjutkan di environment WSL
