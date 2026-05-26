@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
@@ -181,8 +182,39 @@ func SubmitPaymentProof(c *gin.Context) {
 		Status:                  models.PaymentProofStatusPending,
 	}
 
-	if err := config.DB.Create(&paymentProof).Error; err != nil {
+	tx := config.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Create(&paymentProof).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment proof: " + err.Error()})
+		return
+	}
+
+	subject, body := services.BuildPaymentProofSubmittedNotification(invoice.Customer.Name, invoice.InvoiceNumber, amount)
+	if err := services.NotifyTenantUsersByRoles(
+		tx,
+		tenantID,
+		[]constants.UserRole{constants.RoleTenantAdmin, constants.RoleFinance},
+		subject,
+		body,
+		map[string]interface{}{
+			"payment_proof_id": paymentProof.ID.String(),
+			"invoice_id":       invoice.ID.String(),
+			"invoice_number":   invoice.InvoiceNumber,
+			"customer_id":      invoice.CustomerID.String(),
+		},
+	); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create in-app notification"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit payment proof"})
 		return
 	}
 
@@ -436,6 +468,25 @@ func VerifyPaymentProof(c *gin.Context) {
 	}
 
 	// Commit transaction
+	subject, body := services.BuildPaymentProofVerifiedNotification(paymentProof.Invoice.InvoiceNumber, paymentProof.Amount)
+	if err := services.CreateInAppNotification(tx, services.CreateInAppNotificationInput{
+		TenantID:      tenantID,
+		RecipientType: "CUSTOMER",
+		RecipientID:   paymentProof.CustomerID,
+		RecipientName: paymentProof.Customer.Name,
+		Subject:       subject,
+		Body:          body,
+		Metadata: map[string]interface{}{
+			"payment_proof_id": paymentProof.ID.String(),
+			"invoice_id":       paymentProof.InvoiceID.String(),
+			"invoice_number":   paymentProof.Invoice.InvoiceNumber,
+		},
+	}); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create in-app notification"})
+		return
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
 		return
@@ -496,6 +547,13 @@ func RejectPaymentProof(c *gin.Context) {
 		return
 	}
 
+	tx := config.DB.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	// Update payment proof status
 	now := time.Now()
 	paymentProof.Status = models.PaymentProofStatusRejected
@@ -503,8 +561,34 @@ func RejectPaymentProof(c *gin.Context) {
 	paymentProof.VerifiedAt = &now
 	paymentProof.RejectionReason = req.RejectionReason
 
-	if err := config.DB.Model(&paymentProof).Select("Status", "VerifiedBy", "VerifiedAt", "RejectionReason").Updates(&paymentProof).Error; err != nil {
+	if err := tx.Model(&paymentProof).Select("Status", "VerifiedBy", "VerifiedAt", "RejectionReason").Updates(&paymentProof).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reject payment proof"})
+		return
+	}
+
+	subject, body := services.BuildPaymentProofRejectedNotification(paymentProof.Invoice.InvoiceNumber, req.RejectionReason)
+	if err := services.CreateInAppNotification(tx, services.CreateInAppNotificationInput{
+		TenantID:      tenantID,
+		RecipientType: "CUSTOMER",
+		RecipientID:   paymentProof.CustomerID,
+		RecipientName: paymentProof.Customer.Name,
+		Subject:       subject,
+		Body:          body,
+		Metadata: map[string]interface{}{
+			"payment_proof_id": paymentProof.ID.String(),
+			"invoice_id":       paymentProof.InvoiceID.String(),
+			"invoice_number":   paymentProof.Invoice.InvoiceNumber,
+			"status":           string(paymentProof.Status),
+		},
+	}); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create in-app notification"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit payment proof rejection"})
 		return
 	}
 

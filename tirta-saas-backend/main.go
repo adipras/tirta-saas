@@ -120,6 +120,7 @@ func main() {
 	routes.HealthRoutes(r)
 	routes.AuthRoutes(r)
 	routes.ProtectedRoutes(r)
+	routes.NotificationRoutes(r)
 	routes.SubscriptionRoutes(r)
 	routes.CustomerRoutes(r)
 	routes.CustomerSelfServiceRoutes(r)

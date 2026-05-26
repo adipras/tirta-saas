@@ -157,6 +157,14 @@ export const API_ENDPOINTS = {
       QR_CODE_SET_PRIMARY: (id: string) => `/platform/payment-methods/qr-codes/${id}/set-primary`,
     },
   },
+  NOTIFICATIONS: {
+    USER_LIST: '/notifications',
+    USER_MARK_READ: (id: string) => `/notifications/${id}/read`,
+    USER_MARK_ALL_READ: '/notifications/read-all',
+    CUSTOMER_LIST: '/customer/notifications',
+    CUSTOMER_MARK_READ: (id: string) => `/customer/notifications/${id}/read`,
+    CUSTOMER_MARK_ALL_READ: '/customer/notifications/read-all',
+  },
   PUBLIC: {
     REGISTER: '/public/register',
     SUBSCRIPTION_PLANS: '/public/subscription-plans',

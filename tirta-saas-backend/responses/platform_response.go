@@ -249,7 +249,10 @@ type NotificationLogResponse struct {
 	Channel       string     `json:"channel"`
 	Destination   string     `json:"destination"`
 	Subject       string     `json:"subject,omitempty"`
+	Body          string     `json:"body"`
 	Status        string     `json:"status"`
+	IsRead        bool       `json:"is_read"`
+	ReadAt        *time.Time `json:"read_at,omitempty"`
 	SentAt        *time.Time `json:"sent_at,omitempty"`
 	DeliveredAt   *time.Time `json:"delivered_at,omitempty"`
 	FailedAt      *time.Time `json:"failed_at,omitempty"`

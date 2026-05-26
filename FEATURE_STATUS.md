@@ -114,7 +114,9 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 
 ### 1. Notification system
 - 🟡 Backend untuk notification template dan send notification **sudah ada**
-- 🟡 Belum ada halaman frontend untuk mengelola / mengirim notification
+- ✅ Icon lonceng pada navbar admin dan portal customer kini sudah terhubung ke inbox notifikasi in-app, lengkap dengan unread badge dan mark-as-read
+- 🟡 Belum ada halaman frontend khusus untuk mengelola template / mengirim notification manual
+- ✅ Event utama bukti pembayaran kini membuat notifikasi in-app untuk staf tenant dan customer
 - 🟡 Pengiriman aktual ke provider email / SMS / WhatsApp **belum diimplementasikan**
 - 🟡 Saat ini controller hanya membuat log lalu menandai status sebagai `SENT`
 

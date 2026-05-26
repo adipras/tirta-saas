@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bars3Icon, BellIcon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { useAppSelector, useAppDispatch } from '../hooks/redux';
 import { logoutAsync } from '../store/slices/authSlice';
+import NotificationBell from './NotificationBell';
 
 interface CustomerHeaderProps {
   onMenuClick?: () => void;
@@ -59,13 +60,7 @@ const CustomerHeader = ({ onMenuClick }: CustomerHeaderProps) => {
           </div>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
-          <button
-            className="rounded-full p-2 text-gray-400 hover:text-gray-500"
-            aria-label="Lihat notifikasi"
-            title="Lihat notifikasi"
-          >
-            <BellIcon className="h-6 w-6" aria-hidden="true" />
-          </button>
+          <NotificationBell scope="customer" />
           <div className="relative" ref={menuRef}>
             <button
               type="button"

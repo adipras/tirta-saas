@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
@@ -15,25 +17,237 @@ import (
 	"github.com/google/uuid"
 )
 
+type notificationInboxItem struct {
+	ID        uuid.UUID              `json:"id"`
+	Channel   string                 `json:"channel"`
+	Subject   string                 `json:"subject"`
+	Body      string                 `json:"body"`
+	Status    string                 `json:"status"`
+	IsRead    bool                   `json:"is_read"`
+	ReadAt    *time.Time             `json:"read_at,omitempty"`
+	CreatedAt time.Time              `json:"created_at"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+}
+
+type notificationInboxResponse struct {
+	Items       []notificationInboxItem `json:"items"`
+	UnreadCount int64                   `json:"unread_count"`
+}
+
+func transformNotificationLog(log models.NotificationLog) notificationInboxItem {
+	var metadata map[string]interface{}
+	if log.Metadata != "" {
+		_ = json.Unmarshal([]byte(log.Metadata), &metadata)
+	}
+
+	return notificationInboxItem{
+		ID:        log.ID,
+		Channel:   string(log.Channel),
+		Subject:   log.Subject,
+		Body:      log.Body,
+		Status:    log.Status,
+		IsRead:    log.IsRead,
+		ReadAt:    log.ReadAt,
+		CreatedAt: log.CreatedAt,
+		Metadata:  metadata,
+	}
+}
+
+func parseNotificationLimit(c *gin.Context) int {
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if err != nil || limit < 1 {
+		return 10
+	}
+	if limit > 50 {
+		return 50
+	}
+	return limit
+}
+
+func listNotifications(
+	c *gin.Context,
+	recipientType string,
+	recipientID uuid.UUID,
+	tenantID *uuid.UUID,
+) {
+	limit := parseNotificationLimit(c)
+
+	baseQuery := config.DB.Model(&models.NotificationLog{}).
+		Where("recipient_type = ? AND recipient_id = ? AND channel = ?", recipientType, recipientID, models.ChannelInApp)
+
+	if tenantID != nil {
+		baseQuery = baseQuery.Where("tenant_id = ?", *tenantID)
+	}
+
+	if c.Query("unread_only") == "true" {
+		baseQuery = baseQuery.Where("is_read = ?", false)
+	}
+
+	var unreadCount int64
+	unreadQuery := config.DB.Model(&models.NotificationLog{}).
+		Where("recipient_type = ? AND recipient_id = ? AND channel = ? AND is_read = ?", recipientType, recipientID, models.ChannelInApp, false)
+	if tenantID != nil {
+		unreadQuery = unreadQuery.Where("tenant_id = ?", *tenantID)
+	}
+	if err := unreadQuery.Count(&unreadCount).Error; err != nil {
+		helpers.RespondError(c, http.StatusInternalServerError, "Gagal menghitung notifikasi belum dibaca", err)
+		return
+	}
+
+	var logs []models.NotificationLog
+	if err := baseQuery.Order("is_read ASC, created_at DESC").Limit(limit).Find(&logs).Error; err != nil {
+		helpers.RespondError(c, http.StatusInternalServerError, "Gagal mengambil notifikasi", err)
+		return
+	}
+
+	items := make([]notificationInboxItem, 0, len(logs))
+	for _, log := range logs {
+		items = append(items, transformNotificationLog(log))
+	}
+
+	helpers.RespondSuccess(c, "Notifikasi berhasil diambil", notificationInboxResponse{
+		Items:       items,
+		UnreadCount: unreadCount,
+	})
+}
+
+func markNotificationRead(
+	c *gin.Context,
+	recipientType string,
+	recipientID uuid.UUID,
+	tenantID *uuid.UUID,
+) {
+	notificationID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		helpers.RespondError(c, http.StatusBadRequest, "ID notifikasi tidak valid", err)
+		return
+	}
+
+	query := config.DB.Model(&models.NotificationLog{}).
+		Where("id = ? AND recipient_type = ? AND recipient_id = ? AND channel = ?", notificationID, recipientType, recipientID, models.ChannelInApp)
+	if tenantID != nil {
+		query = query.Where("tenant_id = ?", *tenantID)
+	}
+
+	var notification models.NotificationLog
+	if err := query.First(&notification).Error; err != nil {
+		helpers.RespondError(c, http.StatusNotFound, "Notifikasi tidak ditemukan", err)
+		return
+	}
+
+	if !notification.IsRead {
+		now := time.Now()
+		notification.IsRead = true
+		notification.ReadAt = &now
+		if err := config.DB.Model(&notification).Select("IsRead", "ReadAt").Updates(&notification).Error; err != nil {
+			helpers.RespondError(c, http.StatusInternalServerError, "Gagal menandai notifikasi sebagai dibaca", err)
+			return
+		}
+	}
+
+	helpers.RespondSuccess(c, "Notifikasi ditandai sudah dibaca", transformNotificationLog(notification))
+}
+
+func markAllNotificationsRead(
+	c *gin.Context,
+	recipientType string,
+	recipientID uuid.UUID,
+	tenantID *uuid.UUID,
+) {
+	now := time.Now()
+	query := config.DB.Model(&models.NotificationLog{}).
+		Where("recipient_type = ? AND recipient_id = ? AND channel = ? AND is_read = ?", recipientType, recipientID, models.ChannelInApp, false)
+	if tenantID != nil {
+		query = query.Where("tenant_id = ?", *tenantID)
+	}
+
+	if err := query.Updates(map[string]interface{}{
+		"is_read": true,
+		"read_at": &now,
+	}).Error; err != nil {
+		helpers.RespondError(c, http.StatusInternalServerError, "Gagal menandai semua notifikasi sebagai dibaca", err)
+		return
+	}
+
+	helpers.RespondSuccess(c, "Semua notifikasi ditandai sudah dibaca", gin.H{"read_at": now})
+}
+
+func ListUserNotifications(c *gin.Context) {
+	userID := c.MustGet("user_id").(uuid.UUID)
+	tenantIDValue, hasTenantID := c.Get("tenant_id")
+
+	var tenantID *uuid.UUID
+	if hasTenantID {
+		parsedTenantID := tenantIDValue.(uuid.UUID)
+		tenantID = &parsedTenantID
+	}
+
+	listNotifications(c, "USER", userID, tenantID)
+}
+
+func MarkUserNotificationRead(c *gin.Context) {
+	userID := c.MustGet("user_id").(uuid.UUID)
+	tenantIDValue, hasTenantID := c.Get("tenant_id")
+
+	var tenantID *uuid.UUID
+	if hasTenantID {
+		parsedTenantID := tenantIDValue.(uuid.UUID)
+		tenantID = &parsedTenantID
+	}
+
+	markNotificationRead(c, "USER", userID, tenantID)
+}
+
+func MarkAllUserNotificationsRead(c *gin.Context) {
+	userID := c.MustGet("user_id").(uuid.UUID)
+	tenantIDValue, hasTenantID := c.Get("tenant_id")
+
+	var tenantID *uuid.UUID
+	if hasTenantID {
+		parsedTenantID := tenantIDValue.(uuid.UUID)
+		tenantID = &parsedTenantID
+	}
+
+	markAllNotificationsRead(c, "USER", userID, tenantID)
+}
+
+func ListCustomerNotifications(c *gin.Context) {
+	customerID := c.MustGet("customer_id").(uuid.UUID)
+	tenantID := c.MustGet("tenant_id").(uuid.UUID)
+	listNotifications(c, "CUSTOMER", customerID, &tenantID)
+}
+
+func MarkCustomerNotificationRead(c *gin.Context) {
+	customerID := c.MustGet("customer_id").(uuid.UUID)
+	tenantID := c.MustGet("tenant_id").(uuid.UUID)
+	markNotificationRead(c, "CUSTOMER", customerID, &tenantID)
+}
+
+func MarkAllCustomerNotificationsRead(c *gin.Context) {
+	customerID := c.MustGet("customer_id").(uuid.UUID)
+	tenantID := c.MustGet("tenant_id").(uuid.UUID)
+	markAllNotificationsRead(c, "CUSTOMER", customerID, &tenantID)
+}
+
 // ListNotificationTemplates lists all notification templates for a tenant
 func ListNotificationTemplates(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
-	
+
 	var templates []models.NotificationTemplate
 	query := config.DB.Where("tenant_id = ?", tenantID)
-	
+
 	// Filter by channel if provided
 	if channel := c.Query("channel"); channel != "" {
 		query = query.Where("channel = ?", channel)
 	}
-	
+
 	// Filter by active status
 	if c.Query("include_inactive") != "true" {
 		query = query.Where("is_active = ?", true)
 	}
-	
+
 	query = query.Order("name ASC")
-	
+
 	if err := query.Find(&templates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -42,7 +256,7 @@ func ListNotificationTemplates(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Transform to response
 	var templateList []responses.NotificationTemplateResponse
 	for _, tmpl := range templates {
@@ -50,7 +264,7 @@ func ListNotificationTemplates(c *gin.Context) {
 		if tmpl.Variables != "" {
 			json.Unmarshal([]byte(tmpl.Variables), &variables)
 		}
-		
+
 		templateList = append(templateList, responses.NotificationTemplateResponse{
 			ID:          tmpl.ID,
 			TenantID:    tmpl.TenantID,
@@ -68,7 +282,7 @@ func ListNotificationTemplates(c *gin.Context) {
 			UpdatedAt:   tmpl.UpdatedAt,
 		})
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Notification templates retrieved successfully",
@@ -79,7 +293,7 @@ func ListNotificationTemplates(c *gin.Context) {
 // CreateNotificationTemplate creates a new notification template
 func CreateNotificationTemplate(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
-	
+
 	var req requests.CreateNotificationTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
@@ -89,7 +303,7 @@ func CreateNotificationTemplate(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Check if template code already exists for this tenant
 	var existingTemplate models.NotificationTemplate
 	if err := config.DB.Where("tenant_id = ? AND code = ?", tenantID, req.Code).First(&existingTemplate).Error; err == nil {
@@ -100,10 +314,10 @@ func CreateNotificationTemplate(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Convert variables to JSON
 	variablesJSON, _ := json.Marshal(req.Variables)
-	
+
 	template := models.NotificationTemplate{
 		TenantID:    tenantID,
 		Code:        strings.ToUpper(req.Code),
@@ -117,12 +331,12 @@ func CreateNotificationTemplate(c *gin.Context) {
 		IsActive:    true,
 		Language:    req.Language,
 	}
-	
+
 	// Set default language if not provided
 	if template.Language == "" {
 		template.Language = "id"
 	}
-	
+
 	if err := config.DB.Create(&template).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -131,10 +345,10 @@ func CreateNotificationTemplate(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var variables []string
 	json.Unmarshal([]byte(template.Variables), &variables)
-	
+
 	c.JSON(http.StatusCreated, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Notification template created successfully",
@@ -161,7 +375,7 @@ func CreateNotificationTemplate(c *gin.Context) {
 func UpdateNotificationTemplate(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
 	templateID := c.Param("id")
-	
+
 	var template models.NotificationTemplate
 	if err := config.DB.Where("id = ? AND tenant_id = ?", templateID, tenantID).First(&template).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -171,7 +385,7 @@ func UpdateNotificationTemplate(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var req requests.UpdateNotificationTemplateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
@@ -181,7 +395,7 @@ func UpdateNotificationTemplate(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Update fields
 	if req.Name != "" {
 		template.Name = req.Name
@@ -208,7 +422,7 @@ func UpdateNotificationTemplate(c *gin.Context) {
 	if req.Language != "" {
 		template.Language = req.Language
 	}
-	
+
 	if err := config.DB.Model(&template).Select("Name", "Description", "Subject", "Body", "HTMLBody", "Variables", "IsActive", "Language").Updates(&template).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -217,10 +431,10 @@ func UpdateNotificationTemplate(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var variables []string
 	json.Unmarshal([]byte(template.Variables), &variables)
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Notification template updated successfully",
@@ -247,7 +461,7 @@ func UpdateNotificationTemplate(c *gin.Context) {
 func DeleteNotificationTemplate(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
 	templateID := c.Param("id")
-	
+
 	var template models.NotificationTemplate
 	if err := config.DB.Where("id = ? AND tenant_id = ?", templateID, tenantID).First(&template).Error; err != nil {
 		c.JSON(http.StatusNotFound, responses.ErrorResponse{
@@ -257,7 +471,7 @@ func DeleteNotificationTemplate(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Soft delete
 	if err := config.DB.Delete(&template).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
@@ -267,7 +481,7 @@ func DeleteNotificationTemplate(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Notification template deleted successfully",
@@ -278,7 +492,7 @@ func DeleteNotificationTemplate(c *gin.Context) {
 // SendNotification sends a notification to a recipient
 func SendNotification(c *gin.Context) {
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
-	
+
 	var req requests.SendNotificationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
@@ -288,10 +502,10 @@ func SendNotification(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	var template *models.NotificationTemplate
 	var subject, body string
-	
+
 	// Get template if template code is provided
 	if req.TemplateCode != "" {
 		var tmpl models.NotificationTemplate
@@ -306,7 +520,7 @@ func SendNotification(c *gin.Context) {
 		template = &tmpl
 		subject = template.Subject
 		body = template.Body
-		
+
 		// Replace variables in template
 		if req.Variables != nil {
 			for key, value := range req.Variables {
@@ -320,10 +534,10 @@ func SendNotification(c *gin.Context) {
 		subject = req.CustomSubject
 		body = req.CustomBody
 	}
-	
+
 	// Get recipient information
 	var recipientName, destination string
-	
+
 	if req.RecipientType == "USER" {
 		var user models.User
 		if err := config.DB.Where("id = ? AND tenant_id = ?", req.RecipientID, tenantID).First(&user).Error; err != nil {
@@ -337,6 +551,8 @@ func SendNotification(c *gin.Context) {
 		recipientName = user.Name
 		if req.Channel == "EMAIL" {
 			destination = user.Email
+		} else if req.Channel == "IN_APP" {
+			destination = user.ID.String()
 		}
 	} else if req.RecipientType == "CUSTOMER" {
 		var customer models.Customer
@@ -353,9 +569,11 @@ func SendNotification(c *gin.Context) {
 			destination = customer.Email
 		} else if req.Channel == "SMS" {
 			destination = customer.Phone
+		} else if req.Channel == "IN_APP" {
+			destination = customer.ID.String()
 		}
 	}
-	
+
 	if destination == "" {
 		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
 			Status:  "error",
@@ -364,7 +582,7 @@ func SendNotification(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Create notification log
 	notificationLog := models.NotificationLog{
 		TenantID:      tenantID,
@@ -377,11 +595,11 @@ func SendNotification(c *gin.Context) {
 		Body:          body,
 		Status:        "PENDING",
 	}
-	
+
 	if template != nil {
 		notificationLog.TemplateID = &template.ID
 	}
-	
+
 	if err := config.DB.Create(&notificationLog).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -390,14 +608,27 @@ func SendNotification(c *gin.Context) {
 		})
 		return
 	}
-	
-	// TODO: Actual sending logic (email, SMS, etc.) would go here
-	// For now, we'll just mark it as sent
+
+	// TODO: Actual sending logic (email, SMS, etc.) would go here.
+	// IN_APP entries are available immediately, while other channels are still mocked.
 	now := time.Now()
 	notificationLog.Status = "SENT"
 	notificationLog.SentAt = &now
-	config.DB.Model(&notificationLog).Updates(map[string]interface{}{"status": "SENT", "sent_at": &now})
-	
+	if req.Channel == "IN_APP" {
+		notificationLog.Status = "DELIVERED"
+		notificationLog.DeliveredAt = &now
+	}
+
+	updatePayload := map[string]interface{}{
+		"status":  notificationLog.Status,
+		"sent_at": &now,
+	}
+	if req.Channel == "IN_APP" {
+		updatePayload["delivered_at"] = &now
+	}
+
+	config.DB.Model(&notificationLog).Updates(updatePayload)
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Notification sent successfully (queued for delivery)",
@@ -411,7 +642,10 @@ func SendNotification(c *gin.Context) {
 			Channel:       string(notificationLog.Channel),
 			Destination:   notificationLog.Destination,
 			Subject:       notificationLog.Subject,
+			Body:          notificationLog.Body,
 			Status:        notificationLog.Status,
+			IsRead:        notificationLog.IsRead,
+			ReadAt:        notificationLog.ReadAt,
 			SentAt:        notificationLog.SentAt,
 			DeliveredAt:   notificationLog.DeliveredAt,
 			FailedAt:      notificationLog.FailedAt,

@@ -3,6 +3,7 @@ export { default as Header } from './Header';
 export { default as Sidebar } from './Sidebar';
 export { default as CustomerHeader } from './CustomerHeader';
 export { default as CustomerSidebar } from './CustomerSidebar';
+export { default as NotificationBell } from './NotificationBell';
 
 // Data Components
 export { DataTable } from './DataTable';
