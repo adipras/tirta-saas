@@ -8,6 +8,11 @@ import (
 	"github.com/google/uuid"
 )
 
+func hasElevatedRoleAccess(role string) bool {
+	userRole := constants.UserRole(role)
+	return role == "admin" || userRole == constants.RolePlatformOwner || userRole == constants.RoleTenantAdmin
+}
+
 // RequirePermission creates middleware that checks if the user has specific permission(s)
 func RequirePermission(permissions ...constants.Permission) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -18,7 +23,19 @@ func RequirePermission(permissions ...constants.Permission) gin.HandlerFunc {
 			return
 		}
 
-		role := constants.UserRole(roleInterface.(string))
+		roleStr, ok := roleInterface.(string)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid role in context"})
+			c.Abort()
+			return
+		}
+
+		if hasElevatedRoleAccess(roleStr) {
+			c.Next()
+			return
+		}
+
+		role := constants.UserRole(roleStr)
 
 		// Check if user has at least one of the required permissions
 		hasPermission := false
@@ -53,7 +70,19 @@ func RequireRole(roles ...constants.UserRole) gin.HandlerFunc {
 			return
 		}
 
-		userRole := constants.UserRole(roleInterface.(string))
+		roleStr, ok := roleInterface.(string)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid role in context"})
+			c.Abort()
+			return
+		}
+
+		if roleStr == "admin" {
+			c.Next()
+			return
+		}
+
+		userRole := constants.UserRole(roleStr)
 
 		// Check if user has one of the required roles
 		hasRole := false

@@ -44,7 +44,7 @@ Dokumen ini menjadi acuan implementasi `tirta-saas-android` sebagai aplikasi nat
 - [x] Tambah `POST /api/auth/logout`
 - [x] Tambah `GET /api/auth/me`
 - [ ] Samakan response backend ke format standar _(PARTIAL: `customer_controller`, `invoice_controller`, `payment_controller`, `water_usage_controller`, `water_rate_controller`, `subscription_payment_controller` sudah pakai `helpers.RespondSuccess/Paginated/Created`; 18 controller lainnya masih pakai raw `c.JSON`)_
-- [ ] Rapikan permission untuk `meter_reader` dan `finance` _(BELUM: semua route operasional water-usage/invoice/payment masih pakai `AdminOnly()` yang hanya izinkan `tenant_admin` + `platform_owner`; `meter_reader` dan `finance` belum punya akses)_
+- [x] Rapikan permission untuk `meter_reader` dan `finance` _(DONE: route operasional `water-usage`, `invoice`, dan `payment` dipindah dari guard `AdminOnly()` ke guard permission granular (`RequirePermission`) sehingga `meter_reader`/`finance` mendapat akses sesuai haknya; kompatibilitas role legacy `admin` tetap dipertahankan di middleware permission)_
 - [ ] Standarkan pagination, filtering, dan sorting _(PARTIAL: invoice, payment, water-usage sudah; endpoint lain belum)_
 - [x] Tambah dukungan sync-friendly untuk operasional mobile _(Backend water-usage sudah ada idempotent create: jika client kirim ID, backend cek duplikat dan kembalikan record existing)_
 - [x] Bekukan contract receipt untuk printer thermal (ReceiptPayload sudah ditambah ke InvoiceResponse)
@@ -324,3 +324,5 @@ Gunakan bagian ini untuk update progres singkat selama implementasi.
 - [x] Push notification baseline (2026-05-25): notifikasi lokal ditambahkan untuk status sinkronisasi draft pemakaian (sukses/gagal), termasuk request runtime permission notifikasi Android 13+ dan fallback simpan draft lokal + enqueue WorkManager saat kirim draft ke server gagal
 - [x] Stabilization partial (2026-05-25): hardening usage flow ditingkatkan dengan validasi bulan pemakaian, error handling pemrosesan foto meter, tombol sinkronisasi draft manual di Usage List, serta scheduler sinkronisasi draft terpusat (`DraftSyncScheduler`)
 - [x] Backlog documented (2026-05-25): rencana fitur OCR foto meter ditambahkan ke enhancement dengan pendekatan semi-otomatis (confidence threshold + manual confirmation)
+- [x] Backend role permission stabilization (2026-05-26): route `water-usage`, `invoice`, dan `payment` kini memakai permission-based middleware per endpoint (`PermRecord/View/Edit/Manage*`), menggantikan `AdminOnly()` agar akses `meter_reader` dan `finance` sesuai matriks role
+- [x] Frontend guard alignment (2026-05-26): `PrivateRoute` diperbarui agar role `finance` dapat mengakses route admin (`requiredRole="admin"`) sehingga sejalan dengan perubahan permission backend operasional
