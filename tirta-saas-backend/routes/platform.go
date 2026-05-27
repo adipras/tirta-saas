@@ -66,6 +66,7 @@ func PlatformRoutes(r *gin.Engine) {
 		platform.GET("/logs/errors", controllers.GetErrorLogs)
 		platform.GET("/system/health", controllers.GetSystemHealth)
 		platform.GET("/system/metrics", controllers.GetSystemMetrics)
+		platform.GET("/system/alerts", controllers.GetSystemAlerts)
 	}
 
 	// Tenant-specific settings routes - requires tenant admin role

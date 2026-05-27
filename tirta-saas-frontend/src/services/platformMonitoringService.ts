@@ -6,6 +6,7 @@ import type {
   PlatformErrorStatistics,
   PlatformHealthCheck,
   PlatformPagination,
+  PlatformSystemAlertResponse,
   PlatformSystemHealth,
   PlatformSystemMetrics,
 } from '../types/platformMonitoring';
@@ -72,6 +73,34 @@ const mapSystemHealth = (raw: unknown): PlatformSystemHealth => {
     checks: Object.fromEntries(
       Object.entries(checks).map(([key, value]) => [key, mapHealthCheck(value)])
     ),
+  };
+};
+
+const mapSystemAlerts = (raw: unknown): PlatformSystemAlertResponse => {
+  const data = asRecord(raw);
+  const summary = asRecord(data.summary);
+
+  return {
+    timestamp: getString(data.timestamp),
+    summary: {
+      critical: getNumber(summary.critical),
+      warning: getNumber(summary.warning),
+      info: getNumber(summary.info),
+    },
+    alerts: asArray<unknown>(data.alerts).map((item) => {
+      const alert = asRecord(item);
+
+      return {
+        code: getString(alert.code),
+        severity: getString(alert.severity, 'info'),
+        title: getString(alert.title),
+        message: getString(alert.message),
+        source: getString(alert.source),
+        observed_at: getString(alert.observed_at),
+        value: alert.value == null ? undefined : getNumber(alert.value),
+        threshold: alert.threshold == null ? undefined : getNumber(alert.threshold),
+      };
+    }),
   };
 };
 
@@ -148,6 +177,11 @@ class PlatformMonitoringService {
   async getSystemMetrics(): Promise<PlatformSystemMetrics> {
     const response = await apiClient.get(API_ENDPOINTS.PLATFORM.SYSTEM.METRICS);
     return mapSystemMetrics(unwrapResponseData(response));
+  }
+
+  async getSystemAlerts(): Promise<PlatformSystemAlertResponse> {
+    const response = await apiClient.get(API_ENDPOINTS.PLATFORM.SYSTEM.ALERTS);
+    return mapSystemAlerts(unwrapResponseData(response));
   }
 
   async getAuditLogs(params: MonitoringListParams = {}): Promise<PlatformAuditLogResponse> {

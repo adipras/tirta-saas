@@ -141,6 +141,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 ### 4. Monitoring & audit logs
 - 🟡 Endpoint platform untuk audit logs, error logs, system health, dan metrics **sudah ada**
 - ✅ Frontend platform kini sudah punya halaman monitoring untuk system health, system metrics, audit logs, dan error logs
+- ✅ Alerting operasional dasar kini sudah muncul di backend + UI monitoring platform untuk tekanan pool database, lonjakan error rate, error critical berulang, dan tekanan resource runtime
 - ✅ Audit middleware global backend kini aktif untuk request autentikasi sensitif (`POST` / `PUT` / `PATCH` / `DELETE`)
 - ✅ Audit domain-level juga sudah diperluas ke auth flow sensitif: admin login, customer login, logout, ganti password customer, dan flow bukti pembayaran (`submit`, `verify`, `reject`)
 
@@ -188,8 +189,8 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 - ✅ Smoke check pasca-deploy kini sudah menjadi bagian workflow deploy dan bootstrap runtime, dan sudah mencakup deep-link publik frontend serta endpoint API publik yang dipakai landing page
 
 ### 3. Observability & incident response
-- 🟡 Endpoint monitoring backend kini sudah terhubung ke UI monitoring aplikasi untuk platform owner, tetapi alerting operasional dan runbook insiden masih belum ada
-- 🚧 Belum terlihat alerting operasional yang jelas di repo
+- 🟡 Endpoint monitoring backend kini sudah terhubung ke UI monitoring aplikasi untuk platform owner, dan alerting operasional dasar kini sudah ada di repo, tetapi runbook insiden masih belum ada
+- ✅ ~~Belum terlihat alerting operasional yang jelas di repo~~ — selesai pada sesi observability 27 Mei 2026
 - 🚧 Belum terlihat runbook insiden level aplikasi di repo
 
 ### 4. Product completeness untuk tenant nyata
@@ -286,7 +287,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 
 3. **Operational observability**
    - dashboard monitoring aplikasi
-   - alerting untuk health/error-rate/resource exhaustion
+   - ✅ alerting dasar untuk health/error-rate/resource exhaustion di monitoring platform
    - log aggregation yang siap troubleshooting
 
 4. **Backup / restore yang tervalidasi rutin**
@@ -350,6 +351,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Progress produk terbaru: invoice baru dari generate bulanan/manual dan perubahan status overdue kini ikut membuat notifikasi in-app customer otomatis, sehingga reminder invoice sudah ter-wire dari backend scheduler sampai inbox portal customer.
 - Progress produk terbaru: kalkulasi tarif progresif kini tidak berhenti di UI simulasi; create/update/import bulk pemakaian air backend sudah menghitung `amount_calculated` memakai tier kategori tarif aktif agar nominal invoice bulanan konsisten dengan konfigurasi tarif progresif.
 - Progress hardening terbaru: UI monitoring platform kini sudah tersedia untuk health, metrics, audit log, dan error log; backend monitoring juga dirapikan agar uptime runtime dan request success/error rate yang tampil lebih akurat.
+- Progress hardening terbaru: monitoring platform kini juga menampilkan alert operasional dasar yang dihitung dari health/metrics backend untuk error-rate, pool koneksi database, error critical berulang, dan tekanan resource runtime.
 - Progress hardening terbaru: route platform owner sudah dipisahkan dari `AdminOnly`, validasi JWT tenant-scoped diperketat, dan audit middleware backend sudah aktif untuk request sensitif terautentikasi.
 - Progress lanjutan sesi ini: pengecekan role platform-level juga sudah dinormalisasi di controller tenant-user, helper tenant context, query analytics, dan utilitas seeder/platform admin agar akses tanpa `tenant_id` tetap konsisten untuk surface platform.
 - Progress lanjutan terbaru: audit auth flow utama kini sudah tercatat di backend dan boundary JWT tanpa `tenant_id` diketatkan kembali agar hanya berlaku untuk `platform_owner`.

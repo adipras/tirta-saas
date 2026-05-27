@@ -13,12 +13,50 @@ import (
 	"github.com/google/uuid"
 )
 
+type platformSystemAlert struct {
+	Code       string   `json:"code"`
+	Severity   string   `json:"severity"`
+	Title      string   `json:"title"`
+	Message    string   `json:"message"`
+	Source     string   `json:"source"`
+	ObservedAt string   `json:"observed_at"`
+	Value      *float64 `json:"value,omitempty"`
+	Threshold  *float64 `json:"threshold,omitempty"`
+}
+
 func calculatePercentage(part, total int64) float64 {
 	if total <= 0 {
 		return 0
 	}
 
 	return float64(part) / float64(total) * 100
+}
+
+func newFloat64Ptr(value float64) *float64 {
+	return &value
+}
+
+func appendPlatformAlert(
+	alerts *[]platformSystemAlert,
+	severity string,
+	code string,
+	title string,
+	message string,
+	source string,
+	observedAt time.Time,
+	value *float64,
+	threshold *float64,
+) {
+	*alerts = append(*alerts, platformSystemAlert{
+		Code:       code,
+		Severity:   severity,
+		Title:      title,
+		Message:    message,
+		Source:     source,
+		ObservedAt: observedAt.Format(time.RFC3339),
+		Value:      value,
+		Threshold:  threshold,
+	})
 }
 
 // GetAuditLogs retrieves audit logs with filtering (Platform Owner only)
@@ -414,5 +452,244 @@ func GetSystemMetrics(c *gin.Context) {
 		Status:  "success",
 		Message: "System metrics retrieved successfully",
 		Data:    metrics,
+	})
+}
+
+// GetSystemAlerts derives operational alerts from current runtime and recent audit/error trends.
+func GetSystemAlerts(c *gin.Context) {
+	now := time.Now()
+	alerts := make([]platformSystemAlert, 0)
+
+	sqlDB, err := config.DB.DB()
+	if err != nil {
+		appendPlatformAlert(
+			&alerts,
+			"critical",
+			"database-unavailable",
+			"Database tidak tersedia",
+			"Gagal membaca koneksi database utama aplikasi.",
+			"database",
+			now,
+			nil,
+			nil,
+		)
+	} else {
+		if err := sqlDB.Ping(); err != nil {
+			appendPlatformAlert(
+				&alerts,
+				"critical",
+				"database-ping-failed",
+				"Ping database gagal",
+				"Runtime tidak bisa menjangkau database. Cek koneksi MySQL dan kredensial runtime.",
+				"database",
+				now,
+				nil,
+				nil,
+			)
+		}
+
+		stats := sqlDB.Stats()
+		if stats.MaxOpenConnections > 0 {
+			usageRatio := float64(stats.InUse) / float64(stats.MaxOpenConnections) * 100
+			switch {
+			case usageRatio >= 95:
+				appendPlatformAlert(
+					&alerts,
+					"critical",
+					"database-pool-critical",
+					"Pool koneksi database hampir habis",
+					"Sebagian besar koneksi database sedang terpakai. Risiko antrean request meningkat.",
+					"database",
+					now,
+					newFloat64Ptr(usageRatio),
+					newFloat64Ptr(95),
+				)
+			case usageRatio >= 80:
+				appendPlatformAlert(
+					&alerts,
+					"warning",
+					"database-pool-high",
+					"Utilisasi pool database tinggi",
+					"Koneksi database aktif mendekati batas maksimum. Pantau beban query dan kapasitas pool.",
+					"database",
+					now,
+					newFloat64Ptr(usageRatio),
+					newFloat64Ptr(80),
+				)
+			}
+		}
+
+		if stats.WaitCount >= 100 {
+			appendPlatformAlert(
+				&alerts,
+				"warning",
+				"database-wait-queue",
+				"Antrean koneksi database meningkat",
+				"Terjadi penantian koneksi database yang cukup sering. Periksa query lambat atau ukuran pool.",
+				"database",
+				now,
+				newFloat64Ptr(float64(stats.WaitCount)),
+				newFloat64Ptr(100),
+			)
+		}
+	}
+
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	allocMB := float64(mem.Alloc) / 1024 / 1024
+	switch {
+	case allocMB >= 1024:
+		appendPlatformAlert(
+			&alerts,
+			"critical",
+			"memory-critical",
+			"Memori aplikasi sangat tinggi",
+			"Pemakaian memori aktif runtime sudah melewati ambang kritis. Investigasi potensi leak atau lonjakan traffic.",
+			"runtime",
+			now,
+			newFloat64Ptr(allocMB),
+			newFloat64Ptr(1024),
+		)
+	case allocMB >= 512:
+		appendPlatformAlert(
+			&alerts,
+			"warning",
+			"memory-high",
+			"Memori aplikasi tinggi",
+			"Pemakaian memori runtime sudah cukup tinggi dan perlu dipantau sebelum memicu tekanan resource.",
+			"runtime",
+			now,
+			newFloat64Ptr(allocMB),
+			newFloat64Ptr(512),
+		)
+	}
+
+	goroutines := float64(runtime.NumGoroutine())
+	switch {
+	case goroutines >= 500:
+		appendPlatformAlert(
+			&alerts,
+			"critical",
+			"goroutines-critical",
+			"Goroutine runtime melonjak",
+			"Jumlah goroutine aktif sudah sangat tinggi. Periksa worker, request yang menggantung, atau retry loop.",
+			"runtime",
+			now,
+			newFloat64Ptr(goroutines),
+			newFloat64Ptr(500),
+		)
+	case goroutines >= 200:
+		appendPlatformAlert(
+			&alerts,
+			"warning",
+			"goroutines-high",
+			"Goroutine runtime tinggi",
+			"Jumlah goroutine aktif meningkat signifikan dan perlu dipantau agar tidak menjadi bottleneck.",
+			"runtime",
+			now,
+			newFloat64Ptr(goroutines),
+			newFloat64Ptr(200),
+		)
+	}
+
+	var recentErrorCount int64
+	var recentRequestCount int64
+	var criticalErrors24h int64
+	config.DB.Model(&models.AuditLog{}).
+		Where("success = ? AND created_at >= ?", false, now.Add(-1*time.Hour)).
+		Count(&recentErrorCount)
+	config.DB.Model(&models.AuditLog{}).
+		Where("created_at >= ?", now.Add(-1*time.Hour)).
+		Count(&recentRequestCount)
+	config.DB.Model(&models.AuditLog{}).
+		Where("success = ? AND level = ? AND created_at >= ?", false, "CRITICAL", now.Add(-24*time.Hour)).
+		Count(&criticalErrors24h)
+
+	errorRatePercent := calculatePercentage(recentErrorCount, recentRequestCount)
+	switch {
+	case recentErrorCount >= 100 || errorRatePercent >= 10:
+		appendPlatformAlert(
+			&alerts,
+			"critical",
+			"error-rate-critical",
+			"Error rate kritis",
+			"Lonjakan error dalam 1 jam terakhir sudah masuk level kritis dan berisiko mengganggu tenant aktif.",
+			"audit_log",
+			now,
+			newFloat64Ptr(errorRatePercent),
+			newFloat64Ptr(10),
+		)
+	case recentErrorCount >= 25 || errorRatePercent >= 5:
+		appendPlatformAlert(
+			&alerts,
+			"warning",
+			"error-rate-high",
+			"Error rate meningkat",
+			"Error aplikasi dalam 1 jam terakhir melewati ambang warning. Prioritaskan endpoint gagal dan penyebab utamanya.",
+			"audit_log",
+			now,
+			newFloat64Ptr(errorRatePercent),
+			newFloat64Ptr(5),
+		)
+	}
+
+	switch {
+	case criticalErrors24h >= 5:
+		appendPlatformAlert(
+			&alerts,
+			"critical",
+			"critical-errors-recurring",
+			"Error kritis berulang dalam 24 jam",
+			"Terdapat beberapa error level critical dalam 24 jam terakhir. Investigasi akar masalah dan siapkan mitigasi operasional.",
+			"audit_log",
+			now,
+			newFloat64Ptr(float64(criticalErrors24h)),
+			newFloat64Ptr(5),
+		)
+	case criticalErrors24h > 0:
+		appendPlatformAlert(
+			&alerts,
+			"warning",
+			"critical-errors-detected",
+			"Error kritis terdeteksi",
+			"Setidaknya ada satu error level critical dalam 24 jam terakhir yang perlu ditinjau.",
+			"audit_log",
+			now,
+			newFloat64Ptr(float64(criticalErrors24h)),
+			newFloat64Ptr(1),
+		)
+	}
+
+	if len(alerts) == 0 {
+		appendPlatformAlert(
+			&alerts,
+			"info",
+			"system-stable",
+			"Tidak ada alert aktif",
+			"Belum ada sinyal alerting yang melewati ambang observability saat ini.",
+			"system",
+			now,
+			nil,
+			nil,
+		)
+	}
+
+	summary := map[string]int{
+		"critical": 0,
+		"warning":  0,
+		"info":     0,
+	}
+	for _, alert := range alerts {
+		summary[alert.Severity]++
+	}
+
+	c.JSON(http.StatusOK, responses.SuccessResponse{
+		Status:  "success",
+		Message: "System alerts retrieved successfully",
+		Data: map[string]interface{}{
+			"timestamp": now,
+			"summary":   summary,
+			"alerts":    alerts,
+		},
 	})
 }

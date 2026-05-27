@@ -13,6 +13,8 @@ import type {
   PlatformAuditLogResponse,
   PlatformErrorLogResponse,
   PlatformHealthCheck,
+  PlatformSystemAlert,
+  PlatformSystemAlertResponse,
   PlatformSystemHealth,
   PlatformSystemMetrics,
 } from '../../types/platformMonitoring';
@@ -49,6 +51,17 @@ const getStatusTone = (status: string) => {
       return 'border-red-200 bg-red-50 text-red-700';
     default:
       return 'border-gray-200 bg-gray-50 text-gray-700';
+  }
+};
+
+const getAlertTone = (severity: string) => {
+  switch (severity.toLowerCase()) {
+    case 'critical':
+      return 'border-red-200 bg-red-50 text-red-700';
+    case 'warning':
+      return 'border-amber-200 bg-amber-50 text-amber-700';
+    default:
+      return 'border-blue-200 bg-blue-50 text-blue-700';
   }
 };
 
@@ -101,6 +114,7 @@ const renderHealthDetail = (key: string, value: unknown) => {
 export default function PlatformMonitoring() {
   const [health, setHealth] = useState<PlatformSystemHealth | null>(null);
   const [metrics, setMetrics] = useState<PlatformSystemMetrics | null>(null);
+  const [alerts, setAlerts] = useState<PlatformSystemAlertResponse | null>(null);
   const [auditLogs, setAuditLogs] = useState<PlatformAuditLogResponse | null>(null);
   const [errorLogs, setErrorLogs] = useState<PlatformErrorLogResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,15 +131,17 @@ export default function PlatformMonitoring() {
 
       setError(null);
 
-      const [healthData, metricsData, auditData, errorData] = await Promise.all([
+      const [healthData, metricsData, alertsData, auditData, errorData] = await Promise.all([
         platformMonitoringService.getSystemHealth(),
         platformMonitoringService.getSystemMetrics(),
+        platformMonitoringService.getSystemAlerts(),
         platformMonitoringService.getAuditLogs({ page: 1, page_size: 10 }),
         platformMonitoringService.getErrorLogs({ page: 1, page_size: 10 }),
       ]);
 
       setHealth(healthData);
       setMetrics(metricsData);
+      setAlerts(alertsData);
       setAuditLogs(auditData);
       setErrorLogs(errorData);
     } catch (err) {
@@ -245,7 +261,7 @@ export default function PlatformMonitoring() {
     return <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800 shadow-sm">{error}</div>;
   }
 
-  if (!health || !metrics || !auditLogs || !errorLogs) {
+  if (!health || !metrics || !alerts || !auditLogs || !errorLogs) {
     return (
       <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-yellow-800 shadow-sm">
         Data monitoring platform belum tersedia.
@@ -305,6 +321,69 @@ export default function PlatformMonitoring() {
           tone="purple"
         />
       </div>
+
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Alert operasional</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Alarm dasar untuk health, error-rate, runtime, dan tekanan koneksi database.
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-red-700">Critical</p>
+              <p className="mt-1 text-2xl font-semibold text-red-800">{formatNumber(alerts.summary.critical)}</p>
+            </div>
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-amber-700">Warning</p>
+              <p className="mt-1 text-2xl font-semibold text-amber-800">{formatNumber(alerts.summary.warning)}</p>
+            </div>
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-blue-700">Info</p>
+              <p className="mt-1 text-2xl font-semibold text-blue-800">{formatNumber(alerts.summary.info)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {alerts.alerts.map((alert: PlatformSystemAlert) => (
+            <div key={alert.code} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">{alert.title}</p>
+                  <p className="mt-1 text-sm text-gray-600">{alert.message}</p>
+                </div>
+                <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getAlertTone(alert.severity)}`}>
+                  {formatStatus(alert.severity)}
+                </span>
+              </div>
+              <dl className="mt-4 space-y-2 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="text-gray-500">Sumber</dt>
+                  <dd className="text-right font-medium text-gray-900">{formatStatus(alert.source)}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="text-gray-500">Teramati</dt>
+                  <dd className="text-right font-medium text-gray-900">{formatDateTime(alert.observed_at)}</dd>
+                </div>
+                {typeof alert.value === 'number' && (
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="text-gray-500">Nilai saat ini</dt>
+                    <dd className="text-right font-medium text-gray-900">{formatDecimal(alert.value)}</dd>
+                  </div>
+                )}
+                {typeof alert.threshold === 'number' && (
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="text-gray-500">Ambang</dt>
+                    <dd className="text-right font-medium text-gray-900">{formatDecimal(alert.threshold)}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="mb-4">

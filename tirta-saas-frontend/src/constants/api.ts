@@ -166,6 +166,7 @@ export const API_ENDPOINTS = {
     SYSTEM: {
       HEALTH: '/platform/system/health',
       METRICS: '/platform/system/metrics',
+      ALERTS: '/platform/system/alerts',
     },
     PAYMENT_METHODS: {
       BANK_ACCOUNTS: '/platform/payment-methods/bank-accounts',

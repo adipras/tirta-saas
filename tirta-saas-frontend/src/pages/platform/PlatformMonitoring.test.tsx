@@ -5,6 +5,7 @@ import PlatformMonitoring from './PlatformMonitoring';
 
 const mockGetSystemHealth = vi.fn();
 const mockGetSystemMetrics = vi.fn();
+const mockGetSystemAlerts = vi.fn();
 const mockGetAuditLogs = vi.fn();
 const mockGetErrorLogs = vi.fn();
 
@@ -12,6 +13,7 @@ vi.mock('../../services/platformMonitoringService', () => ({
   platformMonitoringService: {
     getSystemHealth: (...args: unknown[]) => mockGetSystemHealth(...args),
     getSystemMetrics: (...args: unknown[]) => mockGetSystemMetrics(...args),
+    getSystemAlerts: (...args: unknown[]) => mockGetSystemAlerts(...args),
     getAuditLogs: (...args: unknown[]) => mockGetAuditLogs(...args),
     getErrorLogs: (...args: unknown[]) => mockGetErrorLogs(...args),
   },
@@ -63,6 +65,7 @@ describe('PlatformMonitoring', () => {
   beforeEach(() => {
     mockGetSystemHealth.mockReset();
     mockGetSystemMetrics.mockReset();
+    mockGetSystemAlerts.mockReset();
     mockGetAuditLogs.mockReset();
     mockGetErrorLogs.mockReset();
 
@@ -130,6 +133,37 @@ describe('PlatformMonitoring', () => {
           endpoint: '/api/invoices',
           count: 40,
           avg_time: 44.3,
+        },
+      ],
+    });
+
+    mockGetSystemAlerts.mockResolvedValue({
+      timestamp: '2026-05-27T00:00:00Z',
+      summary: {
+        critical: 1,
+        warning: 1,
+        info: 0,
+      },
+      alerts: [
+        {
+          code: 'database-pool-high',
+          severity: 'warning',
+          title: 'Utilisasi pool database tinggi',
+          message: 'Koneksi database aktif mendekati batas maksimum.',
+          source: 'database',
+          observed_at: '2026-05-27T00:00:00Z',
+          value: 84,
+          threshold: 80,
+        },
+        {
+          code: 'error-rate-critical',
+          severity: 'critical',
+          title: 'Error rate kritis',
+          message: 'Lonjakan error dalam 1 jam terakhir sudah masuk level kritis.',
+          source: 'audit_log',
+          observed_at: '2026-05-27T00:00:00Z',
+          value: 12,
+          threshold: 10,
         },
       ],
     });
@@ -203,6 +237,8 @@ describe('PlatformMonitoring', () => {
     expect(await screen.findByText('Monitoring Platform')).toBeInTheDocument();
     expect(screen.getByText('Status Sistem')).toBeInTheDocument();
     expect(screen.getByText('Request 24 Jam')).toBeInTheDocument();
+    expect(screen.getByText('Alert operasional')).toBeInTheDocument();
+    expect(screen.getByText('Utilisasi pool database tinggi')).toBeInTheDocument();
     expect(screen.getByText('Endpoint terpadat')).toBeInTheDocument();
     expect(screen.getAllByText(/\/api\/invoices/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Gagal menyimpan invoice/)).toBeInTheDocument();
@@ -219,6 +255,7 @@ describe('PlatformMonitoring', () => {
     await waitFor(() => {
       expect(mockGetSystemHealth).toHaveBeenCalledTimes(2);
       expect(mockGetSystemMetrics).toHaveBeenCalledTimes(2);
+      expect(mockGetSystemAlerts).toHaveBeenCalledTimes(2);
       expect(mockGetAuditLogs).toHaveBeenCalledTimes(2);
       expect(mockGetErrorLogs).toHaveBeenCalledTimes(2);
     });

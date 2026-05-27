@@ -36,6 +36,27 @@ export interface PlatformSystemHealth {
   checks: Record<string, PlatformHealthCheck>;
 }
 
+export interface PlatformSystemAlert {
+  code: string;
+  severity: string;
+  title: string;
+  message: string;
+  source: string;
+  observed_at: string;
+  value?: number;
+  threshold?: number;
+}
+
+export interface PlatformSystemAlertResponse {
+  timestamp: string;
+  summary: {
+    critical: number;
+    warning: number;
+    info: number;
+  };
+  alerts: PlatformSystemAlert[];
+}
+
 export interface PlatformSystemMetrics {
   timestamp: string;
   system: {
