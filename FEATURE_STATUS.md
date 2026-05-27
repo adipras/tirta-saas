@@ -145,6 +145,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Runbook insiden aplikasi kini sudah ada di repo melalui `DEPLOYMENT_USER_MANUAL.md`, lengkap dengan triage awal, playbook API/database/email/frontend, dan kriteria rollback/restore
 - ✅ Audit middleware global backend kini aktif untuk request autentikasi sensitif (`POST` / `PUT` / `PATCH` / `DELETE`)
 - ✅ Audit domain-level juga sudah diperluas ke auth flow sensitif: admin login, customer login, logout, ganti password customer, dan flow bukti pembayaran (`submit`, `verify`, `reject`)
+- ✅ Audit domain-level untuk manajemen user tenant kini juga mencakup create/update/delete tenant user, create user with profile, update profil user operasional, suspend user, dan revoke semua sesi user dengan payload audit yang sudah disanitasi
 
 ### 5. Pembatasan akses khusus platform owner
 - ✅ Route `/api/platform/*` kini memakai `PlatformOwnerOnly()`
@@ -187,7 +188,7 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 
 ### 1. Security & access control
 - ✅ ~~`PlatformOwnerOnly` middleware belum ada~~ — selesai pada sesi hardening 25 Mei 2026
-- 🟡 Audit trail request sensitif backend sudah aktif secara global, auth flow utama dan flow bukti pembayaran kini sudah tercakup, tetapi audit domain-level belum merata di seluruh surface
+- 🟡 Audit trail request sensitif backend sudah aktif secara global; auth flow utama, flow bukti pembayaran, dan manajemen user tenant kini sudah tercakup di level domain, tetapi audit domain-level belum merata di seluruh surface lain
 - 🟡 Boundary role platform vs tenant sudah lebih konsisten, dan regression test backend kini sudah mengukur middleware permission/tenant boundary (`PlatformOwnerOnly`, `RequirePermission`, `RequireTenantUser`, `EnsureSameTenant`) plus route wiring kritis (`/api/platform`, `/api/tenant`, `/api/tenant-users`, `/api/reports`, `/api/invoices`), tetapi coverage authorization lintas seluruh surface masih belum lengkap
 
 ### 2. Reliability & verification

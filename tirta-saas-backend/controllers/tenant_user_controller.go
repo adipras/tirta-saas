@@ -7,6 +7,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/adipras/tirta-saas-backend/utils"
@@ -129,6 +130,7 @@ func (tc *TenantUserController) CreateTenantUser(c *gin.Context) {
 		TenantID: user.TenantID,
 	}
 
+	audit.LogCreate(c, "tenant_user", user.ID, managedUserAuditValues(user))
 	c.JSON(http.StatusCreated, response)
 }
 
@@ -278,6 +280,7 @@ func (tc *TenantUserController) UpdateTenantUser(c *gin.Context) {
 		updates["role"] = req.Role
 	}
 
+	oldValues := managedUserAuditValues(user)
 	if err := config.DB.Model(&user).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
@@ -291,6 +294,7 @@ func (tc *TenantUserController) UpdateTenantUser(c *gin.Context) {
 	if name, ok := updates["name"].(string); ok {
 		user.Name = name
 	}
+	audit.LogUpdate(c, "tenant_user", user.ID, oldValues, managedUserAuditValues(user))
 
 	response := responses.UserResponse{
 		ID:       user.ID,
@@ -356,11 +360,13 @@ func (tc *TenantUserController) DeleteTenantUser(c *gin.Context) {
 	}
 
 	// Soft delete
+	oldValues := managedUserAuditValues(user)
 	if err := config.DB.Delete(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
 		return
 	}
 
+	audit.LogDelete(c, "tenant_user", user.ID, oldValues)
 	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
 }
 

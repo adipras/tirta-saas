@@ -260,7 +260,7 @@ git push origin deploy-all-v1.0.0
 ```bash
 ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
 
-cd /opt/tirta-runtime
+cd /opt/tirta-saas/app
 set -a
 . ./.env
 set +a
@@ -313,7 +313,7 @@ ssh -L 13306:172.20.0.2:3306 -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
 
 # cek IP container mungkin berubah setelah recreate
 ssh -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172 \
-  "cd /opt/tirta-runtime && MYSQL_CONTAINER_ID=\$(docker compose ps -q mysql) && docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \"\$MYSQL_CONTAINER_ID\""
+  "cd /opt/tirta-saas/app && MYSQL_CONTAINER_ID=\$(docker compose ps -q mysql) && docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' \"\$MYSQL_CONTAINER_ID\""
 ```
 
 **Catatan penting:**

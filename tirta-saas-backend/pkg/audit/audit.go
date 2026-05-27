@@ -294,6 +294,36 @@ func LogLogout(c *gin.Context, userType string, success bool, errorMsg string) {
 	})
 }
 
+// LogManagedUserSuspension audits forced session invalidation during a user suspension action.
+func LogManagedUserSuspension(c *gin.Context, userID uuid.UUID, revokedSessionCount int64) {
+	auditService.Log(c, AuditEntry{
+		Action:      models.ActionDeactivation,
+		Resource:    "managed_user",
+		ResourceID:  &userID,
+		Level:       models.LevelWarning,
+		Description: "Managed user suspended",
+		Success:     true,
+		Metadata: map[string]interface{}{
+			"revoked_sessions": revokedSessionCount,
+		},
+	})
+}
+
+// LogManagedUserSessionLogout audits admin-driven logout of all active sessions for a target user.
+func LogManagedUserSessionLogout(c *gin.Context, userID uuid.UUID, revokedSessionCount int64) {
+	auditService.Log(c, AuditEntry{
+		Action:      models.ActionLogout,
+		Resource:    "managed_user_session",
+		ResourceID:  &userID,
+		Level:       models.LevelWarning,
+		Description: "Managed user sessions revoked",
+		Success:     true,
+		Metadata: map[string]interface{}{
+			"revoked_sessions": revokedSessionCount,
+		},
+	})
+}
+
 // LogPayment audits payment operations
 func LogPayment(c *gin.Context, invoiceID, paymentID uuid.UUID, amount float64, success bool, errorMsg string) {
 	level := models.LevelInfo

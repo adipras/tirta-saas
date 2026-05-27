@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/adipras/tirta-saas-backend/utils"
@@ -131,12 +132,16 @@ func (ctrl *UserManagementController) CreateUserWithProfile(c *gin.Context) {
 		}
 	}
 
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to finalize user creation"})
+		return
+	}
 
 	// Fetch created user with profile and roles
 	ctrl.DB.Preload("Profile").First(&user, user.ID)
 
 	response := responses.ToUserWithProfileResponse(&user, &profile, roles)
+	audit.LogCreate(c, "managed_user", user.ID, managedUserWithProfileAuditValues(user, &profile, roles))
 	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully", "data": response})
 }
 
@@ -202,6 +207,14 @@ func (ctrl *UserManagementController) UpdateUserProfile(c *gin.Context) {
 	// Update or create profile
 	var profile models.UserProfile
 	result := ctrl.DB.Where("user_id = ?", parsedUserID).First(&profile)
+	var oldValues interface{}
+	if result.Error == nil {
+		oldValues = managedUserProfileAuditValues(profile)
+	}
+	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch profile"})
+		return
+	}
 
 	if result.Error == gorm.ErrRecordNotFound {
 		profile = models.UserProfile{
@@ -231,6 +244,7 @@ func (ctrl *UserManagementController) UpdateUserProfile(c *gin.Context) {
 		}
 	}
 
+	audit.LogUpdate(c, "managed_user_profile", parsedUserID, oldValues, managedUserProfileAuditValues(profile))
 	c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully", "data": profile})
 }
 
@@ -252,8 +266,13 @@ func (ctrl *UserManagementController) SuspendUser(c *gin.Context) {
 	}
 
 	// Invalidate all sessions
-	ctrl.DB.Model(&models.UserSession{}).Where("user_id = ?", parsedUserID).Update("is_active", false)
+	result := ctrl.DB.Model(&models.UserSession{}).Where("user_id = ?", parsedUserID).Update("is_active", false)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to suspend user"})
+		return
+	}
 
+	audit.LogManagedUserSuspension(c, parsedUserID, result.RowsAffected)
 	c.JSON(http.StatusOK, gin.H{"message": "User suspended successfully"})
 }
 
@@ -318,7 +337,12 @@ func (ctrl *UserManagementController) LogoutAllSessions(c *gin.Context) {
 			"is_active":  false,
 			"updated_at": time.Now(),
 		})
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to logout all sessions"})
+		return
+	}
 
+	audit.LogManagedUserSessionLogout(c, parsedUserID, result.RowsAffected)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "All sessions logged out successfully",
 		"count":   result.RowsAffected,
