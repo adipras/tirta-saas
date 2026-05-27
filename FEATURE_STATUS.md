@@ -142,6 +142,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - 🟡 Endpoint platform untuk audit logs, error logs, system health, dan metrics **sudah ada**
 - ✅ Frontend platform kini sudah punya halaman monitoring untuk system health, system metrics, audit logs, dan error logs
 - ✅ Alerting operasional dasar kini sudah muncul di backend + UI monitoring platform untuk tekanan pool database, lonjakan error rate, error critical berulang, dan tekanan resource runtime
+- ✅ Runbook insiden aplikasi kini sudah ada di repo melalui `DEPLOYMENT_USER_MANUAL.md`, lengkap dengan triage awal, playbook API/database/email/frontend, dan kriteria rollback/restore
 - ✅ Audit middleware global backend kini aktif untuk request autentikasi sensitif (`POST` / `PUT` / `PATCH` / `DELETE`)
 - ✅ Audit domain-level juga sudah diperluas ke auth flow sensitif: admin login, customer login, logout, ganti password customer, dan flow bukti pembayaran (`submit`, `verify`, `reject`)
 
@@ -189,9 +190,9 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 - ✅ Smoke check pasca-deploy kini sudah menjadi bagian workflow deploy dan bootstrap runtime, dan sudah mencakup deep-link publik frontend serta endpoint API publik yang dipakai landing page
 
 ### 3. Observability & incident response
-- 🟡 Endpoint monitoring backend kini sudah terhubung ke UI monitoring aplikasi untuk platform owner, dan alerting operasional dasar kini sudah ada di repo, tetapi runbook insiden masih belum ada
+- ✅ Endpoint monitoring backend kini sudah terhubung ke UI monitoring aplikasi untuk platform owner, alerting operasional dasar sudah ada di repo, dan runbook insiden aplikasi kini terdokumentasi di `DEPLOYMENT_USER_MANUAL.md`
 - ✅ ~~Belum terlihat alerting operasional yang jelas di repo~~ — selesai pada sesi observability 27 Mei 2026
-- 🚧 Belum terlihat runbook insiden level aplikasi di repo
+- ✅ ~~Belum terlihat runbook insiden level aplikasi di repo~~ — selesai pada sesi operasional 27 Mei 2026
 
 ### 4. Product completeness untuk tenant nyata
 - 🟡 Notification delivery nyata kini sudah mulai ada untuk manual email dan event-driven email via SMTP, tetapi SMS / WhatsApp masih belum ada
@@ -262,7 +263,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 | Role operasional berubah | Middleware permission backend dirapikan agar contract akses lebih stabil |
 
 ### Prioritas mobile berikutnya
-1. Finalisasi standardisasi contract backend yang masih parsial
+1. Finalisasi standardisasi contract backend yang masih parsial (harus selalu perhatikan impact yang ditimbulkan terhadap web)
 2. Selesaikan verifikasi parity web setelah perubahan contract mobile-driven
 3. Hardening sync/offline conflict handling
 4. QA multi-role dan stabilisasi bug
@@ -288,6 +289,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 3. **Operational observability**
    - dashboard monitoring aplikasi
    - ✅ alerting dasar untuk health/error-rate/resource exhaustion di monitoring platform
+   - ✅ runbook insiden aplikasi untuk triage, rollback, restart service, dan eskalasi dasar
    - log aggregation yang siap troubleshooting
 
 4. **Backup / restore yang tervalidasi rutin**
@@ -352,6 +354,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Progress produk terbaru: kalkulasi tarif progresif kini tidak berhenti di UI simulasi; create/update/import bulk pemakaian air backend sudah menghitung `amount_calculated` memakai tier kategori tarif aktif agar nominal invoice bulanan konsisten dengan konfigurasi tarif progresif.
 - Progress hardening terbaru: UI monitoring platform kini sudah tersedia untuk health, metrics, audit log, dan error log; backend monitoring juga dirapikan agar uptime runtime dan request success/error rate yang tampil lebih akurat.
 - Progress hardening terbaru: monitoring platform kini juga menampilkan alert operasional dasar yang dihitung dari health/metrics backend untuk error-rate, pool koneksi database, error critical berulang, dan tekanan resource runtime.
+- Progress hardening terbaru: repo kini juga punya runbook insiden aplikasi di `DEPLOYMENT_USER_MANUAL.md`, sehingga alert monitoring platform sudah punya panduan triage dan keputusan rollback/restore yang eksplisit.
 - Progress hardening terbaru: route platform owner sudah dipisahkan dari `AdminOnly`, validasi JWT tenant-scoped diperketat, dan audit middleware backend sudah aktif untuk request sensitif terautentikasi.
 - Progress lanjutan sesi ini: pengecekan role platform-level juga sudah dinormalisasi di controller tenant-user, helper tenant context, query analytics, dan utilitas seeder/platform admin agar akses tanpa `tenant_id` tetap konsisten untuk surface platform.
 - Progress lanjutan terbaru: audit auth flow utama kini sudah tercatat di backend dan boundary JWT tanpa `tenant_id` diketatkan kembali agar hanya berlaku untuk `platform_owner`.

@@ -1,7 +1,7 @@
 # Panduan Deploy Tirta SaaS
 
-**Version:** 3.0  
-**Last Updated:** May 23, 2026  
+**Version:** 3.1  
+**Last Updated:** May 27, 2026  
 **Status:** Aktif  
 **Repository:** `adipras/tirta-saas`
 
@@ -251,7 +251,172 @@ git push origin deploy-all-v1.2.2
 
 ---
 
-## 11. Troubleshooting Cepat
+## 11. Runbook Insiden Aplikasi
+
+Runbook ini dipakai saat alert dari monitoring platform atau Netdata menunjukkan gangguan aplikasi yang perlu respons operasional cepat.
+
+### 11.1 Sumber sinyal utama
+
+1. Halaman **Monitoring Platform** untuk `platform_owner`
+2. Endpoint health:
+
+```bash
+curl -fsS http://127.0.0.1/health
+curl -kfsS --resolve tirtautama.net:443:127.0.0.1 https://tirtautama.net/health
+```
+
+3. Netdata lokal:
+
+```bash
+docker compose --profile monitoring ps
+curl -fsS http://127.0.0.1:19999/api/v1/info | head
+```
+
+4. Status container:
+
+```bash
+cd /opt/tirta-saas/app
+docker compose ps
+docker stats --no-stream
+```
+
+### 11.2 Langkah triage umum (5-15 menit pertama)
+
+1. Catat waktu mulai insiden dan gejala utama: login gagal, API timeout, invoice gagal dibuat, email notifikasi gagal terkirim, atau UI blank.
+2. Buka monitoring platform dan identifikasi alert paling tinggi (`critical` lebih dulu, lalu `warning`).
+3. Jalankan health check dan `docker compose ps` untuk memastikan service yang terdampak.
+4. Cek log backend dan nginx untuk 15 menit terakhir:
+
+```bash
+cd /opt/tirta-saas/app
+docker compose logs --since 15m backend | tail -n 200
+docker compose logs --since 15m nginx | tail -n 200
+```
+
+5. Jika indikasi gangguan database, cek juga:
+
+```bash
+docker compose logs --since 15m mysql | tail -n 200
+```
+
+6. Jika dampak meluas atau belum jelas dalam 15 menit, hentikan release/deploy baru dan masuk ke mode mitigasi.
+
+### 11.3 Klasifikasi dan tindakan cepat
+
+| Sinyal | Dampak umum | Langkah awal | Exit criteria |
+|---|---|---|---|
+| Health `degraded` / `unhealthy` | API tidak stabil atau gagal total | Cek `docker compose ps`, log backend/nginx, lalu restart service yang benar-benar gagal | `health` kembali sukses dan error baru berhenti muncul |
+| Alert pool DB / wait count tinggi | Login lambat, invoice/report timeout | Cek log mysql, `docker stats`, dan query berat yang baru dijalankan; hentikan job manual besar bila perlu | Wait turun, API latensi membaik, timeout berhenti |
+| Error rate / critical error melonjak | Banyak request 5xx | Identifikasi endpoint dominan dari log backend, rollback release terakhir jika baru terjadi setelah deploy | Error rate turun stabil dan endpoint kritis pulih |
+| Memori / goroutine tinggi | Container restart, OOM, API stuck | Cek `docker stats`, log backend, lalu restart backend bila proses sudah stuck; siapkan rollback jika berulang | Memori/runtime turun dan tidak ada restart ulang |
+| Email notifikasi gagal | Invoice/payment proof tetap jalan, tetapi email tidak terkirim | Verifikasi `SMTP_*` di `.env`, cek log backend, dan pastikan provider SMTP bisa dijangkau | Log delivery kembali `SENT` dan insiden komunikasi ditutup |
+
+### 11.4 Playbook per jenis insiden
+
+#### A. API / backend error tinggi
+
+```bash
+cd /opt/tirta-saas/app
+docker compose logs --since 30m backend | tail -n 300
+curl -fsS http://127.0.0.1/health
+```
+
+Tindakan:
+
+1. Identifikasi endpoint atau flow yang gagal dari log.
+2. Jika baru terjadi setelah release terakhir, lakukan rollback ke commit stabil sebelumnya lewat workflow **Deploy by tag** atau prosedur rollback manual pada Bagian 10.
+3. Jika backend hanya hang sementara tanpa perubahan release, restart backend:
+
+```bash
+cd /opt/tirta-saas/app
+docker compose restart backend
+```
+
+4. Validasi ulang login admin, `/health`, dan endpoint publik `/api/public/subscription-plans`.
+
+#### B. Tekanan database / query backlog
+
+```bash
+cd /opt/tirta-saas/app
+docker compose logs --since 30m mysql | tail -n 300
+docker stats --no-stream
+```
+
+Tindakan:
+
+1. Pastikan tidak ada import/generate besar yang sedang dijalankan berulang.
+2. Jika host kehabisan resource, hentikan aktivitas manual non-kritis dan ulangi pengecekan setelah beban turun.
+3. Jika mysql tidak sehat, restart service database hanya setelah backup terbaru tersedia dan tidak ada operasi maintenance lain yang berjalan:
+
+```bash
+cd /opt/tirta-saas/app
+/opt/tirta-saas/scripts/backup.sh
+docker compose restart mysql
+```
+
+4. Setelah pulih, cek kembali login, generate invoice, dan halaman report utama.
+
+#### C. Email notifikasi gagal
+
+Periksa konfigurasi:
+
+```bash
+cd /opt/tirta-saas/app
+grep '^SMTP_' .env
+docker compose logs --since 30m backend | grep -i smtp | tail -n 50
+```
+
+Tindakan:
+
+1. Pastikan `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, dan `SMTP_FROM_NAME` terisi benar.
+2. Jika kredensial berubah, update `.env` runtime lalu restart backend:
+
+```bash
+cd /opt/tirta-saas/app
+docker compose restart backend
+```
+
+3. Catat bahwa notifikasi in-app tetap berjalan; insiden ini fokus pada channel email.
+
+#### D. Frontend blank / deep-link publik gagal
+
+```bash
+cd /opt/tirta-saas/app
+docker compose logs --since 30m frontend | tail -n 200
+docker compose logs --since 30m nginx | tail -n 200
+curl -I http://127.0.0.1/
+curl -kI --resolve tirtautama.net:443:127.0.0.1 https://tirtautama.net/admin/login
+curl -kI --resolve tirtautama.net:443:127.0.0.1 https://tirtautama.net/customer/login
+```
+
+Tindakan:
+
+1. Pastikan container frontend dan nginx `Up`.
+2. Jika hanya release frontend yang rusak, deploy ulang target frontend atau rollback ke release frontend stabil terakhir.
+3. Jika nginx gagal start, periksa sertifikat dan konfigurasi domain sesuai Bagian 12.
+
+### 11.5 Kapan rollback atau restore
+
+- **Rollback release** jika gangguan mulai tepat setelah deploy dan penyebab mengarah ke perubahan aplikasi/frontend/backend.
+- **Restart service** jika gangguan jelas bersifat transient dan tidak terkait perubahan release.
+- **Restore database** hanya untuk insiden data korup/hilang yang tidak bisa dipulihkan lewat rollback aplikasi. Sebelum restore, wajib:
+  1. hentikan write traffic / maintenance window,
+  2. ambil backup terakhir,
+  3. verifikasi file backup dengan `/opt/tirta-saas/scripts/restore-test.sh`,
+  4. dokumentasikan titik waktu data yang dipulihkan.
+
+### 11.6 Penutupan insiden
+
+Sebelum insiden dinyatakan selesai:
+
+1. Health check kembali hijau.
+2. Alert `critical` terkait sudah hilang atau turun ke level aman.
+3. Login admin/customer, endpoint publik, dan flow bisnis utama yang terdampak sudah dicoba ulang.
+4. Catat akar masalah, tindakan, rollback/restart yang dilakukan, dan tindak lanjut pencegahan.
+
+---
+
+## 12. Troubleshooting Cepat
 
 ### Deploy gagal karena SSH
 
@@ -289,7 +454,7 @@ Jika package private:
 
 ---
 
-## 12. Ringkasan Paling Singkat
+## 13. Ringkasan Paling Singkat
 
 ### Setup sekali
 
