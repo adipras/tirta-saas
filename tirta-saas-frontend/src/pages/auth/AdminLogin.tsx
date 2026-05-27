@@ -6,18 +6,19 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { loginAsync } from '../../store/slices/authSlice';
-import type { LoginCredentials } from '../../services/authService';
 
 const schema = yup.object({
-  email: yup
+  identifier: yup
     .string()
-    .email('Masukkan alamat email yang valid')
-    .required('Email wajib diisi'),
+    .trim()
+    .required('Username atau email wajib diisi'),
   password: yup
     .string()
     .min(6, 'Password minimal 6 karakter')
     .required('Password wajib diisi'),
 });
+
+type AdminLoginFormData = yup.InferType<typeof schema>;
 
 const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -34,18 +35,18 @@ const AdminLogin = () => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginCredentials>({
+  } = useForm<AdminLoginFormData>({
     resolver: yupResolver(schema),
     defaultValues: {
-      email: (location.state as { email?: string })?.email || '',
+      identifier: (location.state as { identifier?: string })?.identifier || '',
     },
   });
 
-  const onSubmit = async (data: LoginCredentials) => {
+  const onSubmit = async (data: AdminLoginFormData) => {
     if (isLoading) return;
 
     try {
-      const result = await dispatch(loginAsync(data)).unwrap();
+      const result = await dispatch(loginAsync({ identifier: data.identifier, password: data.password })).unwrap();
 
       const user = result.user;
 
@@ -144,17 +145,17 @@ const AdminLogin = () => {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Alamat Email
+                Username atau Email
               </label>
               <input
-                {...register('email')}
-                type="email"
-                autoComplete="email"
+                {...register('identifier')}
+                type="text"
+                autoComplete="username"
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Masukkan email Anda"
+                placeholder="Masukkan username atau email Anda"
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              {errors.identifier && (
+                <p className="mt-1 text-sm text-red-600">{errors.identifier.message}</p>
               )}
             </div>
             

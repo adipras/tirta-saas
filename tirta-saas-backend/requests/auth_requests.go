@@ -2,8 +2,9 @@ package requests
 
 // LoginRequest represents login credentials
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email" example:"admin@example.com"`
-	Password string `json:"password" binding:"required,min=8" example:"password123"`
+	Identifier string `json:"identifier" example:"admin_utama"`
+	Email      string `json:"email" example:"admin@example.com"`
+	Password   string `json:"password" binding:"required,min=8" example:"password123"`
 }
 
 // CreateTenantRequest represents request to create a new tenant

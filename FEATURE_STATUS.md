@@ -24,7 +24,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Landing page publik
 - ✅ Registrasi akun owner/admin baru (`/register`)
 - ✅ Setup tenant setelah login (`/setup-tenant`)
-- ✅ Login admin berbasis JWT
+- ✅ Login admin berbasis JWT dengan identifier username atau email
 - ✅ Login customer berbasis JWT terpisah
 - ✅ Role-based access untuk `platform_owner`, `tenant_admin`, `meter_reader`, `finance`, dan `customer`
 - ✅ Persist session frontend dengan Redux Persist
@@ -173,6 +173,11 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Workflow validasi repo kini sudah menjalankan `go test`, `go build`, `npm run lint`, `npm run test`, dan `npm run build` untuk PR / push `main`
 - ✅ Workflow deploy/bootstrap kini menjalankan smoke check pasca-deploy untuk memastikan nginx/frontend root, deep-link publik SPA (`/admin/login`, `/customer/login`), backend `/health`, dan endpoint publik `/api/public/subscription-plans` benar-benar responsif
 - 🟡 Regression test awal sudah mulai ada di backend dan frontend, termasuk auth guard, permission/tenant boundary middleware backend, snapshot billing invoice backend, login admin/customer, notification bell, invoice detail customer, payment confirmation customer, payment proof detail action, tenant payment verification, admin payment list, payment reporting, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch), tetapi coverage flow bisnis kritis masih perlu diperluas
+
+### 9. Identity & user management
+- ✅ User admin/operasional tenant kini punya `username` unik sebagai identifier login utama tambahan selain email
+- ✅ Email user admin/operasional tenant kini sudah opsional di backend dan UI yang relevan
+- ✅ Form registrasi akun owner/admin serta modal user management kini mewajibkan `username` dan menampilkan pesan validasi saat username sudah dipakai
 
 ---
 

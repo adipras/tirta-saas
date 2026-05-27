@@ -2,11 +2,13 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -31,11 +33,22 @@ func (ctrl *UserManagementController) CreateUserWithProfile(c *gin.Context) {
 
 	tenantID := c.GetString("tenant_id")
 
-	// Check if email already exists
-	var existingUser models.User
-	if err := ctrl.DB.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+	normalizedUsername := utils.NormalizeUsername(req.Username)
+	if len(normalizedUsername) < 3 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username minimal 3 karakter dan hanya boleh berisi huruf, angka, titik, underscore, atau dash"})
 		return
+	}
+	var existingUser models.User
+	if err := ctrl.DB.Where("username = ?", normalizedUsername).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Username already exists"})
+		return
+	}
+	normalizedEmail := utils.StringPointerOrNil(req.Email)
+	if normalizedEmail != nil {
+		if err := ctrl.DB.Where("email = ?", *normalizedEmail).First(&existingUser).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email already exists"})
+			return
+		}
 	}
 
 	// Hash password
@@ -78,7 +91,9 @@ func (ctrl *UserManagementController) CreateUserWithProfile(c *gin.Context) {
 	// Create user
 	tenantUUID, _ := uuid.Parse(tenantID)
 	user := models.User{
-		Email:    req.Email,
+		Name:     strings.TrimSpace(req.FullName),
+		Username: normalizedUsername,
+		Email:    normalizedEmail,
 		Password: string(hashedPassword),
 		TenantID: &tenantUUID,
 	}
@@ -120,7 +135,7 @@ func (ctrl *UserManagementController) CreateUserWithProfile(c *gin.Context) {
 
 	// Fetch created user with profile and roles
 	ctrl.DB.Preload("Profile").First(&user, user.ID)
-	
+
 	response := responses.ToUserWithProfileResponse(&user, &profile, roles)
 	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully", "data": response})
 }
@@ -147,7 +162,7 @@ func (ctrl *UserManagementController) GetUserProfile(c *gin.Context) {
 
 	var userRoles []models.UserRole
 	ctrl.DB.Where("user_id = ?", parsedUserID).Find(&userRoles)
-	
+
 	roleIDs := make([]uuid.UUID, len(userRoles))
 	for i, ur := range userRoles {
 		roleIDs[i] = ur.RoleID
@@ -187,7 +202,7 @@ func (ctrl *UserManagementController) UpdateUserProfile(c *gin.Context) {
 	// Update or create profile
 	var profile models.UserProfile
 	result := ctrl.DB.Where("user_id = ?", parsedUserID).First(&profile)
-	
+
 	if result.Error == gorm.ErrRecordNotFound {
 		profile = models.UserProfile{
 			UserID:      parsedUserID,
@@ -209,7 +224,7 @@ func (ctrl *UserManagementController) UpdateUserProfile(c *gin.Context) {
 		profile.Position = req.Position
 		profile.Department = req.Department
 		profile.Notes = req.Notes
-		
+
 		if err := ctrl.DB.Save(&profile).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile"})
 			return
@@ -300,12 +315,12 @@ func (ctrl *UserManagementController) LogoutAllSessions(c *gin.Context) {
 	result := ctrl.DB.Model(&models.UserSession{}).
 		Where("user_id = ? AND is_active = ?", parsedUserID, true).
 		Updates(map[string]interface{}{
-			"is_active": false,
+			"is_active":  false,
 			"updated_at": time.Now(),
 		})
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "All sessions logged out successfully",
-		"count": result.RowsAffected,
+		"count":   result.RowsAffected,
 	})
 }

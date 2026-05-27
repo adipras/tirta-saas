@@ -7,22 +7,30 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { API_BASE_URL, API_ENDPOINTS } from '../../constants/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
-interface RegisterAccountFormData {
+type RegisterAccountFormValues = {
   name: string;
+  username: string;
   email: string;
   password: string;
   confirmPassword: string;
-}
+};
 
-const schema = yup.object({
+const schema: yup.ObjectSchema<RegisterAccountFormValues> = yup.object({
   name: yup
     .string()
     .min(3, 'Nama minimal 3 karakter')
     .required('Nama lengkap wajib diisi'),
+  username: yup
+    .string()
+    .trim()
+    .min(3, 'Username minimal 3 karakter')
+    .required('Username wajib diisi'),
   email: yup
     .string()
-    .email('Format email tidak valid')
-    .required('Email wajib diisi'),
+    .default('')
+    .trim()
+    .test('email-optional', 'Format email tidak valid', (value) => !value || yup.string().email().isValidSync(value))
+    .required(),
   password: yup
     .string()
     .min(6, 'Password minimal 6 karakter')
@@ -43,12 +51,16 @@ const RegisterAccount = () => {
   const {
     register,
     handleSubmit,
+    setError: setFieldError,
     formState: { errors },
-  } = useForm<RegisterAccountFormData>({
+  } = useForm<RegisterAccountFormValues>({
     resolver: yupResolver(schema),
+    defaultValues: {
+      email: '',
+    },
   });
 
-  const onSubmit = async (data: RegisterAccountFormData) => {
+  const onSubmit = async (data: RegisterAccountFormValues) => {
     if (isLoading) return;
     setIsLoading(true);
     setError(null);
@@ -59,7 +71,8 @@ const RegisterAccount = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: data.name,
-          email: data.email,
+          username: data.username,
+          email: data.email ?? '',
           password: data.password,
         }),
       });
@@ -74,11 +87,18 @@ const RegisterAccount = () => {
       navigate('/admin/login', {
         state: {
           message: 'Akun berhasil dibuat! Silakan login untuk melanjutkan setup tenant.',
-          email: data.email,
+          identifier: data.username,
         },
       });
     } catch (err: unknown) {
-      setError(extractApiErrorMessage(err, 'Terjadi kesalahan. Coba lagi.'));
+      const message = extractApiErrorMessage(err, 'Terjadi kesalahan. Coba lagi.');
+      if (message.toLowerCase().includes('username')) {
+        setFieldError('username', { type: 'server', message });
+      } else if (message.toLowerCase().includes('email')) {
+        setFieldError('email', { type: 'server', message });
+      } else {
+        setError(message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -124,10 +144,26 @@ const RegisterAccount = () => {
               )}
             </div>
 
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                Username
+              </label>
+              <input
+                {...register('username')}
+                type="text"
+                autoComplete="username"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                placeholder="minimal 3 karakter"
+              />
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
+              )}
+            </div>
+
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
+                Email (opsional)
               </label>
               <input
                 {...register('email')}

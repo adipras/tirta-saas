@@ -15,6 +15,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/adipras/tirta-saas-backend/services"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -554,7 +555,7 @@ func SendNotification(c *gin.Context) {
 		}
 		recipientName = user.Name
 		if req.Channel == "EMAIL" {
-			destination = user.Email
+			destination = utils.StringValue(user.Email)
 		} else if req.Channel == "IN_APP" {
 			destination = user.ID.String()
 		}

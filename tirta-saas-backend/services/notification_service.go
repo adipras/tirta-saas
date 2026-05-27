@@ -7,6 +7,7 @@ import (
 
 	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -72,7 +73,7 @@ func NotifyTenantUsersByRoles(
 			return err
 		}
 
-		if strings.TrimSpace(user.Email) == "" {
+		if strings.TrimSpace(utils.StringValue(user.Email)) == "" {
 			continue
 		}
 
@@ -82,7 +83,7 @@ func NotifyTenantUsersByRoles(
 			RecipientID:   user.ID,
 			RecipientName: user.Name,
 			Channel:       models.ChannelEmail,
-			Destination:   user.Email,
+			Destination:   utils.StringValue(user.Email),
 			Subject:       subject,
 			Body:          body,
 			Metadata:      metadata,

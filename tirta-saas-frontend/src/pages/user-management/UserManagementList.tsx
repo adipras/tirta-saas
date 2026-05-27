@@ -57,6 +57,7 @@ export default function UserManagementList() {
       filtered = filtered.filter(
         (user) =>
           user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.role.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -122,9 +123,15 @@ export default function UserManagementList() {
       sortable: true,
     },
     {
+      key: 'username',
+      label: 'Username',
+      sortable: true,
+    },
+    {
       key: 'email',
       label: 'Email',
       sortable: true,
+      render: (_value, user) => user.email || '-',
     },
     {
       key: 'role',
@@ -232,7 +239,7 @@ export default function UserManagementList() {
             <input
               id="search-pengguna"
               type="text"
-              placeholder="Cari nama atau email..."
+              placeholder="Cari nama, username, atau email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"

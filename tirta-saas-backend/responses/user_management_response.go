@@ -4,16 +4,18 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/google/uuid"
 )
 
 type UserWithProfileResponse struct {
-	ID          uuid.UUID             `json:"id"`
-	Email       string                `json:"email"`
-	CreatedAt   time.Time             `json:"created_at"`
-	Profile     *UserProfileResponse  `json:"profile,omitempty"`
-	Roles       []RoleResponse        `json:"roles,omitempty"`
-	IsActive    bool                  `json:"is_active"`
+	ID        uuid.UUID            `json:"id"`
+	Username  string               `json:"username"`
+	Email     string               `json:"email"`
+	CreatedAt time.Time            `json:"created_at"`
+	Profile   *UserProfileResponse `json:"profile,omitempty"`
+	Roles     []RoleResponse       `json:"roles,omitempty"`
+	IsActive  bool                 `json:"is_active"`
 }
 
 type UserProfileResponse struct {
@@ -67,7 +69,8 @@ type UserSessionResponse struct {
 func ToUserWithProfileResponse(user *models.User, profile *models.UserProfile, roles []models.Role) UserWithProfileResponse {
 	response := UserWithProfileResponse{
 		ID:        user.ID,
-		Email:     user.Email,
+		Username:  user.Username,
+		Email:     utils.StringValue(user.Email),
 		CreatedAt: user.CreatedAt,
 		IsActive:  true,
 	}

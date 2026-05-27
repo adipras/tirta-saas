@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -73,9 +75,21 @@ func (tc *TenantUserController) CreateTenantUser(c *gin.Context) {
 
 	// Check if email already exists
 	var existingUser models.User
-	if err := config.DB.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+	normalizedUsername := utils.NormalizeUsername(req.Username)
+	if len(normalizedUsername) < 3 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username minimal 3 karakter dan hanya boleh berisi huruf, angka, titik, underscore, atau dash"})
 		return
+	}
+	if err := config.DB.Where("username = ?", normalizedUsername).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Username already registered"})
+		return
+	}
+	normalizedEmail := utils.StringPointerOrNil(req.Email)
+	if normalizedEmail != nil {
+		if err := config.DB.Where("email = ?", *normalizedEmail).First(&existingUser).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+			return
+		}
 	}
 
 	// Hash password
@@ -88,7 +102,8 @@ func (tc *TenantUserController) CreateTenantUser(c *gin.Context) {
 	// Create user
 	user := models.User{
 		Name:        req.Name,
-		Email:       req.Email,
+		Username:    normalizedUsername,
+		Email:       normalizedEmail,
 		Password:    string(hashedPassword),
 		Role:        req.Role,
 		TenantID:    tenantID,
@@ -108,7 +123,8 @@ func (tc *TenantUserController) CreateTenantUser(c *gin.Context) {
 	response := responses.UserResponse{
 		ID:       user.ID,
 		Name:     user.Name,
-		Email:    user.Email,
+		Username: user.Username,
+		Email:    utils.StringValue(user.Email),
 		Role:     user.Role,
 		TenantID: user.TenantID,
 	}
@@ -159,7 +175,8 @@ func (tc *TenantUserController) GetTenantUsers(c *gin.Context) {
 		response = append(response, responses.UserResponse{
 			ID:       user.ID,
 			Name:     user.Name,
-			Email:    user.Email,
+			Username: user.Username,
+			Email:    utils.StringValue(user.Email),
 			Role:     user.Role,
 			TenantID: user.TenantID,
 		})
@@ -242,6 +259,21 @@ func (tc *TenantUserController) UpdateTenantUser(c *gin.Context) {
 	if req.Name != "" {
 		updates["name"] = req.Name
 	}
+	if strings.TrimSpace(req.Username) != "" {
+		normalizedUsername := utils.NormalizeUsername(req.Username)
+		if len(normalizedUsername) < 3 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Username minimal 3 karakter dan hanya boleh berisi huruf, angka, titik, underscore, atau dash"})
+			return
+		}
+
+		var existingUser models.User
+		if err := config.DB.Where("username = ? AND id <> ?", normalizedUsername, user.ID).First(&existingUser).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Username already registered"})
+			return
+		}
+
+		updates["username"] = normalizedUsername
+	}
 	if req.Role != "" {
 		updates["role"] = req.Role
 	}
@@ -250,11 +282,21 @@ func (tc *TenantUserController) UpdateTenantUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
+	if username, ok := updates["username"].(string); ok {
+		user.Username = username
+	}
+	if role, ok := updates["role"].(string); ok {
+		user.Role = role
+	}
+	if name, ok := updates["name"].(string); ok {
+		user.Name = name
+	}
 
 	response := responses.UserResponse{
 		ID:       user.ID,
 		Name:     user.Name,
-		Email:    user.Email,
+		Username: user.Username,
+		Email:    utils.StringValue(user.Email),
 		Role:     user.Role,
 		TenantID: user.TenantID,
 	}

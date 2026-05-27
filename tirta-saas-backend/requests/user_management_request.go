@@ -1,14 +1,15 @@
 package requests
 
 type CreateUserWithProfileRequest struct {
-	Email       string    `json:"email" binding:"required,email"`
-	Password    string    `json:"password" binding:"required,min=8"`
-	FullName    string    `json:"full_name" binding:"required"`
-	PhoneNumber string    `json:"phone_number"`
-	Address     string    `json:"address"`
-	Position    string    `json:"position"`
-	Department  string    `json:"department"`
-	RoleIDs     []string  `json:"role_ids" binding:"required,min=1"`
+	Username    string   `json:"username" binding:"required,min=3"`
+	Email       string   `json:"email,omitempty"`
+	Password    string   `json:"password" binding:"required,min=8"`
+	FullName    string   `json:"full_name" binding:"required"`
+	PhoneNumber string   `json:"phone_number"`
+	Address     string   `json:"address"`
+	Position    string   `json:"position"`
+	Department  string   `json:"department"`
+	RoleIDs     []string `json:"role_ids" binding:"required,min=1"`
 }
 
 type UpdateUserProfileRequest struct {

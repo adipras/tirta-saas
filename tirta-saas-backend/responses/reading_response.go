@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/google/uuid"
 )
 
@@ -20,17 +21,17 @@ type ReadingRouteResponse struct {
 }
 
 type ReadingSessionResponse struct {
-	ID             uuid.UUID  `json:"id"`
+	ID             uuid.UUID            `json:"id"`
 	Route          ReadingRouteResponse `json:"route"`
-	ReaderName     string     `json:"reader_name"`
-	ScheduledDate  time.Time  `json:"scheduled_date"`
-	StartTime      *time.Time `json:"start_time"`
-	EndTime        *time.Time `json:"end_time"`
-	Status         string     `json:"status"`
-	TotalCustomers int        `json:"total_customers"`
-	CompletedCount int        `json:"completed_count"`
-	AnomalyCount   int        `json:"anomaly_count"`
-	Notes          string     `json:"notes,omitempty"`
+	ReaderName     string               `json:"reader_name"`
+	ScheduledDate  time.Time            `json:"scheduled_date"`
+	StartTime      *time.Time           `json:"start_time"`
+	EndTime        *time.Time           `json:"end_time"`
+	Status         string               `json:"status"`
+	TotalCustomers int                  `json:"total_customers"`
+	CompletedCount int                  `json:"completed_count"`
+	AnomalyCount   int                  `json:"anomaly_count"`
+	Notes          string               `json:"notes,omitempty"`
 }
 
 type ReadingAnomalyResponse struct {
@@ -61,20 +62,28 @@ func ToReadingRouteResponse(route *models.ReadingRoute) ReadingRouteResponse {
 		CustomerCount: route.CustomerCount,
 		IsActive:      route.IsActive,
 	}
-	
+
 	if route.AssignedUser != nil {
-		assignedUser := route.AssignedUser.Email
+		assignedUser := utils.StringValue(route.AssignedUser.Email)
+		if assignedUser == "" {
+			assignedUser = route.AssignedUser.Username
+		}
 		response.AssignedUser = &assignedUser
 	}
-	
+
 	return response
 }
 
 func ToReadingSessionResponse(session *models.ReadingSession) ReadingSessionResponse {
+	readerName := utils.StringValue(session.Reader.Email)
+	if readerName == "" {
+		readerName = session.Reader.Username
+	}
+
 	return ReadingSessionResponse{
 		ID:             session.ID,
 		Route:          ToReadingRouteResponse(&session.Route),
-		ReaderName:     session.Reader.Email,
+		ReaderName:     readerName,
 		ScheduledDate:  session.ScheduledDate,
 		StartTime:      session.StartTime,
 		EndTime:        session.EndTime,
@@ -100,13 +109,16 @@ func ToReadingAnomalyResponse(anomaly *models.ReadingAnomaly) ReadingAnomalyResp
 		Notes:         anomaly.Notes,
 		CreatedAt:     anomaly.CreatedAt,
 	}
-	
+
 	if anomaly.Resolver != nil {
-		resolvedBy := anomaly.Resolver.Email
+		resolvedBy := utils.StringValue(anomaly.Resolver.Email)
+		if resolvedBy == "" {
+			resolvedBy = anomaly.Resolver.Username
+		}
 		response.ResolvedBy = &resolvedBy
 		response.ResolvedAt = anomaly.ResolvedAt
 		response.Resolution = anomaly.Resolution
 	}
-	
+
 	return response
 }

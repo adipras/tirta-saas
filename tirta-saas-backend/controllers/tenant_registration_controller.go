@@ -164,9 +164,20 @@ func PublicTenantRegistration(c *gin.Context) {
 
 	// Create admin user
 	tenantID := tenant.ID
+	username := utils.NormalizeUsername(strings.SplitN(req.AdminEmail, "@", 2)[0])
+	if username == "" {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Invalid admin email",
+			Error:   "Unable to derive admin username from email",
+		})
+		return
+	}
 	adminUser := models.User{
 		Name:     req.AdminName,
-		Email:    req.AdminEmail,
+		Username: username,
+		Email:    utils.StringPointerOrNil(req.AdminEmail),
 		Password: hashedPassword,
 		Role:     string(constants.RoleTenantAdmin),
 		TenantID: &tenantID,
@@ -415,7 +426,7 @@ func ApproveTenant(c *gin.Context) {
 		})
 		return
 	}
-	platformOwner := user.Email
+	platformOwner := utils.StringValue(user.Email)
 
 	now := time.Now()
 
@@ -850,7 +861,7 @@ func SetupTenant(c *gin.Context) {
 		Phone:            req.Phone,
 		Address:          req.Address,
 		AdminName:        user.Name,
-		AdminEmail:       user.Email,
+		AdminEmail:       utils.StringValue(user.Email),
 		AdminPhone:       adminPhone,
 		Status:           tenantStatus,
 		RegisteredAt:     time.Now(),

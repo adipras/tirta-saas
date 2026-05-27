@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/google/uuid"
 )
 
@@ -22,30 +23,30 @@ type MeterResponse struct {
 }
 
 type MeterIssueResponse struct {
-	ID          uuid.UUID  `json:"id"`
+	ID          uuid.UUID     `json:"id"`
 	Meter       MeterResponse `json:"meter"`
-	IssueType   string     `json:"issue_type"`
-	Description string     `json:"description"`
-	Status      string     `json:"status"`
-	Priority    string     `json:"priority"`
-	PhotoURL    string     `json:"photo_url,omitempty"`
-	ReportedBy  string     `json:"reported_by"`
-	ResolvedBy  *string    `json:"resolved_by,omitempty"`
-	ResolvedAt  *time.Time `json:"resolved_at,omitempty"`
-	Resolution  string     `json:"resolution,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
+	IssueType   string        `json:"issue_type"`
+	Description string        `json:"description"`
+	Status      string        `json:"status"`
+	Priority    string        `json:"priority"`
+	PhotoURL    string        `json:"photo_url,omitempty"`
+	ReportedBy  string        `json:"reported_by"`
+	ResolvedBy  *string       `json:"resolved_by,omitempty"`
+	ResolvedAt  *time.Time    `json:"resolved_at,omitempty"`
+	Resolution  string        `json:"resolution,omitempty"`
+	CreatedAt   time.Time     `json:"created_at"`
 }
 
 type MeterHistoryResponse struct {
-	ID          uuid.UUID `json:"id"`
-	MeterNumber string    `json:"meter_number"`
-	CustomerName string   `json:"customer_name"`
-	Action      string    `json:"action"`
-	OldValue    string    `json:"old_value,omitempty"`
-	NewValue    string    `json:"new_value,omitempty"`
-	PerformedBy string    `json:"performed_by"`
-	Notes       string    `json:"notes,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID           uuid.UUID `json:"id"`
+	MeterNumber  string    `json:"meter_number"`
+	CustomerName string    `json:"customer_name"`
+	Action       string    `json:"action"`
+	OldValue     string    `json:"old_value,omitempty"`
+	NewValue     string    `json:"new_value,omitempty"`
+	PerformedBy  string    `json:"performed_by"`
+	Notes        string    `json:"notes,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
 }
 
 func ToMeterResponse(meter *models.Meter) MeterResponse {
@@ -61,15 +62,20 @@ func ToMeterResponse(meter *models.Meter) MeterResponse {
 		Status:         meter.Status,
 		Notes:          meter.Notes,
 	}
-	
+
 	if meter.Customer.Name != "" {
 		response.CustomerName = meter.Customer.Name
 	}
-	
+
 	return response
 }
 
 func ToMeterIssueResponse(issue *models.MeterIssue) MeterIssueResponse {
+	reportedBy := utils.StringValue(issue.Reporter.Email)
+	if reportedBy == "" {
+		reportedBy = issue.Reporter.Username
+	}
+
 	response := MeterIssueResponse{
 		ID:          issue.ID,
 		Meter:       ToMeterResponse(&issue.Meter),
@@ -78,16 +84,19 @@ func ToMeterIssueResponse(issue *models.MeterIssue) MeterIssueResponse {
 		Status:      issue.Status,
 		Priority:    issue.Priority,
 		PhotoURL:    issue.PhotoURL,
-		ReportedBy:  issue.Reporter.Email,
+		ReportedBy:  reportedBy,
 		CreatedAt:   issue.CreatedAt,
 	}
-	
+
 	if issue.Resolver != nil {
-		resolvedBy := issue.Resolver.Email
+		resolvedBy := utils.StringValue(issue.Resolver.Email)
+		if resolvedBy == "" {
+			resolvedBy = issue.Resolver.Username
+		}
 		response.ResolvedBy = &resolvedBy
 		response.ResolvedAt = issue.ResolvedAt
 		response.Resolution = issue.Resolution
 	}
-	
+
 	return response
 }

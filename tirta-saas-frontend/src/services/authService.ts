@@ -2,7 +2,8 @@ import { API_ENDPOINTS } from '../constants/api';
 import { apiClient } from './apiClient';
 
 export interface LoginCredentials {
-  email: string;
+  identifier?: string;
+  email?: string;
   password: string;
 }
 
@@ -14,6 +15,7 @@ export interface AuthResponse {
 
 export interface User {
   id: string;
+  username: string;
   email: string;
   name: string;
   role: 'admin' | 'customer' | 'platform_owner' | 'tenant_admin' | 'meter_reader' | 'finance' | 'service';
@@ -31,7 +33,11 @@ class AuthService {
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, credentials);
+      const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, {
+        identifier: credentials.identifier,
+        email: credentials.email,
+        password: credentials.password,
+      });
       
       // Handle different response formats
       const authData: AuthResponse = {
@@ -39,7 +45,8 @@ class AuthService {
         refreshToken: response.refreshToken || response.refresh_token || '',
         user: response.user || {
           id: response.id || response.userId || '',
-          email: response.email || credentials.email,
+          username: response.username || credentials.identifier || credentials.email || '',
+          email: response.email || '',
           name: response.name || response.username || 'Pengguna',
           role: response.role || 'admin',
           tenant_id: response.tenant_id || response.tenantId,
@@ -55,7 +62,7 @@ class AuthService {
       
       return authData;
     } catch {
-      throw new Error('Login gagal. Periksa kembali email dan kata sandi Anda.');
+      throw new Error('Login gagal. Periksa kembali username/email dan kata sandi Anda.');
     }
   }
 

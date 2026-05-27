@@ -3,6 +3,7 @@ import { apiClient } from './apiClient';
 export interface TenantUser {
   id: string;
   name: string;
+  username: string;
   email: string;
   role: string;
   tenant_id?: string;
@@ -12,6 +13,7 @@ export interface TenantUser {
 
 export interface CreateTenantUserRequest {
   name: string;
+  username: string;
   email: string;
   password: string;
   role: string;
@@ -20,6 +22,7 @@ export interface CreateTenantUserRequest {
 
 export interface UpdateTenantUserRequest {
   name?: string;
+  username?: string;
   role?: string;
 }
 

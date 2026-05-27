@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/utils"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
@@ -95,6 +97,10 @@ func Migrate() {
 		log.Fatalf("❌ Migrasi schema invoice gagal: %v", err)
 	}
 
+	if err := applyUserSchemaAdjustments(); err != nil {
+		log.Fatalf("❌ Migrasi schema user gagal: %v", err)
+	}
+
 	log.Println("✅ Migrasi database selesai.")
 
 	// Apply database optimizations after migration
@@ -115,6 +121,60 @@ func applyInvoiceSchemaAdjustments() error {
 
 	if !DB.Migrator().HasColumn(&models.Invoice{}, "ManualItems") {
 		if err := DB.Exec("ALTER TABLE invoices ADD COLUMN manual_items JSON NULL").Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func applyUserSchemaAdjustments() error {
+	if !DB.Migrator().HasColumn(&models.User{}, "Username") {
+		if err := DB.Exec("ALTER TABLE users ADD COLUMN username VARCHAR(100) NULL AFTER name").Error; err != nil {
+			return err
+		}
+	}
+
+	if err := DB.Exec("ALTER TABLE users MODIFY COLUMN email VARCHAR(191) NULL").Error; err != nil {
+		return err
+	}
+
+	var users []models.User
+	if err := DB.Unscoped().
+		Where("username IS NULL OR username = ''").
+		Find(&users).Error; err != nil {
+		return err
+	}
+
+	for _, user := range users {
+		username := utils.NormalizeUsername(utils.StringValue(user.Email))
+		if username == "" {
+			username = utils.NormalizeUsername(user.Name)
+		}
+		if username == "" {
+			username = "user"
+		}
+		username = fmt.Sprintf("%s-%s", username, strings.ToLower(strings.ReplaceAll(user.ID.String()[:8], "-", "")))
+
+		if err := DB.Model(&models.User{}).
+			Where("id = ?", user.ID).
+			Update("username", username).Error; err != nil {
+			return err
+		}
+	}
+
+	if err := DB.Exec("ALTER TABLE users MODIFY COLUMN username VARCHAR(100) NOT NULL").Error; err != nil {
+		return err
+	}
+
+	if !DB.Migrator().HasIndex(&models.User{}, "idx_users_username") {
+		if err := DB.Migrator().CreateIndex(&models.User{}, "Username"); err != nil {
+			return err
+		}
+	}
+
+	if !DB.Migrator().HasIndex(&models.User{}, "idx_users_email") {
+		if err := DB.Migrator().CreateIndex(&models.User{}, "Email"); err != nil {
 			return err
 		}
 	}

@@ -71,7 +71,8 @@ func (s *PlatformAdminSeeder) Seed(db *gorm.DB) error {
 	// Create platform admin user
 	admin := models.User{
 		Name:     s.FirstName + " " + s.LastName,
-		Email:    s.Email,
+		Username: utils.NormalizeUsername(s.FirstName + "." + s.LastName),
+		Email:    utils.StringPointerOrNil(s.Email),
 		Password: hashedPassword,
 		Role:     string(constants.RolePlatformOwner),
 		TenantID: nil, // Platform owner doesn't belong to a tenant

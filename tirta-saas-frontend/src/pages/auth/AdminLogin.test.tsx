@@ -56,8 +56,8 @@ describe('AdminLogin', () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('Masukkan email Anda'), {
-      target: { value: 'admin@contoh.com' },
+    fireEvent.change(screen.getByPlaceholderText('Masukkan username atau email Anda'), {
+      target: { value: 'admin_utama' },
     });
     fireEvent.change(screen.getByPlaceholderText('Masukkan kata sandi Anda'), {
       target: { value: 'password123' },
@@ -86,8 +86,8 @@ describe('AdminLogin', () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('Masukkan email Anda'), {
-      target: { value: 'owner@contoh.com' },
+    fireEvent.change(screen.getByPlaceholderText('Masukkan username atau email Anda'), {
+      target: { value: 'owner_utama' },
     });
     fireEvent.change(screen.getByPlaceholderText('Masukkan kata sandi Anda'), {
       target: { value: 'password123' },
@@ -117,8 +117,8 @@ describe('AdminLogin', () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('Masukkan email Anda'), {
-      target: { value: 'admin@contoh.com' },
+    fireEvent.change(screen.getByPlaceholderText('Masukkan username atau email Anda'), {
+      target: { value: 'admin_utama' },
     });
     fireEvent.change(screen.getByPlaceholderText('Masukkan kata sandi Anda'), {
       target: { value: 'password123' },

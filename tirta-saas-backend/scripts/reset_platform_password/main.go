@@ -40,7 +40,8 @@ func main() {
 
 	fmt.Println("✅ Platform admin password reset successfully!")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-	fmt.Printf("📧 Email: %s\n", admin.Email)
+	fmt.Printf("📧 Email: %s\n", utils.StringValue(admin.Email))
+	fmt.Printf("👤 Username: %s\n", admin.Username)
 	fmt.Printf("🔑 New Password: %s\n", newPassword)
 	fmt.Printf("👤 Name: %s\n", admin.Name)
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")

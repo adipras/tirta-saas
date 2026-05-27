@@ -15,11 +15,13 @@ export default function EditUserModal({ user, onClose, onSuccess }: EditUserModa
   const toast = useToast();
   const [formData, setFormData] = useState({
     name: user.name,
+    username: user.username,
     role: user.role,
   });
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [usernameError, setUsernameError] = useState('');
 
   useEffect(() => {
     loadRoles();
@@ -35,13 +37,14 @@ export default function EditUserModal({ user, onClose, onSuccess }: EditUserModa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.role) {
-      setError('Nama dan peran wajib diisi');
+    if (!formData.name || !formData.username || !formData.role) {
+      setError('Nama, username, dan peran wajib diisi');
       return;
     }
 
     setLoading(true);
     setError('');
+    setUsernameError('');
 
     try {
       await tenantUserService.updateTenantUser(user.id, formData);
@@ -49,7 +52,11 @@ export default function EditUserModal({ user, onClose, onSuccess }: EditUserModa
       onSuccess();
     } catch (err: unknown) {
       const message = extractApiErrorMessage(err, 'Gagal memperbarui pengguna');
-      setError(message);
+      if (message.toLowerCase().includes('username')) {
+        setUsernameError(message);
+      } else {
+        setError(message);
+      }
       toast.error(message);
     } finally {
       setLoading(false);
@@ -85,19 +92,39 @@ export default function EditUserModal({ user, onClose, onSuccess }: EditUserModa
           )}
 
           <div>
+            <label htmlFor="edit-username" className="block text-sm font-medium text-gray-700 mb-1">
+              Username <span className="text-red-500" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="edit-username"
+              type="text"
+              value={formData.username}
+              onChange={(e) => {
+                setUsernameError('');
+                setFormData({ ...formData, username: e.target.value });
+              }}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="username_login"
+              required
+              autoComplete="username"
+            />
+            {usernameError && <p className="text-xs text-red-600 mt-1">{usernameError}</p>}
+          </div>
+
+          <div>
             <label htmlFor="edit-email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email (hanya baca)
+              Email (opsional, hanya baca)
             </label>
             <input
               id="edit-email"
               type="email"
-              value={user.email}
+              value={user.email || '-'}
               disabled
               className="w-full px-3 py-2 border rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
               aria-describedby="edit-email-hint"
             />
             <p id="edit-email-hint" className="text-xs text-gray-500 mt-1">
-              Email tidak dapat diubah
+              Email tidak wajib diisi dan saat ini tidak dapat diubah dari form ini.
             </p>
           </div>
 

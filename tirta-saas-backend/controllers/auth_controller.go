@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/constants"
@@ -43,6 +44,11 @@ func Register(c *gin.Context) {
 	}
 
 	hashedPassword, _ := utils.HashPassword(input.AdminPassword)
+	username := utils.NormalizeUsername(strings.SplitN(input.AdminEmail, "@", 2)[0])
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username admin tidak valid"})
+		return
+	}
 
 	tenant := models.Tenant{
 		Name:        input.TenantName,
@@ -51,7 +57,8 @@ func Register(c *gin.Context) {
 
 	user := models.User{
 		Name:     input.AdminName,
-		Email:    input.AdminEmail,
+		Username: username,
+		Email:    utils.StringPointerOrNil(input.AdminEmail),
 		Password: hashedPassword,
 		Role:     string(constants.RoleTenantAdmin),
 	}
@@ -79,8 +86,18 @@ func Register(c *gin.Context) {
 }
 
 type LoginInput struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	Identifier string `json:"identifier"`
+	Email      string `json:"email"`
+	Password   string `json:"password" binding:"required"`
+}
+
+func resolveLoginIdentifier(input LoginInput) string {
+	identifier := strings.TrimSpace(input.Identifier)
+	if identifier != "" {
+		return identifier
+	}
+
+	return strings.TrimSpace(input.Email)
 }
 
 func setAuditUserContext(c *gin.Context, user models.User) {
@@ -114,15 +131,21 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	identifier := resolveLoginIdentifier(input)
+	if identifier == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username atau email wajib diisi"})
+		return
+	}
+
 	var user models.User
-	if err := config.DB.Where("email = ?", input.Email).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email tidak ditemukan"})
+	if err := config.DB.Where("username = ? OR email = ?", identifier, identifier).First(&user).Error; err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Username atau email tidak ditemukan"})
 		return
 	}
 	setAuditUserContext(c, user)
 
 	if !utils.CheckPasswordHash(input.Password, user.Password) {
-		audit.LogLogin(c, user.Role, input.Email, false, "invalid password")
+		audit.LogLogin(c, user.Role, identifier, false, "invalid password")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Password salah"})
 		return
 	}
@@ -130,12 +153,12 @@ func Login(c *gin.Context) {
 	authService := services.NewAuthService(config.DB)
 	authPayload, err := authService.CreateSession(user, c.ClientIP(), c.GetHeader("User-Agent"))
 	if err != nil {
-		audit.LogLogin(c, user.Role, input.Email, false, "session creation failed")
+		audit.LogLogin(c, user.Role, identifier, false, "session creation failed")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat sesi login"})
 		return
 	}
 
-	audit.LogLogin(c, user.Role, input.Email, true, "")
+	audit.LogLogin(c, user.Role, identifier, true, "")
 	c.JSON(http.StatusOK, authPayload)
 }
 
@@ -418,7 +441,8 @@ func CustomerLogin(c *gin.Context) {
 
 type PlatformOwnerRegisterInput struct {
 	Name      string `json:"name" binding:"required,min=3"`
-	Email     string `json:"email" binding:"required,email"`
+	Username  string `json:"username" binding:"required,min=3"`
+	Email     string `json:"email"`
 	Password  string `json:"password" binding:"required,min=6"`
 	SecretKey string `json:"secret_key" binding:"required"`
 }
@@ -452,11 +476,22 @@ func RegisterPlatformOwner(c *gin.Context) {
 		return
 	}
 
-	// Check if email already exists
-	var existingUser models.User
-	if err := config.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+	normalizedEmail := utils.StringPointerOrNil(input.Email)
+	normalizedUsername := utils.NormalizeUsername(input.Username)
+	if len(normalizedUsername) < 3 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username minimal 3 karakter dan hanya boleh berisi huruf, angka, titik, underscore, atau dash"})
 		return
+	}
+	var existingUser models.User
+	if err := config.DB.Where("username = ?", normalizedUsername).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Username sudah digunakan"})
+		return
+	}
+	if normalizedEmail != nil {
+		if err := config.DB.Where("email = ?", *normalizedEmail).First(&existingUser).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+			return
+		}
 	}
 
 	// Check if any platform owner already exists
@@ -471,7 +506,8 @@ func RegisterPlatformOwner(c *gin.Context) {
 
 	user := models.User{
 		Name:     input.Name,
-		Email:    input.Email,
+		Username: normalizedUsername,
+		Email:    normalizedEmail,
 		Password: hashedPassword,
 		Role:     string(constants.RolePlatformOwner),
 		TenantID: nil, // Platform owner doesn't belong to any tenant
@@ -483,15 +519,17 @@ func RegisterPlatformOwner(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Platform owner account created successfully",
-		"email":   user.Email,
+		"message":  "Platform owner account created successfully",
+		"email":    utils.StringValue(user.Email),
+		"username": user.Username,
 	})
 }
 
 // RegisterAccountInput represents request to create a user account only (without tenant)
 type RegisterAccountInput struct {
 	Name     string `json:"name" binding:"required,min=3,max=100"`
-	Email    string `json:"email" binding:"required,email"`
+	Username string `json:"username" binding:"required,min=3,max=100"`
+	Email    string `json:"email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
 
@@ -504,11 +542,23 @@ func RegisterAccount(c *gin.Context) {
 		return
 	}
 
-	// Check email uniqueness
-	var existing models.User
-	if err := config.DB.Where("email = ?", input.Email).First(&existing).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah terdaftar. Gunakan email lain."})
+	normalizedEmail := utils.StringPointerOrNil(input.Email)
+	normalizedUsername := utils.NormalizeUsername(input.Username)
+	if len(normalizedUsername) < 3 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username minimal 3 karakter dan hanya boleh berisi huruf, angka, titik, underscore, atau dash"})
 		return
+	}
+
+	var existing models.User
+	if err := config.DB.Where("username = ?", normalizedUsername).First(&existing).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Username sudah digunakan"})
+		return
+	}
+	if normalizedEmail != nil {
+		if err := config.DB.Where("email = ?", *normalizedEmail).First(&existing).Error; err == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email sudah terdaftar. Gunakan email lain."})
+			return
+		}
 	}
 
 	hashedPassword, err := utils.HashPassword(input.Password)
@@ -519,7 +569,8 @@ func RegisterAccount(c *gin.Context) {
 
 	user := models.User{
 		Name:     input.Name,
-		Email:    input.Email,
+		Username: normalizedUsername,
+		Email:    normalizedEmail,
 		Password: hashedPassword,
 		Role:     string(constants.RoleTenantAdmin),
 		TenantID: nil, // Tenant will be set up later via POST /api/setup/tenant
@@ -531,7 +582,8 @@ func RegisterAccount(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Akun berhasil dibuat. Silakan login untuk melanjutkan setup tenant.",
-		"email":   user.Email,
+		"message":  "Akun berhasil dibuat. Silakan login untuk melanjutkan setup tenant.",
+		"email":    utils.StringValue(user.Email),
+		"username": user.Username,
 	})
 }

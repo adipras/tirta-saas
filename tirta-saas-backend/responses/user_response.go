@@ -7,6 +7,7 @@ import (
 type UserResponse struct {
 	ID       uuid.UUID  `json:"id"`
 	Name     string     `json:"name"`
+	Username string     `json:"username"`
 	Email    string     `json:"email"`
 	Role     string     `json:"role"`
 	TenantID *uuid.UUID `json:"tenant_id,omitempty"`

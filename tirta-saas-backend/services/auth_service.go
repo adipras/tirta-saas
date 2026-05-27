@@ -21,6 +21,7 @@ type AuthService struct {
 
 type AuthUserProfile struct {
 	ID            string     `json:"id"`
+	Username      string     `json:"username"`
 	Email         string     `json:"email"`
 	Name          string     `json:"name"`
 	Role          string     `json:"role"`
@@ -49,10 +50,11 @@ func NewAuthService(db *gorm.DB) *AuthService {
 
 func (s *AuthService) BuildUserProfile(user models.User) (AuthUserProfile, error) {
 	profile := AuthUserProfile{
-		ID:    user.ID.String(),
-		Email: user.Email,
-		Name:  user.Name,
-		Role:  user.Role,
+		ID:       user.ID.String(),
+		Username: user.Username,
+		Email:    utils.StringValue(user.Email),
+		Name:     user.Name,
+		Role:     user.Role,
 	}
 
 	if user.TenantID == nil {

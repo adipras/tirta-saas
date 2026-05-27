@@ -31,7 +31,8 @@ func main() {
 		// Show existing platform admin
 		var admin models.User
 		config.DB.Where("role = ?", string(constants.RolePlatformOwner)).First(&admin)
-		fmt.Printf("📧 Email: %s\n", admin.Email)
+		fmt.Printf("📧 Email: %s\n", utils.StringValue(admin.Email))
+		fmt.Printf("👤 Username: %s\n", admin.Username)
 		fmt.Printf("👤 Name: %s\n", admin.Name)
 		return
 	}
@@ -59,7 +60,8 @@ func main() {
 
 	admin := models.User{
 		Name:     name,
-		Email:    email,
+		Username: utils.NormalizeUsername(name),
+		Email:    utils.StringPointerOrNil(email),
 		Password: hashedPassword,
 		Role:     string(constants.RolePlatformOwner),
 		TenantID: nil,
@@ -72,6 +74,7 @@ func main() {
 	fmt.Println("✅ Platform admin created successfully!")
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 	fmt.Printf("📧 Email: %s\n", email)
+	fmt.Printf("👤 Username: %s\n", admin.Username)
 	fmt.Printf("🔑 Password: %s\n", password)
 	fmt.Printf("👤 Name: %s\n", name)
 	fmt.Println("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")

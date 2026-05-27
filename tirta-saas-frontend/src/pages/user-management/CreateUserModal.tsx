@@ -14,6 +14,7 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
   const toast = useToast();
   const [formData, setFormData] = useState({
     name: '',
+    username: '',
     email: '',
     password: '',
     role: '',
@@ -22,7 +23,8 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [usernameError, setUsernameError] = useState('');
+  const [createdCredentials, setCreatedCredentials] = useState<{ username: string; email: string; password: string } | null>(null);
 
   useEffect(() => {
     loadRoles();
@@ -48,21 +50,26 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.password || !formData.role) {
-      setError('Semua kolom wajib diisi');
+    if (!formData.name || !formData.username || !formData.password || !formData.role) {
+      setError('Nama, username, kata sandi, dan peran wajib diisi');
       return;
     }
 
     setLoading(true);
     setError('');
+    setUsernameError('');
 
     try {
       await tenantUserService.createTenantUser(formData);
-      setCreatedCredentials({ email: formData.email, password: formData.password });
+      setCreatedCredentials({ username: formData.username, email: formData.email, password: formData.password });
       onSuccess();
     } catch (err: unknown) {
       const message = extractApiErrorMessage(err, 'Gagal membuat pengguna');
-      setError(message);
+      if (message.toLowerCase().includes('username')) {
+        setUsernameError(message);
+      } else {
+        setError(message);
+      }
       toast.error(message);
     } finally {
       setLoading(false);
@@ -100,7 +107,10 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
               <p className="text-xs text-green-700 mb-2">Simpan kredensial ini dan bagikan dengan aman:</p>
               <div className="space-y-1">
                 <div className="flex items-center justify-between bg-white rounded px-3 py-2 border border-green-200">
-                  <span className="text-xs text-gray-600">Email: <strong>{createdCredentials.email}</strong></span>
+                  <span className="text-xs text-gray-600">Username: <strong>{createdCredentials.username}</strong></span>
+                </div>
+                <div className="flex items-center justify-between bg-white rounded px-3 py-2 border border-green-200">
+                  <span className="text-xs text-gray-600">Email: <strong>{createdCredentials.email || '-'}</strong></span>
                 </div>
                 <div className="flex items-center justify-between bg-white rounded px-3 py-2 border border-green-200">
                   <span className="text-xs text-gray-600">Kata Sandi: <strong className="font-mono">{createdCredentials.password}</strong></span>
@@ -150,8 +160,31 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
           </div>
 
           <div>
+            <label htmlFor="create-username" className="block text-sm font-medium text-gray-700 mb-1">
+              Username <span className="text-red-500" aria-hidden="true">*</span>
+            </label>
+            <input
+              id="create-username"
+              type="text"
+              value={formData.username}
+              onChange={(e) => {
+                setUsernameError('');
+                setFormData({ ...formData, username: e.target.value });
+              }}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="username_login"
+              required
+              autoComplete="username"
+            />
+            {usernameError && <p className="text-xs text-red-600 mt-1">{usernameError}</p>}
+            <p className="text-xs text-gray-500 mt-1">
+              Digunakan untuk login. Pakai huruf kecil, angka, titik, underscore, atau dash.
+            </p>
+          </div>
+
+          <div>
             <label htmlFor="create-email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email <span className="text-red-500" aria-hidden="true">*</span>
+              Email (opsional)
             </label>
             <input
               id="create-email"
@@ -160,7 +193,6 @@ export default function CreateUserModal({ onClose, onSuccess }: CreateUserModalP
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="pengguna@contoh.com"
-              required
               autoComplete="email"
             />
           </div>
