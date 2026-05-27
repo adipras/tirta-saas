@@ -119,6 +119,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Icon lonceng pada navbar admin dan portal customer kini sudah terhubung ke inbox notifikasi in-app, lengkap dengan unread badge dan mark-as-read
 - ✅ Frontend admin kini sudah punya halaman untuk mengelola template notifikasi tenant dan mengirim notifikasi manual ke pengguna/pelanggan
 - ✅ Event utama bukti pembayaran kini membuat notifikasi in-app untuk staf tenant dan customer
+- ✅ Customer portal kini juga punya halaman inbox notifikasi khusus dengan filter unread, mark-all-read, dan shortcut ke tagihan terkait
 - 🟡 Pengiriman aktual ke provider email / SMS / WhatsApp **belum diimplementasikan**
 - 🟡 Saat ini controller hanya membuat log lalu menandai status sebagai `SENT`
 
@@ -310,8 +311,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
    - ✅ ~~halaman riwayat pembayaran customer~~ — selesai
    - ✅ ~~filter tagihan per bulan/periode~~ — selesai
    - ✅ ~~download PDF invoice customer~~
-   - notifikasi status pembayaran
-   - catatan: admin kini sudah punya halaman notifikasi khusus, tetapi customer masih memakai surface navbar bell/dropdown
+   - ✅ notifikasi status pembayaran in-app kini punya halaman inbox customer khusus selain bell/dropdown
    - catatan: `PaymentSuccess` masih ada sebagai komponen legacy, tetapi belum dipakai oleh route aktif customer
 
 ### Prioritas medium
@@ -339,6 +339,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Beberapa modul penting masih berada di zona **backend-ready but not fully productized**, terutama notification, monitoring, dan tariff category progresif.
 - Progress produk terbaru: tarif progresif kini sudah wired end-to-end di frontend admin, lengkap dengan kategori tarif, progressive rate tiers, simulasi tagihan, serta relasi kategori pada surface tarif air.
 - Progress produk terbaru: notification template tenant dan manual notification send kini juga sudah tersedia di frontend admin, walau delivery provider email/SMS/WhatsApp masih belum diaktifkan.
+- Progress produk terbaru: customer portal kini juga punya halaman notifikasi khusus untuk melihat update pembayaran/tagihan, filter unread, mark-all-read, dan buka invoice terkait langsung dari inbox.
 - Progress hardening terbaru: UI monitoring platform kini sudah tersedia untuk health, metrics, audit log, dan error log; backend monitoring juga dirapikan agar uptime runtime dan request success/error rate yang tampil lebih akurat.
 - Progress hardening terbaru: route platform owner sudah dipisahkan dari `AdminOnly`, validasi JWT tenant-scoped diperketat, dan audit middleware backend sudah aktif untuk request sensitif terautentikasi.
 - Progress lanjutan sesi ini: pengecekan role platform-level juga sudah dinormalisasi di controller tenant-user, helper tenant context, query analytics, dan utilitas seeder/platform admin agar akses tanpa `tenant_id` tetap konsisten untuk surface platform.

@@ -6,6 +6,7 @@ import {
   DocumentDuplicateIcon,
   CreditCardIcon,
   ChartBarIcon,
+  BellIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 
@@ -13,6 +14,7 @@ const navigation = [
   { name: 'Dashboard', href: '/customer/dashboard', icon: HomeIcon },
   { name: 'Profil', href: '/customer/profile', icon: UserIcon },
   { name: 'Tagihan', href: '/customer/invoices', icon: DocumentDuplicateIcon },
+  { name: 'Notifikasi', href: '/customer/notifications', icon: BellIcon },
   { name: 'Pembayaran', href: '/customer/payments', icon: CreditCardIcon },
   { name: 'Pemakaian', href: '/customer/usage', icon: ChartBarIcon },
 ];

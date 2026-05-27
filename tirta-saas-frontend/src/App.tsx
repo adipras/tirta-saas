@@ -45,6 +45,7 @@ import {
 } from './pages/reports';
 import { CustomerProfil, CustomerProfilEdit, ChangePassword } from './pages/customer-profile';
 import { CustomerInvoiceList, CustomerInvoiceDetail } from './pages/customer-invoices';
+import { CustomerNotificationCenter } from './pages/customer-notifications';
 import { CustomerPemakaianMonitor } from './pages/customer-usage';
 import { CustomerPaymentHistory } from './pages/customer-payments';
 import { TenantManagement, PlatformAnalytics, PlatformMonitoring, SubscriptionPlans } from './pages/platform';
@@ -187,6 +188,7 @@ function App() {
               <Route path="profile/change-password" element={<ChangePassword />} />
               <Route path="invoices" element={<CustomerInvoiceList />} />
               <Route path="invoices/:id" element={<CustomerInvoiceDetail />} />
+              <Route path="notifications" element={<CustomerNotificationCenter />} />
               <Route path="payments" element={<CustomerPaymentHistory />} />
               <Route path="payments/new" element={<CustomerPaymentLegacyRedirect />} />
               <Route path="payments/info" element={<CustomerPaymentLegacyRedirect />} />
