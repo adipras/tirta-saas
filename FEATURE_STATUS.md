@@ -151,6 +151,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ `JWTAuthMiddleware` kini mewajibkan `tenant_id` untuk role tenant-scoped
 - ✅ Boundary platform owner kini konsisten memakai role canonical `platform_owner` di middleware, controller tenant-user, helper tenant context, analytics query, dan seeder/script platform admin tanpa compatibility layer tambahan
 - ✅ Hanya `platform_owner` yang boleh lolos autentikasi tanpa `tenant_id`
+- ✅ Regression test backend untuk authorization route wiring kini juga mencakup surface kritis `/api/platform`, `/api/tenant`, `/api/tenant-users`, `/api/reports`, dan penolakan role tenant-scoped tanpa `tenant_id` pada `/api/invoices`
 - 🟡 Review authorization boundary lintas seluruh surface tenant masih tetap perlu dilanjutkan
 
 ### 6. Customer invoice PDF download
@@ -182,7 +183,7 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 ### 1. Security & access control
 - ✅ ~~`PlatformOwnerOnly` middleware belum ada~~ — selesai pada sesi hardening 25 Mei 2026
 - 🟡 Audit trail request sensitif backend sudah aktif secara global, auth flow utama dan flow bukti pembayaran kini sudah tercakup, tetapi audit domain-level belum merata di seluruh surface
-- 🟡 Boundary role platform vs tenant sudah lebih konsisten, dan regression test backend kini sudah mulai mengukur middleware permission/tenant boundary (`PlatformOwnerOnly`, `RequirePermission`, `RequireTenantUser`, `EnsureSameTenant`), tetapi coverage authorization lintas seluruh surface masih belum lengkap
+- 🟡 Boundary role platform vs tenant sudah lebih konsisten, dan regression test backend kini sudah mengukur middleware permission/tenant boundary (`PlatformOwnerOnly`, `RequirePermission`, `RequireTenantUser`, `EnsureSameTenant`) plus route wiring kritis (`/api/platform`, `/api/tenant`, `/api/tenant-users`, `/api/reports`, `/api/invoices`), tetapi coverage authorization lintas seluruh surface masih belum lengkap
 
 ### 2. Reliability & verification
 - 🟡 Suite test masih sangat awal — backend kini sudah punya regression test untuk boundary JWT auth, permission/tenant boundary middleware, serta kalkulasi snapshot billing / status pembayaran invoice, dan frontend kini sudah punya test awal untuk `PrivateRoute`, branching `AdminLogin`, `CustomerLogin`, interaction `NotificationBell`, customer invoice detail, customer payment confirmation, payment proof detail action, tenant payment verification, admin payment list, payment reporting, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch), tetapi coverage flow bisnis masih belum memadai
@@ -277,6 +278,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 1. **Automated testing & release gate**
    - ✅ regression test backend awal untuk boundary JWT auth
    - ✅ regression test backend awal untuk permission/tenant boundary middleware
+   - ✅ regression test backend route-level untuk authorization boundary pada surface platform/tenant/report/tenant-user dan validasi tenant context invoice
    - 🟡 frontend critical flow tests awal sudah ada untuk auth guard, admin/customer login branching, notification bell, customer invoice detail, customer payment confirmation, payment proof detail action, tenant payment verification, admin payment list, payment reporting, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch)
    - ✅ smoke test setelah deploy (dasar)
    - ✅ CI gate dasar sebelum merge / release
@@ -355,6 +357,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Progress hardening terbaru: UI monitoring platform kini sudah tersedia untuk health, metrics, audit log, dan error log; backend monitoring juga dirapikan agar uptime runtime dan request success/error rate yang tampil lebih akurat.
 - Progress hardening terbaru: monitoring platform kini juga menampilkan alert operasional dasar yang dihitung dari health/metrics backend untuk error-rate, pool koneksi database, error critical berulang, dan tekanan resource runtime.
 - Progress hardening terbaru: repo kini juga punya runbook insiden aplikasi di `DEPLOYMENT_USER_MANUAL.md`, sehingga alert monitoring platform sudah punya panduan triage dan keputusan rollback/restore yang eksplisit.
+- Progress hardening terbaru: regression test backend kini tidak berhenti di unit middleware; route wiring penting untuk `/api/platform`, `/api/tenant`, `/api/tenant-users`, `/api/reports`, dan validasi tenant context `/api/invoices` juga sudah ikut diuji agar boundary role/tenant lebih sulit regress.
 - Progress hardening terbaru: route platform owner sudah dipisahkan dari `AdminOnly`, validasi JWT tenant-scoped diperketat, dan audit middleware backend sudah aktif untuk request sensitif terautentikasi.
 - Progress lanjutan sesi ini: pengecekan role platform-level juga sudah dinormalisasi di controller tenant-user, helper tenant context, query analytics, dan utilitas seeder/platform admin agar akses tanpa `tenant_id` tetap konsisten untuk surface platform.
 - Progress lanjutan terbaru: audit auth flow utama kini sudah tercatat di backend dan boundary JWT tanpa `tenant_id` diketatkan kembali agar hanya berlaku untuk `platform_owner`.
