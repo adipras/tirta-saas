@@ -121,8 +121,9 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Event utama bukti pembayaran kini membuat notifikasi in-app untuk staf tenant dan customer
 - ✅ Customer portal kini juga punya halaman inbox notifikasi khusus dengan filter unread, mark-all-read, dan shortcut ke tagihan terkait
 - ✅ Generate invoice bulanan/manual dan transisi invoice overdue kini juga membuat notifikasi in-app customer secara otomatis
-- 🟡 Pengiriman aktual ke provider email / SMS / WhatsApp **belum diimplementasikan**
-- 🟡 Saat ini controller hanya membuat log lalu menandai status sebagai `SENT`
+- 🟡 Pengiriman aktual ke provider email / SMS / WhatsApp **belum sepenuhnya lengkap**
+- ✅ Pengiriman manual channel **EMAIL** kini sudah benar-benar dikirim via SMTP provider yang dikonfigurasi, dan log notifikasi berubah ke `FAILED` bila provider tidak tersedia / pengiriman gagal
+- 🟡 SMS / WhatsApp masih belum punya provider nyata
 
 ### 2. Service area management
 - 🟡 Model, controller, dan route backend untuk `service_areas` **sudah ada**
@@ -191,7 +192,7 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 - 🚧 Belum terlihat runbook insiden level aplikasi di repo
 
 ### 4. Product completeness untuk tenant nyata
-- 🚧 Notification delivery nyata belum ada
+- 🟡 Notification delivery nyata kini sudah mulai ada untuk manual email via SMTP, tetapi SMS / WhatsApp dan event-driven external delivery masih belum ada
 - ✅ ~~Progressive tariff belum wired end-to-end sampai UI~~ — selesai pada sesi wiring 27 Mei 2026
 - ✅ ~~Service area belum wired end-to-end sampai UI~~ — selesai pada sesi wiring 25 Mei 2026
 - ✅ ~~Customer payment history~~ — sudah selesai (commit `dd2c8d0`)
@@ -294,10 +295,10 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 
 ### Prioritas produk tinggi
 5. **Notification delivery nyata**
-   - email provider integration
+   - ✅ email provider integration dasar untuk manual notification send via SMTP
    - WhatsApp / SMS provider integration
    - ✅ ~~template management dari UI~~
-   - 🟡 reminder invoice / overdue / payment confirmation kini sudah berjalan untuk channel in-app, tetapi belum terkirim ke provider eksternal
+   - 🟡 reminder invoice / overdue / payment confirmation kini sudah berjalan untuk channel in-app, tetapi belum terkirim ke provider eksternal selain email manual berbasis SMTP
 
 6. **Payment automation**
    - payment gateway otomatis (mis. Midtrans)
@@ -338,9 +339,10 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Secara fitur bisnis inti, repo ini **sudah lebih dari MVP**: onboarding tenant, billing bulanan, pembayaran, verifikasi bukti, report, import Excel, customer portal lengkap (riwayat pembayaran, filter periode tagihan), dan Android/printer bridge sudah ada.
 - Secara produksi, status yang lebih akurat adalah **“functional core is ready, production hardening is still ongoing.”**
 - Pondasi deploy produksi sudah mulai terlihat jelas di repo dan dokumen operasional, tetapi belum cukup kuat untuk disebut fully production-ready tanpa penguatan testing, observability, dan security boundary.
-- Beberapa modul penting masih berada di zona **backend-ready but not fully productized**, terutama notification, monitoring, dan tariff category progresif.
+- Beberapa modul penting masih berada di zona **backend-ready but not fully productized**, terutama notification dan monitoring.
 - Progress produk terbaru: tarif progresif kini sudah wired end-to-end di frontend admin, lengkap dengan kategori tarif, progressive rate tiers, simulasi tagihan, serta relasi kategori pada surface tarif air.
-- Progress produk terbaru: notification template tenant dan manual notification send kini juga sudah tersedia di frontend admin, walau delivery provider email/SMS/WhatsApp masih belum diaktifkan.
+- Progress produk terbaru: notification template tenant dan manual notification send kini juga sudah tersedia di frontend admin; delivery email manual via SMTP sudah aktif, sementara SMS/WhatsApp masih belum punya provider nyata.
+- Progress produk terbaru: manual notification send untuk channel email kini sudah terhubung ke SMTP provider nyata; backend tidak lagi memalsukan status `SENT` untuk email gagal dan akan menandai log sebagai `FAILED` bila provider tidak tersedia atau pengiriman ditolak.
 - Progress produk terbaru: customer portal kini juga punya halaman notifikasi khusus untuk melihat update pembayaran/tagihan, filter unread, mark-all-read, dan buka invoice terkait langsung dari inbox.
 - Progress produk terbaru: invoice baru dari generate bulanan/manual dan perubahan status overdue kini ikut membuat notifikasi in-app customer otomatis, sehingga reminder invoice sudah ter-wire dari backend scheduler sampai inbox portal customer.
 - Progress produk terbaru: kalkulasi tarif progresif kini tidak berhenti di UI simulasi; create/update/import bulk pemakaian air backend sudah menghitung `amount_calculated` memakai tier kategori tarif aktif agar nominal invoice bulanan konsisten dengan konfigurasi tarif progresif.

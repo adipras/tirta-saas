@@ -258,6 +258,7 @@ type NotificationLogResponse struct {
 	FailedAt      *time.Time `json:"failed_at,omitempty"`
 	ErrorMessage  string     `json:"error_message,omitempty"`
 	RetryCount    int        `json:"retry_count"`
+	Provider      string     `json:"provider,omitempty"`
 	CreatedAt     time.Time  `json:"created_at"`
 }
 

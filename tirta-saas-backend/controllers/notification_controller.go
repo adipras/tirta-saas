@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -504,7 +506,7 @@ func SendNotification(c *gin.Context) {
 	}
 
 	var template *models.NotificationTemplate
-	var subject, body string
+	var subject, body, htmlBody string
 
 	// Get template if template code is provided
 	if req.TemplateCode != "" {
@@ -520,6 +522,7 @@ func SendNotification(c *gin.Context) {
 		template = &tmpl
 		subject = template.Subject
 		body = template.Body
+		htmlBody = template.HTMLBody
 
 		// Replace variables in template
 		if req.Variables != nil {
@@ -527,6 +530,7 @@ func SendNotification(c *gin.Context) {
 				placeholder := fmt.Sprintf("{{%s}}", key)
 				subject = strings.ReplaceAll(subject, placeholder, fmt.Sprint(value))
 				body = strings.ReplaceAll(body, placeholder, fmt.Sprint(value))
+				htmlBody = strings.ReplaceAll(htmlBody, placeholder, fmt.Sprint(value))
 			}
 		}
 	} else {
@@ -609,29 +613,60 @@ func SendNotification(c *gin.Context) {
 		return
 	}
 
-	// TODO: Actual sending logic (email, SMS, etc.) would go here.
-	// IN_APP entries are available immediately, while other channels are still mocked.
 	now := time.Now()
+	provider, deliveryErr := services.DeliverNotification(notificationLog.Channel, destination, subject, body, htmlBody)
+	notificationLog.Provider = provider
+	if deliveryErr != nil {
+		notificationLog.Status = "FAILED"
+		notificationLog.FailedAt = &now
+		notificationLog.ErrorMessage = deliveryErr.Error()
+
+		updatePayload := map[string]interface{}{
+			"status":        notificationLog.Status,
+			"provider":      notificationLog.Provider,
+			"failed_at":     notificationLog.FailedAt,
+			"error_message": notificationLog.ErrorMessage,
+		}
+
+		config.DB.Model(&notificationLog).Updates(updatePayload)
+
+		statusCode := http.StatusBadGateway
+		switch {
+		case errors.Is(deliveryErr, services.ErrEmailProviderNotConfigured):
+			statusCode = http.StatusServiceUnavailable
+		case errors.Is(deliveryErr, services.ErrNotificationChannelUnsupported):
+			statusCode = http.StatusNotImplemented
+		}
+
+		c.JSON(statusCode, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Notification delivery failed",
+			Error:   deliveryErr.Error(),
+		})
+		return
+	}
+
 	notificationLog.Status = "SENT"
 	notificationLog.SentAt = &now
-	if req.Channel == "IN_APP" {
+	if req.Channel == string(models.ChannelInApp) {
 		notificationLog.Status = "DELIVERED"
 		notificationLog.DeliveredAt = &now
 	}
 
 	updatePayload := map[string]interface{}{
-		"status":  notificationLog.Status,
-		"sent_at": &now,
+		"status":   notificationLog.Status,
+		"provider": notificationLog.Provider,
+		"sent_at":  notificationLog.SentAt,
 	}
-	if req.Channel == "IN_APP" {
-		updatePayload["delivered_at"] = &now
+	if notificationLog.DeliveredAt != nil {
+		updatePayload["delivered_at"] = notificationLog.DeliveredAt
 	}
 
 	config.DB.Model(&notificationLog).Updates(updatePayload)
 
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
-		Message: "Notification sent successfully (queued for delivery)",
+		Message: "Notification processed successfully",
 		Data: responses.NotificationLogResponse{
 			ID:            notificationLog.ID,
 			TenantID:      notificationLog.TenantID,
@@ -651,6 +686,7 @@ func SendNotification(c *gin.Context) {
 			FailedAt:      notificationLog.FailedAt,
 			ErrorMessage:  notificationLog.ErrorMessage,
 			RetryCount:    notificationLog.RetryCount,
+			Provider:      notificationLog.Provider,
 			CreatedAt:     notificationLog.CreatedAt,
 		},
 	})
