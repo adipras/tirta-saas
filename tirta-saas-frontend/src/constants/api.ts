@@ -164,6 +164,11 @@ export const API_ENDPOINTS = {
     CUSTOMER_LIST: '/customer/notifications',
     CUSTOMER_MARK_READ: (id: string) => `/customer/notifications/${id}/read`,
     CUSTOMER_MARK_ALL_READ: '/customer/notifications/read-all',
+    TENANT: {
+      TEMPLATES: '/tenant/notifications/templates',
+      TEMPLATE_DETAIL: (id: string) => `/tenant/notifications/templates/${id}`,
+      SEND: '/tenant/notifications/send',
+    },
   },
   PUBLIC: {
     REGISTER: '/public/register',

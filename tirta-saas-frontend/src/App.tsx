@@ -29,6 +29,7 @@ import SubscriptionTypeForm from './pages/subscriptions/SubscriptionTypeForm';
 import WaterRateList from './pages/water-rates/WaterRateList';
 import WaterRateForm from './pages/water-rates/WaterRateForm';
 import RateHistory from './pages/water-rates/RateHistory';
+import NotificationManagement from './pages/notifications/NotificationManagement';
 import ServiceAreaList from './pages/service-areas/ServiceAreaList';
 import { PaymentList, PaymentForm, PaymentReceipt } from './pages/payments';
 import PaymentProofManagement from './pages/payment-proofs/PaymentProofManagement';
@@ -124,6 +125,7 @@ function App() {
               <Route path="water-rates/create" element={<WaterRateForm />} />
               <Route path="water-rates/edit/:id" element={<WaterRateForm />} />
               <Route path="water-rates/history" element={<RateHistory />} />
+              <Route path="notifications" element={<NotificationManagement />} />
               <Route path="service-areas" element={<ServiceAreaList />} />
               <Route path="invoices" element={<InvoiceList />} />
               <Route path="invoices/bulk-generate" element={<BulkInvoiceGeneration />} />

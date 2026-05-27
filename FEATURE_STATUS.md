@@ -117,7 +117,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 ### 1. Notification system
 - 🟡 Backend untuk notification template dan send notification **sudah ada**
 - ✅ Icon lonceng pada navbar admin dan portal customer kini sudah terhubung ke inbox notifikasi in-app, lengkap dengan unread badge dan mark-as-read
-- 🟡 Belum ada halaman frontend khusus untuk mengelola template / mengirim notification manual
+- ✅ Frontend admin kini sudah punya halaman untuk mengelola template notifikasi tenant dan mengirim notifikasi manual ke pengguna/pelanggan
 - ✅ Event utama bukti pembayaran kini membuat notifikasi in-app untuk staf tenant dan customer
 - 🟡 Pengiriman aktual ke provider email / SMS / WhatsApp **belum diimplementasikan**
 - 🟡 Saat ini controller hanya membuat log lalu menandai status sebagai `SENT`
@@ -292,7 +292,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 5. **Notification delivery nyata**
    - email provider integration
    - WhatsApp / SMS provider integration
-   - template management dari UI
+   - ✅ ~~template management dari UI~~
    - reminder invoice / overdue / payment confirmation
 
 6. **Payment automation**
@@ -310,7 +310,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
    - ✅ ~~filter tagihan per bulan/periode~~ — selesai
    - ✅ ~~download PDF invoice customer~~
    - notifikasi status pembayaran
-   - catatan: route notification page khusus customer/admin belum ada; surface notifikasi yang aktif saat ini masih navbar bell/dropdown
+   - catatan: admin kini sudah punya halaman notifikasi khusus, tetapi customer masih memakai surface navbar bell/dropdown
    - catatan: `PaymentSuccess` masih ada sebagai komponen legacy, tetapi belum dipakai oleh route aktif customer
 
 ### Prioritas medium
@@ -336,6 +336,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Secara produksi, status yang lebih akurat adalah **“functional core is ready, production hardening is still ongoing.”**
 - Pondasi deploy produksi sudah mulai terlihat jelas di repo dan dokumen operasional, tetapi belum cukup kuat untuk disebut fully production-ready tanpa penguatan testing, observability, dan security boundary.
 - Beberapa modul penting masih berada di zona **backend-ready but not fully productized**, terutama notification, monitoring, dan tariff category progresif.
+- Progress produk terbaru: notification template tenant dan manual notification send kini juga sudah tersedia di frontend admin, walau delivery provider email/SMS/WhatsApp masih belum diaktifkan.
 - Progress hardening terbaru: route platform owner sudah dipisahkan dari `AdminOnly`, validasi JWT tenant-scoped diperketat, dan audit middleware backend sudah aktif untuk request sensitif terautentikasi.
 - Progress lanjutan sesi ini: pengecekan role platform-level juga sudah dinormalisasi di controller tenant-user, helper tenant context, query analytics, dan utilitas seeder/platform admin agar akses tanpa `tenant_id` tetap konsisten untuk surface platform.
 - Progress lanjutan terbaru: audit auth flow utama kini sudah tercatat di backend dan boundary JWT tanpa `tenant_id` diketatkan kembali agar hanya berlaku untuk `platform_owner`.
