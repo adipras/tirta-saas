@@ -30,7 +30,7 @@ const schema: yup.ObjectSchema<RegisterAccountFormValues> = yup.object({
     .default('')
     .trim()
     .test('email-optional', 'Format email tidak valid', (value) => !value || yup.string().email().isValidSync(value))
-    .required(),
+    .defined(),
   password: yup
     .string()
     .min(6, 'Password minimal 6 karakter')
