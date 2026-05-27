@@ -120,6 +120,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Frontend admin kini sudah punya halaman untuk mengelola template notifikasi tenant dan mengirim notifikasi manual ke pengguna/pelanggan
 - ✅ Event utama bukti pembayaran kini membuat notifikasi in-app untuk staf tenant dan customer
 - ✅ Customer portal kini juga punya halaman inbox notifikasi khusus dengan filter unread, mark-all-read, dan shortcut ke tagihan terkait
+- ✅ Generate invoice bulanan/manual dan transisi invoice overdue kini juga membuat notifikasi in-app customer secara otomatis
 - 🟡 Pengiriman aktual ke provider email / SMS / WhatsApp **belum diimplementasikan**
 - 🟡 Saat ini controller hanya membuat log lalu menandai status sebagai `SENT`
 
@@ -198,7 +199,7 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 ### 5. Payment & business process automation
 - 🚧 Payment gateway otomatis belum ada
 - 🚧 Bukti bayar masih dominan verifikasi manual
-- 🚧 Belum ada orkestrasi notifikasi invoice jatuh tempo / overdue secara end-to-end
+- ✅ ~~Belum ada orkestrasi notifikasi invoice jatuh tempo / overdue secara end-to-end~~ — selesai pada sesi wiring 27 Mei 2026
 
 ---
 
@@ -295,7 +296,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
    - email provider integration
    - WhatsApp / SMS provider integration
    - ✅ ~~template management dari UI~~
-   - reminder invoice / overdue / payment confirmation
+   - 🟡 reminder invoice / overdue / payment confirmation kini sudah berjalan untuk channel in-app, tetapi belum terkirim ke provider eksternal
 
 6. **Payment automation**
    - payment gateway otomatis (mis. Midtrans)
@@ -340,6 +341,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Progress produk terbaru: tarif progresif kini sudah wired end-to-end di frontend admin, lengkap dengan kategori tarif, progressive rate tiers, simulasi tagihan, serta relasi kategori pada surface tarif air.
 - Progress produk terbaru: notification template tenant dan manual notification send kini juga sudah tersedia di frontend admin, walau delivery provider email/SMS/WhatsApp masih belum diaktifkan.
 - Progress produk terbaru: customer portal kini juga punya halaman notifikasi khusus untuk melihat update pembayaran/tagihan, filter unread, mark-all-read, dan buka invoice terkait langsung dari inbox.
+- Progress produk terbaru: invoice baru dari generate bulanan/manual dan perubahan status overdue kini ikut membuat notifikasi in-app customer otomatis, sehingga reminder invoice sudah ter-wire dari backend scheduler sampai inbox portal customer.
 - Progress hardening terbaru: UI monitoring platform kini sudah tersedia untuk health, metrics, audit log, dan error log; backend monitoring juga dirapikan agar uptime runtime dan request success/error rate yang tampil lebih akurat.
 - Progress hardening terbaru: route platform owner sudah dipisahkan dari `AdminOnly`, validasi JWT tenant-scoped diperketat, dan audit middleware backend sudah aktif untuk request sensitif terautentikasi.
 - Progress lanjutan sesi ini: pengecekan role platform-level juga sudah dinormalisasi di controller tenant-user, helper tenant context, query analytics, dan utilitas seeder/platform admin agar akses tanpa `tenant_id` tetap konsisten untuk surface platform.

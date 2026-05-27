@@ -255,8 +255,31 @@ func CreateInvoice(c *gin.Context) {
 		return
 	}
 
-	if err := config.DB.Create(&invoice).Error; err != nil {
+	tx := config.DB.Begin()
+
+	if err := tx.Create(&invoice).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat tagihan"})
+		return
+	}
+
+	subject, body := services.BuildInvoiceIssuedNotification(invoice.InvoiceNumber, dueDate, totalAmount)
+	if err := services.CreateInAppNotification(tx, services.CreateInAppNotificationInput{
+		TenantID:      tenantID,
+		RecipientType: "CUSTOMER",
+		RecipientID:   customer.ID,
+		RecipientName: customer.Name,
+		Subject:       subject,
+		Body:          body,
+		Metadata:      services.BuildInvoiceNotificationMetadata(invoice, services.NotificationTypeInvoiceIssued, totalAmount),
+	}); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat notifikasi tagihan"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan tagihan"})
 		return
 	}
 

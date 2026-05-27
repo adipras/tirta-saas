@@ -11,6 +11,11 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	NotificationTypeInvoiceIssued  = "invoice_issued"
+	NotificationTypeInvoiceOverdue = "invoice_overdue"
+)
+
 type CreateInAppNotificationInput struct {
 	TenantID      uuid.UUID
 	RecipientType string
@@ -110,4 +115,40 @@ func BuildPaymentProofRejectedNotification(invoiceNumber, reason string) (string
 	}
 
 	return "Bukti pembayaran ditolak", body
+}
+
+func BuildInvoiceIssuedNotification(invoiceNumber string, dueDate time.Time, totalAmount float64) (string, string) {
+	return "Tagihan baru tersedia", fmt.Sprintf(
+		"Tagihan %s sebesar Rp%.0f sudah tersedia. Mohon lakukan pembayaran sebelum %s.",
+		invoiceNumber,
+		totalAmount,
+		dueDate.Format("02 Jan 2006"),
+	)
+}
+
+func BuildInvoiceOverdueNotification(invoiceNumber string, dueDate time.Time, remainingAmount float64) (string, string) {
+	return "Tagihan melewati jatuh tempo", fmt.Sprintf(
+		"Tagihan %s telah melewati jatuh tempo %s dan sisa tagihan saat ini sebesar Rp%.0f.",
+		invoiceNumber,
+		dueDate.Format("02 Jan 2006"),
+		remainingAmount,
+	)
+}
+
+func BuildInvoiceNotificationMetadata(invoice models.Invoice, notificationType string, amount float64) map[string]interface{} {
+	metadata := map[string]interface{}{
+		"invoice_id":        invoice.ID.String(),
+		"invoice_number":    invoice.InvoiceNumber,
+		"invoice_type":      invoice.Type,
+		"notification_type": notificationType,
+		"usage_month":       invoice.UsageMonth,
+		"amount":            amount,
+		"payment_status":    string(invoice.PaymentStatus),
+	}
+
+	if invoice.DueDate != nil {
+		metadata["due_date"] = invoice.DueDate.Format(time.RFC3339)
+	}
+
+	return metadata
 }

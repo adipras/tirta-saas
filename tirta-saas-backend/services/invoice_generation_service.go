@@ -170,10 +170,36 @@ func (s *InvoiceGenerationService) GenerateInvoices(req InvoiceGenerationRequest
 		invoiceIndex++
 
 		if !req.DryRun {
-			// Save to database
-			if err := config.DB.Create(&invoice).Error; err != nil {
+			tx := config.DB.Begin()
+
+			if err := tx.Create(&invoice).Error; err != nil {
+				tx.Rollback()
 				result.Failed++
 				result.Errors = append(result.Errors, fmt.Sprintf("Failed to create invoice for customer %s: %v", usage.CustomerID, err))
+				continue
+			}
+
+			if invoice.DueDate != nil {
+				subject, body := BuildInvoiceIssuedNotification(invoice.InvoiceNumber, *invoice.DueDate, totalAmount)
+				if err := CreateInAppNotification(tx, CreateInAppNotificationInput{
+					TenantID:      req.TenantID,
+					RecipientType: "CUSTOMER",
+					RecipientID:   customer.ID,
+					RecipientName: customer.Name,
+					Subject:       subject,
+					Body:          body,
+					Metadata:      BuildInvoiceNotificationMetadata(invoice, NotificationTypeInvoiceIssued, totalAmount),
+				}); err != nil {
+					tx.Rollback()
+					result.Failed++
+					result.Errors = append(result.Errors, fmt.Sprintf("Failed to create invoice notification for customer %s: %v", usage.CustomerID, err))
+					continue
+				}
+			}
+
+			if err := tx.Commit().Error; err != nil {
+				result.Failed++
+				result.Errors = append(result.Errors, fmt.Sprintf("Failed to commit invoice generation for customer %s: %v", usage.CustomerID, err))
 				continue
 			}
 		}
@@ -190,14 +216,44 @@ func (s *InvoiceGenerationService) GenerateInvoices(req InvoiceGenerationRequest
 func (s *InvoiceGenerationService) UpdateOverdueInvoices(tenantID uuid.UUID) error {
 	now := time.Now()
 
-	// Update invoices that are past due date and not paid
-	result := config.DB.Model(&models.Invoice{}).
+	var invoices []models.Invoice
+	if err := config.DB.
+		Preload("Customer").
 		Where("tenant_id = ? AND due_date < ? AND payment_status IN ?",
 			tenantID, now, []models.PaymentStatus{models.PaymentStatusUnpaid, models.PaymentStatusPartial}).
-		Update("payment_status", models.PaymentStatusOverdue)
+		Find(&invoices).Error; err != nil {
+		return err
+	}
 
-	if result.Error != nil {
-		return result.Error
+	for _, invoice := range invoices {
+		tx := config.DB.Begin()
+		previousStatus := invoice.PaymentStatus
+
+		snapshot, err := SyncInvoicePaymentState(tx, &invoice, now)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
+		if previousStatus != invoice.PaymentStatus && invoice.PaymentStatus == models.PaymentStatusOverdue && invoice.DueDate != nil {
+			subject, body := BuildInvoiceOverdueNotification(invoice.InvoiceNumber, *invoice.DueDate, snapshot.RemainingAmount)
+			if err := CreateInAppNotification(tx, CreateInAppNotificationInput{
+				TenantID:      tenantID,
+				RecipientType: "CUSTOMER",
+				RecipientID:   invoice.CustomerID,
+				RecipientName: invoice.Customer.Name,
+				Subject:       subject,
+				Body:          body,
+				Metadata:      BuildInvoiceNotificationMetadata(invoice, NotificationTypeInvoiceOverdue, snapshot.RemainingAmount),
+			}); err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			return err
+		}
 	}
 
 	return nil
