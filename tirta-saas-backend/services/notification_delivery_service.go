@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/smtp"
@@ -10,6 +11,8 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 var (
@@ -31,6 +34,20 @@ type EmailMessage struct {
 	Subject  string
 	TextBody string
 	HTMLBody string
+}
+
+type CreateNotificationLogInput struct {
+	TenantID      uuid.UUID
+	TemplateID    *uuid.UUID
+	RecipientType string
+	RecipientID   uuid.UUID
+	RecipientName string
+	Channel       models.NotificationChannel
+	Destination   string
+	Subject       string
+	Body          string
+	HTMLBody      string
+	Metadata      map[string]interface{}
 }
 
 type smtpSendMailFunc func(addr string, a smtp.Auth, from string, to []string, msg []byte) error
@@ -71,6 +88,40 @@ func DeliverNotification(channel models.NotificationChannel, destination, subjec
 
 func DeliverEmail(cfg SMTPConfig, message EmailMessage) error {
 	return deliverEmailWithSender(cfg, message, smtp.SendMail)
+}
+
+func CreateAndDeliverNotification(db *gorm.DB, input CreateNotificationLogInput) (models.NotificationLog, error) {
+	metadataJSON, err := marshalNotificationMetadata(input.Metadata)
+	if err != nil {
+		return models.NotificationLog{}, err
+	}
+
+	notificationLog := models.NotificationLog{
+		TenantID:      input.TenantID,
+		TemplateID:    input.TemplateID,
+		RecipientType: input.RecipientType,
+		RecipientID:   input.RecipientID,
+		RecipientName: input.RecipientName,
+		Channel:       input.Channel,
+		Destination:   input.Destination,
+		Subject:       input.Subject,
+		Body:          input.Body,
+		Status:        "PENDING",
+		Metadata:      metadataJSON,
+	}
+
+	if err := db.Create(&notificationLog).Error; err != nil {
+		return models.NotificationLog{}, err
+	}
+
+	provider, deliveryErr := DeliverNotification(input.Channel, input.Destination, input.Subject, input.Body, input.HTMLBody)
+	updatePayload := ApplyNotificationDeliveryResult(&notificationLog, provider, deliveryErr, time.Now())
+
+	if err := db.Model(&notificationLog).Updates(updatePayload).Error; err != nil {
+		return models.NotificationLog{}, err
+	}
+
+	return notificationLog, nil
 }
 
 func deliverEmailWithSender(cfg SMTPConfig, message EmailMessage, sendMail smtpSendMailFunc) error {
@@ -150,4 +201,58 @@ func defaultTextBody(message EmailMessage) string {
 
 func netJoinHostPort(host, port string) string {
 	return fmt.Sprintf("%s:%s", host, port)
+}
+
+func marshalNotificationMetadata(metadata map[string]interface{}) (string, error) {
+	if metadata == nil {
+		return "", nil
+	}
+
+	payload, err := json.Marshal(metadata)
+	if err != nil {
+		return "", err
+	}
+
+	return string(payload), nil
+}
+
+func ApplyNotificationDeliveryResult(log *models.NotificationLog, provider string, deliveryErr error, now time.Time) map[string]interface{} {
+	log.Provider = provider
+
+	if deliveryErr != nil {
+		log.Status = "FAILED"
+		log.FailedAt = &now
+		log.ErrorMessage = deliveryErr.Error()
+		log.SentAt = nil
+		log.DeliveredAt = nil
+
+		return map[string]interface{}{
+			"status":        log.Status,
+			"provider":      log.Provider,
+			"failed_at":     log.FailedAt,
+			"error_message": log.ErrorMessage,
+		}
+	}
+
+	log.Status = "SENT"
+	log.SentAt = &now
+	log.FailedAt = nil
+	log.ErrorMessage = ""
+
+	updatePayload := map[string]interface{}{
+		"status":        log.Status,
+		"provider":      log.Provider,
+		"sent_at":       log.SentAt,
+		"failed_at":     nil,
+		"error_message": "",
+	}
+
+	if log.Channel == models.ChannelInApp {
+		log.Status = "DELIVERED"
+		log.DeliveredAt = &now
+		updatePayload["status"] = log.Status
+		updatePayload["delivered_at"] = log.DeliveredAt
+	}
+
+	return updatePayload
 }

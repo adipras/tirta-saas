@@ -196,18 +196,14 @@ func SubmitPaymentProof(c *gin.Context) {
 	}
 
 	subject, body := services.BuildPaymentProofSubmittedNotification(invoice.Customer.Name, invoice.InvoiceNumber, amount)
+	metadata := services.BuildPaymentProofNotificationMetadata(paymentProof, invoice, "payment_proof_submitted")
 	if err := services.NotifyTenantUsersByRoles(
 		tx,
 		tenantID,
 		[]constants.UserRole{constants.RoleTenantAdmin, constants.RoleFinance},
 		subject,
 		body,
-		map[string]interface{}{
-			"payment_proof_id": paymentProof.ID.String(),
-			"invoice_id":       invoice.ID.String(),
-			"invoice_number":   invoice.InvoiceNumber,
-			"customer_id":      invoice.CustomerID.String(),
-		},
+		metadata,
 	); err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create in-app notification"})
@@ -472,6 +468,7 @@ func VerifyPaymentProof(c *gin.Context) {
 
 	// Commit transaction
 	subject, body := services.BuildPaymentProofVerifiedNotification(paymentProof.Invoice.InvoiceNumber, paymentProof.Amount)
+	metadata := services.BuildPaymentProofNotificationMetadata(paymentProof, paymentProof.Invoice, "payment_proof_verified")
 	if err := services.CreateInAppNotification(tx, services.CreateInAppNotificationInput{
 		TenantID:      tenantID,
 		RecipientType: "CUSTOMER",
@@ -479,15 +476,29 @@ func VerifyPaymentProof(c *gin.Context) {
 		RecipientName: paymentProof.Customer.Name,
 		Subject:       subject,
 		Body:          body,
-		Metadata: map[string]interface{}{
-			"payment_proof_id": paymentProof.ID.String(),
-			"invoice_id":       paymentProof.InvoiceID.String(),
-			"invoice_number":   paymentProof.Invoice.InvoiceNumber,
-		},
+		Metadata:      metadata,
 	}); err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create in-app notification"})
 		return
+	}
+
+	if paymentProof.Customer.Email != "" {
+		if _, err := services.CreateAndDeliverNotification(tx, services.CreateNotificationLogInput{
+			TenantID:      tenantID,
+			RecipientType: "CUSTOMER",
+			RecipientID:   paymentProof.CustomerID,
+			RecipientName: paymentProof.Customer.Name,
+			Channel:       models.ChannelEmail,
+			Destination:   paymentProof.Customer.Email,
+			Subject:       subject,
+			Body:          body,
+			Metadata:      metadata,
+		}); err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log email notification"})
+			return
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -581,6 +592,7 @@ func RejectPaymentProof(c *gin.Context) {
 	}
 
 	subject, body := services.BuildPaymentProofRejectedNotification(paymentProof.Invoice.InvoiceNumber, req.RejectionReason)
+	metadata := services.BuildPaymentProofNotificationMetadata(paymentProof, paymentProof.Invoice, "payment_proof_rejected")
 	if err := services.CreateInAppNotification(tx, services.CreateInAppNotificationInput{
 		TenantID:      tenantID,
 		RecipientType: "CUSTOMER",
@@ -588,16 +600,29 @@ func RejectPaymentProof(c *gin.Context) {
 		RecipientName: paymentProof.Customer.Name,
 		Subject:       subject,
 		Body:          body,
-		Metadata: map[string]interface{}{
-			"payment_proof_id": paymentProof.ID.String(),
-			"invoice_id":       paymentProof.InvoiceID.String(),
-			"invoice_number":   paymentProof.Invoice.InvoiceNumber,
-			"status":           string(paymentProof.Status),
-		},
+		Metadata:      metadata,
 	}); err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create in-app notification"})
 		return
+	}
+
+	if paymentProof.Customer.Email != "" {
+		if _, err := services.CreateAndDeliverNotification(tx, services.CreateNotificationLogInput{
+			TenantID:      tenantID,
+			RecipientType: "CUSTOMER",
+			RecipientID:   paymentProof.CustomerID,
+			RecipientName: paymentProof.Customer.Name,
+			Channel:       models.ChannelEmail,
+			Destination:   paymentProof.Customer.Email,
+			Subject:       subject,
+			Body:          body,
+			Metadata:      metadata,
+		}); err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log email notification"})
+			return
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {

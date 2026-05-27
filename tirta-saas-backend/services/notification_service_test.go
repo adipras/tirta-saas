@@ -58,3 +58,37 @@ func TestBuildInvoiceNotificationMetadata(t *testing.T) {
 		t.Fatalf("expected invoice_number INV-003, got %v", metadata["invoice_number"])
 	}
 }
+
+func TestBuildPaymentProofNotificationMetadata(t *testing.T) {
+	paymentProofID := uuid.New()
+	invoiceID := uuid.New()
+	customerID := uuid.New()
+	paymentProof := models.PaymentProof{
+		BaseModel:       models.BaseModel{ID: paymentProofID},
+		InvoiceID:       invoiceID,
+		CustomerID:      customerID,
+		Amount:          175000,
+		Status:          models.PaymentProofStatusRejected,
+		RejectionReason: "Nominal tidak sesuai",
+	}
+	invoice := models.Invoice{
+		BaseModel:     models.BaseModel{ID: invoiceID},
+		CustomerID:    customerID,
+		InvoiceNumber: "INV-004",
+	}
+
+	metadata := BuildPaymentProofNotificationMetadata(paymentProof, invoice, "payment_proof_rejected")
+
+	if metadata["payment_proof_id"] != paymentProofID.String() {
+		t.Fatalf("expected payment_proof_id %s, got %v", paymentProofID, metadata["payment_proof_id"])
+	}
+	if metadata["invoice_number"] != "INV-004" {
+		t.Fatalf("expected invoice_number INV-004, got %v", metadata["invoice_number"])
+	}
+	if metadata["notification_type"] != "payment_proof_rejected" {
+		t.Fatalf("expected notification_type payment_proof_rejected, got %v", metadata["notification_type"])
+	}
+	if metadata["rejection_reason"] != "Nominal tidak sesuai" {
+		t.Fatalf("expected rejection_reason to be populated, got %v", metadata["rejection_reason"])
+	}
+}

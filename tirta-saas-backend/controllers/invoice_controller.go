@@ -264,6 +264,7 @@ func CreateInvoice(c *gin.Context) {
 	}
 
 	subject, body := services.BuildInvoiceIssuedNotification(invoice.InvoiceNumber, dueDate, totalAmount)
+	metadata := services.BuildInvoiceNotificationMetadata(invoice, services.NotificationTypeInvoiceIssued, totalAmount)
 	if err := services.CreateInAppNotification(tx, services.CreateInAppNotificationInput{
 		TenantID:      tenantID,
 		RecipientType: "CUSTOMER",
@@ -271,11 +272,29 @@ func CreateInvoice(c *gin.Context) {
 		RecipientName: customer.Name,
 		Subject:       subject,
 		Body:          body,
-		Metadata:      services.BuildInvoiceNotificationMetadata(invoice, services.NotificationTypeInvoiceIssued, totalAmount),
+		Metadata:      metadata,
 	}); err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat notifikasi tagihan"})
 		return
+	}
+
+	if customer.Email != "" {
+		if _, err := services.CreateAndDeliverNotification(tx, services.CreateNotificationLogInput{
+			TenantID:      tenantID,
+			RecipientType: "CUSTOMER",
+			RecipientID:   customer.ID,
+			RecipientName: customer.Name,
+			Channel:       models.ChannelEmail,
+			Destination:   customer.Email,
+			Subject:       subject,
+			Body:          body,
+			Metadata:      metadata,
+		}); err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mencatat notifikasi email tagihan"})
+			return
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {

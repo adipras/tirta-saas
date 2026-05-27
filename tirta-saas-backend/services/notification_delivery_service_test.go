@@ -5,6 +5,7 @@ import (
 	"net/smtp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/adipras/tirta-saas-backend/models"
 )
@@ -98,5 +99,51 @@ func TestDeliverEmailWithSender_BuildsMultipartEmail(t *testing.T) {
 		if !strings.Contains(capturedMsg, part) {
 			t.Fatalf("expected email payload to contain %q, got %s", part, capturedMsg)
 		}
+	}
+}
+
+func TestApplyNotificationDeliveryResult_MarksDeliveredForInApp(t *testing.T) {
+	now := time.Date(2026, time.May, 27, 18, 0, 0, 0, time.UTC)
+	log := models.NotificationLog{
+		Channel: models.ChannelInApp,
+		Status:  "PENDING",
+	}
+
+	updatePayload := ApplyNotificationDeliveryResult(&log, "IN_APP", nil, now)
+
+	if log.Status != "DELIVERED" {
+		t.Fatalf("expected DELIVERED status, got %q", log.Status)
+	}
+	if log.SentAt == nil || !log.SentAt.Equal(now) {
+		t.Fatalf("expected sent_at to be set to now, got %#v", log.SentAt)
+	}
+	if log.DeliveredAt == nil || !log.DeliveredAt.Equal(now) {
+		t.Fatalf("expected delivered_at to be set to now, got %#v", log.DeliveredAt)
+	}
+	if updatePayload["status"] != "DELIVERED" {
+		t.Fatalf("expected update payload status DELIVERED, got %#v", updatePayload["status"])
+	}
+}
+
+func TestApplyNotificationDeliveryResult_MarksFailedForDeliveryError(t *testing.T) {
+	now := time.Date(2026, time.May, 27, 18, 0, 0, 0, time.UTC)
+	log := models.NotificationLog{
+		Channel: models.ChannelEmail,
+		Status:  "PENDING",
+	}
+
+	updatePayload := ApplyNotificationDeliveryResult(&log, "SMTP", ErrEmailProviderNotConfigured, now)
+
+	if log.Status != "FAILED" {
+		t.Fatalf("expected FAILED status, got %q", log.Status)
+	}
+	if log.FailedAt == nil || !log.FailedAt.Equal(now) {
+		t.Fatalf("expected failed_at to be set to now, got %#v", log.FailedAt)
+	}
+	if log.ErrorMessage != ErrEmailProviderNotConfigured.Error() {
+		t.Fatalf("expected error message %q, got %q", ErrEmailProviderNotConfigured.Error(), log.ErrorMessage)
+	}
+	if updatePayload["status"] != "FAILED" {
+		t.Fatalf("expected update payload status FAILED, got %#v", updatePayload["status"])
 	}
 }

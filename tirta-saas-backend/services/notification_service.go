@@ -1,8 +1,8 @@
 package services
 
 import (
-	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/constants"
@@ -27,18 +27,7 @@ type CreateInAppNotificationInput struct {
 }
 
 func CreateInAppNotification(db *gorm.DB, input CreateInAppNotificationInput) error {
-	now := time.Now()
-
-	metadataJSON := ""
-	if input.Metadata != nil {
-		payload, err := json.Marshal(input.Metadata)
-		if err != nil {
-			return err
-		}
-		metadataJSON = string(payload)
-	}
-
-	notification := models.NotificationLog{
+	_, err := CreateAndDeliverNotification(db, CreateNotificationLogInput{
 		TenantID:      input.TenantID,
 		RecipientType: input.RecipientType,
 		RecipientID:   input.RecipientID,
@@ -47,13 +36,9 @@ func CreateInAppNotification(db *gorm.DB, input CreateInAppNotificationInput) er
 		Destination:   input.RecipientID.String(),
 		Subject:       input.Subject,
 		Body:          input.Body,
-		Status:        "DELIVERED",
-		SentAt:        &now,
-		DeliveredAt:   &now,
-		Metadata:      metadataJSON,
-	}
-
-	return db.Create(&notification).Error
+		Metadata:      input.Metadata,
+	})
+	return err
 }
 
 func NotifyTenantUsersByRoles(
@@ -80,6 +65,24 @@ func NotifyTenantUsersByRoles(
 			RecipientType: "USER",
 			RecipientID:   user.ID,
 			RecipientName: user.Name,
+			Subject:       subject,
+			Body:          body,
+			Metadata:      metadata,
+		}); err != nil {
+			return err
+		}
+
+		if strings.TrimSpace(user.Email) == "" {
+			continue
+		}
+
+		if _, err := CreateAndDeliverNotification(db, CreateNotificationLogInput{
+			TenantID:      tenantID,
+			RecipientType: "USER",
+			RecipientID:   user.ID,
+			RecipientName: user.Name,
+			Channel:       models.ChannelEmail,
+			Destination:   user.Email,
 			Subject:       subject,
 			Body:          body,
 			Metadata:      metadata,
@@ -148,6 +151,24 @@ func BuildInvoiceNotificationMetadata(invoice models.Invoice, notificationType s
 
 	if invoice.DueDate != nil {
 		metadata["due_date"] = invoice.DueDate.Format(time.RFC3339)
+	}
+
+	return metadata
+}
+
+func BuildPaymentProofNotificationMetadata(paymentProof models.PaymentProof, invoice models.Invoice, notificationType string) map[string]interface{} {
+	metadata := map[string]interface{}{
+		"payment_proof_id":     paymentProof.ID.String(),
+		"invoice_id":           invoice.ID.String(),
+		"invoice_number":       invoice.InvoiceNumber,
+		"customer_id":          invoice.CustomerID.String(),
+		"notification_type":    notificationType,
+		"payment_proof_status": string(paymentProof.Status),
+		"amount":               paymentProof.Amount,
+	}
+
+	if paymentProof.RejectionReason != "" {
+		metadata["rejection_reason"] = paymentProof.RejectionReason
 	}
 
 	return metadata

@@ -123,6 +123,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Generate invoice bulanan/manual dan transisi invoice overdue kini juga membuat notifikasi in-app customer secara otomatis
 - 🟡 Pengiriman aktual ke provider email / SMS / WhatsApp **belum sepenuhnya lengkap**
 - ✅ Pengiriman manual channel **EMAIL** kini sudah benar-benar dikirim via SMTP provider yang dikonfigurasi, dan log notifikasi berubah ke `FAILED` bila provider tidak tersedia / pengiriman gagal
+- ✅ Event-driven email untuk customer/staf kini juga sudah mulai aktif via SMTP pada event invoice baru, invoice overdue, bukti pembayaran masuk, bukti pembayaran diverifikasi, dan bukti pembayaran ditolak
 - 🟡 SMS / WhatsApp masih belum punya provider nyata
 
 ### 2. Service area management
@@ -192,7 +193,7 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 - 🚧 Belum terlihat runbook insiden level aplikasi di repo
 
 ### 4. Product completeness untuk tenant nyata
-- 🟡 Notification delivery nyata kini sudah mulai ada untuk manual email via SMTP, tetapi SMS / WhatsApp dan event-driven external delivery masih belum ada
+- 🟡 Notification delivery nyata kini sudah mulai ada untuk manual email dan event-driven email via SMTP, tetapi SMS / WhatsApp masih belum ada
 - ✅ ~~Progressive tariff belum wired end-to-end sampai UI~~ — selesai pada sesi wiring 27 Mei 2026
 - ✅ ~~Service area belum wired end-to-end sampai UI~~ — selesai pada sesi wiring 25 Mei 2026
 - ✅ ~~Customer payment history~~ — sudah selesai (commit `dd2c8d0`)
@@ -296,9 +297,10 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 ### Prioritas produk tinggi
 5. **Notification delivery nyata**
    - ✅ email provider integration dasar untuk manual notification send via SMTP
+   - ✅ event-driven SMTP email untuk invoice reminder dasar dan payment proof lifecycle
    - WhatsApp / SMS provider integration
    - ✅ ~~template management dari UI~~
-   - 🟡 reminder invoice / overdue / payment confirmation kini sudah berjalan untuk channel in-app, tetapi belum terkirim ke provider eksternal selain email manual berbasis SMTP
+   - 🟡 reminder invoice / overdue / payment confirmation kini sudah berjalan untuk channel in-app dan email SMTP, tetapi belum terkirim ke provider SMS/WhatsApp
 
 6. **Payment automation**
    - payment gateway otomatis (mis. Midtrans)
@@ -343,6 +345,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Progress produk terbaru: tarif progresif kini sudah wired end-to-end di frontend admin, lengkap dengan kategori tarif, progressive rate tiers, simulasi tagihan, serta relasi kategori pada surface tarif air.
 - Progress produk terbaru: notification template tenant dan manual notification send kini juga sudah tersedia di frontend admin; delivery email manual via SMTP sudah aktif, sementara SMS/WhatsApp masih belum punya provider nyata.
 - Progress produk terbaru: manual notification send untuk channel email kini sudah terhubung ke SMTP provider nyata; backend tidak lagi memalsukan status `SENT` untuk email gagal dan akan menandai log sebagai `FAILED` bila provider tidak tersedia atau pengiriman ditolak.
+- Progress produk terbaru: event notifikasi utama customer dan staf kini juga mulai terkirim ke email SMTP secara otomatis untuk invoice issued/overdue serta lifecycle bukti pembayaran, dengan log delivery `SENT/FAILED` yang tercatat tanpa membatalkan transaksi bisnis utama.
 - Progress produk terbaru: customer portal kini juga punya halaman notifikasi khusus untuk melihat update pembayaran/tagihan, filter unread, mark-all-read, dan buka invoice terkait langsung dari inbox.
 - Progress produk terbaru: invoice baru dari generate bulanan/manual dan perubahan status overdue kini ikut membuat notifikasi in-app customer otomatis, sehingga reminder invoice sudah ter-wire dari backend scheduler sampai inbox portal customer.
 - Progress produk terbaru: kalkulasi tarif progresif kini tidak berhenti di UI simulasi; create/update/import bulk pemakaian air backend sudah menghitung `amount_calculated` memakai tier kategori tarif aktif agar nominal invoice bulanan konsisten dengan konfigurasi tarif progresif.

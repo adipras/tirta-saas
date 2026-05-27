@@ -181,6 +181,7 @@ func (s *InvoiceGenerationService) GenerateInvoices(req InvoiceGenerationRequest
 
 			if invoice.DueDate != nil {
 				subject, body := BuildInvoiceIssuedNotification(invoice.InvoiceNumber, *invoice.DueDate, totalAmount)
+				metadata := BuildInvoiceNotificationMetadata(invoice, NotificationTypeInvoiceIssued, totalAmount)
 				if err := CreateInAppNotification(tx, CreateInAppNotificationInput{
 					TenantID:      req.TenantID,
 					RecipientType: "CUSTOMER",
@@ -188,12 +189,31 @@ func (s *InvoiceGenerationService) GenerateInvoices(req InvoiceGenerationRequest
 					RecipientName: customer.Name,
 					Subject:       subject,
 					Body:          body,
-					Metadata:      BuildInvoiceNotificationMetadata(invoice, NotificationTypeInvoiceIssued, totalAmount),
+					Metadata:      metadata,
 				}); err != nil {
 					tx.Rollback()
 					result.Failed++
 					result.Errors = append(result.Errors, fmt.Sprintf("Failed to create invoice notification for customer %s: %v", usage.CustomerID, err))
 					continue
+				}
+
+				if customer.Email != "" {
+					if _, err := CreateAndDeliverNotification(tx, CreateNotificationLogInput{
+						TenantID:      req.TenantID,
+						RecipientType: "CUSTOMER",
+						RecipientID:   customer.ID,
+						RecipientName: customer.Name,
+						Channel:       models.ChannelEmail,
+						Destination:   customer.Email,
+						Subject:       subject,
+						Body:          body,
+						Metadata:      metadata,
+					}); err != nil {
+						tx.Rollback()
+						result.Failed++
+						result.Errors = append(result.Errors, fmt.Sprintf("Failed to log email invoice notification for customer %s: %v", usage.CustomerID, err))
+						continue
+					}
 				}
 			}
 
@@ -237,6 +257,7 @@ func (s *InvoiceGenerationService) UpdateOverdueInvoices(tenantID uuid.UUID) err
 
 		if previousStatus != invoice.PaymentStatus && invoice.PaymentStatus == models.PaymentStatusOverdue && invoice.DueDate != nil {
 			subject, body := BuildInvoiceOverdueNotification(invoice.InvoiceNumber, *invoice.DueDate, snapshot.RemainingAmount)
+			metadata := BuildInvoiceNotificationMetadata(invoice, NotificationTypeInvoiceOverdue, snapshot.RemainingAmount)
 			if err := CreateInAppNotification(tx, CreateInAppNotificationInput{
 				TenantID:      tenantID,
 				RecipientType: "CUSTOMER",
@@ -244,10 +265,27 @@ func (s *InvoiceGenerationService) UpdateOverdueInvoices(tenantID uuid.UUID) err
 				RecipientName: invoice.Customer.Name,
 				Subject:       subject,
 				Body:          body,
-				Metadata:      BuildInvoiceNotificationMetadata(invoice, NotificationTypeInvoiceOverdue, snapshot.RemainingAmount),
+				Metadata:      metadata,
 			}); err != nil {
 				tx.Rollback()
 				return err
+			}
+
+			if invoice.Customer.Email != "" {
+				if _, err := CreateAndDeliverNotification(tx, CreateNotificationLogInput{
+					TenantID:      tenantID,
+					RecipientType: "CUSTOMER",
+					RecipientID:   invoice.CustomerID,
+					RecipientName: invoice.Customer.Name,
+					Channel:       models.ChannelEmail,
+					Destination:   invoice.Customer.Email,
+					Subject:       subject,
+					Body:          body,
+					Metadata:      metadata,
+				}); err != nil {
+					tx.Rollback()
+					return err
+				}
 			}
 		}
 
