@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -339,6 +341,11 @@ func (ctrl *TariffController) SimulateBill(c *gin.Context) {
 	}
 
 	tenantID := c.GetString("tenant_id")
+	tenantUUID, err := uuid.Parse(tenantID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tenant context"})
+		return
+	}
 	categoryUUID, err := uuid.Parse(req.CategoryID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
@@ -352,63 +359,32 @@ func (ctrl *TariffController) SimulateBill(c *gin.Context) {
 		return
 	}
 
-	// Get progressive rates for this category
-	var rates []models.ProgressiveRate
-	if err := ctrl.DB.Where("category_id = ? AND is_active = ?", categoryUUID, true).
-		Order("min_volume ASC").Find(&rates).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch progressive rates"})
+	totalAmount, chargeBreakdown, err := services.CalculateTariffCategoryCharge(ctrl.DB, tenantUUID, categoryUUID, req.UsageVolume)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrNoActiveProgressiveRates), errors.Is(err, services.ErrIncompleteProgressiveRates):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to calculate bill simulation"})
+		}
 		return
 	}
 
-	if len(rates) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No active progressive rates found for this category"})
-		return
-	}
-
-	// Calculate bill
-	remainingVolume := req.UsageVolume
-	totalAmount := 0.0
-	var breakdown []responses.BillSimulationBreakdown
-
-	for _, rate := range rates {
-		if remainingVolume <= 0 {
-			break
-		}
-
-		var volumeInTier float64
-		tierMax := remainingVolume
-
-		if rate.MaxVolume != nil && remainingVolume > (*rate.MaxVolume-rate.MinVolume) {
-			tierMax = *rate.MaxVolume - rate.MinVolume
-		}
-
-		if tierMax < 0 {
-			continue
-		}
-
-		volumeInTier = tierMax
-		if volumeInTier > remainingVolume {
-			volumeInTier = remainingVolume
-		}
-
-		tierAmount := volumeInTier * rate.PricePerUnit
-		totalAmount += tierAmount
-
-		tierRange := fmt.Sprintf("%.0f - ", rate.MinVolume)
-		if rate.MaxVolume != nil {
-			tierRange += fmt.Sprintf("%.0f m³", *rate.MaxVolume)
+	breakdown := make([]responses.BillSimulationBreakdown, 0, len(chargeBreakdown))
+	for _, item := range chargeBreakdown {
+		tierRange := fmt.Sprintf("%.0f - ", item.MinVolume)
+		if item.MaxVolume != nil {
+			tierRange += fmt.Sprintf("%.0f m³", *item.MaxVolume)
 		} else {
 			tierRange += "unlimited m³"
 		}
 
 		breakdown = append(breakdown, responses.BillSimulationBreakdown{
 			TierRange:    tierRange,
-			Volume:       volumeInTier,
-			PricePerUnit: rate.PricePerUnit,
-			Amount:       tierAmount,
+			Volume:       item.Volume,
+			PricePerUnit: item.PricePerUnit,
+			Amount:       item.Amount,
 		})
-
-		remainingVolume -= volumeInTier
 	}
 
 	response := responses.BillSimulationResponse{

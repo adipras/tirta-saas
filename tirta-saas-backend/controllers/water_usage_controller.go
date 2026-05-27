@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/adipras/tirta-saas-backend/utils"
 
 	"github.com/gin-gonic/gin"
@@ -128,13 +130,24 @@ func CreateWaterUsage(c *gin.Context) {
 		}
 	}
 
+	amountCalculated, err := services.CalculateWaterUsageCharge(config.DB, tenantID, rate, UsageM3)
+	if err != nil {
+		switch {
+		case errors.Is(err, services.ErrNoActiveProgressiveRates), errors.Is(err, services.ErrIncompleteProgressiveRates):
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung tarif pemakaian"})
+		}
+		return
+	}
+
 	usage := models.WaterUsage{
 		CustomerID:       req.CustomerID,
 		UsageMonth:       req.UsageMonth,
 		MeterStart:       meterStart,
 		MeterEnd:         req.MeterEnd,
 		UsageM3:          UsageM3,
-		AmountCalculated: UsageM3 * rate.Amount,
+		AmountCalculated: amountCalculated,
 		TenantID:         tenantID,
 		IsDraft:          req.IsDraft,
 	}
@@ -383,9 +396,20 @@ func UpdateWaterUsage(c *gin.Context) {
 			return
 		}
 
+		amountCalculated, err := services.CalculateWaterUsageCharge(config.DB, tenantID, rate, UsageM3)
+		if err != nil {
+			switch {
+			case errors.Is(err, services.ErrNoActiveProgressiveRates), errors.Is(err, services.ErrIncompleteProgressiveRates):
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			default:
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung tarif pemakaian"})
+			}
+			return
+		}
+
 		usage.MeterEnd = *input.MeterEnd
 		usage.UsageM3 = UsageM3
-		usage.AmountCalculated = UsageM3 * rate.Amount
+		usage.AmountCalculated = amountCalculated
 	}
 
 	// Handle draft flag changes: if finalizing (IsDraft=false) ensure no existing finalized record for same customer/month

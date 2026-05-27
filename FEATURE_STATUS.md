@@ -2,7 +2,7 @@
 
 _Dokumen ini menggambarkan kondisi aktual repo saat ini dan mengarah ke kesiapan produksi, bukan sekadar checklist MVP._
 
-**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 26 Mei 2026
+**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 27 Mei 2026
 
 ---
 
@@ -134,6 +134,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - 🟡 Backend `tariff categories`, `progressive rates`, dan simulasi tagihan **sudah ada**
 - ✅ Frontend admin kini sudah punya halaman untuk kategori tarif, tier progressive rate, dan simulasi tagihan
 - ✅ Form/list tarif air kini juga sudah menampilkan serta menyimpan relasi kategori tarif progresif agar konfigurasi tarif lebih konsisten end-to-end
+- ✅ Kalkulasi pemakaian air pada create/update/import bulk kini ikut memakai tier tarif progresif bila tarif air aktif terhubung ke kategori tarif, sehingga snapshot biaya yang dibawa ke generate invoice sudah konsisten dengan simulasi tarif
 
 ### 4. Monitoring & audit logs
 - 🟡 Endpoint platform untuk audit logs, error logs, system health, dan metrics **sudah ada**
@@ -306,7 +307,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 7. **End-to-end tariff & area management**
    - ✅ ~~frontend service area management~~
    - ✅ ~~frontend tariff category / progressive rate~~
-   - validasi dampak ke invoice calculation
+   - ✅ validasi dampak ke invoice calculation untuk snapshot pemakaian/invoice kini sudah terpasang
 
 8. **Customer portal completeness**
    - ✅ ~~halaman riwayat pembayaran customer~~ — selesai
@@ -342,6 +343,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Progress produk terbaru: notification template tenant dan manual notification send kini juga sudah tersedia di frontend admin, walau delivery provider email/SMS/WhatsApp masih belum diaktifkan.
 - Progress produk terbaru: customer portal kini juga punya halaman notifikasi khusus untuk melihat update pembayaran/tagihan, filter unread, mark-all-read, dan buka invoice terkait langsung dari inbox.
 - Progress produk terbaru: invoice baru dari generate bulanan/manual dan perubahan status overdue kini ikut membuat notifikasi in-app customer otomatis, sehingga reminder invoice sudah ter-wire dari backend scheduler sampai inbox portal customer.
+- Progress produk terbaru: kalkulasi tarif progresif kini tidak berhenti di UI simulasi; create/update/import bulk pemakaian air backend sudah menghitung `amount_calculated` memakai tier kategori tarif aktif agar nominal invoice bulanan konsisten dengan konfigurasi tarif progresif.
 - Progress hardening terbaru: UI monitoring platform kini sudah tersedia untuk health, metrics, audit log, dan error log; backend monitoring juga dirapikan agar uptime runtime dan request success/error rate yang tampil lebih akurat.
 - Progress hardening terbaru: route platform owner sudah dipisahkan dari `AdminOnly`, validasi JWT tenant-scoped diperketat, dan audit middleware backend sudah aktif untuk request sensitif terautentikasi.
 - Progress lanjutan sesi ini: pengecekan role platform-level juga sudah dinormalisasi di controller tenant-user, helper tenant context, query analytics, dan utilitas seeder/platform admin agar akses tanpa `tenant_id` tetap konsisten untuk surface platform.

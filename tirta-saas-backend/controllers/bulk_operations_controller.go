@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/responses"
+	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -469,20 +471,34 @@ func BulkImportWaterUsage(c *gin.Context) {
 		}
 
 		var rate models.WaterRate
-		if err := config.DB.Where("subscription_id = ? AND active = ?", customer.SubscriptionID, true).Order("effective_date DESC").First(&rate).Error; err != nil {
+		if err := config.DB.
+			Where("subscription_id = ? AND active = ? AND tenant_id = ?", customer.SubscriptionID, true, tenantID).
+			Order("effective_date DESC").
+			First(&rate).Error; err != nil {
 			errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Tarif air aktif tidak ditemukan"})
 			failedCount++
 			continue
 		}
 
 		usageM3 := rec.MeterEnd - meterStart
+		amountCalculated, err := services.CalculateWaterUsageCharge(config.DB, tenantID, rate, usageM3)
+		if err != nil {
+			message := "Gagal menghitung tarif pemakaian"
+			if errors.Is(err, services.ErrNoActiveProgressiveRates) || errors.Is(err, services.ErrIncompleteProgressiveRates) {
+				message = err.Error()
+			}
+			errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: message})
+			failedCount++
+			continue
+		}
+
 		usage := models.WaterUsage{
 			CustomerID:       customer.ID,
 			UsageMonth:       req.UsageMonth,
 			MeterStart:       meterStart,
 			MeterEnd:         rec.MeterEnd,
 			UsageM3:          usageM3,
-			AmountCalculated: usageM3 * rate.Amount,
+			AmountCalculated: amountCalculated,
 			TenantID:         tenantID,
 			Notes:            rec.Notes,
 		}
