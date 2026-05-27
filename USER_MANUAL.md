@@ -284,9 +284,18 @@ echo "$MYSQL_USER"
 
 Misal IP container MySQL adalah `172.20.0.2`:
 
+Di PowerShell, jalankan ini dan biarkan jendela tetap terbuka:
 ```bash
-ssh -L 13306:172.20.0.2:3306 -i ~/.ssh/adipras_id_ed25519 adipras@103.93.161.172
+ wsl -d Ubuntu-24.04 -u adipras ssh -o IdentitiesOnly=yes -i ~/.ssh/adipras_id_ed25519 -L 13306:172.20.0.2:3306 adipras@103.93.161.172
 ```
+Sebelum buka DBeaver, dari sesi SSH di VPS sebaiknya pastikan dulu IP MySQL masih benar:
+```bash
+ cd /opt/tirta-saas/app
+ MYSQL_CONTAINER_ID=$(docker compose ps -q mysql)
+ docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$MYSQL_CONTAINER_ID"
+ docker compose ps
+```
+Kalau IP yang keluar bukan 172.20.0.2, pakai IP baru itu pada command tunnel.
 
 Biarkan terminal SSH ini tetap terbuka selama sesi DBeaver dipakai.
 
