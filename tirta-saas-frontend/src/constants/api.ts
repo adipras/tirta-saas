@@ -124,6 +124,13 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/water-rates/${id}`,
     CURRENT: '/water-rates/current',
   },
+  TARIFFS: {
+    CATEGORIES: '/tariffs/categories',
+    CATEGORY_DETAIL: (id: string) => `/tariffs/categories/${id}`,
+    PROGRESSIVE_RATES: '/tariffs/progressive-rates',
+    PROGRESSIVE_RATE_DETAIL: (id: string) => `/tariffs/progressive-rates/${id}`,
+    SIMULATE: '/tariffs/simulate',
+  },
   SERVICE_AREAS: {
     LIST: '/service-areas',
     CREATE: '/service-areas',
@@ -148,6 +155,18 @@ export const API_ENDPOINTS = {
     REJECT_TENANT: (id: string) => `/platform/tenants/${id}/reject`,
     SUSPEND_TENANT: (id: string) => `/platform/tenants/${id}/suspend`,
     ACTIVATE_TENANT: (id: string) => `/platform/tenants/${id}/activate`,
+    ANALYTICS: {
+      OVERVIEW: '/platform/analytics/overview',
+      TENANTS: '/platform/analytics/tenants',
+    },
+    LOGS: {
+      AUDIT: '/platform/logs/audit',
+      ERRORS: '/platform/logs/errors',
+    },
+    SYSTEM: {
+      HEALTH: '/platform/system/health',
+      METRICS: '/platform/system/metrics',
+    },
     PAYMENT_METHODS: {
       BANK_ACCOUNTS: '/platform/payment-methods/bank-accounts',
       BANK_ACCOUNT_DETAIL: (id: string) => `/platform/payment-methods/bank-accounts/${id}`,

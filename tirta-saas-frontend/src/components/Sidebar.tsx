@@ -16,6 +16,7 @@ import {
   ClipboardDocumentListIcon,
   CheckBadgeIcon,
   BellIcon,
+  ServerStackIcon,
   UsersIcon,
   MapIcon,
   XMarkIcon,
@@ -30,6 +31,7 @@ const allNavigation = [
   { name: 'Verifikasi Langganan Tenant', href: '/admin/platform/subscription-payments', icon: CheckBadgeIcon, roles: ['PLATFORM_OWNER'] },
   { name: 'Paket Langganan', href: '/admin/platform/subscription-plans', icon: ClipboardDocumentListIcon, roles: ['PLATFORM_OWNER'] },
   { name: 'Analitik Platform', href: '/admin/platform/analytics', icon: ChartBarIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Monitoring Platform', href: '/admin/platform/monitoring', icon: ServerStackIcon, roles: ['PLATFORM_OWNER'] },
   { name: 'Pengaturan Platform', href: '/admin/platform/settings', icon: CogIcon, roles: ['PLATFORM_OWNER'] },
   // Tenant Admin Menu
   { name: 'Dashboard', href: '/admin', icon: HomeIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE', 'METER_READER'] },
@@ -46,6 +48,7 @@ const settingsNavigation = [
   { name: 'Golongan Langganan', href: '/admin/subscriptions', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Tarif Air', href: '/admin/water-rates', icon: CurrencyDollarIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Notifikasi', href: '/admin/notifications', icon: BellIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Tarif Progresif', href: '/admin/tariffs', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Area Layanan', href: '/admin/service-areas', icon: MapIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Manajemen Pengguna', href: '/admin/users', icon: UsersIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Pengaturan Tenant', href: '/admin/settings', icon: CogIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },

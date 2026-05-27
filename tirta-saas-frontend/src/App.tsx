@@ -30,6 +30,7 @@ import WaterRateList from './pages/water-rates/WaterRateList';
 import WaterRateForm from './pages/water-rates/WaterRateForm';
 import RateHistory from './pages/water-rates/RateHistory';
 import NotificationManagement from './pages/notifications/NotificationManagement';
+import TariffManagement from './pages/tariffs/TariffManagement';
 import ServiceAreaList from './pages/service-areas/ServiceAreaList';
 import { PaymentList, PaymentForm, PaymentReceipt } from './pages/payments';
 import PaymentProofManagement from './pages/payment-proofs/PaymentProofManagement';
@@ -46,7 +47,7 @@ import { CustomerProfil, CustomerProfilEdit, ChangePassword } from './pages/cust
 import { CustomerInvoiceList, CustomerInvoiceDetail } from './pages/customer-invoices';
 import { CustomerPemakaianMonitor } from './pages/customer-usage';
 import { CustomerPaymentHistory } from './pages/customer-payments';
-import { TenantManagement, PlatformAnalytics, SubscriptionPlans } from './pages/platform';
+import { TenantManagement, PlatformAnalytics, PlatformMonitoring, SubscriptionPlans } from './pages/platform';
 import { TenantPaymentVerification } from './pages/tenant-payments';
 import { PlatformSubscriptionVerification } from './pages/platform-payments';
 import { TenantPaymentSettings, PlatformPaymentSettings } from './pages/settings';
@@ -126,6 +127,7 @@ function App() {
               <Route path="water-rates/edit/:id" element={<WaterRateForm />} />
               <Route path="water-rates/history" element={<RateHistory />} />
               <Route path="notifications" element={<NotificationManagement />} />
+              <Route path="tariffs" element={<TariffManagement />} />
               <Route path="service-areas" element={<ServiceAreaList />} />
               <Route path="invoices" element={<InvoiceList />} />
               <Route path="invoices/bulk-generate" element={<BulkInvoiceGeneration />} />
@@ -159,6 +161,7 @@ function App() {
               {/* Platform Owner Routes */}
               <Route path="platform/tenants" element={<TenantManagement />} />
               <Route path="platform/analytics" element={<PlatformAnalytics />} />
+              <Route path="platform/monitoring" element={<PlatformMonitoring />} />
               <Route path="platform/subscription-plans" element={<SubscriptionPlans />} />
               <Route path="platform/subscription-payments" element={<PlatformSubscriptionVerification />} />
               <Route path="platform/settings" element={<PlatformPaymentSettings />} />

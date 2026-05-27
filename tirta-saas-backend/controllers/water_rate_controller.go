@@ -24,9 +24,11 @@ func CreateWaterRate(c *gin.Context) {
 	}
 
 	var input struct {
-		Amount         float64   `json:"amount"`
-		EffectiveDate  string    `json:"effective_date"` // YYYY-MM-DD
-		SubscriptionID uuid.UUID `json:"subscription_id"`
+		Amount         float64    `json:"amount"`
+		EffectiveDate  string     `json:"effective_date"` // YYYY-MM-DD
+		SubscriptionID uuid.UUID  `json:"subscription_id"`
+		CategoryID     *uuid.UUID `json:"category_id"`
+		Description    string     `json:"description"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -45,18 +47,30 @@ func CreateWaterRate(c *gin.Context) {
 		return
 	}
 
+	if input.CategoryID != nil {
+		var category models.TariffCategory
+		if err := config.DB.Where("id = ? AND tenant_id = ?", *input.CategoryID, tenantID).First(&category).Error; err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Kategori tarif tidak valid"})
+			return
+		}
+	}
+
 	rate := models.WaterRate{
 		Amount:         input.Amount,
 		EffectiveDate:  date,
 		Active:         true,
 		SubscriptionID: input.SubscriptionID,
 		TenantID:       tenantID,
+		CategoryID:     input.CategoryID,
+		Description:    input.Description,
 	}
 
 	if err := config.DB.Create(&rate).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat tarif"})
 		return
 	}
+
+	config.DB.Preload("Subscription").Preload("Category").First(&rate, "id = ?", rate.ID)
 
 	helpers.RespondCreated(c, "Tarif air berhasil dibuat", rate)
 }
@@ -69,7 +83,7 @@ func GetWaterRates(c *gin.Context) {
 	}
 
 	var rates []models.WaterRate
-	query := config.DB.Preload("Subscription")
+	query := config.DB.Preload("Subscription").Preload("Category")
 
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
@@ -78,6 +92,14 @@ func GetWaterRates(c *gin.Context) {
 	// Filter by active status if provided
 	if activeParam := c.Query("active"); activeParam != "" {
 		query = query.Where("active = ?", activeParam == "true")
+	}
+
+	if subscriptionID := c.Query("subscription_id"); subscriptionID != "" {
+		query = query.Where("subscription_id = ?", subscriptionID)
+	}
+
+	if categoryID := c.Query("category_id"); categoryID != "" {
+		query = query.Where("category_id = ?", categoryID)
 	}
 
 	if err := query.Order("effective_date DESC").Find(&rates).Error; err != nil {
@@ -108,7 +130,7 @@ func GetWaterRate(c *gin.Context) {
 	}
 
 	var rate models.WaterRate
-	query := config.DB.Preload("Subscription")
+	query := config.DB.Preload("Subscription").Preload("Category")
 
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
@@ -140,7 +162,7 @@ func GetCurrentWaterRate(c *gin.Context) {
 		return
 	}
 
-	query := config.DB.Preload("Subscription").Where("active = ?", true)
+	query := config.DB.Preload("Subscription").Preload("Category").Where("active = ?", true)
 
 	// Filter by tenant if specified
 	if hasSpecificTenant {
@@ -190,6 +212,8 @@ func UpdateWaterRate(c *gin.Context) {
 		Amount        *float64 `json:"amount"`
 		EffectiveDate *string  `json:"effective_date"` // YYYY-MM-DD
 		Active        *bool    `json:"active"`
+		CategoryID    *string  `json:"category_id"`
+		Description   *string  `json:"description"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -228,6 +252,33 @@ func UpdateWaterRate(c *gin.Context) {
 		updates["active"] = *input.Active
 	}
 
+	if input.CategoryID != nil {
+		if *input.CategoryID == "" {
+			rate.CategoryID = nil
+			updates["category_id"] = nil
+		} else {
+			parsedCategoryID, err := uuid.Parse(*input.CategoryID)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Kategori tarif tidak valid"})
+				return
+			}
+
+			var category models.TariffCategory
+			if err := config.DB.Where("id = ? AND tenant_id = ?", parsedCategoryID, tenantID).First(&category).Error; err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Kategori tarif tidak valid"})
+				return
+			}
+
+			rate.CategoryID = &parsedCategoryID
+			updates["category_id"] = parsedCategoryID
+		}
+	}
+
+	if input.Description != nil {
+		rate.Description = *input.Description
+		updates["description"] = *input.Description
+	}
+
 	if len(updates) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Tidak ada perubahan yang dikirim"})
 		return
@@ -237,6 +288,8 @@ func UpdateWaterRate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui tarif"})
 		return
 	}
+
+	config.DB.Preload("Subscription").Preload("Category").First(&rate, "id = ?", rate.ID)
 
 	helpers.RespondSuccess(c, "Tarif air berhasil diperbarui", rate)
 }

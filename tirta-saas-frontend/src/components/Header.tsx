@@ -56,6 +56,11 @@ const Header = ({ onMenuClick }: HeaderProps) => {
         subtitle: 'Status paket, invoice, dan pembayaran tenant.',
       },
       {
+        match: (pathname) => pathname.startsWith('/admin/tariffs'),
+        title: 'Tarif Progresif',
+        subtitle: 'Kelola kategori tarif, tier progresif, dan simulasi tagihan.',
+      },
+      {
         match: (pathname) => pathname.startsWith('/admin/platform/tenants'),
         title: 'Tenant',
         subtitle: 'Kelola tenant dan status organisasi.',
@@ -74,6 +79,11 @@ const Header = ({ onMenuClick }: HeaderProps) => {
         match: (pathname) => pathname.startsWith('/admin/platform/analytics'),
         title: 'Analitik Platform',
         subtitle: 'Pantau performa tenant dan subscription.',
+      },
+      {
+        match: (pathname) => pathname.startsWith('/admin/platform/monitoring'),
+        title: 'Monitoring Platform',
+        subtitle: 'Pantau health, metrik, audit log, dan error log platform.',
       },
       {
         match: (pathname) => pathname.startsWith('/admin/platform/settings'),

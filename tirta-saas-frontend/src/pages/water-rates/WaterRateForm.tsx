@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { waterRateService } from '../../services/waterRateService';
 import { subscriptionService } from '../../services/subscriptionService';
+import tariffService from '../../services/tariffService';
 import type { WaterRateFormData } from '../../types/waterRate';
 import type { SubscriptionType } from '../../types/subscription';
+import type { TariffCategory } from '../../types/tariff';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
 
@@ -16,6 +18,7 @@ export default function WaterRateForm() {
 
   const [loading, setLoading] = useState(false);
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
+  const [tariffCategories, setTariffCategories] = useState<TariffCategory[]>([]);
   const [formData, setFormData] = useState<WaterRateFormData>({
     amount: '',
     effectiveDate: new Date().toISOString().split('T')[0],
@@ -32,6 +35,15 @@ export default function WaterRateForm() {
       setSubscriptionTypes(types);
     } catch  {
       toast.error('Gagal memuat data golongan langganan');
+    }
+  }, [toast]);
+
+  const fetchTariffCategories = useCallback(async () => {
+    try {
+      const categories = await tariffService.getTariffCategories();
+      setTariffCategories(categories.filter((item) => item.is_active));
+    } catch {
+      toast.error('Gagal memuat kategori tarif');
     }
   }, [toast]);
 
@@ -55,10 +67,11 @@ export default function WaterRateForm() {
 
   useEffect(() => {
     void fetchSubscriptionTypes();
+    void fetchTariffCategories();
     if (isEditMode && id) {
       void fetchWaterRate(id);
     }
-  }, [fetchSubscriptionTypes, fetchWaterRate, id, isEditMode]);
+  }, [fetchSubscriptionTypes, fetchTariffCategories, fetchWaterRate, id, isEditMode]);
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof WaterRateFormData, string>> = {};
@@ -238,6 +251,29 @@ export default function WaterRateForm() {
                 )}
                 <p className="mt-1 text-sm text-gray-500">
                   Tanggal saat tarif ini mulai aktif digunakan
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700">
+                  Kategori Tarif Progresif
+                </label>
+                <select
+                  id="categoryId"
+                  name="categoryId"
+                  value={formData.categoryId}
+                  onChange={handleChange}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                >
+                  <option value="">Tanpa kategori progresif</option>
+                  {tariffCategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.code} - {category.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-sm text-gray-500">
+                  Pilih kategori agar tarif dasar ini selaras dengan skema tarif progresif tenant.
                 </p>
               </div>
 

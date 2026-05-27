@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   CheckCircleIcon,
   ExclamationCircleIcon,
@@ -48,10 +48,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast('info', message, duration);
   }, [addToast]);
 
+  const contextValue = useMemo(
+    () => ({ toasts, addToast, removeToast, success, error, warning, info }),
+    [toasts, addToast, removeToast, success, error, warning, info]
+  );
+
   return (
-    <ToastContext.Provider
-      value={{ toasts, addToast, removeToast, success, error, warning, info }}
-    >
+    <ToastContext.Provider value={contextValue}>
       {children}
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </ToastContext.Provider>

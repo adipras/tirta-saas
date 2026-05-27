@@ -138,6 +138,11 @@ export default function WaterRateList() {
       render: (_value: unknown, row: WaterRate) => row.description || '-',
     },
     {
+      key: 'category',
+      label: 'Kategori Progresif',
+      render: (_value: unknown, row: WaterRate) => row.category?.name || '-',
+    },
+    {
       key: 'active',
       label: 'Status',
       render: (_value: unknown, row: WaterRate) => (

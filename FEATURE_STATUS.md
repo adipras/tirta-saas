@@ -130,11 +130,12 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 
 ### 3. Tariff categories / progressive tariff
 - 🟡 Backend `tariff categories`, `progressive rates`, dan simulasi tagihan **sudah ada**
-- 🟡 Belum terlihat page / service frontend untuk fitur ini
+- ✅ Frontend admin kini sudah punya halaman untuk kategori tarif, tier progressive rate, dan simulasi tagihan
+- ✅ Form/list tarif air kini juga sudah menampilkan serta menyimpan relasi kategori tarif progresif agar konfigurasi tarif lebih konsisten end-to-end
 
 ### 4. Monitoring & audit logs
 - 🟡 Endpoint platform untuk audit logs, error logs, system health, dan metrics **sudah ada**
-- 🟡 Belum terlihat UI frontend untuk monitoring ini
+- ✅ Frontend platform kini sudah punya halaman monitoring untuk system health, system metrics, audit logs, dan error logs
 - ✅ Audit middleware global backend kini aktif untuk request autentikasi sensitif (`POST` / `PUT` / `PATCH` / `DELETE`)
 - ✅ Audit domain-level juga sudah diperluas ke auth flow sensitif: admin login, customer login, logout, ganti password customer, dan flow bukti pembayaran (`submit`, `verify`, `reject`)
 
@@ -182,13 +183,13 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 - ✅ Smoke check pasca-deploy kini sudah menjadi bagian workflow deploy dan bootstrap runtime, dan sudah mencakup deep-link publik frontend serta endpoint API publik yang dipakai landing page
 
 ### 3. Observability & incident response
-- 🚧 Endpoint monitoring backend ada, tetapi UI monitoring aplikasi belum ada
+- 🟡 Endpoint monitoring backend kini sudah terhubung ke UI monitoring aplikasi untuk platform owner, tetapi alerting operasional dan runbook insiden masih belum ada
 - 🚧 Belum terlihat alerting operasional yang jelas di repo
 - 🚧 Belum terlihat runbook insiden level aplikasi di repo
 
 ### 4. Product completeness untuk tenant nyata
 - 🚧 Notification delivery nyata belum ada
-- 🚧 Progressive tariff belum wired end-to-end sampai UI
+- ✅ ~~Progressive tariff belum wired end-to-end sampai UI~~ — selesai pada sesi wiring 27 Mei 2026
 - ✅ ~~Service area belum wired end-to-end sampai UI~~ — selesai pada sesi wiring 25 Mei 2026
 - ✅ ~~Customer payment history~~ — sudah selesai (commit `dd2c8d0`)
 - ✅ ~~Customer invoice PDF masih belum lengkap wiring-nya~~ — selesai pada sesi wiring 25 Mei 2026
@@ -302,7 +303,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 
 7. **End-to-end tariff & area management**
    - ✅ ~~frontend service area management~~
-   - frontend tariff category / progressive rate
+   - ✅ ~~frontend tariff category / progressive rate~~
    - validasi dampak ke invoice calculation
 
 8. **Customer portal completeness**
@@ -336,7 +337,9 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Secara produksi, status yang lebih akurat adalah **“functional core is ready, production hardening is still ongoing.”**
 - Pondasi deploy produksi sudah mulai terlihat jelas di repo dan dokumen operasional, tetapi belum cukup kuat untuk disebut fully production-ready tanpa penguatan testing, observability, dan security boundary.
 - Beberapa modul penting masih berada di zona **backend-ready but not fully productized**, terutama notification, monitoring, dan tariff category progresif.
+- Progress produk terbaru: tarif progresif kini sudah wired end-to-end di frontend admin, lengkap dengan kategori tarif, progressive rate tiers, simulasi tagihan, serta relasi kategori pada surface tarif air.
 - Progress produk terbaru: notification template tenant dan manual notification send kini juga sudah tersedia di frontend admin, walau delivery provider email/SMS/WhatsApp masih belum diaktifkan.
+- Progress hardening terbaru: UI monitoring platform kini sudah tersedia untuk health, metrics, audit log, dan error log; backend monitoring juga dirapikan agar uptime runtime dan request success/error rate yang tampil lebih akurat.
 - Progress hardening terbaru: route platform owner sudah dipisahkan dari `AdminOnly`, validasi JWT tenant-scoped diperketat, dan audit middleware backend sudah aktif untuk request sensitif terautentikasi.
 - Progress lanjutan sesi ini: pengecekan role platform-level juga sudah dinormalisasi di controller tenant-user, helper tenant context, query analytics, dan utilitas seeder/platform admin agar akses tanpa `tenant_id` tetap konsisten untuk surface platform.
 - Progress lanjutan terbaru: audit auth flow utama kini sudah tercatat di backend dan boundary JWT tanpa `tenant_id` diketatkan kembali agar hanya berlaku untuk `platform_owner`.

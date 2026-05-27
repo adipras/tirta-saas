@@ -13,41 +13,49 @@ import (
 	"github.com/google/uuid"
 )
 
+func calculatePercentage(part, total int64) float64 {
+	if total <= 0 {
+		return 0
+	}
+
+	return float64(part) / float64(total) * 100
+}
+
 // GetAuditLogs retrieves audit logs with filtering (Platform Owner only)
 func GetAuditLogs(c *gin.Context) {
 	var logs []models.AuditLog
 	query := config.DB.Model(&models.AuditLog{})
-	
+
 	// Apply filters
 	if tenantID := c.Query("tenant_id"); tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	
+
 	if action := c.Query("action"); action != "" {
 		query = query.Where("action = ?", action)
 	}
-	
+
 	if resource := c.Query("resource"); resource != "" {
 		query = query.Where("resource = ?", resource)
 	}
-	
+
 	if level := c.Query("level"); level != "" {
 		query = query.Where("level = ?", level)
 	}
-	
+
 	if userID := c.Query("user_id"); userID != "" {
 		query = query.Where("user_id = ?", userID)
 	}
-	
+
 	// Date range filter
 	if startDate := c.Query("start_date"); startDate != "" {
 		query = query.Where("created_at >= ?", startDate)
 	}
-	
+
 	if endDate := c.Query("end_date"); endDate != "" {
 		query = query.Where("created_at <= ?", endDate)
 	}
-	
+
 	// Pagination
 	page := 1
 	pageSize := 50
@@ -63,22 +71,22 @@ func GetAuditLogs(c *gin.Context) {
 			}
 		}
 	}
-	
+
 	if ps := c.Query("page_size"); ps != "" {
 		var pageSizeNum int
 		if _, err := fmt.Sscanf(ps, "%d", &pageSizeNum); err == nil && pageSizeNum > 0 && pageSizeNum <= 100 {
 			pageSize = pageSizeNum
 		}
 	}
-	
+
 	// Count total
 	var total int64
 	query.Count(&total)
-	
+
 	// Get records
 	offset := (page - 1) * pageSize
 	query = query.Order("created_at DESC").Offset(offset).Limit(pageSize)
-	
+
 	if err := query.Find(&logs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -87,7 +95,7 @@ func GetAuditLogs(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Audit logs retrieved successfully",
@@ -107,25 +115,25 @@ func GetAuditLogs(c *gin.Context) {
 func GetErrorLogs(c *gin.Context) {
 	var logs []models.AuditLog
 	query := config.DB.Model(&models.AuditLog{}).Where("success = ?", false)
-	
+
 	// Apply filters
 	if tenantID := c.Query("tenant_id"); tenantID != "" {
 		query = query.Where("tenant_id = ?", tenantID)
 	}
-	
+
 	if level := c.Query("level"); level != "" {
 		query = query.Where("level = ?", level)
 	}
-	
+
 	// Date range
 	if startDate := c.Query("start_date"); startDate != "" {
 		query = query.Where("created_at >= ?", startDate)
 	}
-	
+
 	if endDate := c.Query("end_date"); endDate != "" {
 		query = query.Where("created_at <= ?", endDate)
 	}
-	
+
 	// Pagination
 	page := 1
 	pageSize := 50
@@ -135,22 +143,22 @@ func GetErrorLogs(c *gin.Context) {
 			page = pageNum
 		}
 	}
-	
+
 	if ps := c.Query("page_size"); ps != "" {
 		var pageSizeNum int
 		if _, err := fmt.Sscanf(ps, "%d", &pageSizeNum); err == nil && pageSizeNum > 0 && pageSizeNum <= 100 {
 			pageSize = pageSizeNum
 		}
 	}
-	
+
 	// Count total
 	var total int64
 	query.Count(&total)
-	
+
 	// Get records
 	offset := (page - 1) * pageSize
 	query = query.Order("created_at DESC").Offset(offset).Limit(pageSize)
-	
+
 	if err := query.Find(&logs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
 			Status:  "error",
@@ -159,7 +167,7 @@ func GetErrorLogs(c *gin.Context) {
 		})
 		return
 	}
-	
+
 	// Get error statistics
 	var errorStats struct {
 		TotalErrors      int64
@@ -171,7 +179,7 @@ func GetErrorLogs(c *gin.Context) {
 			Count    int64
 		}
 	}
-	
+
 	config.DB.Model(&models.AuditLog{}).Where("success = ?", false).Count(&errorStats.TotalErrors)
 	config.DB.Model(&models.AuditLog{}).
 		Where("success = ? AND created_at >= ?", false, time.Now().Add(-24*time.Hour)).
@@ -182,7 +190,7 @@ func GetErrorLogs(c *gin.Context) {
 	config.DB.Model(&models.AuditLog{}).
 		Where("success = ? AND level = ?", false, "CRITICAL").
 		Count(&errorStats.CriticalErrors)
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "Error logs retrieved successfully",
@@ -206,14 +214,14 @@ func GetSystemHealth(c *gin.Context) {
 		"timestamp": time.Now(),
 		"checks":    make(map[string]interface{}),
 	}
-	
+
 	allHealthy := true
-	
+
 	// Database check
 	dbHealth := map[string]interface{}{
 		"status": "healthy",
 	}
-	
+
 	sqlDB, err := config.DB.DB()
 	if err != nil {
 		dbHealth["status"] = "unhealthy"
@@ -233,7 +241,7 @@ func GetSystemHealth(c *gin.Context) {
 		}
 	}
 	health["checks"].(map[string]interface{})["database"] = dbHealth
-	
+
 	// Tenant count check
 	var tenantCount int64
 	if err := config.DB.Model(&models.Tenant{}).Count(&tenantCount).Error; err != nil {
@@ -248,40 +256,47 @@ func GetSystemHealth(c *gin.Context) {
 			"count":  tenantCount,
 		}
 	}
-	
+
 	// Recent errors check
 	var recentErrorCount int64
+	var recentRequestCount int64
 	config.DB.Model(&models.AuditLog{}).
 		Where("success = ? AND created_at >= ?", false, time.Now().Add(-1*time.Hour)).
 		Count(&recentErrorCount)
-	
+	config.DB.Model(&models.AuditLog{}).
+		Where("created_at >= ?", time.Now().Add(-1*time.Hour)).
+		Count(&recentRequestCount)
+
+	errorRatePercent := calculatePercentage(recentErrorCount, recentRequestCount)
+
 	errorHealth := map[string]interface{}{
-		"status":              "healthy",
-		"errors_last_hour":    recentErrorCount,
-		"error_rate_percent":  0.0,
+		"status":             "healthy",
+		"errors_last_hour":   recentErrorCount,
+		"requests_last_hour": recentRequestCount,
+		"error_rate_percent": errorRatePercent,
 	}
-	
-	if recentErrorCount > 100 {
+
+	if recentErrorCount > 100 || errorRatePercent >= 5 {
 		errorHealth["status"] = "warning"
 		errorHealth["message"] = "High error rate detected"
 	}
-	
+
 	health["checks"].(map[string]interface{})["errors"] = errorHealth
-	
+
 	// Set overall status
 	if !allHealthy {
 		health["status"] = "unhealthy"
-	} else if recentErrorCount > 100 {
+	} else if recentErrorCount > 100 || errorRatePercent >= 5 {
 		health["status"] = "degraded"
 	}
-	
+
 	statusCode := http.StatusOK
 	if health["status"] == "unhealthy" {
 		statusCode = http.StatusServiceUnavailable
 	} else if health["status"] == "degraded" {
 		statusCode = http.StatusOK
 	}
-	
+
 	c.JSON(statusCode, health)
 }
 
@@ -289,29 +304,38 @@ func GetSystemHealth(c *gin.Context) {
 func GetSystemMetrics(c *gin.Context) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	
+
 	// Database statistics
-	sqlDB, _ := config.DB.DB()
+	sqlDB, err := config.DB.DB()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
+			Status:  "error",
+			Message: "Failed to read database metrics",
+			Error:   err.Error(),
+		})
+		return
+	}
+
 	dbStats := sqlDB.Stats()
-	
+
 	// Get request statistics from audit logs
 	var totalRequests, successfulRequests, failedRequests int64
 	var avgResponseTime float64
-	
+
 	// Last 24 hours
 	last24h := time.Now().Add(-24 * time.Hour)
 	config.DB.Model(&models.AuditLog{}).
 		Where("created_at >= ?", last24h).
 		Count(&totalRequests)
-	
+
 	config.DB.Model(&models.AuditLog{}).
 		Where("created_at >= ? AND success = ?", last24h, true).
 		Count(&successfulRequests)
-	
+
 	config.DB.Model(&models.AuditLog{}).
 		Where("created_at >= ? AND success = ?", last24h, false).
 		Count(&failedRequests)
-	
+
 	// Average response time
 	var avgDuration struct {
 		Avg float64
@@ -321,19 +345,20 @@ func GetSystemMetrics(c *gin.Context) {
 		Where("created_at >= ?", last24h).
 		Scan(&avgDuration)
 	avgResponseTime = avgDuration.Avg
-	
+
 	// Get active tenants
 	var activeTenants int64
 	config.DB.Model(&models.Tenant{}).Where("status = ?", "ACTIVE").Count(&activeTenants)
-	
+
 	// Get total users and customers
 	var totalUsers, totalCustomers int64
 	config.DB.Model(&models.User{}).Count(&totalUsers)
 	config.DB.Model(&models.Customer{}).Count(&totalCustomers)
-	
-	// Calculate uptime (simplified - would need app start time tracking)
-	uptime := time.Since(time.Now().Add(-24 * time.Hour)) // Placeholder
-	
+
+	uptime := time.Since(startTime)
+	successRate := calculatePercentage(successfulRequests, totalRequests)
+	errorRate := calculatePercentage(failedRequests, totalRequests)
+
 	// Top endpoints by usage
 	type EndpointStat struct {
 		Endpoint string
@@ -348,16 +373,16 @@ func GetSystemMetrics(c *gin.Context) {
 		Order("count DESC").
 		Limit(10).
 		Scan(&topEndpoints)
-	
+
 	metrics := map[string]interface{}{
 		"timestamp": time.Now(),
 		"system": map[string]interface{}{
 			"memory": map[string]interface{}{
-				"alloc_mb":        float64(m.Alloc) / 1024 / 1024,
-				"total_alloc_mb":  float64(m.TotalAlloc) / 1024 / 1024,
-				"sys_mb":          float64(m.Sys) / 1024 / 1024,
-				"num_gc":          m.NumGC,
-				"goroutines":      runtime.NumGoroutine(),
+				"alloc_mb":       float64(m.Alloc) / 1024 / 1024,
+				"total_alloc_mb": float64(m.TotalAlloc) / 1024 / 1024,
+				"sys_mb":         float64(m.Sys) / 1024 / 1024,
+				"num_gc":         m.NumGC,
+				"goroutines":     runtime.NumGoroutine(),
 			},
 			"database": map[string]interface{}{
 				"open_connections": dbStats.OpenConnections,
@@ -369,21 +394,22 @@ func GetSystemMetrics(c *gin.Context) {
 			},
 		},
 		"application": map[string]interface{}{
-			"uptime_hours": uptime.Hours(),
-			"active_tenants": activeTenants,
-			"total_users": totalUsers,
+			"uptime_hours":    uptime.Hours(),
+			"active_tenants":  activeTenants,
+			"total_users":     totalUsers,
 			"total_customers": totalCustomers,
 		},
 		"requests_24h": map[string]interface{}{
 			"total":             totalRequests,
 			"successful":        successfulRequests,
 			"failed":            failedRequests,
-			"success_rate":      float64(successfulRequests) / float64(totalRequests) * 100,
+			"success_rate":      successRate,
+			"error_rate":        errorRate,
 			"avg_response_time": avgResponseTime,
 		},
 		"top_endpoints": topEndpoints,
 	}
-	
+
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
 		Message: "System metrics retrieved successfully",
