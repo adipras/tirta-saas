@@ -100,6 +100,19 @@ func resolveLoginIdentifier(input LoginInput) string {
 	return strings.TrimSpace(input.Email)
 }
 
+func findUserByLoginIdentifier(identifier string) (models.User, error) {
+	var user models.User
+
+	query := config.DB
+	if query.Migrator().HasColumn(&models.User{}, "Username") {
+		err := query.Where("username = ? OR email = ?", identifier, identifier).First(&user).Error
+		return user, err
+	}
+
+	err := query.Where("email = ?", identifier).First(&user).Error
+	return user, err
+}
+
 func setAuditUserContext(c *gin.Context, user models.User) {
 	c.Set("user_id", user.ID)
 	c.Set("role", user.Role)
@@ -137,8 +150,8 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	var user models.User
-	if err := config.DB.Where("username = ? OR email = ?", identifier, identifier).First(&user).Error; err != nil {
+	user, err := findUserByLoginIdentifier(identifier)
+	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Username atau email tidak ditemukan"})
 		return
 	}

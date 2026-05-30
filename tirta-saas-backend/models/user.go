@@ -8,8 +8,8 @@ type User struct {
 	BaseModel
 
 	Name     string  `json:"name"`
-	Username string  `gorm:"type:varchar(100);uniqueIndex;not null" json:"username"`
-	Email    *string `gorm:"type:varchar(191);uniqueIndex" json:"email,omitempty"`
+	Username string  `gorm:"type:varchar(100);not null" json:"username"`
+	Email    *string `gorm:"type:varchar(191)" json:"email,omitempty"`
 	Password string  `json:"-"`
 	Role     string  `gorm:"type:varchar(50);not null" json:"role"`
 

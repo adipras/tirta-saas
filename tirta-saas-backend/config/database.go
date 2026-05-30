@@ -139,10 +139,18 @@ func applyUserSchemaAdjustments() error {
 		return err
 	}
 
-	var users []models.User
-	if err := DB.Unscoped().
-		Where("username IS NULL OR username = ''").
-		Find(&users).Error; err != nil {
+	type legacyUserIdentity struct {
+		ID    string
+		Name  string
+		Email *string
+	}
+
+	var users []legacyUserIdentity
+	if err := DB.Raw(`
+		SELECT id, name, email
+		FROM users
+		WHERE username IS NULL OR TRIM(username) = ''
+	`).Scan(&users).Error; err != nil {
 		return err
 	}
 
@@ -154,32 +162,64 @@ func applyUserSchemaAdjustments() error {
 		if username == "" {
 			username = "user"
 		}
-		username = fmt.Sprintf("%s-%s", username, strings.ToLower(strings.ReplaceAll(user.ID.String()[:8], "-", "")))
+		idSuffix := strings.ToLower(strings.ReplaceAll(user.ID, "-", ""))
+		if len(idSuffix) > 8 {
+			idSuffix = idSuffix[:8]
+		}
+		if idSuffix == "" {
+			idSuffix = "user"
+		}
+		username = fmt.Sprintf("%s-%s", username, idSuffix)
 
-		if err := DB.Model(&models.User{}).
-			Where("id = ?", user.ID).
-			Update("username", username).Error; err != nil {
+		if err := DB.Exec("UPDATE users SET username = ? WHERE id = ?", username, user.ID).Error; err != nil {
 			return err
 		}
+	}
+
+	var remainingBlankUsernames int64
+	if err := DB.Raw(`
+		SELECT COUNT(*)
+		FROM users
+		WHERE username IS NULL OR TRIM(username) = ''
+	`).Scan(&remainingBlankUsernames).Error; err != nil {
+		return err
+	}
+	if remainingBlankUsernames > 0 {
+		return fmt.Errorf("masih ada %d user tanpa username setelah backfill", remainingBlankUsernames)
 	}
 
 	if err := DB.Exec("ALTER TABLE users MODIFY COLUMN username VARCHAR(100) NOT NULL").Error; err != nil {
 		return err
 	}
 
-	if !DB.Migrator().HasIndex(&models.User{}, "idx_users_username") {
-		if err := DB.Migrator().CreateIndex(&models.User{}, "Username"); err != nil {
+	if !hasTableIndex("users", "idx_users_username") {
+		if err := DB.Exec("CREATE UNIQUE INDEX idx_users_username ON users(username)").Error; err != nil {
 			return err
 		}
 	}
 
-	if !DB.Migrator().HasIndex(&models.User{}, "idx_users_email") {
-		if err := DB.Migrator().CreateIndex(&models.User{}, "Email"); err != nil {
+	if !hasTableIndex("users", "idx_users_email") {
+		if err := DB.Exec("CREATE UNIQUE INDEX idx_users_email ON users(email)").Error; err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func hasTableIndex(tableName, indexName string) bool {
+	var count int64
+	if err := DB.Raw(`
+		SELECT COUNT(*)
+		FROM information_schema.statistics
+		WHERE table_schema = DATABASE()
+		  AND table_name = ?
+		  AND index_name = ?
+	`, tableName, indexName).Scan(&count).Error; err != nil {
+		return false
+	}
+
+	return count > 0
 }
 
 func initializeDefaultPermissions(db *gorm.DB) {
