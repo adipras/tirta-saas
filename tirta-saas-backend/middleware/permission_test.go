@@ -97,6 +97,12 @@ func TestRequirePermission(t *testing.T) {
 		expectedBody string
 	}{
 		{
+			name:         "allows meter reader with customer view permission",
+			role:         string(constants.RoleMeterReader),
+			permission:   constants.PermViewCustomers,
+			expectedCode: http.StatusOK,
+		},
+		{
 			name:         "allows finance with matching permission",
 			role:         string(constants.RoleFinance),
 			permission:   constants.PermManagePayments,

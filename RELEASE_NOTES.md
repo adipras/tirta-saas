@@ -1,5 +1,32 @@
 # Release Notes
 
+## v1.0.7 - 2026-05-30
+
+**Tipe rilis:** Patch  
+**Cakupan:** Backend  
+**Tag deploy yang disarankan:** `deploy-be-v1.0.7`  
+**Alternatif bila tetap merilis semua service:** `deploy-all-v1.0.7`
+
+### Ringkasan
+- Memperbaiki `403 Forbidden` pada endpoint daftar pelanggan untuk akun `meter_reader`.
+
+### Akar masalah
+- Seluruh route `/api/customers` masih diproteksi `AdminOnly()`, sehingga role non-admin ditolak meskipun sudah punya permission `view_customers`.
+- Route detail pelanggan juga memakai path tanpa slash awal, sehingga definisinya tidak konsisten dengan pola route Gin yang lain.
+
+### Perubahan teknis
+- Mengganti proteksi route pelanggan dari `AdminOnly()` menjadi `RequirePermission(...)` per aksi.
+- Endpoint baca pelanggan kini memakai `PermViewCustomers`, sedangkan endpoint ubah data tetap memakai `PermManageCustomers`.
+- Membetulkan path route customer detail menjadi `/:id` dan menambah test permission untuk role `meter_reader`.
+
+### Dampak deploy
+- Akun `meter_reader` dan role lain yang memiliki permission lihat pelanggan sekarang bisa membuka daftar pelanggan tanpa eskalasi akses admin.
+- Tidak ada perubahan schema database untuk rilis ini.
+
+### File yang berubah
+- `tirta-saas-backend/routes/customer.go`
+- `tirta-saas-backend/middleware/permission_test.go`
+
 ## v1.0.6 - 2026-05-30
 
 **Tipe rilis:** Patch  
