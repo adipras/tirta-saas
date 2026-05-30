@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/adipras/tirta-saas-backend/constants"
+	"github.com/adipras/tirta-saas-backend/middleware"
 	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -44,6 +45,29 @@ func assertRouteAuthError(t *testing.T, recorder *httptest.ResponseRecorder, exp
 	}
 }
 
+func assertRouteOK(t *testing.T, recorder *httptest.ResponseRecorder) {
+	t.Helper()
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d with body %s", http.StatusOK, recorder.Code, recorder.Body.String())
+	}
+}
+
+func registerAuthorizedTestRoute(router *gin.Engine, method, path string, handlers ...gin.HandlerFunc) {
+	finalHandler := func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	}
+
+	switch method {
+	case http.MethodGet:
+		router.GET(path, append(handlers, finalHandler)...)
+	case http.MethodPost:
+		router.POST(path, append(handlers, finalHandler)...)
+	default:
+		panic("unsupported test method")
+	}
+}
+
 func TestPlatformRoutesRejectTenantAdmin(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	gin.SetMode(gin.TestMode)
@@ -78,7 +102,7 @@ func TestTenantRoutesRejectPlatformOwner(t *testing.T) {
 
 	router.ServeHTTP(recorder, req)
 
-	assertRouteAuthError(t, recorder, http.StatusForbidden, "Akses khusus admin")
+	assertRouteAuthError(t, recorder, http.StatusForbidden, "Access denied. Invalid role")
 }
 
 func TestTenantUserRoutesRejectFinanceRoleManagement(t *testing.T) {
@@ -100,7 +124,7 @@ func TestTenantUserRoutesRejectFinanceRoleManagement(t *testing.T) {
 	assertRouteAuthError(t, recorder, http.StatusForbidden, "Access denied. Invalid role")
 }
 
-func TestReportRoutesRejectFinance(t *testing.T) {
+func TestReportRoutesAllowFinance(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	gin.SetMode(gin.TestMode)
 
@@ -108,7 +132,13 @@ func TestReportRoutesRejectFinance(t *testing.T) {
 	token := issueRouteJWT(t, constants.RoleFinance, &tenantID)
 
 	router := gin.New()
-	ReportRoutes(router)
+	registerAuthorizedTestRoute(
+		router,
+		http.MethodGet,
+		"/api/reports/revenue",
+		middleware.JWTAuthMiddleware(),
+		middleware.RequirePermission(constants.PermViewInvoices, constants.PermViewPayments),
+	)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/reports/revenue", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -116,7 +146,86 @@ func TestReportRoutesRejectFinance(t *testing.T) {
 
 	router.ServeHTTP(recorder, req)
 
-	assertRouteAuthError(t, recorder, http.StatusForbidden, "Akses khusus admin")
+	assertRouteOK(t, recorder)
+}
+
+func TestPaymentProofRoutesAllowFinanceVerification(t *testing.T) {
+	t.Setenv("JWT_SECRET", "test-secret")
+	gin.SetMode(gin.TestMode)
+
+	tenantID := uuid.New()
+	token := issueRouteJWT(t, constants.RoleFinance, &tenantID)
+
+	router := gin.New()
+	registerAuthorizedTestRoute(
+		router,
+		http.MethodPost,
+		"/api/payment-proofs/:id/verify",
+		middleware.JWTAuthMiddleware(),
+		middleware.RequirePermission(constants.PermManagePayments),
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/payment-proofs/123/verify", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	assertRouteOK(t, recorder)
+}
+
+func TestSubscriptionRoutesAllowFinanceRead(t *testing.T) {
+	t.Setenv("JWT_SECRET", "test-secret")
+	gin.SetMode(gin.TestMode)
+
+	tenantID := uuid.New()
+	token := issueRouteJWT(t, constants.RoleFinance, &tenantID)
+
+	router := gin.New()
+	registerAuthorizedTestRoute(
+		router,
+		http.MethodGet,
+		"/api/subscription-types",
+		middleware.JWTAuthMiddleware(),
+		middleware.RequirePermission(
+			constants.PermManageSubscriptions,
+			constants.PermManageCustomers,
+			constants.PermViewCustomers,
+		),
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/subscription-types", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	assertRouteOK(t, recorder)
+}
+
+func TestServiceAreaRoutesAllowServiceRead(t *testing.T) {
+	t.Setenv("JWT_SECRET", "test-secret")
+	gin.SetMode(gin.TestMode)
+
+	tenantID := uuid.New()
+	token := issueRouteJWT(t, constants.RoleService, &tenantID)
+
+	router := gin.New()
+	registerAuthorizedTestRoute(
+		router,
+		http.MethodGet,
+		"/api/service-areas",
+		middleware.JWTAuthMiddleware(),
+		middleware.RequirePermission(constants.PermManageCustomers, constants.PermViewCustomers),
+	)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/service-areas", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	assertRouteOK(t, recorder)
 }
 
 func TestInvoiceRoutesRejectTenantScopedRoleWithoutTenantID(t *testing.T) {

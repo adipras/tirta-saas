@@ -9,20 +9,20 @@ import (
 
 func UserManagementRoutes(r *gin.Engine) {
 	userManagementController := controllers.NewUserManagementController(config.DB)
-	
+
 	api := r.Group("/api/users")
-	api.Use(middleware.JWTAuthMiddleware())
+	api.Use(middleware.JWTAuthMiddleware(), middleware.CheckTenantStatus())
 	{
 		// User profile operations (self-service)
 		api.GET("/profile/:id", userManagementController.GetUserProfile)
 		api.PUT("/profile/:id", userManagementController.UpdateUserProfile)
-		
+
 		// User activity and sessions
 		api.GET("/:id/activity", userManagementController.GetUserActivity)
 		api.POST("/:id/logout-all", userManagementController.LogoutAllSessions)
-		
+
 		// Admin operations
-		api.POST("", middleware.AdminOnly(), userManagementController.CreateUserWithProfile)
-		api.POST("/:id/suspend", middleware.AdminOnly(), userManagementController.SuspendUser)
+		api.POST("", middleware.RequireTenantAdmin(), userManagementController.CreateUserWithProfile)
+		api.POST("/:id/suspend", middleware.RequireTenantAdmin(), userManagementController.SuspendUser)
 	}
 }

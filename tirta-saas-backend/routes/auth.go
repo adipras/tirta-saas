@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/controllers"
 	"github.com/adipras/tirta-saas-backend/middleware"
 	"github.com/gin-gonic/gin"
@@ -16,10 +17,10 @@ func AuthRoutes(r *gin.Engine) {
 
 		// Step-1 of the two-step registration flow: create user account only (no tenant)
 		auth.POST("/register-account", controllers.RegisterAccount)
-		
+
 		// Platform owner registration (requires secret key)
 		auth.POST("/platform-owner/register", controllers.RegisterPlatformOwner)
-		
+
 		// Customer authentication
 		auth.POST("/customer/login", controllers.CustomerLogin)
 	}
@@ -30,10 +31,14 @@ func AuthRoutes(r *gin.Engine) {
 		protectedAuth.POST("/logout", controllers.Logout)
 		protectedAuth.GET("/me", controllers.Me)
 	}
-	
-	// Admin-only endpoint to create customer accounts
+
+	// Customer account creation follows customer-management permissions within a tenant
 	adminAuth := r.Group("/api/auth")
-	adminAuth.Use(middleware.JWTAuthMiddleware(), middleware.AdminOnly())
+	adminAuth.Use(
+		middleware.JWTAuthMiddleware(),
+		middleware.CheckTenantStatus(),
+		middleware.RequirePermission(constants.PermManageCustomers),
+	)
 	{
 		adminAuth.POST("/customer/create", controllers.CreateCustomerAccount)
 	}

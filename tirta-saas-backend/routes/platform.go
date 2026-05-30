@@ -71,8 +71,7 @@ func PlatformRoutes(r *gin.Engine) {
 
 	// Tenant-specific settings routes - requires tenant admin role
 	tenant := r.Group("/api/tenant")
-	tenant.Use(middleware.JWTAuthMiddleware())
-	tenant.Use(middleware.AdminOnly()) // Tenant admins only
+	tenant.Use(middleware.JWTAuthMiddleware(), middleware.CheckTenantStatus(), middleware.RequireTenantAdmin())
 	{
 		// Tenant Settings
 		tenant.GET("/settings", controllers.GetTenantSettings)

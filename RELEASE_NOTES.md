@@ -3,29 +3,54 @@
 ## v1.0.7 - 2026-05-30
 
 **Tipe rilis:** Patch  
-**Cakupan:** Backend  
-**Tag deploy yang disarankan:** `deploy-be-v1.0.7`  
-**Alternatif bila tetap merilis semua service:** `deploy-all-v1.0.7`
+**Cakupan:** Backend + Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.0.7`
 
 ### Ringkasan
 - Memperbaiki `403 Forbidden` pada endpoint daftar pelanggan untuk akun `meter_reader`.
+- Menambahkan akses `meter_reader` ke endpoint tarif air aktif yang dibutuhkan saat mencatat pembacaan meter.
+- Mencegah toast error yang sama muncul terus-menerus saat request gagal dan dicoba ulang berulang kali.
+- Merapikan route backend lain yang masih memakai `AdminOnly()` agar role operasional tenant tidak lagi tertolak pada endpoint yang memang dibutuhkan fiturnya.
 
 ### Akar masalah
 - Seluruh route `/api/customers` masih diproteksi `AdminOnly()`, sehingga role non-admin ditolak meskipun sudah punya permission `view_customers`.
+- Route `/api/water-rates/current` juga masih diproteksi `AdminOnly()`, padahal form pembacaan meter memerlukannya untuk memeriksa tarif aktif pelanggan.
 - Route detail pelanggan juga memakai path tanpa slash awal, sehingga definisinya tidak konsisten dengan pola route Gin yang lain.
+- Provider toast selalu menambahkan notifikasi baru walaupun type dan pesan error-nya identik, sehingga retry otomatis terlihat seperti spam notifikasi.
+- Beberapa route tenant lain seperti laporan, verifikasi pembayaran, golongan langganan, dan area layanan masih mengandalkan `AdminOnly()`, sehingga role seperti `finance` atau `service` bisa kena `403` walaupun permission-nya sebenarnya sesuai.
 
 ### Perubahan teknis
 - Mengganti proteksi route pelanggan dari `AdminOnly()` menjadi `RequirePermission(...)` per aksi.
 - Endpoint baca pelanggan kini memakai `PermViewCustomers`, sedangkan endpoint ubah data tetap memakai `PermManageCustomers`.
+- Mengganti proteksi route tarif air menjadi RBAC per aksi; endpoint `GET /api/water-rates/current` kini bisa diakses role yang memiliki `PermManageWaterRates` atau `PermRecordWaterUsage`.
 - Membetulkan path route customer detail menjadi `/:id` dan menambah test permission untuk role `meter_reader`.
+- Menahan toast duplikat aktif dengan type dan pesan yang sama, serta menyembunyikan CTA ke halaman tarif air untuk role yang memang tidak punya akses kelola tarif.
+- Mengganti `AdminOnly()` pada route laporan, verifikasi payment proof, golongan langganan, area layanan, pembuatan akun pelanggan, pengaturan tenant, manajemen user tenant, dan tarif progresif dengan kombinasi `RequirePermission(...)`, `RequireTenantAdmin()`, dan `CheckTenantStatus()` yang lebih sesuai konteks.
+- Membetulkan path route subscription detail/update/delete menjadi `/:id` agar resolusi route konsisten.
 
 ### Dampak deploy
 - Akun `meter_reader` dan role lain yang memiliki permission lihat pelanggan sekarang bisa membuka daftar pelanggan tanpa eskalasi akses admin.
+- Proses pencatatan meter tidak lagi terblokir oleh `403` saat aplikasi memeriksa tarif air aktif pelanggan.
+- Saat terjadi error berulang, pengguna tetap melihat notifikasi kegagalan tetapi tidak dibanjiri toast yang sama berkali-kali.
+- Role `finance` kini bisa membuka endpoint laporan, verifikasi bukti pembayaran, dan daftar golongan langganan yang dipakai layar operasionalnya; role `service` juga bisa mengambil daftar area layanan saat mengelola pelanggan.
 - Tidak ada perubahan schema database untuk rilis ini.
 
 ### File yang berubah
 - `tirta-saas-backend/routes/customer.go`
+- `tirta-saas-backend/routes/water_rate.go`
+- `tirta-saas-backend/routes/payment_proof.go`
+- `tirta-saas-backend/routes/auth.go`
+- `tirta-saas-backend/routes/platform.go`
+- `tirta-saas-backend/routes/report.go`
+- `tirta-saas-backend/routes/subscription.go`
+- `tirta-saas-backend/routes/tariff.go`
+- `tirta-saas-backend/routes/service_area.go`
+- `tirta-saas-backend/routes/user_management.go`
+- `tirta-saas-backend/routes/user.go`
 - `tirta-saas-backend/middleware/permission_test.go`
+- `tirta-saas-backend/routes/authorization_routes_test.go`
+- `tirta-saas-frontend/src/components/Toast.tsx`
+- `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
 
 ## v1.0.6 - 2026-05-30
 

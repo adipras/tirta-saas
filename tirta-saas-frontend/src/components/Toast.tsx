@@ -20,10 +20,22 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     (type: ToastType, message: string, duration: number = 5000) => {
       const id = Math.random().toString(36).slice(2, 11);
       const newToast: Toast = { id, type, message, duration };
+      let shouldScheduleRemoval = true;
 
-      setToasts((prev) => [...prev, newToast]);
+      setToasts((prev) => {
+        const hasActiveDuplicate = prev.some(
+          (toast) => toast.type === type && toast.message === message
+        );
 
-      if (duration > 0) {
+        if (hasActiveDuplicate) {
+          shouldScheduleRemoval = false;
+          return prev;
+        }
+
+        return [...prev, newToast];
+      });
+
+      if (shouldScheduleRemoval && duration > 0) {
         setTimeout(() => {
           removeToast(id);
         }, duration);

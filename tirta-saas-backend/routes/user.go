@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -22,7 +23,7 @@ func ProtectedRoutes(r *gin.Engine) {
 	})
 
 	// Admin Only route
-	api.GET("/admin-only", middleware.AdminOnly(), func(c *gin.Context) {
+	api.GET("/admin-only", middleware.RequireRole(constants.RoleTenantAdmin), func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "Selamat datang admin!"})
 	})
 }

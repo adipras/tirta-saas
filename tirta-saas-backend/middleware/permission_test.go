@@ -172,6 +172,29 @@ func TestRequirePermission(t *testing.T) {
 	}
 }
 
+func TestRequirePermissionAllowsAnyMatchingPermission(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("role", string(constants.RoleMeterReader))
+		c.Next()
+	})
+	router.Use(RequirePermission(constants.PermManageWaterRates, constants.PermRecordWaterUsage))
+	router.GET("/protected", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/protected", nil)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status %d, got %d", http.StatusOK, recorder.Code)
+	}
+}
+
 func TestRequireTenantUser(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

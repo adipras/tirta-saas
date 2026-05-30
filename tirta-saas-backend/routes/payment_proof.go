@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/controllers"
 	"github.com/adipras/tirta-saas-backend/middleware"
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ func PaymentProofRoutes(r *gin.Engine) {
 	group.GET("/:id", controllers.GetPaymentProof)
 	group.GET("/:id/file/*filename", controllers.DownloadPaymentProofFile)
 
-	// Admin only - verify/reject
-	group.POST("/:id/verify", middleware.AdminOnly(), controllers.VerifyPaymentProof)
-	group.POST("/:id/reject", middleware.AdminOnly(), controllers.RejectPaymentProof)
+	// Payment managers can verify/reject
+	group.POST("/:id/verify", middleware.RequirePermission(constants.PermManagePayments), controllers.VerifyPaymentProof)
+	group.POST("/:id/reject", middleware.RequirePermission(constants.PermManagePayments), controllers.RejectPaymentProof)
 }

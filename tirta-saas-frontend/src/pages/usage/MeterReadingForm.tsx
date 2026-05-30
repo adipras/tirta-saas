@@ -10,11 +10,13 @@ import type { Customer } from '../../types/customer';
 import type { WaterRate } from '../../types/waterRate';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
+import { useAppSelector } from '../../hooks/redux';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
 export default function MeterReadingForm() {
   const navigate = useNavigate();
   const toast = useToast();
+  const userRole = useAppSelector((state) => state.auth.user?.role);
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
 
@@ -34,6 +36,10 @@ export default function MeterReadingForm() {
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof WaterPemakaianFormData, string>>>({});
+  const canManageWaterRates = userRole === 'admin' || userRole === 'platform_owner' || userRole === 'tenant_admin';
+  const inactiveRateGuidance = canManageWaterRates
+    ? 'Tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air.'
+    : 'Hubungi admin tenant untuk menambahkan atau mengaktifkan tarif air pelanggan ini.';
 
   const fetchPelanggan = useCallback(async () => {
     try {
@@ -52,7 +58,7 @@ export default function MeterReadingForm() {
       setRateWarning(
         rate
           ? ''
-          : 'Belum ada tarif air aktif untuk tipe langganan pelanggan ini. Tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air.'
+          : `Belum ada tarif air aktif untuk tipe langganan pelanggan ini. ${inactiveRateGuidance}`
       );
     } catch {
       setActiveRate(null);
@@ -60,7 +66,7 @@ export default function MeterReadingForm() {
     } finally {
       setIsCheckingRate(false);
     }
-  }, []);
+  }, [inactiveRateGuidance]);
 
   const fetchPreviousReading = useCallback(async (customerId: string) => {
     try {
@@ -295,7 +301,7 @@ export default function MeterReadingForm() {
                     )}
                   </div>
 
-                  {!activeRate && !isCheckingRate && !isEditMode && (
+                  {!activeRate && !isCheckingRate && !isEditMode && canManageWaterRates && (
                     <button
                       type="button"
                       onClick={() => navigate('/admin/water-rates')}
