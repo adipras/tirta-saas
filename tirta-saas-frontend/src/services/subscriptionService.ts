@@ -32,7 +32,7 @@ class SubscriptionService {
     });
     
     // Backend returns { status, message, data: {...} }
-    const data = response.data || response;
+    const data = response?.data ?? response ?? [];
     
     // Handle both array response and paginated response
     if (Array.isArray(data)) {
@@ -45,15 +45,21 @@ class SubscriptionService {
       };
     }
     
-    return data;
+    return {
+      data: Array.isArray(data?.data) ? data.data : [],
+      total: Number(data?.total ?? 0),
+      page: Number(data?.page ?? page),
+      limit: Number(data?.limit ?? limit),
+      totalPages: Number(data?.totalPages ?? 0),
+    };
   }
 
   async getAllSubscriptionTypes(): Promise<SubscriptionType[]> {
     const response = await apiClient.get(API_ENDPOINTS.SUBSCRIPTION_TYPES.LIST, {
       params: { limit: 1000 },
     });
-    const data = response.data || response;
-    return Array.isArray(data) ? data : data.data || [];
+    const data = response?.data ?? response ?? [];
+    return Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
   }
 
   async getSubscriptionType(id: string): Promise<SubscriptionType> {

@@ -119,6 +119,8 @@ class ApiClient {
       'invalid role in token',
       'invalid user_id format',
       'invalid tenant_id format',
+      'tenant id wajib untuk role ini',
+      'tenant_id wajib untuk role ini',
     ].some((message) => authErrorMessage.includes(message));
   }
 

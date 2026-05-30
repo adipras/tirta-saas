@@ -1,5 +1,37 @@
 # Release Notes
 
+## v1.0.3 - 2026-05-30
+
+**Tipe rilis:** Patch  
+**Cakupan:** Backend + Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.0.3`  
+**Alternatif minimum:** `deploy-be-v1.0.3`
+
+### Ringkasan
+- Memperbaiki endpoint `GET /api/subscription-types` yang mengembalikan `null` saat tenant belum punya golongan langganan.
+- Mencegah halaman pelanggan, tarif air, dan daftar golongan gagal memproses respons kosong dari server.
+- Menambahkan hardening refresh token di frontend untuk kasus token lama belum membawa `tenant_id` setelah setup tenant.
+
+### Akar masalah
+- Controller list subscription types mengirim slice `nil`, sehingga response JSON menjadi `null` alih-alih array kosong `[]`.
+- Beberapa flow frontend mengharapkan daftar golongan dalam bentuk array, sehingga respons `null` membuat tampilan atau pemrosesan data gagal.
+- Pada sebagian sesi browser, access token lama tanpa `tenant_id` masih bisa dipakai sesaat setelah setup tenant selesai.
+
+### Perubahan teknis
+- Menginisialisasi hasil query dan response list subscription types sebagai slice kosong agar response JSON selalu stabil.
+- Memperkeras `subscriptionService` agar aman menangani respons `null`, array langsung, maupun format paginasi.
+- Memperluas deteksi 401 di `apiClient` agar kasus `Tenant ID wajib untuk role ini` otomatis memicu refresh token.
+
+### Dampak deploy
+- Deploy backend menghilangkan respons `null` dari API `subscription-types`.
+- Deploy frontend memastikan klien lama tetap aman walau backend belum terbarui penuh.
+- Untuk hasil paling aman di production, rilis backend dan frontend bersamaan dengan tag `deploy-all-v1.0.3`.
+
+### File yang berubah
+- `tirta-saas-backend/controllers/subscription_controller.go`
+- `tirta-saas-frontend/src/services/apiClient.ts`
+- `tirta-saas-frontend/src/services/subscriptionService.ts`
+
 ## v1.0.2 - 2026-05-30
 
 **Tipe rilis:** Patch  

@@ -92,7 +92,7 @@ func GetAllSubscriptionTypes(c *gin.Context) {
 		return
 	}
 
-	var subscriptions []models.SubscriptionType
+	subscriptions := make([]models.SubscriptionType, 0)
 	query := config.DB
 	
 	if hasSpecificTenant {
@@ -104,7 +104,7 @@ func GetAllSubscriptionTypes(c *gin.Context) {
 		return
 	}
 
-	var responseList []responses.SubscriptionTypeResponse
+	responseList := make([]responses.SubscriptionTypeResponse, 0, len(subscriptions))
 	for _, sub := range subscriptions {
 		res := responses.SubscriptionTypeResponse{
 			ID:              sub.ID,
