@@ -41,7 +41,7 @@ func AuthRoutes(r *gin.Engine) {
 	// Step-2 of the two-step registration flow: setup tenant after login
 	// Requires JWT auth but does NOT require an existing tenant_id
 	setup := r.Group("/api/setup")
-	setup.Use(middleware.JWTAuthMiddleware())
+	setup.Use(middleware.JWTAuthMiddlewareAllowMissingTenant())
 	{
 		setup.POST("/tenant", controllers.SetupTenant)
 	}

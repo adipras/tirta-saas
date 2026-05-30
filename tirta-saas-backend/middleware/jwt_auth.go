@@ -12,6 +12,14 @@ import (
 )
 
 func JWTAuthMiddleware() gin.HandlerFunc {
+	return jwtAuthMiddleware(false)
+}
+
+func JWTAuthMiddlewareAllowMissingTenant() gin.HandlerFunc {
+	return jwtAuthMiddleware(true)
+}
+
+func jwtAuthMiddleware(allowMissingTenant bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
@@ -84,7 +92,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 				return
 			}
 			tenantID = &tid
-		} else if constants.IsTenantScopedRole(role) {
+		} else if constants.IsTenantScopedRole(role) && !allowMissingTenant {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Tenant ID wajib untuk role ini"})
 			c.Abort()
 			return

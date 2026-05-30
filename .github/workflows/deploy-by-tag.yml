@@ -44,7 +44,7 @@ jobs:
       deploy_ref: ${{ steps.prepare.outputs.deploy_ref }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -209,7 +209,7 @@ jobs:
       NETDATA_HOSTNAME: ${{ vars.RUNTIME_NETDATA_HOSTNAME }}
     steps:
       - name: Checkout repository at deploy ref
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.prepare.outputs.deploy_ref }}
 

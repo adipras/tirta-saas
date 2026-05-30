@@ -107,6 +107,53 @@ func TestJWTAuthMiddleware_RejectsTenantScopedRoleWithoutTenantID(t *testing.T) 
 	}
 }
 
+func TestJWTAuthMiddlewareAllowMissingTenant_AllowsTenantScopedRoleWithoutTenantID(t *testing.T) {
+	t.Setenv("JWT_SECRET", "test-secret")
+	gin.SetMode(gin.TestMode)
+
+	userID := uuid.New()
+	token, err := utils.GenerateJWT(userID, nil, string(constants.RoleTenantAdmin))
+	if err != nil {
+		t.Fatalf("generate token: %v", err)
+	}
+
+	router := gin.New()
+	router.Use(JWTAuthMiddlewareAllowMissingTenant())
+	router.GET("/setup/tenant", func(c *gin.Context) {
+		_, hasTenant := c.Get("tenant_id")
+		c.JSON(http.StatusOK, middlewareResponse{
+			UserID:    c.MustGet("user_id").(uuid.UUID).String(),
+			Role:      c.MustGet("role").(string),
+			HasTenant: hasTenant,
+		})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/setup/tenant", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", recorder.Code)
+	}
+
+	var response middlewareResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+
+	if response.UserID != userID.String() {
+		t.Fatalf("expected user_id %s, got %s", userID.String(), response.UserID)
+	}
+	if response.Role != string(constants.RoleTenantAdmin) {
+		t.Fatalf("expected role %s, got %s", constants.RoleTenantAdmin, response.Role)
+	}
+	if response.HasTenant {
+		t.Fatalf("expected missing tenant_id to remain absent for setup flow")
+	}
+}
+
 func TestCustomerJWTAuthMiddleware_AllowsValidCustomerToken(t *testing.T) {
 	t.Setenv("JWT_SECRET", "test-secret")
 	gin.SetMode(gin.TestMode)
