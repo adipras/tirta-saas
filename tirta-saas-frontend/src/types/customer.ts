@@ -31,7 +31,7 @@ export interface SubscriptionType {
 export interface CreateCustomerDto {
   meter_number: string;
   name: string;
-  email: string;
+  email?: string;
   password: string;
   subscription_id: string;
   service_area_id?: string;

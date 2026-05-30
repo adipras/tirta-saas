@@ -19,7 +19,9 @@ interface PreviewRow {
   meter_number: string;
   address: string;
   phone: string;
+  subscription_id: string;
   email?: string;
+  password?: string;
   is_active?: string;
 }
 
@@ -32,12 +34,12 @@ interface ImportResult {
   durationMs: number;
 }
 
-const CSV_HEADERS = ['name', 'meter_number', 'address', 'phone', 'email', 'is_active'];
-const REQUIRED_HEADERS = ['name', 'meter_number', 'address', 'phone'];
+const CSV_HEADERS = ['name', 'meter_number', 'address', 'phone', 'subscription_id', 'email', 'password', 'is_active'];
+const REQUIRED_HEADERS = ['name', 'meter_number', 'address', 'phone', 'subscription_id'];
 
 const TEMPLATE_ROWS = [
-  { name: 'John Doe', meter_number: 'MTR-001', address: 'Jl. Merdeka No. 1', phone: '081234567890', email: 'john@example.com', is_active: 'true' },
-  { name: 'Jane Smith', meter_number: 'MTR-002', address: 'Jl. Sudirman No. 5', phone: '082345678901', email: '', is_active: 'true' },
+  { name: 'John Doe', meter_number: 'MTR-001', address: 'Jl. Merdeka No. 1', phone: '081234567890', subscription_id: '123e4567-e89b-12d3-a456-426614174000', email: 'john@example.com', password: 'rahasia123', is_active: 'true' },
+  { name: 'Jane Smith', meter_number: 'MTR-002', address: 'Jl. Sudirman No. 5', phone: '082345678901', subscription_id: '123e4567-e89b-12d3-a456-426614174001', email: '', password: '', is_active: 'true' },
 ];
 
 export default function BulkImportPelanggan() {
@@ -246,6 +248,12 @@ export default function BulkImportPelanggan() {
           ))}
         </div>
         <p className="text-xs text-blue-600 mb-3">* Wajib diisi</p>
+        <p className="text-xs text-blue-700 mb-3">
+          Kolom <span className="font-mono">email</span> dan <span className="font-mono">password</span> bersifat opsional. Jika <span className="font-mono">password</span> diisi, pelanggan bisa login memakai nomor meter atau email.
+        </p>
+        <p className="text-xs text-blue-700 mb-3">
+          Kolom <span className="font-mono">subscription_id</span> wajib diisi dengan UUID golongan pelanggan yang valid milik tenant.
+        </p>
         <div className="flex flex-wrap gap-4">
           <button
             onClick={handleDownloadTemplate}
@@ -313,7 +321,7 @@ export default function BulkImportPelanggan() {
             <table className="min-w-full text-sm divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {REQUIRED_HEADERS.concat(['email']).map((h) => (
+                  {['name', 'meter_number', 'subscription_id', 'address', 'phone', 'email'].map((h) => (
                     <th key={h} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
                   ))}
                 </tr>
@@ -323,6 +331,7 @@ export default function BulkImportPelanggan() {
                   <tr key={i} className="hover:bg-gray-50">
                     <td className="px-4 py-2 text-gray-900">{row.name}</td>
                     <td className="px-4 py-2 text-gray-600 font-mono">{row.meter_number}</td>
+                    <td className="px-4 py-2 text-gray-600 font-mono">{row.subscription_id}</td>
                     <td className="px-4 py-2 text-gray-600">{row.address}</td>
                     <td className="px-4 py-2 text-gray-600">{row.phone}</td>
                     <td className="px-4 py-2 text-gray-500">{row.email || '—'}</td>

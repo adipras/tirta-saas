@@ -7,7 +7,11 @@ import type { LoginCredentials } from '../../services/authService';
 
 const CustomerLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState<LoginCredentials>({ email: '', password: '' });
+  const [formData, setFormData] = useState<LoginCredentials>({
+    identifier: '',
+    password: '',
+    portal: 'customer',
+  });
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { isLoading, error } = useAppSelector((state) => state.auth);
@@ -45,18 +49,18 @@ const CustomerLogin = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700">
-                Alamat Email
+              <label htmlFor="identifier" className="mb-1.5 block text-sm font-medium text-gray-700">
+                Nomor Meter atau Email
               </label>
               <input
-                id="email"
-                type="email"
+                id="identifier"
+                type="text"
                 required
-                autoComplete="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                autoComplete="username"
+                value={formData.identifier || ''}
+                onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
                 className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="email@contoh.com"
+                placeholder="Contoh: MTR-001 atau pelanggan@contoh.com"
               />
             </div>
 

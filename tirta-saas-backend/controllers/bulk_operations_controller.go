@@ -82,7 +82,7 @@ func BulkImportCustomers(c *gin.Context) {
 	}
 
 	// Validate headers
-	requiredHeaders := []string{"name", "meter_number", "address", "phone"}
+	requiredHeaders := []string{"name", "meter_number", "address", "phone", "subscription_id"}
 	headerMap := make(map[string]int)
 	for i, header := range headers {
 		headerMap[strings.ToLower(strings.TrimSpace(header))] = i
@@ -126,10 +126,11 @@ func BulkImportCustomers(c *gin.Context) {
 		}
 		address := strings.TrimSpace(record[headerMap["address"]])
 		phone := strings.TrimSpace(record[headerMap["phone"]])
+		subscriptionIDRaw := strings.TrimSpace(record[headerMap["subscription_id"]])
 
 		// Validate required fields
-		if name == "" || meterNumber == "" {
-			errors = append(errors, fmt.Sprintf("Line %d: Missing name or meter number", lineNumber))
+		if name == "" || meterNumber == "" || subscriptionIDRaw == "" {
+			errors = append(errors, fmt.Sprintf("Line %d: Missing name, meter number, or subscription_id", lineNumber))
 			failureCount++
 			continue
 		}
@@ -148,15 +149,52 @@ func BulkImportCustomers(c *gin.Context) {
 			email = strings.TrimSpace(record[idx])
 		}
 
+		password := ""
+		if idx, exists := headerMap["password"]; exists && idx < len(record) {
+			password = strings.TrimSpace(record[idx])
+		}
+
+		if email != "" {
+			var existingCustomerByEmail models.Customer
+			if err := config.DB.Where("tenant_id = ? AND email = ?", tenantID, email).First(&existingCustomerByEmail).Error; err == nil {
+				errors = append(errors, fmt.Sprintf("Line %d: Email '%s' already exists", lineNumber, email))
+				skippedCount++
+				continue
+			}
+		}
+
+		hashedPassword := ""
+		if password != "" {
+			if len(password) < 6 {
+				errors = append(errors, fmt.Sprintf("Line %d: Password minimal 6 karakter", lineNumber))
+				failureCount++
+				continue
+			}
+
+			hashedPassword, err = utils.HashPassword(password)
+			if err != nil {
+				errors = append(errors, fmt.Sprintf("Line %d: Failed to hash password - %s", lineNumber, err.Error()))
+				failureCount++
+				continue
+			}
+		}
+
 		isActive := true
 		if idx, exists := headerMap["is_active"]; exists && idx < len(record) {
 			isActive = strings.ToLower(strings.TrimSpace(record[idx])) == "true"
 		}
 
-		// Get default subscription type for tenant
+		subscriptionID, err := uuid.Parse(subscriptionIDRaw)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Line %d: subscription_id '%s' is not a valid UUID", lineNumber, subscriptionIDRaw))
+			failureCount++
+			continue
+		}
+
+		// Validate subscription type for tenant
 		var subscriptionType models.SubscriptionType
-		if err := config.DB.Where("tenant_id = ?", tenantID).First(&subscriptionType).Error; err != nil {
-			errors = append(errors, fmt.Sprintf("Line %d: No subscription type found for tenant", lineNumber))
+		if err := config.DB.Where("tenant_id = ? AND id = ?", tenantID, subscriptionID).First(&subscriptionType).Error; err != nil {
+			errors = append(errors, fmt.Sprintf("Line %d: subscription_id '%s' not found for tenant", lineNumber, subscriptionIDRaw))
 			failureCount++
 			continue
 		}
@@ -169,6 +207,7 @@ func BulkImportCustomers(c *gin.Context) {
 			Address:        address,
 			Phone:          phone,
 			Email:          email,
+			Password:       hashedPassword,
 			SubscriptionID: subscriptionType.ID,
 			IsActive:       isActive,
 		}

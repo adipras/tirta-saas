@@ -286,7 +286,7 @@ func Me(c *gin.Context) {
 type CreateCustomerAccountInput struct {
 	MeterNumber    string `json:"meter_number" binding:"required"`
 	Name           string `json:"name" binding:"required"`
-	Email          string `json:"email" binding:"required,email"`
+	Email          string `json:"email" binding:"omitempty,email"`
 	Password       string `json:"password" binding:"required,min=6"`
 	Address        string `json:"address"`
 	Phone          string `json:"phone"`
@@ -312,6 +312,7 @@ func CreateCustomerAccount(c *gin.Context) {
 	}
 
 	tenantID := c.MustGet("tenant_id").(uuid.UUID)
+	input.Email = strings.TrimSpace(input.Email)
 
 	// Business rule validations
 	if len(input.MeterNumber) < 3 || len(input.MeterNumber) > 20 {
@@ -332,9 +333,11 @@ func CreateCustomerAccount(c *gin.Context) {
 	}
 
 	// Check if email already exists
-	if err := config.DB.Where("email = ? AND tenant_id = ?", input.Email, tenantID).First(&existingCustomer).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Email sudah digunakan"})
-		return
+	if input.Email != "" {
+		if err := config.DB.Where("email = ? AND tenant_id = ?", input.Email, tenantID).First(&existingCustomer).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email sudah digunakan"})
+			return
+		}
 	}
 
 	subscriptionID, err := uuid.Parse(input.SubscriptionID)
@@ -397,8 +400,24 @@ func CreateCustomerAccount(c *gin.Context) {
 }
 
 type CustomerLoginInput struct {
-	Email    string `json:"email" binding:"required,email"`
+	Identifier string `json:"identifier"`
+	Email      string `json:"email"`
 	Password string `json:"password" binding:"required"`
+}
+
+func resolveCustomerLoginIdentifier(input CustomerLoginInput) string {
+	identifier := strings.TrimSpace(input.Identifier)
+	if identifier != "" {
+		return identifier
+	}
+
+	return strings.TrimSpace(input.Email)
+}
+
+func findCustomerByLoginIdentifier(identifier string) (models.Customer, error) {
+	var customer models.Customer
+	err := config.DB.Where("meter_number = ? OR email = ?", identifier, identifier).First(&customer).Error
+	return customer, err
 }
 
 // CustomerLogin authenticates a customer
@@ -418,37 +437,53 @@ func CustomerLogin(c *gin.Context) {
 		return
 	}
 
-	var customer models.Customer
-	if err := config.DB.Where("email = ?", input.Email).First(&customer).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Email tidak ditemukan"})
+	identifier := resolveCustomerLoginIdentifier(input)
+	if identifier == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nomor meter atau email wajib diisi"})
+		return
+	}
+
+	customer, err := findCustomerByLoginIdentifier(identifier)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Nomor meter atau email tidak ditemukan"})
 		return
 	}
 	setAuditCustomerContext(c, customer)
 
+	if strings.TrimSpace(customer.Password) == "" {
+		audit.LogLogin(c, "customer", identifier, false, "password not configured")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Akun pelanggan belum memiliki kata sandi. Hubungi admin."})
+		return
+	}
+
 	if !utils.CheckPasswordHash(input.Password, customer.Password) {
-		audit.LogLogin(c, "customer", input.Email, false, "invalid password")
+		audit.LogLogin(c, "customer", identifier, false, "invalid password")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Password salah"})
 		return
 	}
 
 	if !customer.IsActive {
-		audit.LogLogin(c, "customer", input.Email, false, "customer inactive")
+		audit.LogLogin(c, "customer", identifier, false, "customer inactive")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Akun belum aktif. Silakan lakukan pembayaran pendaftaran terlebih dahulu"})
 		return
 	}
 
 	token, err := utils.GenerateCustomerJWT(customer.ID, customer.TenantID)
 	if err != nil {
-		audit.LogLogin(c, "customer", input.Email, false, "token generation failed")
+		audit.LogLogin(c, "customer", identifier, false, "token generation failed")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat token"})
 		return
 	}
 
-	audit.LogLogin(c, "customer", input.Email, true, "")
+	audit.LogLogin(c, "customer", identifier, true, "")
 	c.JSON(http.StatusOK, gin.H{
 		"token":        token,
+		"id":           customer.ID,
 		"meter_number": customer.MeterNumber,
+		"email":        customer.Email,
 		"name":         customer.Name,
+		"role":         string(constants.RoleCustomer),
+		"tenant_id":    customer.TenantID,
 	})
 }
 

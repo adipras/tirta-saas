@@ -1,5 +1,47 @@
 # Release Notes
 
+## v1.0.4 - 2026-05-30
+
+**Tipe rilis:** Patch  
+**Cakupan:** Backend + Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.0.4`  
+**Alternatif minimum:** `deploy-be-v1.0.4`
+
+### Ringkasan
+- Menyamakan flow tambah pelanggan, bulk import pelanggan, dan login pelanggan agar identitas akun tidak lagi bergantung pada email saja.
+- Menjadikan email pelanggan opsional pada pembuatan akun manual.
+- Menambahkan dukungan login pelanggan menggunakan nomor meter atau email.
+- Menambahkan kolom wajib `subscription_id` pada bulk import agar golongan pelanggan ditentukan eksplisit per baris.
+
+### Akar masalah
+- Form tambah pelanggan masih mewajibkan email, padahal identitas yang paling stabil di domain pelanggan adalah `meter_number`.
+- Bulk import sebelumnya tidak membawa password maupun golongan pelanggan per baris, sehingga akun hasil import sulit dipakai login dan golongan bisa tidak sesuai.
+- Login pelanggan sebelumnya hanya mencari berdasarkan email dan frontend belum mengarah ke endpoint auth customer yang tepat.
+
+### Perubahan teknis
+- Backend create customer dan create customer account kini menerima email opsional, tetapi tetap memvalidasi unik jika email diisi.
+- Backend login pelanggan kini menerima `identifier` dan bisa mencari customer dengan `meter_number` atau `email`.
+- Backend bulk import kini mewajibkan `subscription_id`, memvalidasi UUID-nya, dan memastikan golongan tersebut milik tenant.
+- Frontend form pelanggan, login pelanggan, dan template bulk import diselaraskan dengan aturan baru.
+
+### Dampak deploy
+- Admin bisa membuat pelanggan tanpa email selama password diisi.
+- Pelanggan bisa login dengan nomor meter + password, atau email + password jika email tersedia.
+- File bulk import lama tanpa kolom `subscription_id` perlu diperbarui sebelum dipakai lagi.
+- Untuk hasil konsisten di production, rilis backend dan frontend bersamaan dengan tag `deploy-all-v1.0.4`.
+
+### File yang berubah
+- `tirta-saas-backend/controllers/auth_controller.go`
+- `tirta-saas-backend/controllers/bulk_operations_controller.go`
+- `tirta-saas-backend/controllers/customer_controller.go`
+- `tirta-saas-backend/requests/customer_requests.go`
+- `tirta-saas-frontend/src/constants/api.ts`
+- `tirta-saas-frontend/src/pages/customer/CustomerLogin.tsx`
+- `tirta-saas-frontend/src/pages/customers/BulkImportCustomers.tsx`
+- `tirta-saas-frontend/src/pages/customers/CustomerForm.tsx`
+- `tirta-saas-frontend/src/services/authService.ts`
+- `tirta-saas-frontend/src/types/customer.ts`
+
 ## v1.0.3 - 2026-05-30
 
 **Tipe rilis:** Patch  

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
@@ -73,6 +74,12 @@ func CreateCustomer(c *gin.Context) {
 		return
 	}
 
+	req.MeterNumber = strings.TrimSpace(req.MeterNumber)
+	req.Name = strings.TrimSpace(req.Name)
+	req.Email = strings.TrimSpace(req.Email)
+	req.Phone = strings.TrimSpace(req.Phone)
+	req.Address = strings.TrimSpace(req.Address)
+
 	tenantID, err := helpers.RequireTenantID(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -84,6 +91,19 @@ func CreateCustomer(c *gin.Context) {
 	if err := config.DB.Where("id = ? AND tenant_id = ?", req.SubscriptionID, tenantID).First(&subType).Error; err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Subscription type not found"})
 		return
+	}
+
+	var existingCustomer models.Customer
+	if err := config.DB.Where("tenant_id = ? AND meter_number = ?", tenantID, req.MeterNumber).First(&existingCustomer).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Nomor meter sudah digunakan"})
+		return
+	}
+
+	if req.Email != "" {
+		if err := config.DB.Where("tenant_id = ? AND email = ?", tenantID, req.Email).First(&existingCustomer).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email sudah digunakan"})
+			return
+		}
 	}
 
 	// Hash password

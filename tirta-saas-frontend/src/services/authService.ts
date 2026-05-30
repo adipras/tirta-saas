@@ -5,6 +5,7 @@ export interface LoginCredentials {
   identifier?: string;
   email?: string;
   password: string;
+  portal?: 'admin' | 'customer';
 }
 
 export interface AuthResponse {
@@ -33,11 +34,15 @@ class AuthService {
 
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, {
+      const isCustomerPortal = credentials.portal === 'customer';
+      const response = await apiClient.post(
+        isCustomerPortal ? API_ENDPOINTS.AUTH.CUSTOMER_LOGIN : API_ENDPOINTS.AUTH.LOGIN,
+        {
         identifier: credentials.identifier,
         email: credentials.email,
         password: credentials.password,
-      });
+        }
+      );
       
       // Handle different response formats
       const authData: AuthResponse = {
@@ -45,10 +50,15 @@ class AuthService {
         refreshToken: response.refreshToken || response.refresh_token || '',
         user: response.user || {
           id: response.id || response.userId || '',
-          username: response.username || credentials.identifier || credentials.email || '',
+          username:
+            response.username ||
+            response.meter_number ||
+            credentials.identifier ||
+            credentials.email ||
+            '',
           email: response.email || '',
           name: response.name || response.username || 'Pengguna',
-          role: response.role || 'admin',
+          role: response.role || (isCustomerPortal ? 'customer' : 'admin'),
           tenant_id: response.tenant_id || response.tenantId,
           tenant_name: response.tenant_name || null,
           tenant_logo_url: response.tenant_logo_url || null,
@@ -62,7 +72,11 @@ class AuthService {
       
       return authData;
     } catch {
-      throw new Error('Login gagal. Periksa kembali username/email dan kata sandi Anda.');
+      throw new Error(
+        credentials.portal === 'customer'
+          ? 'Login pelanggan gagal. Periksa kembali nomor meter/email dan kata sandi Anda.'
+          : 'Login gagal. Periksa kembali username/email dan kata sandi Anda.'
+      );
     }
   }
 

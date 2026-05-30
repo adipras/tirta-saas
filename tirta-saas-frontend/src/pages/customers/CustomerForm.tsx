@@ -12,7 +12,7 @@ import { useToast } from '../../components';
 interface CustomerFormData {
   meter_number: string;
   name: string;
-  email: string;
+  email?: string;
   password: string;
   subscription_id: string;
   service_area_id?: string;
@@ -58,7 +58,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
       reset({
         meter_number: customer.meter_number,
         name: customer.name,
-        email: customer.email,
+        email: customer.email || '',
         password: '', // Cannot edit password
         subscription_id: customer.subscription_id,
         service_area_id: customer.service_area_id || '',
@@ -97,6 +97,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
       if (mode === 'create') {
         await customerService.createCustomer({
           ...data,
+          email: data.email?.trim() || undefined,
           service_area_id: data.service_area_id || undefined,
         } as CreateCustomerDto);
         toast.success('Pelanggan berhasil ditambahkan');
@@ -183,15 +184,14 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                   {/* Email */}
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                      Alamat Email *
+                      Alamat Email
                     </label>
                     <input
-                      {...register('email', { 
-                        required: 'Email wajib diisi',
-                        pattern: {
-                          value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                          message: 'Alamat email tidak valid'
-                        }
+                      {...register('email', {
+                         validate: (value) =>
+                           !value ||
+                           /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value) ||
+                           'Alamat email tidak valid',
                       })}
                       type="email"
                       id="email"
@@ -202,6 +202,9 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                     {errors.email && (
                       <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
                     )}
+                    <p className="mt-2 text-sm text-gray-500">
+                      Opsional. Jika kosong, pelanggan tetap bisa login memakai nomor meter.
+                    </p>
                   </div>
 
                   {/* Password (Create mode only) */}
@@ -227,7 +230,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                         <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>
                       )}
                       <p className="mt-2 text-sm text-gray-500">
-                        Pelanggan akan menggunakan kata sandi ini untuk masuk
+                        Pelanggan akan menggunakan kata sandi ini untuk masuk dengan nomor meter atau email.
                       </p>
                     </div>
                   )}
