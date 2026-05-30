@@ -50,7 +50,7 @@ describe('CustomerLogin', () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByLabelText('Alamat Email'), {
+    fireEvent.change(screen.getByLabelText('Nomor Meter atau Email'), {
       target: { value: 'customer@contoh.com' },
     });
     fireEvent.change(screen.getByLabelText('Kata Sandi'), {
@@ -74,7 +74,7 @@ describe('CustomerLogin', () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByLabelText('Alamat Email'), {
+    fireEvent.change(screen.getByLabelText('Nomor Meter atau Email'), {
       target: { value: 'customer@contoh.com' },
     });
     fireEvent.change(screen.getByLabelText('Kata Sandi'), {

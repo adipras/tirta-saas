@@ -1,5 +1,28 @@
 # Release Notes
 
+## v1.0.5 - 2026-05-30
+
+**Tipe rilis:** Patch  
+**Cakupan:** Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.0.5`
+
+### Ringkasan
+- Menyesuaikan test frontend portal pelanggan setelah label field login diubah menjadi **Nomor Meter atau Email**.
+
+### Akar masalah
+- Perubahan UI login pelanggan pada rilis sebelumnya sudah benar, tetapi test Vitest masih mencari label lama **Alamat Email**.
+- Akibatnya workflow validate frontend gagal meskipun implementasi aplikasi sudah sesuai.
+
+### Perubahan teknis
+- Mengupdate `CustomerLogin.test.tsx` agar memakai label login pelanggan yang baru.
+
+### Dampak deploy
+- Workflow validate frontend kembali hijau.
+- Tidak ada perubahan perilaku runtime aplikasi.
+
+### File yang berubah
+- `tirta-saas-frontend/src/pages/customer/CustomerLogin.test.tsx`
+
 ## v1.0.4 - 2026-05-30
 
 **Tipe rilis:** Patch  
