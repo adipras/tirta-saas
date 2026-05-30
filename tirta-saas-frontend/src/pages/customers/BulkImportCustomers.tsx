@@ -175,7 +175,7 @@ export default function BulkImportPelanggan() {
   };
 
   const handleDownloadTemplate = () => {
-    exportToCSV(TEMPLATE_ROWS, 'template_pelanggan.csv');
+    exportToCSV(TEMPLATE_ROWS, 'template_pelanggan.csv', CSV_HEADERS);
   };
 
   const handleDownloadExcelTemplate = () => {

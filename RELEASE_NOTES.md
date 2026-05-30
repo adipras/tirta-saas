@@ -1,5 +1,30 @@
 # Release Notes
 
+## v1.0.6 - 2026-05-30
+
+**Tipe rilis:** Patch  
+**Cakupan:** Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.0.6`
+
+### Ringkasan
+- Memperbaiki download template import pelanggan agar kolom `subscription_id` benar-benar ikut muncul di file CSV.
+
+### Akar masalah
+- Halaman bulk import pelanggan sudah memakai daftar header baru, tetapi generator CSV masih mengambil header dari `Object.keys()` sample row.
+- Akibatnya hasil download template tidak selalu memaksa urutan dan daftar kolom resmi yang dibutuhkan untuk import.
+
+### Perubahan teknis
+- Menambahkan dukungan header eksplisit pada helper `exportToCSV`.
+- Mengubah download template pelanggan agar selalu memakai `CSV_HEADERS`, termasuk `subscription_id`.
+
+### Dampak deploy
+- Template CSV pelanggan yang diunduh dari UI sekarang konsisten dengan validasi import terbaru.
+- Tidak ada perubahan pada API backend.
+
+### File yang berubah
+- `tirta-saas-frontend/src/pages/customers/BulkImportCustomers.tsx`
+- `tirta-saas-frontend/src/utils/exportUtils.ts`
+
 ## v1.0.5 - 2026-05-30
 
 **Tipe rilis:** Patch  

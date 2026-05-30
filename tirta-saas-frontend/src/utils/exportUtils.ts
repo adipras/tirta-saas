@@ -5,13 +5,13 @@ export type ExportRow = Record<string, string | number | boolean | null | undefi
 /**
  * Export data to CSV and trigger browser download.
  */
-export function exportToCSV(data: ExportRow[], filename: string): void {
+export function exportToCSV(data: ExportRow[], filename: string, headers?: string[]): void {
   if (!data.length) return;
-  const headers = Object.keys(data[0]);
+  const normalizedHeaders = headers?.length ? headers : Object.keys(data[0]);
   const csvRows = [
-    headers.join(','),
+    normalizedHeaders.join(','),
     ...data.map((row) =>
-      headers
+      normalizedHeaders
         .map((h) => {
           const val = row[h] ?? '';
           const str = String(val);
