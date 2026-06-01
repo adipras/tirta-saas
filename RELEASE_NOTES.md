@@ -60,6 +60,26 @@
 - Pemakaian historis tercatat per-meter, memudahkan analisis penggunaan per koneksi air.
 - Tidak ada perubahan schema database untuk rilis ini (field `meter_id` pada tabel `water_usages` sudah ada sejak fase 2; field `subscription_type_id` pada tabel `meters` sudah ada sejak awal).
 
+### UI Manajemen Meter per Pelanggan
+Menambahkan antarmuka lengkap untuk mengelola meter pada halaman detail pelanggan:
+- **Komponen baru:**
+  - `CustomerMetersSection`: Tab/section yang menampilkan daftar semua meter untuk pelanggan
+  - `MeterForm`: Form untuk menambah dan mengedit meter (meter number, brand, model, tanggal instalasi, initial reading, subscription type override, status)
+- **Fitur:**
+  - List meter dengan detail: nomor meter, merek/model, initial reading (m³), status, tanggal instalasi, subscription type
+  - Tombol "Tambah Meter" untuk membuat meter baru
+  - Edit meter dengan form pre-populate data
+  - Delete meter dengan confirmation modal
+  - Status management: active, inactive, broken, replaced (dengan warning jika non-active)
+  - Subscription type override per meter untuk tarif khusus
+  - Loading state dan error handling
+  - Integrasi penuh dengan `meterService` yang sudah ada
+
+**Frontend:**
+- `tirta-saas-frontend/src/pages/customers/CustomerMetersSection.tsx` *(baru)*
+- `tirta-saas-frontend/src/pages/customers/MeterForm.tsx` *(baru)*
+- `tirta-saas-frontend/src/pages/customers/CustomerDetails.tsx` *(updated untuk include CustomerMetersSection)*
+
 ### File yang berubah
 - `tirta-saas-backend/controllers/water_usage_controller.go`
 - `tirta-saas-backend/controllers/bulk_operations_controller.go`
@@ -68,6 +88,9 @@
 - `tirta-saas-frontend/src/types/usage.ts`
 - `tirta-saas-frontend/src/services/usageService.ts`
 - `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
+- `tirta-saas-frontend/src/pages/customers/CustomerMetersSection.tsx` *(baru)*
+- `tirta-saas-frontend/src/pages/customers/MeterForm.tsx` *(baru)*
+- `tirta-saas-frontend/src/pages/customers/CustomerDetails.tsx` *(updated)*
 - `test-multi-meter.sh` *(dokumentasi scenario)*
 - `FEATURE_STATUS.md` *(updated)*
 

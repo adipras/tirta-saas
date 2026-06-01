@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -158,19 +159,16 @@ func CreateCustomer(c *gin.Context) {
 	invoice := models.Invoice{
 		InvoiceNumber: invoiceNumber,
 		CustomerID:    customer.ID,
-		UsageMonth:    "", // Kosong karena ini bukan invoice pemakaian
-		UsageM3:       0,
-		Abonemen:      0,
-		PricePerM3:    0,
-		TotalAmount:   subType.RegistrationFee,
-		IsPaid:        false,
-		TotalPaid:     0,
-		Type:          "registration",
 		TenantID:      tenantID,
+		Type:          "registration",
+		TotalAmount:   subType.RegistrationFee,
+		SubTotal:      subType.RegistrationFee,
+		Abonemen:      subType.RegistrationFee,
+		IsPaid:        false,
 	}
 	if err := tx.Create(&invoice).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create registration invoice"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create registration invoice: %v", err)})
 		return
 	}
 
