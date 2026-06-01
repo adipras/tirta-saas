@@ -2,7 +2,7 @@
 
 _Dokumen ini menggambarkan kondisi aktual repo saat ini dan mengarah ke kesiapan produksi, bukan sekadar checklist MVP._
 
-**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 27 Mei 2026
+**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 1 Juni 2026
 
 ---
 
@@ -46,6 +46,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Water rate CRUD
 - ✅ Rate history
 - ✅ Water usage CRUD
+- ✅ Water usage multi-meter support — backend dan frontend kini mendukung customer dengan multiple meter, termasuk auto-detection active meter dan fallback ke customer's subscription rate jika meter belum punya tarif khusus
 - ✅ Riwayat pemakaian per customer
 - ✅ Bulk generate invoice
 - ✅ Invoice CRUD + detail
@@ -60,7 +61,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Bulk import customer dari **CSV** dengan template, preview, validasi header, dan error result
 - ✅ Bulk import customer dari **Excel (.xlsx)** — parse di frontend, dikirim ke backend sebagai CSV
 - ✅ Bulk import water usage dari form tabel + paste data tab-separated ke endpoint bulk import
-- ✅ Bulk import water usage dari **Excel (.xlsx)** — parse di frontend, populate rows untuk review sebelum submit
+- ✅ Bulk import water usage dari **Excel (.xlsx)** — parse di frontend, populate rows untuk review sebelum submit; backend sekarang juga meter-aware untuk multi-meter customers
 - ✅ Export **CSV** dan **Excel (.xlsx)** di semua halaman report utama
 - ✅ Export customer CSV endpoint tersedia di backend
 - ✅ Template Excel download tersedia untuk bulk import (customer dan water usage)
@@ -239,6 +240,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - ✅ Tenant user CRUD
 - ✅ Customer list/detail/create/activation
 - ✅ Water usage list/create/update
+- ✅ Water usage multi-meter — Android app kini juga menerima meter_id optional untuk customer dengan multiple meter
 - ✅ Offline draft water usage + sync queue + retry worker
 - ✅ Filter customer by service area / route
 - ✅ Upload foto meter

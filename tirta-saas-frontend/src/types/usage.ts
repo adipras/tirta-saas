@@ -27,6 +27,7 @@ export interface WaterPemakaian {
 
 export interface CreateWaterPemakaianDto {
   customerId: string;
+  meterId?: string;
   usageMonth: string;
   meterEnd: number;
   notes?: string;
@@ -39,6 +40,7 @@ export interface UpdateWaterPemakaianDto {
 
 export interface WaterPemakaianFormData {
   customerId: string;
+  meterId?: string;
   usageMonth: string;
   meterEnd: string;
   notes: string;

@@ -539,18 +539,26 @@ func BulkImportWaterUsage(c *gin.Context) {
 			continue
 		}
 
+		// Cari meter aktif pelanggan untuk bulk import
+		var bulkMeter models.Meter
+		hasBulkMeter := false
+		if err := config.DB.
+			Where("customer_id = ? AND tenant_id = ? AND status = ?", customer.ID, tenantID, "active").
+			Order("created_at ASC").
+			First(&bulkMeter).Error; err == nil {
+			hasBulkMeter = true
+		}
+
 		var lastUsage models.WaterUsage
 		meterStart := 0.0
-		if err := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ?", customer.ID, prevMonthStr, tenantID).First(&lastUsage).Error; err == nil {
+		lastUsageQ := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ?", customer.ID, prevMonthStr, tenantID)
+		if hasBulkMeter {
+			lastUsageQ = lastUsageQ.Where("meter_id = ? OR meter_id IS NULL", bulkMeter.ID)
+		}
+		if err := lastUsageQ.First(&lastUsage).Error; err == nil {
 			meterStart = lastUsage.MeterEnd
-		} else {
-			// Tidak ada data bulan sebelumnya — pakai InitialReading meter aktif pelanggan
-			var activeMeter models.Meter
-			if err := config.DB.
-				Where("customer_id = ? AND tenant_id = ? AND status = ?", customer.ID, tenantID, "active").
-				First(&activeMeter).Error; err == nil && activeMeter.InitialReading > 0 {
-				meterStart = activeMeter.InitialReading
-			}
+		} else if hasBulkMeter && bulkMeter.InitialReading > 0 {
+			meterStart = bulkMeter.InitialReading
 		}
 
 		if rec.MeterEnd < meterStart {
@@ -559,9 +567,15 @@ func BulkImportWaterUsage(c *gin.Context) {
 			continue
 		}
 
+		// Tentukan subscription_id untuk tarif: dari meter atau dari customer
+		subscriptionIDForRate := customer.SubscriptionID
+		if hasBulkMeter && bulkMeter.SubscriptionTypeID != nil {
+			subscriptionIDForRate = *bulkMeter.SubscriptionTypeID
+		}
+
 		var rate models.WaterRate
 		if err := config.DB.
-			Where("subscription_id = ? AND active = ? AND tenant_id = ?", customer.SubscriptionID, true, tenantID).
+			Where("subscription_id = ? AND active = ? AND tenant_id = ?", subscriptionIDForRate, true, tenantID).
 			Order("effective_date DESC").
 			First(&rate).Error; err != nil {
 			errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Tarif air aktif tidak ditemukan"})
@@ -581,8 +595,16 @@ func BulkImportWaterUsage(c *gin.Context) {
 			continue
 		}
 
+		// Tentukan meter_id yang akan disimpan
+		var bulkMeterID *uuid.UUID
+		if hasBulkMeter {
+			id := bulkMeter.ID
+			bulkMeterID = &id
+		}
+
 		usage := models.WaterUsage{
 			CustomerID:       customer.ID,
+			MeterID:          bulkMeterID,
 			UsageMonth:       req.UsageMonth,
 			MeterStart:       meterStart,
 			MeterEnd:         rec.MeterEnd,

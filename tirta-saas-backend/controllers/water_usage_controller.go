@@ -65,27 +65,6 @@ func CreateWaterUsage(c *gin.Context) {
 	prevMonth = prevMonth.AddDate(0, -1, 0)
 	prevMonthStr := prevMonth.Format("2006-01")
 
-	// Ambil meter_end bulan sebelumnya; fallback ke InitialReading meter aktif
-	var lastUsage models.WaterUsage
-	meterStart := 0.0
-	if err := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ?", req.CustomerID, prevMonthStr, tenantID).
-		First(&lastUsage).Error; err == nil {
-		meterStart = lastUsage.MeterEnd
-	} else {
-		// Tidak ada data bulan sebelumnya — pakai InitialReading meter aktif pelanggan
-		var activeMeter models.Meter
-		if err := config.DB.
-			Where("customer_id = ? AND tenant_id = ? AND status = ?", req.CustomerID, tenantID, "active").
-			First(&activeMeter).Error; err == nil && activeMeter.InitialReading > 0 {
-			meterStart = activeMeter.InitialReading
-		}
-	}
-
-	if req.MeterEnd < meterStart {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Meter akhir lebih kecil dari meter sebelumnya"})
-		return
-	}
-
 	// Ambil data customer
 	var customer models.Customer
 	if err := config.DB.Where("id = ? AND tenant_id = ?", req.CustomerID, tenantID).First(&customer).Error; err != nil {
@@ -93,27 +72,33 @@ func CreateWaterUsage(c *gin.Context) {
 		return
 	}
 
-	// Ambil tarif aktif untuk subscription pelanggan
-	var rate models.WaterRate
-	if err := config.DB.
-		Where("subscription_id = ? AND active = ? AND tenant_id = ?", customer.SubscriptionID, true, tenantID).
-		Order("effective_date DESC").
-		First(&rate).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan untuk tipe langganan pelanggan ini. Silakan tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air."})
-		return
+	// Tentukan meter yang dipakai: dari req.MeterID, atau meter aktif pertama pelanggan
+	var activeMeter models.Meter
+	if req.MeterID != nil {
+		if err := config.DB.Where("id = ? AND customer_id = ? AND tenant_id = ?", *req.MeterID, req.CustomerID, tenantID).First(&activeMeter).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Meter tidak ditemukan"})
+			return
+		}
+	} else {
+		config.DB.Where("customer_id = ? AND tenant_id = ? AND status = ?", req.CustomerID, tenantID, "active").
+			Order("created_at ASC").First(&activeMeter)
 	}
 
-	UsageM3 := req.MeterEnd - meterStart
+	meterIDForQuery := req.MeterID
 
-	// Business rule validation: Check reasonable usage amount
-	if UsageM3 < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Pemakaian terhitung tidak boleh bernilai negatif"})
-		return
+	// Ambil meter_end bulan sebelumnya; fallback ke InitialReading meter
+	var lastUsage models.WaterUsage
+	meterStart := 0.0
+	lastUsageQuery := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ?", req.CustomerID, prevMonthStr, tenantID)
+	if meterIDForQuery != nil {
+		lastUsageQuery = lastUsageQuery.Where("meter_id = ?", *meterIDForQuery)
+	} else if activeMeter.ID != uuid.Nil {
+		lastUsageQuery = lastUsageQuery.Where("meter_id = ? OR meter_id IS NULL", activeMeter.ID)
 	}
-
-	if UsageM3 > 1000 { // Max 1000 m3 per month seems reasonable
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Jumlah pemakaian melebihi batas wajar (1000 m3/bulan)"})
-		return
+	if err := lastUsageQuery.First(&lastUsage).Error; err == nil {
+		meterStart = lastUsage.MeterEnd
+	} else if activeMeter.ID != uuid.Nil && activeMeter.InitialReading > 0 {
+		meterStart = activeMeter.InitialReading
 	}
 
 	// If client provided an ID, check for existing record to ensure idempotency
@@ -138,6 +123,40 @@ func CreateWaterUsage(c *gin.Context) {
 		}
 	}
 
+	if req.MeterEnd < meterStart {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Meter akhir lebih kecil dari meter sebelumnya"})
+		return
+	}
+
+	UsageM3 := req.MeterEnd - meterStart
+
+	// Business rule validation: Check reasonable usage amount
+	if UsageM3 < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Pemakaian terhitung tidak boleh bernilai negatif"})
+		return
+	}
+
+	if UsageM3 > 1000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Jumlah pemakaian melebihi batas wajar (1000 m3/bulan)"})
+		return
+	}
+
+	// Tentukan subscription_id untuk tarif: dari meter (jika ada) atau dari customer
+	subscriptionIDForRate := customer.SubscriptionID
+	if activeMeter.ID != uuid.Nil && activeMeter.SubscriptionTypeID != nil {
+		subscriptionIDForRate = *activeMeter.SubscriptionTypeID
+	}
+
+	// Ambil tarif aktif
+	var rate models.WaterRate
+	if err := config.DB.
+		Where("subscription_id = ? AND active = ? AND tenant_id = ?", subscriptionIDForRate, true, tenantID).
+		Order("effective_date DESC").
+		First(&rate).Error; err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tarif air aktif tidak ditemukan untuk tipe langganan pelanggan ini. Silakan tambahkan atau aktifkan tarif terlebih dahulu di menu Konfigurasi Tarif Air."})
+		return
+	}
+
 	amountCalculated, err := services.CalculateWaterUsageCharge(config.DB, tenantID, rate, UsageM3)
 	if err != nil {
 		switch {
@@ -149,8 +168,16 @@ func CreateWaterUsage(c *gin.Context) {
 		return
 	}
 
+	// Tentukan meter_id yang akan disimpan
+	var usageMeterID *uuid.UUID
+	if activeMeter.ID != uuid.Nil {
+		id := activeMeter.ID
+		usageMeterID = &id
+	}
+
 	usage := models.WaterUsage{
 		CustomerID:       req.CustomerID,
+		MeterID:          usageMeterID,
 		UsageMonth:       req.UsageMonth,
 		MeterStart:       meterStart,
 		MeterEnd:         req.MeterEnd,

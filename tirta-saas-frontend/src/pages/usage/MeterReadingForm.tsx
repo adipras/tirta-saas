@@ -4,10 +4,12 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
 import { waterRateService } from '../../services/waterRateService';
+import meterService from '../../services/meterService';
 import { CustomerSearchSelect } from '../../components';
 import type { WaterPemakaianFormData } from '../../types/usage';
 import type { Customer } from '../../types/customer';
 import type { WaterRate } from '../../types/waterRate';
+import type { Meter } from '../../types/meter';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
 import { useAppSelector } from '../../hooks/redux';
@@ -22,6 +24,8 @@ export default function MeterReadingForm() {
 
   const [loading, setLoading] = useState(false);
   const [customers, setPelanggan] = useState<Customer[]>([]);
+  const [customerMeters, setCustomerMeters] = useState<Meter[]>([]);
+  const [loadingMeters, setLoadingMeters] = useState(false);
   const [previousReading, setPreviousReading] = useState<number | null>(null);
   const [calculatedPemakaian, setCalculatedPemakaian] = useState<number>(0);
   const [activeRate, setActiveRate] = useState<WaterRate | null>(null);
@@ -49,6 +53,18 @@ export default function MeterReadingForm() {
       toast.error('Gagal memuat data pelanggan');
     }
   }, [toast]);
+
+  const fetchCustomerMeters = useCallback(async (customerId: string) => {
+    try {
+      setLoadingMeters(true);
+      const meters = await meterService.getMetersByCustomer(customerId);
+      setCustomerMeters(meters);
+    } catch {
+      setCustomerMeters([]);
+    } finally {
+      setLoadingMeters(false);
+    }
+  }, []);
 
   const fetchActiveRate = useCallback(async (subscriptionId: string) => {
     try {
@@ -113,8 +129,9 @@ export default function MeterReadingForm() {
   useEffect(() => {
     if (formData.customerId && formData.usageMonth && !isEditMode) {
       void fetchPreviousReading(formData.customerId);
+      void fetchCustomerMeters(formData.customerId);
     }
-  }, [fetchPreviousReading, formData.customerId, formData.usageMonth, isEditMode]);
+  }, [fetchPreviousReading, fetchCustomerMeters, formData.customerId, formData.usageMonth, isEditMode]);
 
   useEffect(() => {
     if (!formData.customerId) {
@@ -191,6 +208,7 @@ export default function MeterReadingForm() {
 
       const payload = {
         customerId: formData.customerId,
+        meterId: formData.meterId,
         usageMonth: formData.usageMonth,
         meterEnd: parseFloat(formData.meterEnd),
         notes: formData.notes.trim() || undefined,
@@ -245,7 +263,7 @@ export default function MeterReadingForm() {
                   customers={customers}
                   value={formData.customerId}
                   onChange={(customerId) => {
-                    setFormData({ ...formData, customerId });
+                    setFormData({ ...formData, customerId, meterId: undefined });
                    setErrors({ ...errors, customerId: '' });
                   }}
                   disabled={isEditMode}
@@ -254,6 +272,35 @@ export default function MeterReadingForm() {
                   required
                 />
               </div>
+
+              {/* Meter Selection - only show if customer has multiple meters */}
+              {customerMeters.length > 1 && formData.customerId && (
+                <div>
+                  <label htmlFor="meterId" className="block text-sm font-medium text-gray-700">
+                    Meter <span className="text-gray-500 text-xs">(opsional)</span>
+                  </label>
+                  <select
+                    id="meterId"
+                    name="meterId"
+                    value={formData.meterId || ''}
+                    onChange={(e) => {
+                      setFormData({ ...formData, meterId: e.target.value || undefined });
+                      if (errors.meterId) {
+                        setErrors({ ...errors, meterId: undefined });
+                      }
+                    }}
+                    disabled={isEditMode || loadingMeters}
+                    className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm border-gray-300 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed`}
+                  >
+                    <option value="">-- Pilih Meter (otomatis jika kosong) --</option>
+                    {customerMeters.map((meter) => (
+                      <option key={meter.id} value={meter.id}>
+                        {meter.meter_number} {meter.subscription_type_id ? '(Custom Rate)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="usageMonth" className="block text-sm font-medium text-gray-700">
