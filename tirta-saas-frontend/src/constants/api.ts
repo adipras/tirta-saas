@@ -67,7 +67,6 @@ export const API_ENDPOINTS = {
     EXPORT: '/customers/export',
     BULK_IMPORT: '/customers/bulk-import',
     BULK_UPDATE_STATUS: '/customers/bulk-update-status',
-    BULK_SET_INITIAL_READING: '/customers/bulk-set-initial-reading',
     SEARCH: '/customers/search',
     ASSIGN_METER: (id: string) => `/customers/${id}/assign-meter`,
   },

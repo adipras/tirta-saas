@@ -209,12 +209,13 @@ export default function BulkImportWaterPemakaian() {
           <p>
             Untuk bulan pertama import (misal Januari 2026), sistem membutuhkan nilai meteran akhir bulan sebelumnya
             (misal Desember 2025) sebagai <em>meter awal</em>.{' '}
+            Gunakan tombol <strong>Set Initial Reading</strong> pada kolom aksi di{' '}
             <button
               type="button"
-              onClick={() => navigate('/admin/customers/bulk-initial-reading')}
+              onClick={() => navigate('/admin/customers')}
               className="underline font-medium hover:text-amber-900"
             >
-              Set Initial Reading di sini
+              halaman Pelanggan
             </button>{' '}
             sebelum melakukan import.
           </p>

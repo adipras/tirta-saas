@@ -175,23 +175,6 @@ class CustomerService {
     return response as { message: string; meter_number: string; initial_reading: number };
   }
 
-  async bulkSetInitialReading(records: Array<{ meter_number: string; initial_reading: number }>): Promise<{
-    success: number;
-    failed: number;
-    total: number;
-    errors: Array<{ row: number; meter_number: string; error?: string }>;
-    duration_ms: number;
-  }> {
-    const response = await apiClient.post(API_ENDPOINTS.CUSTOMERS.BULK_SET_INITIAL_READING, { records });
-    return response as {
-      success: number;
-      failed: number;
-      total: number;
-      errors: Array<{ row: number; meter_number: string; error?: string }>;
-      duration_ms: number;
-    };
-  }
-
   async exportPelangganCSV(): Promise<Blob> {
     return apiClient.get<Blob>(
       API_ENDPOINTS.CUSTOMERS.EXPORT,
