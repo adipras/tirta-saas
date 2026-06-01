@@ -47,6 +47,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Rate history
 - ✅ Water usage CRUD
 - ✅ Water usage multi-meter support — backend dan frontend kini mendukung customer dengan multiple meter, termasuk auto-detection active meter dan fallback ke customer's subscription rate jika meter belum punya tarif khusus
+- ✅ Meter management UI per customer — tab/section di halaman detail pelanggan untuk CRUD meter (tambah, edit, lihat, hapus) dengan form validation dan status management
 - ✅ Riwayat pemakaian per customer
 - ✅ Bulk generate invoice
 - ✅ Invoice CRUD + detail
