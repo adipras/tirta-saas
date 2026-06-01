@@ -8,10 +8,11 @@ import (
 
 type Meter struct {
 	BaseModel
-	TenantID       uuid.UUID  `gorm:"type:char(36);not null;index:idx_tenant_meter" json:"tenant_id"`
-	CustomerID     uuid.UUID  `gorm:"type:char(36);not null;index:idx_customer_meter" json:"customer_id"`
-	MeterNumber    string     `gorm:"type:varchar(50);not null" json:"meter_number"`
-	Brand          string     `gorm:"type:varchar(100)" json:"brand"`
+	TenantID             uuid.UUID          `gorm:"type:char(36);not null;index:idx_tenant_meter" json:"tenant_id"`
+	CustomerID           uuid.UUID          `gorm:"type:char(36);not null;index:idx_customer_meter" json:"customer_id"`
+	MeterNumber          string             `gorm:"type:varchar(50);not null" json:"meter_number"`
+	SubscriptionTypeID   *uuid.UUID         `gorm:"type:char(36);index" json:"subscription_type_id"`
+	Brand                string             `gorm:"type:varchar(100)" json:"brand"`
 	Model          string     `gorm:"type:varchar(100)" json:"model"`
 	InstallDate    time.Time  `gorm:"type:date;not null" json:"install_date"`
 	LastCalibDate  *time.Time `gorm:"type:date" json:"last_calib_date"`
@@ -21,11 +22,12 @@ type Meter struct {
 	Notes          string     `gorm:"type:text" json:"notes"`
 
 	// Relationships
-	Tenant      Tenant            `gorm:"foreignKey:TenantID;constraint:OnDelete:CASCADE" json:"-"`
-	Customer    Customer          `gorm:"foreignKey:CustomerID;constraint:OnDelete:CASCADE" json:"customer"`
-	Readings    []WaterUsage      `gorm:"foreignKey:MeterID" json:"-"`
-	Issues      []MeterIssue      `gorm:"foreignKey:MeterID" json:"-"`
-	History     []MeterHistory    `gorm:"foreignKey:MeterID" json:"-"`
+	Tenant           Tenant            `gorm:"foreignKey:TenantID;constraint:OnDelete:CASCADE" json:"-"`
+	Customer         Customer          `gorm:"foreignKey:CustomerID;constraint:OnDelete:CASCADE" json:"customer"`
+	SubscriptionType *SubscriptionType `gorm:"foreignKey:SubscriptionTypeID" json:"subscription_type,omitempty"`
+	Readings         []WaterUsage      `gorm:"foreignKey:MeterID" json:"-"`
+	Issues           []MeterIssue      `gorm:"foreignKey:MeterID" json:"-"`
+	History          []MeterHistory    `gorm:"foreignKey:MeterID" json:"-"`
 }
 
 type MeterIssue struct {

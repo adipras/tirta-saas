@@ -41,6 +41,8 @@ type Invoice struct {
 	// Customer & Tenant
 	CustomerID uuid.UUID `gorm:"type:char(36);not null" json:"customer_id"`
 	Customer   Customer  `gorm:"foreignKey:CustomerID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"customer"`
+	MeterID    *uuid.UUID `gorm:"type:char(36);index" json:"meter_id"`
+	Meter      *Meter    `gorm:"foreignKey:MeterID" json:"meter,omitempty"`
 	TenantID   uuid.UUID `gorm:"type:char(36);index" json:"tenant_id"`
 
 	// Usage Details

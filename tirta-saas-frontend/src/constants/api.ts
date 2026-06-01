@@ -70,6 +70,9 @@ export const API_ENDPOINTS = {
     BULK_UPDATE_STATUS: '/customers/bulk-update-status',
     SEARCH: '/customers/search',
     ASSIGN_METER: (id: string) => `/customers/${id}/assign-meter`,
+    METERS: (customerId: string) => `/customers/${customerId}/meters`,
+    METER_DETAIL: (customerId: string, meterId: string) => `/customers/${customerId}/meters/${meterId}`,
+    METER_INITIAL_READING: (customerId: string, meterId: string) => `/customers/${customerId}/meters/${meterId}/initial-reading`,
   },
   SUBSCRIPTION_TYPES: {
     LIST: '/subscription-types',

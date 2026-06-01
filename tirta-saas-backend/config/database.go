@@ -101,6 +101,10 @@ func Migrate() {
 		log.Fatalf("❌ Migrasi schema user gagal: %v", err)
 	}
 
+	if err := applyPhase2DataMigrations(); err != nil {
+		log.Fatalf("❌ Migrasi data Fase 2 gagal: %v", err)
+	}
+
 	log.Println("✅ Migrasi database selesai.")
 
 	// Apply database optimizations after migration
@@ -220,6 +224,57 @@ func hasTableIndex(tableName, indexName string) bool {
 	}
 
 	return count > 0
+}
+
+// applyPhase2DataMigrations seeds meter.subscription_type_id, water_usage.meter_id,
+// and invoice.meter_id for existing records that predate multi-meter support.
+// All operations are idempotent (skip records that are already set).
+func applyPhase2DataMigrations() error {
+	log.Println("🔄 Fase 2: Migrasi data multi-meter...")
+
+	// 1. Seed meters.subscription_type_id from customer.subscription_id
+	if err := DB.Exec(`
+		UPDATE meters m
+		JOIN customers c ON m.customer_id = c.id
+		SET m.subscription_type_id = c.subscription_id
+		WHERE m.subscription_type_id IS NULL
+		  AND c.subscription_id IS NOT NULL
+	`).Error; err != nil {
+		return fmt.Errorf("seed meters.subscription_type_id: %w", err)
+	}
+
+	// 2. Seed water_usages.meter_id from the customer's active meter
+	if err := DB.Exec(`
+		UPDATE water_usages wu
+		JOIN (
+			SELECT customer_id, MIN(id) AS meter_id
+			FROM meters
+			WHERE status = 'active'
+			GROUP BY customer_id
+		) m ON wu.customer_id = m.customer_id
+		SET wu.meter_id = m.meter_id
+		WHERE wu.meter_id IS NULL
+	`).Error; err != nil {
+		return fmt.Errorf("seed water_usages.meter_id: %w", err)
+	}
+
+	// 3. Seed invoices.meter_id from the customer's active meter
+	if err := DB.Exec(`
+		UPDATE invoices inv
+		JOIN (
+			SELECT customer_id, MIN(id) AS meter_id
+			FROM meters
+			WHERE status = 'active'
+			GROUP BY customer_id
+		) m ON inv.customer_id = m.customer_id
+		SET inv.meter_id = m.meter_id
+		WHERE inv.meter_id IS NULL
+	`).Error; err != nil {
+		return fmt.Errorf("seed invoices.meter_id: %w", err)
+	}
+
+	log.Println("✅ Fase 2: Migrasi data multi-meter selesai.")
+	return nil
 }
 
 func initializeDefaultPermissions(db *gorm.DB) {

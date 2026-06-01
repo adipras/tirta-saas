@@ -22,4 +22,11 @@ func CustomerRoutes(r *gin.Engine) {
 	group.POST("/:id/activate", middleware.RequirePermission(constants.PermManageCustomers), controllers.ActivateCustomer)
 	group.POST("/:id/deactivate", middleware.RequirePermission(constants.PermManageCustomers), controllers.DeactivateCustomer)
 	group.POST("/:id/reset-password", middleware.RequirePermission(constants.PermManageCustomers), controllers.ResetCustomerPassword)
+
+	// Meter sub-resources
+	group.GET("/:id/meters", middleware.RequirePermission(constants.PermViewCustomers), controllers.GetCustomerMeters)
+	group.POST("/:id/meters", middleware.RequirePermission(constants.PermManageCustomers), controllers.AddCustomerMeter)
+	group.PATCH("/:id/meters/:mid", middleware.RequirePermission(constants.PermManageCustomers), controllers.UpdateCustomerMeter)
+	group.DELETE("/:id/meters/:mid", middleware.RequirePermission(constants.PermManageCustomers), controllers.DeleteCustomerMeter)
+	group.PATCH("/:id/meters/:mid/initial-reading", middleware.RequirePermission(constants.PermManageCustomers), controllers.SetMeterInitialReading)
 }

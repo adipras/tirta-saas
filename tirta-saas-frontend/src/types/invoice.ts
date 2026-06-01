@@ -4,6 +4,7 @@ export interface Invoice {
   type?: 'monthly' | 'registration' | 'manual';
   customerId: string;
   customerName: string;
+  meter_id?: string;
   meterNumber?: string;
   meterStart?: number;
   meterEnd?: number;
