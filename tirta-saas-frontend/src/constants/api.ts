@@ -62,6 +62,7 @@ export const API_ENDPOINTS = {
     ACTIVATE: (id: string) => `/customers/${id}/activate`,
     DEACTIVATE: (id: string) => `/customers/${id}/deactivate`,
     SET_INITIAL_READING: (id: string) => `/customers/${id}/initial-reading`,
+    RESET_PASSWORD: (id: string) => `/customers/${id}/reset-password`,
     SUSPEND: (id: string) => `/customers/${id}/suspend`,
     STATS: '/customers/stats',
     EXPORT: '/customers/export',

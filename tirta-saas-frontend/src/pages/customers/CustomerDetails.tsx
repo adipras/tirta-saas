@@ -8,19 +8,26 @@ import {
   CreditCardIcon,
   DocumentTextIcon,
   ChartBarIcon,
+  KeyIcon,
+  ClipboardDocumentIcon,
+  CheckIcon,
 } from '@heroicons/react/24/outline';
 import customerService from '../../services/customerService';
 import type { Customer } from '../../types/customer';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
+import { useAppSelector } from '../../hooks/redux';
 
 export default function CustomerDetails() {
   const navigate = useNavigate();
   const toast = useToast();
   const { id } = useParams<{ id: string }>();
-  
+  const currentUserRole = useAppSelector((state) => state.auth.user?.role);
+
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resetPasswordModal, setResetPasswordModal] = useState<{ open: boolean; password: string }>({ open: false, password: '' });
+  const [copied, setCopied] = useState(false);
 
   const fetchCustomer = async (customerId: string) => {
     try {
@@ -44,8 +51,7 @@ export default function CustomerDetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const handleStatusChange = async (newIsActive: boolean) => {
-    if (!customer) return;
+  const handleStatusChange = async (newIsActive: boolean) => {    if (!customer) return;
 
     try {
       let updatedCustomer;
@@ -62,6 +68,22 @@ export default function CustomerDetails() {
     } catch {
       toast.error('Gagal memperbarui status pelanggan');
     }
+  };
+
+  const handleResetPassword = async () => {
+    if (!customer) return;
+    try {
+      const result = await customerService.resetCustomerPassword(customer.id);
+      setResetPasswordModal({ open: true, password: result.new_password });
+    } catch {
+      toast.error('Gagal mereset password pelanggan');
+    }
+  };
+
+  const handleCopyPassword = async () => {
+    await navigator.clipboard.writeText(resetPasswordModal.password);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const getStatusBadge = (isActive: boolean) => {
@@ -101,6 +123,7 @@ export default function CustomerDetails() {
   }
 
   return (
+    <>
     <div className="space-y-6">
       <PageHeader
         title={customer.name || 'Customer Details'}
@@ -140,6 +163,15 @@ export default function CustomerDetails() {
               <PencilIcon className="mr-2 h-4 w-4" />
               Ubah
             </button>
+            {currentUserRole === 'tenant_admin' && (
+              <button
+                onClick={handleResetPassword}
+                className="inline-flex items-center px-4 py-2 border border-red-300 rounded-lg text-sm font-medium text-red-700 bg-white hover:bg-red-50"
+              >
+                <KeyIcon className="mr-2 h-4 w-4" />
+                Reset Password
+              </button>
+            )}
           </div>
         }
       />
@@ -324,5 +356,47 @@ export default function CustomerDetails() {
         </div>
       </div>
     </div>
+
+      {/* Modal Reset Password */}
+      {resetPasswordModal.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="text-center mb-4">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-3">
+                <KeyIcon className="h-6 w-6 text-yellow-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Password Berhasil Direset</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Catat password baru ini dan berikan ke pelanggan. Password tidak akan ditampilkan lagi.
+              </p>
+            </div>
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-lg font-bold text-gray-800 tracking-widest">
+                  {resetPasswordModal.password}
+                </span>
+                <button
+                  onClick={handleCopyPassword}
+                  className="ml-3 p-2 text-gray-500 hover:text-blue-600 rounded-md hover:bg-blue-50"
+                  title="Salin password"
+                >
+                  {copied ? (
+                    <CheckIcon className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <ClipboardDocumentIcon className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={() => setResetPasswordModal({ open: false, password: '' })}
+              className="mt-5 w-full px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+            >
+              Selesai
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

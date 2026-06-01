@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/requests"
@@ -187,15 +188,55 @@ func CreateCustomer(c *gin.Context) {
 		return
 	}
 
+	// Buat User account untuk pelanggan (role: customer)
+	generatedPassword, err := utils.GeneratePassword(10)
+	if err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate user password"})
+		return
+	}
+	hashedUserPassword, err := utils.HashPassword(generatedPassword)
+	if err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash user password"})
+		return
+	}
+	username := customer.MeterNumber
+	if customer.Email != "" {
+		username = customer.Email
+	}
+	userEmail := customer.Email
+	var userEmailPtr *string
+	if userEmail != "" {
+		userEmailPtr = &userEmail
+	}
+	customerUser := models.User{
+		Name:       customer.Name,
+		Username:   username,
+		Email:      userEmailPtr,
+		Password:   hashedUserPassword,
+		Role:       string(constants.RoleCustomer),
+		TenantID:   &tenantID,
+		CustomerID: &customer.ID,
+	}
+	if err := tx.Create(&customerUser).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user account"})
+		return
+	}
+
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete customer registration"})
 		return
 	}
 
-	// Respon
+	// Respon — sertakan generated_password agar admin bisa menyampaikan ke pelanggan
 	response := mapCustomerResponse(customer)
-	helpers.RespondCreated(c, "Customer created successfully", response)
+	helpers.RespondCreated(c, "Customer created successfully", gin.H{
+		"customer":           response,
+		"generated_password": generatedPassword,
+	})
 }
 
 // GetCustomers godoc
@@ -516,3 +557,55 @@ func DeleteCustomer(c *gin.Context) {
 // @Failure 400 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Router /api/customers/{id}/activate [post]
+
+// ResetCustomerPassword generates a new password for the customer's linked user account.
+// Only accessible by tenant_admin. Returns the new plaintext password once.
+// POST /api/customers/:id/reset-password
+func ResetCustomerPassword(c *gin.Context) {
+tenantID, err := helpers.RequireTenantID(c)
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+return
+}
+
+customerID, err := uuid.Parse(c.Param("id"))
+if err != nil {
+c.JSON(http.StatusBadRequest, gin.H{"error": "ID pelanggan tidak valid"})
+return
+}
+
+// Pastikan customer milik tenant ini
+var customer models.Customer
+if err := config.DB.Where("id = ? AND tenant_id = ?", customerID, tenantID).First(&customer).Error; err != nil {
+c.JSON(http.StatusNotFound, gin.H{"error": "Pelanggan tidak ditemukan"})
+return
+}
+
+// Cari User yang terhubung ke customer ini
+var user models.User
+if err := config.DB.Where("customer_id = ? AND tenant_id = ?", customerID, tenantID).First(&user).Error; err != nil {
+c.JSON(http.StatusNotFound, gin.H{"error": "User account untuk pelanggan ini tidak ditemukan"})
+return
+}
+
+newPassword, err := utils.GeneratePassword(10)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal generate password"})
+return
+}
+hashedPassword, err := utils.HashPassword(newPassword)
+if err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal hash password"})
+return
+}
+
+if err := config.DB.Model(&user).Update("password", hashedPassword).Error; err != nil {
+c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan password baru"})
+return
+}
+
+c.JSON(http.StatusOK, gin.H{
+"message":      "Password berhasil direset",
+"new_password": newPassword,
+})
+}

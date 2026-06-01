@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/react/24/outline';
 import customerService from '../../services/customerService';
 import serviceAreaService from '../../services/serviceAreaService';
 import type { CreateCustomerDto, UpdateCustomerDto, SubscriptionType } from '../../types/customer';
@@ -33,6 +33,11 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
   const [saving, setSaving] = useState(false);
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
+  const [passwordModal, setPasswordModal] = useState<{ open: boolean; password: string; copied: boolean }>({
+    open: false,
+    password: '',
+    copied: false,
+  });
   
   const {
     register,
@@ -95,26 +100,34 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
       setSaving(true);
       
       if (mode === 'create') {
-        await customerService.createCustomer({
+        const result = await customerService.createCustomer({
           ...data,
           email: data.email?.trim() || undefined,
           service_area_id: data.service_area_id || undefined,
         } as CreateCustomerDto);
         toast.success('Pelanggan berhasil ditambahkan');
+        setPasswordModal({ open: true, password: result.generated_password, copied: false });
+        return; // jangan navigate dulu — tunggu modal ditutup
       } else if (mode === 'edit' && id) {
         await customerService.updateCustomer(id, {
           ...data,
           service_area_id: data.service_area_id || undefined,
         } as UpdateCustomerDto);
         toast.success('Pelanggan berhasil diperbarui');
+        navigate('/admin/customers');
       }
-      
-      navigate('/admin/customers');
     } catch {
       toast.error(`Gagal ${mode === 'create' ? 'menambahkan' : 'memperbarui'} pelanggan`);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCopyPassword = () => {
+    navigator.clipboard.writeText(passwordModal.password).then(() => {
+      setPasswordModal((prev) => ({ ...prev, copied: true }));
+      setTimeout(() => setPasswordModal((prev) => ({ ...prev, copied: false })), 2000);
+    });
   };
 
   if (loading) {
@@ -126,6 +139,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
   }
 
   return (
+    <>
     <div className="space-y-6">
       <PageHeader
         title={mode === 'create' ? 'Tambah Pelanggan' : 'Ubah Pelanggan'}
@@ -328,5 +342,43 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
           </form>
         </div>
     </div>
+
+    {/* Modal generated password */}
+    {passwordModal.open && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Akun Pelanggan Berhasil Dibuat</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Simpan atau sampaikan password berikut kepada pelanggan. Password tidak akan ditampilkan lagi setelah ini.
+            </p>
+          </div>
+          <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 flex items-center justify-between gap-3">
+            <span className="font-mono text-lg font-bold text-gray-800 tracking-widest select-all">
+              {passwordModal.password}
+            </span>
+            <button
+              type="button"
+              onClick={handleCopyPassword}
+              className="flex-shrink-0 inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
+            >
+              {passwordModal.copied ? (
+                <><CheckIcon className="h-4 w-4" /> Tersalin</>
+              ) : (
+                <><ClipboardDocumentIcon className="h-4 w-4" /> Salin</>
+              )}
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setPasswordModal({ open: false, password: '', copied: false }); navigate('/admin/customers'); }}
+            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Selesai
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

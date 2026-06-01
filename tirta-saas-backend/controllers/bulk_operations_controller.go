@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adipras/tirta-saas-backend/constants"
 	"github.com/adipras/tirta-saas-backend/helpers"
 
 	"github.com/adipras/tirta-saas-backend/config"
@@ -229,6 +230,34 @@ func BulkImportCustomers(c *gin.Context) {
 		if err := config.DB.Create(&meter).Error; err != nil {
 			// Non-fatal: log tapi tetap lanjut
 			errors = append(errors, fmt.Sprintf("Line %d: Customer created but failed to create meter - %s", lineNumber, err.Error()))
+		}
+
+		// Buat User account untuk pelanggan
+		genPassword, genErr := utils.GeneratePassword(10)
+		if genErr == nil {
+			if hashedUserPwd, hashErr := utils.HashPassword(genPassword); hashErr == nil {
+				uname := customer.MeterNumber
+				if customer.Email != "" {
+					uname = customer.Email
+				}
+				var emailPtr *string
+				if customer.Email != "" {
+					e := customer.Email
+					emailPtr = &e
+				}
+				customerUser := models.User{
+					Name:       customer.Name,
+					Username:   uname,
+					Email:      emailPtr,
+					Password:   hashedUserPwd,
+					Role:       string(constants.RoleCustomer),
+					TenantID:   &tenantID,
+					CustomerID: &customer.ID,
+				}
+				if err := config.DB.Create(&customerUser).Error; err != nil {
+					errors = append(errors, fmt.Sprintf("Line %d: Customer created but failed to create user account - %s", lineNumber, err.Error()))
+				}
+			}
 		}
 
 		successCount++

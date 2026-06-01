@@ -21,4 +21,5 @@ func CustomerRoutes(r *gin.Engine) {
 	group.PATCH("/:id/initial-reading", middleware.RequirePermission(constants.PermManageCustomers), controllers.SetInitialReading)
 	group.POST("/:id/activate", middleware.RequirePermission(constants.PermManageCustomers), controllers.ActivateCustomer)
 	group.POST("/:id/deactivate", middleware.RequirePermission(constants.PermManageCustomers), controllers.DeactivateCustomer)
+	group.POST("/:id/reset-password", middleware.RequirePermission(constants.PermManageCustomers), controllers.ResetCustomerPassword)
 }

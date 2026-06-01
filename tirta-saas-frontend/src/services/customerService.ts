@@ -63,9 +63,10 @@ class CustomerService {
     return unwrapResponseData(response) as Customer;
   }
 
-  async createCustomer(data: CreateCustomerDto): Promise<Customer> {
+  async createCustomer(data: CreateCustomerDto): Promise<{ customer: Customer; generated_password: string }> {
     const response = await apiClient.post(API_ENDPOINTS.CUSTOMERS.CREATE, data);
-    return unwrapResponseData(response) as Customer;
+    const body = unwrapResponseData(response) as { customer: Customer; generated_password: string };
+    return body;
   }
 
   async updateCustomer(id: string, data: UpdateCustomerDto): Promise<Customer> {
@@ -173,6 +174,11 @@ class CustomerService {
   async setInitialReading(customerId: string, initialReading: number): Promise<{ message: string; meter_number: string; initial_reading: number }> {
     const response = await apiClient.patch(API_ENDPOINTS.CUSTOMERS.SET_INITIAL_READING(customerId), { initial_reading: initialReading });
     return response as { message: string; meter_number: string; initial_reading: number };
+  }
+
+  async resetCustomerPassword(customerId: string): Promise<{ message: string; new_password: string }> {
+    const response = await apiClient.post(API_ENDPOINTS.CUSTOMERS.RESET_PASSWORD(customerId), {});
+    return response as { message: string; new_password: string };
   }
 
   async exportPelangganCSV(): Promise<Blob> {
