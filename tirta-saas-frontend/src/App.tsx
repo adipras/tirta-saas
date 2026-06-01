@@ -16,6 +16,7 @@ import CustomerList from './pages/customers/CustomerList';
 import CustomerDetails from './pages/customers/CustomerDetails';
 import CustomerForm from './pages/customers/CustomerForm';
 import BulkImportPelanggan from './pages/customers/BulkImportCustomers';
+import BulkSetInitialReading from './pages/customers/BulkSetInitialReading';
 import PemakaianList from './pages/usage/UsageList';
 import MeterReadingForm from './pages/usage/MeterReadingForm';
 import PemakaianHistory from './pages/usage/UsageHistory';
@@ -117,6 +118,7 @@ function App() {
               } />
               <Route path="customers" element={<CustomerList />} />
               <Route path="customers/bulk-import" element={<BulkImportPelanggan />} />
+              <Route path="customers/bulk-initial-reading" element={<BulkSetInitialReading />} />
               <Route path="customers/new" element={<CustomerForm mode="create" />} />
               <Route path="customers/:id" element={<CustomerDetails />} />
               <Route path="customers/:id/edit" element={<CustomerForm mode="edit" />} />

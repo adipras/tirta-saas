@@ -32,6 +32,14 @@ func mapCustomerResponse(customer models.Customer) responses.CustomerResponse {
 		CreatedAt:      customer.CreatedAt,
 	}
 
+	// Populate initial_reading from active meter
+	for _, m := range customer.Meters {
+		if m.Status == "active" {
+			response.InitialReading = m.InitialReading
+			break
+		}
+	}
+
 	if customer.Subscription.ID != uuid.Nil {
 		response.Subscription = &responses.SubscriptionTypeResponse{
 			ID:              customer.Subscription.ID,
@@ -194,7 +202,7 @@ func GetCustomers(c *gin.Context) {
 	}
 
 	var customers []models.Customer
-	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute")
+	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute").Preload("Meters")
 
 	// If has specific tenant, filter by it
 	if hasSpecificTenant {
@@ -220,7 +228,39 @@ func GetCustomers(c *gin.Context) {
 		}
 		query = query.Where("reading_route_id = ?", parsedID)
 	}
-	// If no specific tenant (platform owner without filter), return all
+
+	// isActive filter
+	if isActiveStr := c.Query("isActive"); isActiveStr != "" {
+		query = query.Where("customers.is_active = ?", isActiveStr == "true")
+	}
+
+	// subscriptionTypeId filter
+	if subTypeID := c.Query("subscriptionTypeId"); subTypeID != "" {
+		parsedID, parseErr := uuid.Parse(subTypeID)
+		if parseErr == nil {
+			query = query.Where("customers.subscription_id = ?", parsedID)
+		}
+	}
+
+	// search filter — match name, email, phone, or meter_number
+	if search := c.Query("search"); search != "" {
+		like := "%" + strings.ToLower(search) + "%"
+		query = query.Where(
+			"LOWER(customers.name) LIKE ? OR LOWER(customers.email) LIKE ? OR customers.phone LIKE ? OR customers.meter_number LIKE ?",
+			like, like, like, like,
+		)
+	}
+
+	// hasOutstandingBalance filter
+	if habStr := c.Query("hasOutstandingBalance"); habStr != "" {
+		outstandingStatuses := []string{"UNPAID", "OVERDUE", "PARTIAL"}
+		subquery := "EXISTS (SELECT 1 FROM invoices WHERE invoices.customer_id = customers.id AND invoices.payment_status IN ? AND invoices.deleted_at IS NULL)"
+		if habStr == "true" {
+			query = query.Where(subquery, outstandingStatuses)
+		} else {
+			query = query.Where("NOT "+subquery, outstandingStatuses)
+		}
+	}
 
 	if err := query.Find(&customers).Error; err != nil {
 		helpers.RespondError(c, http.StatusInternalServerError, "Failed to fetch customers", err)
@@ -261,7 +301,7 @@ func GetCustomer(c *gin.Context) {
 	id := c.Param("id")
 
 	var customer models.Customer
-	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute").Where("id = ?", id)
+	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute").Preload("Meters").Where("id = ?", id)
 
 	// If has specific tenant, add tenant filter
 	if hasSpecificTenant {
@@ -297,7 +337,7 @@ func ActivateCustomer(c *gin.Context) {
 	id := c.Param("id")
 
 	var customer models.Customer
-	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute").Where("id = ?", id)
+	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute").Preload("Meters").Where("id = ?", id)
 
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
@@ -339,7 +379,7 @@ func DeactivateCustomer(c *gin.Context) {
 	id := c.Param("id")
 
 	var customer models.Customer
-	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute").Where("id = ?", id)
+	query := config.DB.Preload("Subscription").Preload("ServiceArea").Preload("ReadingRoute").Preload("Meters").Where("id = ?", id)
 
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)

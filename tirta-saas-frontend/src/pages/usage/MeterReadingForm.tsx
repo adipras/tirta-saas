@@ -76,12 +76,14 @@ export default function MeterReadingForm() {
         const lastReading = history[0];
         setPreviousReading(lastReading.meterEnd);
       } else {
-        setPreviousReading(0);
+        // No history: use the customer's meter initial_reading as the starting point
+        const customer = customers.find((c) => c.id === customerId);
+        setPreviousReading(customer?.initial_reading ?? 0);
       }
     } catch {
       setPreviousReading(0);
     }
-  }, []);
+  }, [customers]);
 
   const fetchWaterPemakaian = useCallback(async (usageId: string) => {
     try {
@@ -330,7 +332,9 @@ export default function MeterReadingForm() {
                   className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm"
                 />
                 <p className="mt-1 text-sm text-gray-500">
-                  Diambil dari catatan bulan sebelumnya
+                  {previousReading !== null && previousReading > 0
+                    ? 'Diambil dari catatan bulan sebelumnya'
+                    : 'Belum ada catatan sebelumnya — menggunakan initial reading meter'}
                 </p>
               </div>
 

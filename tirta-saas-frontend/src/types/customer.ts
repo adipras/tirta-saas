@@ -11,6 +11,7 @@ export interface Customer {
   service_area_name?: string;
   is_active: boolean;
   tenant_id: string;
+  initial_reading: number;
   created_at: string;
   updated_at: string;
 }

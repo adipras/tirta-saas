@@ -19,6 +19,7 @@ type CustomerResponse struct {
 	ReadingRouteID   *uuid.UUID                `json:"reading_route_id,omitempty" format:"uuid" doc:"Reading route ID"`
 	ReadingRouteName string                    `json:"reading_route_name,omitempty" doc:"Reading route name"`
 	IsActive         bool                      `json:"is_active" doc:"Active status" example:"true"`
+	InitialReading   float64                   `json:"initial_reading" doc:"Meter initial reading (for first-month usage)" example:"0"`
 	CreatedAt        time.Time                 `json:"created_at" format:"date-time" doc:"Registration date" example:"2025-01-01T00:00:00Z"`
 }
 

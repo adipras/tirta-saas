@@ -11,12 +11,13 @@ type CreateMeterRequest struct {
 }
 
 type UpdateMeterRequest struct {
-	Brand         string  `json:"brand"`
-	Model         string  `json:"model"`
-	LastCalibDate *string `json:"last_calib_date"`
-	NextCalibDate *string `json:"next_calib_date"`
-	Status        string  `json:"status" binding:"omitempty,oneof=active inactive broken replaced"`
-	Notes         string  `json:"notes"`
+	Brand          string   `json:"brand"`
+	Model          string   `json:"model"`
+	LastCalibDate  *string  `json:"last_calib_date"`
+	NextCalibDate  *string  `json:"next_calib_date"`
+	Status         string   `json:"status" binding:"omitempty,oneof=active inactive broken replaced"`
+	Notes          string   `json:"notes"`
+	InitialReading *float64 `json:"initial_reading" binding:"omitempty,gte=0"`
 }
 
 type ReplaceMeterRequest struct {

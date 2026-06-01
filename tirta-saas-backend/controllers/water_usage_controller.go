@@ -65,12 +65,20 @@ func CreateWaterUsage(c *gin.Context) {
 	prevMonth = prevMonth.AddDate(0, -1, 0)
 	prevMonthStr := prevMonth.Format("2006-01")
 
-	// Ambil meter_end bulan sebelumnya
+	// Ambil meter_end bulan sebelumnya; fallback ke InitialReading meter aktif
 	var lastUsage models.WaterUsage
 	meterStart := 0.0
 	if err := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ?", req.CustomerID, prevMonthStr, tenantID).
 		First(&lastUsage).Error; err == nil {
 		meterStart = lastUsage.MeterEnd
+	} else {
+		// Tidak ada data bulan sebelumnya — pakai InitialReading meter aktif pelanggan
+		var activeMeter models.Meter
+		if err := config.DB.
+			Where("customer_id = ? AND tenant_id = ? AND status = ?", req.CustomerID, tenantID, "active").
+			First(&activeMeter).Error; err == nil && activeMeter.InitialReading > 0 {
+			meterStart = activeMeter.InitialReading
+		}
 	}
 
 	if req.MeterEnd < meterStart {

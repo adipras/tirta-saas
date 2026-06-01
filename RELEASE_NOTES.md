@@ -1,5 +1,63 @@
 # Release Notes
 
+## v1.0.8 - 2026-06-01
+
+**Tipe rilis:** Feature  
+**Cakupan:** Backend + Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.0.8`
+
+### Ringkasan
+- Menambahkan alur **import data pembacaan meter awal** untuk mendukung migrasi data historis ke sistem.
+- Pembacaan meter bulan pertama kini otomatis menggunakan *initial reading* meter sebagai titik awal, bukan `0`.
+- Filter daftar pelanggan (status, golongan, pencarian, tunggakan) kini berfungsi penuh — sebelumnya tidak diteruskan ke backend.
+- Tombol *Set Initial Reading* dipindah dari header halaman ke kolom aksi setiap baris pelanggan, kini menggunakan modal pop-up per pelanggan.
+- Template download pada halaman import pemakaian air dan import initial reading kini sudah berisi semua nomor meter dan nama pelanggan yang terdaftar.
+
+### Akar masalah
+- Backend `GET /api/customers` tidak menangani parameter filter `isActive`, `subscriptionTypeId`, `search`, dan `hasOutstandingBalance` sama sekali — query diabaikan.
+- Saat tidak ada riwayat pemakaian sebelumnya, backend dan frontend sama-sama menggunakan `0` sebagai `meter_start`, bukan membaca field `initial_reading` pada data meter pelanggan.
+- Tidak ada mekanisme untuk menetapkan nilai awal meter per pelanggan sebelum sistem mulai mencatat pemakaian bulanan.
+
+### Perubahan teknis
+
+**Backend:**
+- `GET /api/customers` kini mendukung filter: `isActive` (boolean), `subscriptionTypeId` (UUID), `search` (LIKE pada nama/email/telepon/nomor meter), `hasOutstandingBalance` (subquery ke tabel `invoices`).
+- `CustomerResponse` kini menyertakan field `initial_reading` yang diambil dari meter aktif pelanggan; `GetCustomers` dan `GetCustomer` melakukan `Preload("Meters")`.
+- `CreateWaterUsage` dan `BulkImportWaterUsage` menambahkan fallback: jika tidak ada catatan bulan sebelumnya, `meter_start` diambil dari `Meter.InitialReading` (jika > 0); default tetap `0`.
+- Endpoint baru `POST /api/customers/bulk-set-initial-reading` untuk mengatur `initial_reading` pada meter berdasarkan nomor meter (batch, tenant-scoped).
+- `UpdateMeterRequest` kini menyertakan field `InitialReading *float64`.
+
+**Frontend:**
+- Halaman baru `BulkSetInitialReading` untuk import massal initial reading via Excel atau entri manual.
+- `CustomerList`: filter status/golongan/pencarian/tunggakan sekarang dikirim ke API dan bekerja; tombol *Set Initial Reading* per baris membuka modal pop-up untuk mengatur initial reading satu pelanggan langsung dari daftar.
+- `MeterReadingForm`: field *Meter Sebelumnya* kini menampilkan `initial_reading` meter ketika belum ada riwayat pemakaian (bukan `0` hardcode); teks helper menyesuaikan sumber data.
+- `BulkImportWaterUsage`: menambahkan banner informasi tentang initial reading; template Excel kini di-generate dari data pelanggan aktif (nomor meter + nama, diurutkan per nomor meter).
+- `customerService`: menambahkan method `getAllCustomers()` dan `bulkSetInitialReading()`.
+- `Customer` type kini menyertakan field `initial_reading: number`.
+
+### Dampak deploy
+- Admin dapat mengatur nilai awal meter per pelanggan via modal di daftar pelanggan atau upload Excel massal — diperlukan sebelum import data pemakaian bulan pertama.
+- Import pemakaian bulan pertama (misal Januari 2026 untuk data historis) menghasilkan `meter_start` yang benar sesuai kondisi meter aktual, bukan `0`.
+- Filter daftar pelanggan kini berfungsi penuh untuk pencarian, filter status, golongan, dan tunggakan.
+- Tidak ada perubahan schema database untuk rilis ini (field `initial_reading` pada tabel `meters` sudah ada sejak awal dengan default `0`).
+
+### File yang berubah
+- `tirta-saas-backend/controllers/customer_controller.go`
+- `tirta-saas-backend/controllers/bulk_operations_controller.go`
+- `tirta-saas-backend/controllers/water_usage_controller.go`
+- `tirta-saas-backend/controllers/meter_controller.go` *(baru)*
+- `tirta-saas-backend/requests/meter_request.go`
+- `tirta-saas-backend/responses/customer_responses.go`
+- `tirta-saas-backend/routes/customer.go`
+- `tirta-saas-frontend/src/App.tsx`
+- `tirta-saas-frontend/src/constants/api.ts`
+- `tirta-saas-frontend/src/types/customer.ts`
+- `tirta-saas-frontend/src/services/customerService.ts`
+- `tirta-saas-frontend/src/pages/customers/CustomerList.tsx`
+- `tirta-saas-frontend/src/pages/customers/BulkSetInitialReading.tsx` *(baru)*
+- `tirta-saas-frontend/src/pages/usage/BulkImportWaterUsage.tsx`
+- `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
+
 ## v1.0.7 - 2026-05-30
 
 **Tipe rilis:** Patch  

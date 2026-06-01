@@ -9,12 +9,15 @@ import {
   FunnelIcon,
   CheckCircleIcon,
   XCircleIcon,
+  AdjustmentsHorizontalIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { DataTable, type Column } from '../../components/DataTable';
 import customerService from '../../services/customerService';
 import type { Customer, CustomerFilters, SubscriptionType } from '../../types/customer';
 import { ActionIconButton, DashboardStatCard, PageHeader } from '../../components';
 import { useToast } from '../../components';
+import { extractApiErrorMessage } from '../../utils/apiError';
 
 export default function CustomerList() {
   const navigate = useNavigate();
@@ -32,6 +35,13 @@ export default function CustomerList() {
     hasOutstandingBalance: '',
     search: '',
   });
+
+  const [initialReadingModal, setInitialReadingModal] = useState<{
+    open: boolean;
+    customer: Customer | null;
+    value: string;
+    loading: boolean;
+  }>({ open: false, customer: null, value: '', loading: false });
   const hasActiveFilters =
     filters.isActive !== '' ||
     filters.subscriptionTypeId !== '' ||
@@ -83,6 +93,28 @@ export default function CustomerList() {
       fetchPelanggan();
     } catch {
       toast.error('Gagal memperbarui status pelanggan');
+    }
+  };
+
+  const handleInitialReadingSubmit = async () => {
+    const { customer, value } = initialReadingModal;
+    if (!customer) return;
+    const parsed = parseFloat(value);
+    if (isNaN(parsed) || parsed < 0) {
+      toast.error('Nilai initial reading tidak valid');
+      return;
+    }
+    setInitialReadingModal((prev) => ({ ...prev, loading: true }));
+    try {
+      await customerService.bulkSetInitialReading([
+        { meter_number: customer.meter_number, initial_reading: parsed },
+      ]);
+      toast.success(`Initial reading meter ${customer.meter_number} berhasil disimpan`);
+      setInitialReadingModal({ open: false, customer: null, value: '', loading: false });
+      fetchPelanggan();
+    } catch (err: unknown) {
+      toast.error(extractApiErrorMessage(err, 'Gagal menyimpan initial reading'));
+      setInitialReadingModal((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -193,6 +225,21 @@ export default function CustomerList() {
           e.preventDefault();
           e.stopPropagation();
           navigate(`/admin/customers/${customer.id}/edit`);
+        }}
+      />
+      <ActionIconButton
+        icon={AdjustmentsHorizontalIcon}
+        label={`Set initial reading meter ${customer.meter_number}`}
+        tone="gray"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setInitialReadingModal({
+            open: true,
+            customer,
+            value: customer.initial_reading > 0 ? String(customer.initial_reading) : '',
+            loading: false,
+          });
         }}
       />
       <button
@@ -395,6 +442,66 @@ export default function CustomerList() {
           onRowClick={(customer) => navigate(`/admin/customers/${customer.id}`)}
         />
       </div>
+
+      {/* Modal: Set Initial Reading */}
+      {initialReadingModal.open && initialReadingModal.customer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <h2 className="text-base font-semibold text-gray-900">Set Initial Reading Meter</h2>
+              <button
+                type="button"
+                onClick={() => setInitialReadingModal({ open: false, customer: null, value: '', loading: false })}
+                className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-4 px-6 py-5">
+              <div className="rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                <p><span className="font-medium">Pelanggan:</span> {initialReadingModal.customer.name}</p>
+                <p className="mt-1"><span className="font-medium">No. Meter:</span> {initialReadingModal.customer.meter_number}</p>
+              </div>
+              <div>
+                <label htmlFor="initial-reading-input" className="block text-sm font-medium text-gray-700">
+                  Nilai Initial Reading (m³) <span className="text-red-500">*</span>
+                </label>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Isi dengan angka pembacaan meter terakhir sebelum sistem mulai mencatat (misal: nilai akhir Desember 2025).
+                </p>
+                <input
+                  id="initial-reading-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={initialReadingModal.value}
+                  onChange={(e) => setInitialReadingModal((prev) => ({ ...prev, value: e.target.value }))}
+                  placeholder="Contoh: 1250.50"
+                  className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setInitialReadingModal({ open: false, customer: null, value: '', loading: false })}
+                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleInitialReadingSubmit}
+                disabled={initialReadingModal.loading || initialReadingModal.value === ''}
+                className="rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {initialReadingModal.loading ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

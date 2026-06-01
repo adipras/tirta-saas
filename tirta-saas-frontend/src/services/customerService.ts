@@ -51,6 +51,13 @@ class CustomerService {
     };
   }
 
+  /** Fetch all customers for the tenant (no pagination — used for template generation). */
+  async getAllCustomers(): Promise<Customer[]> {
+    const response = await apiClient.get(API_ENDPOINTS.CUSTOMERS.LIST);
+    const data = asRecord(unwrapResponseData(response));
+    return asArray<Customer>(data.customers);
+  }
+
   async getCustomerById(id: string): Promise<Customer> {
     const response = await apiClient.get(API_ENDPOINTS.CUSTOMERS.DETAIL(id));
     return unwrapResponseData(response) as Customer;
@@ -160,6 +167,23 @@ class CustomerService {
       skippedCount: getNumber(data.skipped_count ?? data.skippedCount),
       errors: asArray<string>(data.errors),
       durationMs: getNumber(data.duration_ms ?? data.durationMs),
+    };
+  }
+
+  async bulkSetInitialReading(records: Array<{ meter_number: string; initial_reading: number }>): Promise<{
+    success: number;
+    failed: number;
+    total: number;
+    errors: Array<{ row: number; meter_number: string; error?: string }>;
+    duration_ms: number;
+  }> {
+    const response = await apiClient.post(API_ENDPOINTS.CUSTOMERS.BULK_SET_INITIAL_READING, { records });
+    return response as {
+      success: number;
+      failed: number;
+      total: number;
+      errors: Array<{ row: number; meter_number: string; error?: string }>;
+      duration_ms: number;
     };
   }
 

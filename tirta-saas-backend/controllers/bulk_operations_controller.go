@@ -501,6 +501,14 @@ func BulkImportWaterUsage(c *gin.Context) {
 		meterStart := 0.0
 		if err := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ?", customer.ID, prevMonthStr, tenantID).First(&lastUsage).Error; err == nil {
 			meterStart = lastUsage.MeterEnd
+		} else {
+			// Tidak ada data bulan sebelumnya — pakai InitialReading meter aktif pelanggan
+			var activeMeter models.Meter
+			if err := config.DB.
+				Where("customer_id = ? AND tenant_id = ? AND status = ?", customer.ID, tenantID, "active").
+				First(&activeMeter).Error; err == nil && activeMeter.InitialReading > 0 {
+				meterStart = activeMeter.InitialReading
+			}
 		}
 
 		if rec.MeterEnd < meterStart {

@@ -15,6 +15,7 @@ func CustomerRoutes(r *gin.Engine) {
 	group.GET("", middleware.RequirePermission(constants.PermViewCustomers), controllers.GetCustomers)
 	group.GET("/export", middleware.RequirePermission(constants.PermViewCustomers), controllers.ExportCustomers)
 	group.POST("/bulk-import", middleware.RequirePermission(constants.PermManageCustomers), controllers.BulkImportCustomers)
+	group.POST("/bulk-set-initial-reading", middleware.RequirePermission(constants.PermManageCustomers), controllers.BulkSetInitialReading)
 	group.GET("/:id", middleware.RequirePermission(constants.PermViewCustomers), controllers.GetCustomer)
 	group.PUT("/:id", middleware.RequirePermission(constants.PermManageCustomers), controllers.UpdateCustomer)
 	group.DELETE("/:id", middleware.RequirePermission(constants.PermManageCustomers), controllers.DeleteCustomer)
