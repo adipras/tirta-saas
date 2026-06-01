@@ -17,6 +17,7 @@ import type { Customer } from '../../types/customer';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
 import { useAppSelector } from '../../hooks/redux';
+import CustomerMetersSection from './CustomerMetersSection';
 
 export default function CustomerDetails() {
   const navigate = useNavigate();
@@ -355,6 +356,8 @@ export default function CustomerDetails() {
           </div>
         </div>
       </div>
+
+      <CustomerMetersSection customerId={customer.id} />
     </div>
 
       {/* Modal Reset Password */}
