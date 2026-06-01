@@ -106,15 +106,7 @@ export default function CustomerList() {
     }
     setInitialReadingModal((prev) => ({ ...prev, loading: true }));
     try {
-      const result = await customerService.bulkSetInitialReading([
-        { meter_number: customer.meter_number, initial_reading: parsed },
-      ]);
-      if (result.failed > 0) {
-        const errMsg = result.errors?.[0]?.error ?? 'Gagal menyimpan initial reading';
-        toast.error(errMsg);
-        setInitialReadingModal((prev) => ({ ...prev, loading: false }));
-        return;
-      }
+      await customerService.setInitialReading(customer.id, parsed);
       toast.success(`Initial reading meter ${customer.meter_number} berhasil disimpan`);
       setInitialReadingModal({ open: false, customer: null, value: '', loading: false });
       fetchPelanggan();

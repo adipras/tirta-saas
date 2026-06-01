@@ -19,6 +19,7 @@ func CustomerRoutes(r *gin.Engine) {
 	group.GET("/:id", middleware.RequirePermission(constants.PermViewCustomers), controllers.GetCustomer)
 	group.PUT("/:id", middleware.RequirePermission(constants.PermManageCustomers), controllers.UpdateCustomer)
 	group.DELETE("/:id", middleware.RequirePermission(constants.PermManageCustomers), controllers.DeleteCustomer)
+	group.PATCH("/:id/initial-reading", middleware.RequirePermission(constants.PermManageCustomers), controllers.SetInitialReading)
 	group.POST("/:id/activate", middleware.RequirePermission(constants.PermManageCustomers), controllers.ActivateCustomer)
 	group.POST("/:id/deactivate", middleware.RequirePermission(constants.PermManageCustomers), controllers.DeactivateCustomer)
 }

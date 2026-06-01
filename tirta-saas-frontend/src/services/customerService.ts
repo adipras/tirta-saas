@@ -170,6 +170,11 @@ class CustomerService {
     };
   }
 
+  async setInitialReading(customerId: string, initialReading: number): Promise<{ message: string; meter_number: string; initial_reading: number }> {
+    const response = await apiClient.patch(API_ENDPOINTS.CUSTOMERS.SET_INITIAL_READING(customerId), { initial_reading: initialReading });
+    return response as { message: string; meter_number: string; initial_reading: number };
+  }
+
   async bulkSetInitialReading(records: Array<{ meter_number: string; initial_reading: number }>): Promise<{
     success: number;
     failed: number;
