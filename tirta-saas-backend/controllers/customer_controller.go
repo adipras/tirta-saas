@@ -173,6 +173,20 @@ func CreateCustomer(c *gin.Context) {
 		return
 	}
 
+	// Buat Meter aktif untuk pelanggan baru
+	meter := models.Meter{
+		TenantID:    tenantID,
+		CustomerID:  customer.ID,
+		MeterNumber: customer.MeterNumber,
+		InstallDate: time.Now(),
+		Status:      models.MeterStatusActive,
+	}
+	if err := tx.Create(&meter).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create meter record"})
+		return
+	}
+
 	// Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to complete customer registration"})

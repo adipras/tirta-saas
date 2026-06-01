@@ -218,6 +218,19 @@ func BulkImportCustomers(c *gin.Context) {
 			continue
 		}
 
+		// Buat meter aktif untuk pelanggan yang baru dibuat
+		meter := models.Meter{
+			TenantID:    tenantID,
+			CustomerID:  customer.ID,
+			MeterNumber: customer.MeterNumber,
+			InstallDate: time.Now(),
+			Status:      models.MeterStatusActive,
+		}
+		if err := config.DB.Create(&meter).Error; err != nil {
+			// Non-fatal: log tapi tetap lanjut
+			errors = append(errors, fmt.Sprintf("Line %d: Customer created but failed to create meter - %s", lineNumber, err.Error()))
+		}
+
 		successCount++
 	}
 

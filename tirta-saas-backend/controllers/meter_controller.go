@@ -63,8 +63,30 @@ func BulkSetInitialReading(c *gin.Context) {
 				Where("status = 'active'").
 				First(&meter).Error
 			if err2 != nil {
-				errs = append(errs, rowResult{Row: rowNum, MeterNumber: rec.MeterNumber, Error: "Meter tidak ditemukan"})
-				failedCount++
+				// Upsert: cari customer lalu buat meter baru jika belum ada
+				var customer models.Customer
+				err3 := config.DB.
+					Where("meter_number = ? AND tenant_id = ?", rec.MeterNumber, tenantID).
+					First(&customer).Error
+				if err3 != nil {
+					errs = append(errs, rowResult{Row: rowNum, MeterNumber: rec.MeterNumber, Error: "Pelanggan dengan nomor meter tersebut tidak ditemukan"})
+					failedCount++
+					continue
+				}
+				meter = models.Meter{
+					TenantID:       tenantID,
+					CustomerID:     customer.ID,
+					MeterNumber:    rec.MeterNumber,
+					InstallDate:    time.Now(),
+					Status:         models.MeterStatusActive,
+					InitialReading: rec.InitialReading,
+				}
+				if err4 := config.DB.Create(&meter).Error; err4 != nil {
+					errs = append(errs, rowResult{Row: rowNum, MeterNumber: rec.MeterNumber, Error: fmt.Sprintf("Gagal membuat meter: %v", err4)})
+					failedCount++
+					continue
+				}
+				successCount++
 				continue
 			}
 		}
