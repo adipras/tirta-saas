@@ -1,5 +1,78 @@
 # Release Notes
 
+## v1.0.9 - 2026-06-01
+
+**Tipe rilis:** Feature  
+**Cakupan:** Backend + Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.0.9`
+
+### Ringkasan
+- Menambahkan dukungan **multi-meter per pelanggan** untuk mendukung skenario pelanggan dengan multiple koneksi air terpisah (misal rumah + toko, atau meter reguler + meter non-rumah tangga).
+- Setiap meter kini bisa memiliki tarif air berbeda dengan mengatur `subscription_type_id` pada meter tertentu; jika tidak diatur, fallback ke tarif pelanggan.
+- Pengimporan dan pencatatan pemakaian air kini meter-aware: sistem otomatis mendeteksi meter aktif pelanggan jika tidak diberikan pilihan meter eksplisit, dan menggunakan historis pemakaian per meter untuk menghitung `meter_start`.
+- Frontend menampilkan dropdown pilih meter hanya untuk pelanggan yang memiliki 2+ meter, memudahkan operator lapangan memilih meter yang tepat saat mencatat pembacaan.
+- Backward compatible — pelanggan single-meter tidak terpengaruh; existing flow tetap berjalan.
+
+### Akar masalah
+- Sistem sebelumnya hanya mendukung 1 meter per pelanggan, sehingga pelanggan dengan multiple koneksi air tidak bisa dicatat tarifnya secara terpisah.
+- Saat pelanggan memiliki meter dengan tipe langganan berbeda, sistem terpaksa menggunakan tarif pelanggan (mungkin tidak sesuai) ketika seharusnya menggunakan tarif khusus meter.
+- Bulk import pemakaian tidak memiliki awareness terhadap meter spesifik, sehingga historis pemakaian tercampur untuk pelanggan multi-meter.
+
+### Perubahan teknis
+
+**Backend:**
+- `CreateWaterUsageRequest` menambahkan field optional `MeterID *uuid.UUID` untuk mendukung pilihan meter eksplisit.
+- `CreateWaterUsage` dan `BulkImportWaterUsage` kini meter-aware:
+  - Jika `meter_id` diberikan, validasi meter tersebut dan gunakan untuk query historis pemakaian + fallback ke `Meter.InitialReading`.
+  - Jika `meter_id` tidak diberikan (opsional), auto-detect meter aktif pertama pelanggan.
+  - Tarif lookupnya prioritas: gunakan `Meter.SubscriptionTypeID` jika tersedia; fallback ke `Customer.SubscriptionID`.
+  - Simpan `meter_id` di record `WaterUsage` untuk tracking per-meter.
+- Kompatibilitas backward: field `meter_id` opsional di request dan response; existing query tanpa meter_id tetap bekerja dengan auto-detection.
+
+**Frontend:**
+- `CreateWaterPemakaianDto` menambahkan field optional `meterId?: string`.
+- `WaterPemakaianFormData` menambahkan field optional `meterId?: string`.
+- `MeterReadingForm`:
+  - Fetch daftar meter pelanggan saat customer dipilih.
+  - Tampilkan dropdown pilih meter hanya jika pelanggan memiliki 2+ meter (conditional rendering).
+  - Dropdown berisi daftar nomor meter; tooltip menunjukkan jika meter punya tarif khusus.
+  - Include `meterId` dalam payload saat submit.
+  - Reset `meterId` ketika pelanggan berubah.
+- `usageService`: `createWaterPemakaian()` kini pass `meter_id` ke backend.
+- Type & service: `CreateWaterPemakaianDto` dan form data sudah support meter selection.
+
+### Testing & Verification
+- Unit test baru di backend mencakup:
+  - Request serialization/deserialization dengan field MeterID
+  - WaterUsage model multi-meter structure
+  - Single vs multi-meter scenario validation
+  - Semua test PASS tanpa regresi
+- Build verification:
+  - Backend compile: ✅ No errors
+  - Frontend TypeScript check: ✅ Pass
+  - Frontend production build: ✅ Success
+- Dokumentasi API scenario mencakup 5 flow utama: single-meter create, multi-meter explicit, multi-meter auto-detect, bulk import meter-aware, tariff priority resolution.
+
+### Dampak deploy
+- Pelanggan single-meter: tidak ada perubahan UI/behavior; field meter hidden.
+- Pelanggan multi-meter: dropdown meter muncul di form pencatatan pemakaian; operator bisa pilih meter sesuai kebutuhan, atau biarkan sistem auto-detect meter aktif.
+- Tarif per-meter dimungkinkan: admin bisa set `subscription_type_id` unik per meter pelanggan untuk mendukung skenario mixed-type meters (rumah + komersial).
+- Pemakaian historis tercatat per-meter, memudahkan analisis penggunaan per koneksi air.
+- Tidak ada perubahan schema database untuk rilis ini (field `meter_id` pada tabel `water_usages` sudah ada sejak fase 2; field `subscription_type_id` pada tabel `meters` sudah ada sejak awal).
+
+### File yang berubah
+- `tirta-saas-backend/controllers/water_usage_controller.go`
+- `tirta-saas-backend/controllers/bulk_operations_controller.go`
+- `tirta-saas-backend/requests/water_usage_request.go`
+- `tirta-saas-backend/controllers/water_usage_controller_test.go` *(baru)*
+- `tirta-saas-frontend/src/types/usage.ts`
+- `tirta-saas-frontend/src/services/usageService.ts`
+- `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
+- `test-multi-meter.sh` *(dokumentasi scenario)*
+- `FEATURE_STATUS.md` *(updated)*
+
+---
+
 ## v1.0.8 - 2026-06-01
 
 **Tipe rilis:** Feature  
