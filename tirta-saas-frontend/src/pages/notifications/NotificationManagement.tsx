@@ -255,7 +255,7 @@ export default function NotificationManagement() {
 
     return customers.map((customer) => ({
       value: customer.id,
-      label: `${customer.name} • ${customer.email || customer.phone || customer.meter_number}`,
+      label: `${customer.name} • ${customer.email || customer.phone || customer.meters?.[0]?.meter_number || ''}`,
     }));
   }, [customers, sendForm.recipient_type, users]);
 

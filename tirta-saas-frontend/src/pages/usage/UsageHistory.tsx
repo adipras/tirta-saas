@@ -117,7 +117,9 @@ export default function PemakaianHistoryPage() {
     <div className="space-y-6">
       <PageHeader
         title="Riwayat Pemakaian"
-        subtitle={customer ? `${customer.name} (${customer.meter_number})` : 'Pantau histori pemakaian pelanggan dari daftar yang lebih nyaman di mobile.'}
+        subtitle={customer
+          ? `${customer.name}${customer.meters?.[0]?.meter_number ? ` (${customer.meters[0].meter_number})` : ''}`
+          : 'Pantau histori pemakaian pelanggan dari daftar yang lebih nyaman di mobile.'}
         actions={
           <button
             type="button"

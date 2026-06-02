@@ -35,15 +35,16 @@ export default function CustomerSearchSelect({
     }
   }, [value, customers]);
 
-  // Filter customers by name or meter_number
+  // Filter customers by name or primary meter number
   const filteredPelanggan =
     query === ''
       ? customers
       : customers.filter((customer) => {
           const searchQuery = query.toLowerCase();
+          const primaryMeter = customer.meters?.[0]?.meter_number ?? '';
           return (
             customer.name.toLowerCase().includes(searchQuery) ||
-            (customer.meter_number?.toLowerCase() || '').includes(searchQuery)
+            primaryMeter.toLowerCase().includes(searchQuery)
           );
         });
 
@@ -62,9 +63,10 @@ export default function CustomerSearchSelect({
           <div className="relative w-full cursor-default overflow-hidden rounded-md border border-gray-300 bg-white text-left shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
             <Combobox.Input
               className="w-full border-none py-2 pl-3 pr-10 text-sm leading-5 text-gray-900 focus:ring-0"
-              displayValue={(customer: Customer | null) =>
-                customer ? `${customer.name} (${customer.meter_number})` : ''
-              }
+              displayValue={(customer: Customer | null) => {
+                const meterNum = customer?.meters?.[0]?.meter_number;
+                return customer ? `${customer.name}${meterNum ? ` (${meterNum})` : ''}` : '';
+              }}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Cari berdasarkan nama atau nomor meter..."
               disabled={disabled}
@@ -115,7 +117,7 @@ export default function CustomerSearchSelect({
                             )}
                           </div>
                           <span className={`text-sm ${active ? 'text-blue-200' : 'text-gray-500'}`}>
-                            Meter: {customer.meter_number || 'N/A'}
+                            Meter: {customer.meters?.[0]?.meter_number || 'N/A'}
                             {customer.subscription?.name && ` • ${customer.subscription.name}`}
                           </span>
                         </div>
@@ -147,7 +149,7 @@ export default function CustomerSearchSelect({
             </div>
             <div>
               <span className="text-gray-500">Meter:</span>
-              <span className="ml-2 font-medium">{selectedCustomer.meter_number || 'N/A'}</span>
+              <span className="ml-2 font-medium">{selectedCustomer.meters?.[0]?.meter_number || 'N/A'}</span>
             </div>
             <div>
               <span className="text-gray-500">Alamat:</span>

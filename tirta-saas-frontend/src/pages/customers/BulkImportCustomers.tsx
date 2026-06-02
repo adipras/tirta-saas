@@ -336,7 +336,7 @@ export default function BulkImportPelanggan() {
                   <tr key={i} className="hover:bg-gray-50">
                     <td className="px-4 py-2 text-gray-900">{row.name}</td>
                     <td className="px-4 py-2 text-gray-600 font-mono">{row.meter_number}</td>
-                    <td className="px-4 py-2 text-gray-600 font-mono">{row.subscription_id}</td>
+                    <td className="px-4 py-2 text-gray-600 font-mono">{row.subscription_type_id}</td>
                     <td className="px-4 py-2 text-gray-600">{row.address}</td>
                     <td className="px-4 py-2 text-gray-600">{row.phone}</td>
                     <td className="px-4 py-2 text-gray-500">{row.email || '—'}</td>

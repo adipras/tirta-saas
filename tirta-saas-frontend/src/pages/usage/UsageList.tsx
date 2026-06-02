@@ -286,7 +286,7 @@ export default function PemakaianList() {
                   <option value="">Semua Pelanggan</option>
                   {customers.map((customer) => (
                     <option key={customer.id} value={customer.id}>
-                      {customer.name} ({customer.meter_number})
+                      {customer.name}{customer.meters?.[0]?.meter_number ? ` (${customer.meters[0].meter_number})` : ''}
                     </option>
                   ))}
                 </select>
