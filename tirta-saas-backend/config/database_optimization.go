@@ -129,7 +129,6 @@ func createIndexes(db *gorm.DB) error {
 		{"payments", []string{"tenant_id"}, "idx_payments_tenant_id"},
 
 		// Customer-based indexes
-		{"customers", []string{"tenant_id", "customer_id"}, "idx_customers_tenant_customer"},
 		{"customers", []string{"tenant_id", "email"}, "idx_customers_tenant_email"},
 		{"customers", []string{"tenant_id", "is_active"}, "idx_customers_tenant_active"},
 
@@ -223,10 +222,8 @@ func optimizeMySQLSettings(db *gorm.DB) error {
 	logger.Debug("Applying MySQL optimization settings")
 
 	// MySQL optimization queries
+	// Note: query_cache_type was removed in MySQL 8.0 — do not include it
 	optimizations := []string{
-		// Enable query cache (if not disabled by default)
-		"SET SESSION query_cache_type = ON",
-
 		// Optimize for faster reads
 		"SET SESSION transaction_isolation = 'READ-COMMITTED'",
 
