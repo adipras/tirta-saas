@@ -2,7 +2,7 @@
 
 _Dokumen ini menggambarkan kondisi aktual repo saat ini dan mengarah ke kesiapan produksi, bukan sekadar checklist MVP._
 
-**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 27 Mei 2026
+**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 2 Juni 2026
 
 ---
 
@@ -41,14 +41,17 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 ### 3. Operasional tenant / billing engine
 - ✅ Customer CRUD
 - ✅ Aktivasi / deaktivasi customer
-- ✅ Detail customer
+- ✅ Detail customer — kini menyertakan list meter terpasang beserta bacaan terakhir per meter
+- ✅ Satu customer dapat memiliki **lebih dari 1 meter** (multi-meter) — `meter_number` dan `subscription_id` dipindahkan dari `customers` ke tabel `meters`
+- ✅ Tambah meter ke customer existing (`POST /api/customers/:id/meters`) — otomatis membuat invoice registrasi per meter
+- ✅ Resolve angka awal meter otomatis (`GET /api/meters/:id/resolve-meter-start`) dengan audit trail sumber (bacaan bulan lalu / angka awal meter / default)
 - ✅ Subscription type CRUD
 - ✅ Water rate CRUD
 - ✅ Rate history
-- ✅ Water usage CRUD
+- ✅ Water usage CRUD — kini menyertakan `meter_id` wajib dan `meter_start_source` untuk audit trail asal angka awal
 - ✅ Riwayat pemakaian per customer
-- ✅ Bulk generate invoice
-- ✅ Invoice CRUD + detail
+- ✅ Bulk generate invoice — invoice registrasi kini selalu ter-link ke `meter_id` spesifik
+- ✅ Invoice CRUD + detail — invoice registrasi dan monthly kini memiliki `meter_id` yang terisi
 - ✅ Filter invoice per bulan tagihan (usage_month) dengan print per periode
 - ✅ Manual payment recording
 - ✅ Payment receipt / struk pembayaran
@@ -57,7 +60,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ User management page untuk user operasional tenant
 
 ### 4. Import, export, dan reporting
-- ✅ Bulk import customer dari **CSV** dengan template, preview, validasi header, dan error result
+- ✅ Bulk import customer dari **CSV** — format baru: kolom `meter_number, subscription_type_id, install_date, initial_reading`; membuat customer + meter sekaligus tanpa invoice registrasi otomatis
 - ✅ Bulk import customer dari **Excel (.xlsx)** — parse di frontend, dikirim ke backend sebagai CSV
 - ✅ Bulk import water usage dari form tabel + paste data tab-separated ke endpoint bulk import
 - ✅ Bulk import water usage dari **Excel (.xlsx)** — parse di frontend, populate rows untuk review sebelum submit
@@ -165,9 +168,14 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Arsitektur native utama sudah berjalan dengan Compose + Hilt + Clean Architecture + MVVM, terpisah dari web dan tanpa WebView
 - ✅ Modul Android inti sudah aktif: auth, tenant, tenant settings, user, customer, usage, invoice, payment, monitoring, dan printer
 - ✅ Flow operasional lapangan utama sudah tersedia: input/update water usage, offline draft, sync queue, upload foto meter, monitoring invoice, input payment, riwayat payment + reprint receipt
+- ✅ Pemilihan meter pada form input bacaan: jika customer punya >1 meter aktif, petugas memilih meter sebelum input angka akhir; jika hanya 1 meter, otomatis terpilih
+- ✅ Angka awal meter di-resolve otomatis dari API saat meter dipilih dan ditampilkan read-only beserta keterangan sumber (bacaan bulan lalu / angka awal meter / default)
+- ✅ `meter_id` kini ikut tersimpan di draft Room DB saat offline dan dikirim saat sync ke server
+- ✅ Customer detail Android kini menampilkan list meter terpasang (nomor, status, bacaan terakhir)
 - ✅ Integrasi printer thermal native sudah matang untuk paired Bluetooth Classic, preferred printer, print queue, retry gagal cetak, dan ESC/POS receipt rendering
 - ✅ Mobile security/session foundation sudah ada: JWT login, secure token storage, auto refresh, tenant status guard, dan redaksi header sensitif di network logging
 - 🟡 Namun mobile app **masih belum setara penuh** dengan seluruh surface web, terutama parity customer portal/end-user surface, QA multi-role, hardening sync conflict, dan release pipeline mobile
+- ⚠️ Room DB versi perlu di-increment manual dan migration `ALTER TABLE draft_usages ADD COLUMN meter_id TEXT` perlu ditambahkan sebelum build APK baru
 
 ### 8. Operasional produksi masih lebih banyak terdokumentasi daripada tervalidasi otomatis
 - 🟡 Ada checklist VPS / hardening / monitoring / backup
@@ -373,11 +381,12 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Progress hardening terbaru: workflow deploy/bootstrap kini juga menjalankan smoke check pasca-deploy untuk memverifikasi root frontend dan health backend setelah runtime dinaikkan.
 - Progress hardening terbaru: frontend kini juga punya baseline test otomatis untuk auth guard (`PrivateRoute`), branching login admin/customer, interaction notification bell, customer invoice detail, dan customer payment confirmation, dan workflow validasi repo sudah ikut menjalankan `npm run test`.
 - Progress dokumentasi terbaru: status Android native kini digabung ke dokumen ini agar tracking mobile/web/backend berada pada satu sumber kebenaran.
+- Progress produk terbaru (v1.1.0): refactor multi-meter selesai — satu customer kini bisa punya lebih dari 1 meter; `meter_number` dipindahkan dari tabel `customers` ke `meters`; invoice registrasi sekarang selalu ter-link ke `meter_id` spesifik; `meter_start_source` ditambahkan ke `water_usages` untuk audit trail; endpoint baru `POST /api/customers/:id/meters` dan `GET /api/meters/:id/resolve-meter-start` tersedia; form create customer, halaman detail customer, form input bacaan meter, dan bulk import CSV diperbarui di frontend; Android ikut diselaraskan dengan pemilihan meter dan tampilan meter terpasang.
 
 ---
 
 ## Ringkasan singkat
 
 **Status umum:** Core product sudah usable dan fondasi deploy produksi sudah ada.  
-**Yang paling matang:** billing flow tenant, payment proof flow, reporting, import Excel, customer portal lengkap, payment settings, scheduler, dan fondasi Android/printer bridge/mobile operasional inti.
+**Yang paling matang:** billing flow tenant multi-meter, payment proof flow, reporting, import Excel, customer portal lengkap, payment settings, scheduler, dan fondasi Android/printer bridge/mobile operasional inti.
 **Yang paling menentukan untuk production:** automated tests, release gate, observability, audit logging aktif, hardening akses platform owner, dan automation notification/payment.

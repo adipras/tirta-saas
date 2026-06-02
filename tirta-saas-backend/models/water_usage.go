@@ -9,6 +9,7 @@ type WaterUsage struct {
 	Customer         Customer  `gorm:"foreignKey:CustomerID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"customer"`
 	UsageMonth       string    `gorm:"type:varchar(7);not null;index" json:"usage_month"` // e.g. 2025-06
 	MeterStart       float64   `json:"meter_start"`
+	MeterStartSource string    `gorm:"type:varchar(20);not null;default:'default'" json:"meter_start_source"`
 	MeterEnd         float64   `json:"meter_end"`
 	UsageM3          float64   `json:"usage_m3"`
 	AmountCalculated float64   `json:"amount_calculated"` // hasil UsageM3 * tarif

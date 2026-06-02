@@ -1,12 +1,16 @@
 import { apiClient } from './apiClient';
 import { API_ENDPOINTS } from '../constants/api';
-import type { 
-  Customer, 
-  CreateCustomerDto, 
-  UpdateCustomerDto, 
+import type {
+  Customer,
+  CreateCustomerDto,
+  CreateCustomerResponse,
+  UpdateCustomerDto,
   CustomerFilters,
   CustomerStats,
-  SubscriptionType 
+  SubscriptionType,
+  Meter,
+  AddMeterDto,
+  MeterStartResolution,
 } from '../types/customer';
 import { asArray, asRecord, getNumber, unwrapResponseData } from '../utils/dataTransform';
 
@@ -56,9 +60,36 @@ class CustomerService {
     return unwrapResponseData(response) as Customer;
   }
 
-  async createCustomer(data: CreateCustomerDto): Promise<Customer> {
+  async createCustomer(data: CreateCustomerDto): Promise<CreateCustomerResponse> {
     const response = await apiClient.post(API_ENDPOINTS.CUSTOMERS.CREATE, data);
-    return unwrapResponseData(response) as Customer;
+    return unwrapResponseData(response) as CreateCustomerResponse;
+  }
+
+  async addMeterToCustomer(customerId: string, data: AddMeterDto): Promise<{ meter: Meter; registration_invoice: Record<string, unknown> }> {
+    const response = await apiClient.post(`/api/customers/${customerId}/meters`, data);
+    return unwrapResponseData(response) as { meter: Meter; registration_invoice: Record<string, unknown> };
+  }
+
+  async getCustomerWithMeters(id: string): Promise<{ customer: Customer; meters: Meter[] }> {
+    const response = await apiClient.get(API_ENDPOINTS.CUSTOMERS.DETAIL(id));
+    const data = unwrapResponseData(response);
+    if (data && typeof data === 'object' && 'customer' in data) {
+      return data as { customer: Customer; meters: Meter[] };
+    }
+    return { customer: data as Customer, meters: [] };
+  }
+
+  async resolveMeterStart(meterId: string, month: string): Promise<MeterStartResolution> {
+    const response = await apiClient.get(`/api/meters/${meterId}/resolve-meter-start`, {
+      params: { month },
+    });
+    const data = unwrapResponseData(response);
+    return (data as { value: number; source: string; description: string; month: string });
+  }
+
+  async getCustomerMeters(customerId: string): Promise<Meter[]> {
+    const response = await apiClient.get(`/api/customers/${customerId}/meters`);
+    return asArray<Meter>(unwrapResponseData(response));
   }
 
   async updateCustomer(id: string, data: UpdateCustomerDto): Promise<Customer> {

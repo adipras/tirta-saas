@@ -63,7 +63,6 @@ CREATE TABLE `customers` (
   `created_at` datetime(3) DEFAULT NULL,
   `updated_at` datetime(3) DEFAULT NULL,
   `deleted_at` datetime(3) DEFAULT NULL,
-  `meter_number` varchar(191) NOT NULL,
   `name` longtext NOT NULL,
   `email` varchar(191) DEFAULT NULL,
   `password` longtext,
@@ -75,7 +74,6 @@ CREATE TABLE `customers` (
   `service_area_id` char(36) DEFAULT NULL,
   `reading_route_id` char(36) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uni_customers_meter_number` (`meter_number`),
   KEY `idx_customers_deleted_at` (`deleted_at`),
   KEY `idx_customers_email` (`email`),
   KEY `idx_customers_tenant_id` (`tenant_id`),
@@ -217,10 +215,13 @@ CREATE TABLE `meters` (
   `initial_reading` decimal(10,2) DEFAULT '0.00',
   `status` varchar(20) NOT NULL DEFAULT 'active',
   `notes` text,
+  `subscription_type_id` char(36) DEFAULT NULL,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uni_tenant_meter_number` (`tenant_id`,`meter_number`),
   KEY `idx_meters_deleted_at` (`deleted_at`),
   KEY `idx_tenant_meter` (`tenant_id`),
-  KEY `idx_customer_meter` (`customer_id`)
+  KEY `idx_customer_meter` (`customer_id`),
+  KEY `idx_meters_subscription_type_id` (`subscription_type_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 
@@ -935,10 +936,12 @@ CREATE TABLE `water_usages` (
   `customer_id` char(36) NOT NULL,
   `usage_month` varchar(7) NOT NULL,
   `meter_start` double DEFAULT NULL,
+  `meter_start_source` enum('previous_reading','initial_reading','default') NOT NULL DEFAULT 'default',
   `meter_end` double DEFAULT NULL,
   `usage_m3` double DEFAULT NULL,
   `amount_calculated` double DEFAULT NULL,
   `tenant_id` char(36) NOT NULL,
+  `is_draft` tinyint(1) DEFAULT '0',
   `meter_id` char(36) DEFAULT NULL,
   `reading_session_id` char(36) DEFAULT NULL,
   `recorded_by` char(36) DEFAULT NULL,

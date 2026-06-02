@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adipras.tirtasaas.core.database.entity.DraftUsageEntity
+import com.adipras.tirtasaas.feature.customer.MeterDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,11 @@ data class UsageFormUiState(
     val isSaving: Boolean = false,
     val usageId: String? = null,
     val customerId: String = "",
+    // Meter selection — populated after customer is selected
+    val customerMeters: List<MeterDto> = emptyList(),
+    val selectedMeterId: String = "",
+    val meterStartValue: Double? = null,
+    val meterStartDescription: String = "",
     val usageMonth: String = "",
     val meterEnd: String = "",
     val notes: String = "",
@@ -66,11 +72,50 @@ class UsageFormViewModel @Inject constructor(
         }
     }
 
-    fun onCustomerIdChange(v: String) { _uiState.value = _uiState.value.copy(customerId = v) }
-    fun onUsageMonthChange(v: String) { _uiState.value = _uiState.value.copy(usageMonth = v) }
+    fun onCustomerIdChange(v: String) {
+        _uiState.value = _uiState.value.copy(customerId = v, customerMeters = emptyList(), selectedMeterId = "", meterStartValue = null)
+        if (v.isNotBlank()) loadCustomerMeters(v)
+    }
+
+    fun onMeterSelected(meterId: String) {
+        _uiState.value = _uiState.value.copy(selectedMeterId = meterId)
+        val month = _uiState.value.usageMonth
+        if (meterId.isNotBlank() && month.isNotBlank()) resolveMeterStart(meterId, month)
+    }
+
+    fun onUsageMonthChange(v: String) {
+        _uiState.value = _uiState.value.copy(usageMonth = v)
+        val meterId = _uiState.value.selectedMeterId
+        if (meterId.isNotBlank() && v.isNotBlank()) resolveMeterStart(meterId, v)
+    }
+
     fun onMeterEndChange(v: String) { _uiState.value = _uiState.value.copy(meterEnd = v) }
     fun onNotesChange(v: String) { _uiState.value = _uiState.value.copy(notes = v) }
     fun onDraftChange(v: Boolean) { _uiState.value = _uiState.value.copy(isDraft = v) }
+
+    private fun loadCustomerMeters(customerId: String) {
+        viewModelScope.launch {
+            repository.getCustomerMeters(customerId).onSuccess { meters ->
+                val autoSelect = if (meters.size == 1) meters[0].id else ""
+                _uiState.value = _uiState.value.copy(customerMeters = meters, selectedMeterId = autoSelect)
+                if (autoSelect.isNotBlank()) {
+                    val month = _uiState.value.usageMonth
+                    if (month.isNotBlank()) resolveMeterStart(autoSelect, month)
+                }
+            }
+        }
+    }
+
+    private fun resolveMeterStart(meterId: String, usageMonth: String) {
+        viewModelScope.launch {
+            repository.resolveMeterStart(meterId, usageMonth).onSuccess { resolution ->
+                _uiState.value = _uiState.value.copy(
+                    meterStartValue = resolution.value,
+                    meterStartDescription = resolution.description,
+                )
+            }
+        }
+    }
 
     fun save() {
         val s = _uiState.value
@@ -92,6 +137,7 @@ class UsageFormViewModel @Inject constructor(
                 repository.createUsage(
                     CreateWaterUsageRequest(
                         customerId = s.customerId,
+                        meterId = s.selectedMeterId.ifBlank { null },
                         usageMonth = s.usageMonth,
                         meterEnd = meterEndVal,
                         notes = s.notes.ifBlank { null },
@@ -118,6 +164,7 @@ class UsageFormViewModel @Inject constructor(
                         DraftUsageEntity(
                             id = draftId,
                             customerId = s.customerId,
+                            meterId = s.selectedMeterId.ifBlank { null },
                             usageMonth = s.usageMonth,
                             meterEnd = meterEndVal,
                             notes = s.notes.ifBlank { null },

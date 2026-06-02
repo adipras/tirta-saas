@@ -113,7 +113,6 @@ func GetCustomerProfile(c *gin.Context) {
 	// Return customer data without password
 	response := gin.H{
 		"id":           customer.ID,
-		"meter_number": customer.MeterNumber,
 		"name":         customer.Name,
 		"email":        customer.Email,
 		"address":      customer.Address,

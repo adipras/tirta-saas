@@ -211,10 +211,9 @@ func buildPaymentReceiptResponse(payment *models.Payment) gin.H {
 			"invoicePaymentStatus": invoicePaymentStatus,
 		},
 		"customerDetails": gin.H{
-			"name":        payment.Invoice.Customer.Name,
-			"address":     payment.Invoice.Customer.Address,
-			"phone":       payment.Invoice.Customer.Phone,
-			"meterNumber": payment.Invoice.Customer.MeterNumber,
+			"name":    payment.Invoice.Customer.Name,
+			"address": payment.Invoice.Customer.Address,
+			"phone":   payment.Invoice.Customer.Phone,
 		},
 		"generatedAt": time.Now(),
 	}

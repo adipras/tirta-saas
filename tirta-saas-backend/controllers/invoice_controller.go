@@ -70,11 +70,14 @@ func buildInvoiceResponse(invoice models.Invoice, tenantSettings models.TenantSe
 
 	if invoice.Customer.ID != uuid.Nil {
 		response.CustomerName = invoice.Customer.Name
-		response.MeterNumber = invoice.Customer.MeterNumber
+		if invoice.Meter != nil {
+			response.MeterNumber = invoice.Meter.MeterNumber
+		}
+		meterNumber := response.MeterNumber
 		response.Customer = &responses.CustomerSummary{
 			ID:          invoice.Customer.ID,
 			Name:        invoice.Customer.Name,
-			MeterNumber: invoice.Customer.MeterNumber,
+			MeterNumber: meterNumber,
 			Email:       invoice.Customer.Email,
 			Address:     invoice.Customer.Address,
 		}
@@ -475,8 +478,9 @@ func GetInvoices(c *gin.Context) {
 	}
 	if search := c.Query("search"); search != "" {
 		query = query.Joins("LEFT JOIN customers ON customers.id = invoices.customer_id").
+			Joins("LEFT JOIN meters ON meters.id = invoices.meter_id AND meters.deleted_at IS NULL").
 			Where(
-				"invoices.invoice_number LIKE ? OR customers.name LIKE ? OR customers.meter_number LIKE ?",
+				"invoices.invoice_number LIKE ? OR customers.name LIKE ? OR meters.meter_number LIKE ?",
 				"%"+search+"%",
 				"%"+search+"%",
 				"%"+search+"%",
@@ -712,7 +716,7 @@ func BulkGenerateInvoices(c *gin.Context) {
 			InvoiceNumber:  inv.InvoiceNumber,
 			CustomerID:     inv.CustomerID,
 			CustomerName:   customer.Name,
-			CustomerCode:   customer.MeterNumber,
+			CustomerCode:   "",
 			UsageMonth:     inv.UsageMonth,
 			UsageM3:        inv.UsageM3,
 			PricePerM3:     inv.PricePerM3,
@@ -809,7 +813,7 @@ func PreviewInvoiceGeneration(c *gin.Context) {
 			InvoiceNumber:  inv.InvoiceNumber,
 			CustomerID:     inv.CustomerID,
 			CustomerName:   customer.Name,
-			CustomerCode:   customer.MeterNumber,
+			CustomerCode:   "",
 			UsageMonth:     inv.UsageMonth,
 			UsageM3:        inv.UsageM3,
 			PricePerM3:     inv.PricePerM3,

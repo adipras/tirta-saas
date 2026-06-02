@@ -15,6 +15,7 @@ import javax.inject.Inject
 data class CustomerDetailUiState(
     val isLoading: Boolean = false,
     val customer: CustomerDto? = null,
+    val meters: List<MeterDto> = emptyList(),
     val errorMessage: String? = null,
     val isSaving: Boolean = false,
     val showEditDialog: Boolean = false,
@@ -43,8 +44,8 @@ class CustomerDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             repository.getCustomer(customerId)
-                .onSuccess { customer ->
-                    _uiState.update { it.copy(isLoading = false, customer = customer) }
+                .onSuccess { detail ->
+                    _uiState.update { it.copy(isLoading = false, customer = detail.customer, meters = detail.meters) }
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -72,16 +73,14 @@ class CustomerDetailViewModel @Inject constructor(
 
     fun saveEdit(
         name: String,
-        email: String,
         phone: String,
         address: String,
-        subscriptionId: String,
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
-            repository.updateCustomer(customerId, UpdateCustomerRequest(name, email, phone, address, subscriptionId))
+            repository.updateCustomer(customerId, UpdateCustomerRequest(name = name, phone = phone, address = address))
                 .onSuccess { updated ->
-                    _uiState.update { it.copy(isSaving = false, customer = updated, showEditDialog = false) }
+                    _uiState.update { it.copy(isSaving = false, customer = updated.customer, meters = updated.meters, showEditDialog = false) }
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -111,7 +110,7 @@ class CustomerDetailViewModel @Inject constructor(
         viewModelScope.launch {
             repository.setActive(customerId, !current.isActive)
                 .onSuccess { updated ->
-                    _uiState.update { it.copy(customer = updated) }
+                    _uiState.update { it.copy(customer = updated.customer, meters = updated.meters) }
                 }
                 .onFailure { error ->
                     _uiState.update {

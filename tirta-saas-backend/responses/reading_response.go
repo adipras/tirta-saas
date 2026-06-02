@@ -99,7 +99,7 @@ func ToReadingAnomalyResponse(anomaly *models.ReadingAnomaly) ReadingAnomalyResp
 	response := ReadingAnomalyResponse{
 		ID:            anomaly.ID,
 		CustomerName:  anomaly.WaterUsage.Customer.Name,
-		MeterNumber:   anomaly.WaterUsage.Customer.MeterNumber,
+		MeterNumber:   "",
 		UsageMonth:    anomaly.WaterUsage.UsageMonth,
 		AnomalyType:   anomaly.AnomalyType,
 		ExpectedValue: anomaly.ExpectedValue,

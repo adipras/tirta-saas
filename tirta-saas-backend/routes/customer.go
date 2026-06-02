@@ -20,4 +20,5 @@ func CustomerRoutes(r *gin.Engine) {
 	group.DELETE("/:id", middleware.RequirePermission(constants.PermManageCustomers), controllers.DeleteCustomer)
 	group.POST("/:id/activate", middleware.RequirePermission(constants.PermManageCustomers), controllers.ActivateCustomer)
 	group.POST("/:id/deactivate", middleware.RequirePermission(constants.PermManageCustomers), controllers.DeactivateCustomer)
+	group.POST("/:id/meters", middleware.RequirePermission(constants.PermManageCustomers), controllers.AddMeterToCustomer)
 }

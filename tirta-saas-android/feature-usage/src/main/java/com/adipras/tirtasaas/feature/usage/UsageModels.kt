@@ -22,7 +22,7 @@ data class WaterUsageDto(
 data class WaterUsageCustomerDto(
     val id: String,
     val name: String,
-    @SerialName("meter_number") val meterNumber: String,
+    @SerialName("meter_number") val meterNumber: String = "",
     val address: String = "",
 )
 
@@ -30,6 +30,7 @@ data class WaterUsageCustomerDto(
 data class CreateWaterUsageRequest(
     val id: String? = null,
     @SerialName("customer_id") val customerId: String,
+    @SerialName("meter_id") val meterId: String? = null,
     @SerialName("usage_month") val usageMonth: String,
     @SerialName("meter_end") val meterEnd: Double,
     val notes: String? = null,

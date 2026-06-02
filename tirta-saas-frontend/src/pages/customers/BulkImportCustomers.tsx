@@ -16,11 +16,13 @@ import { extractApiErrorMessage } from '../../utils/apiError';
 
 interface PreviewRow {
   name: string;
-  meter_number: string;
-  address: string;
-  phone: string;
-  subscription_id: string;
   email?: string;
+  phone?: string;
+  address?: string;
+  meter_number: string;
+  subscription_type_id: string;
+  install_date: string;
+  initial_reading?: string;
   password?: string;
   is_active?: string;
 }
@@ -34,12 +36,13 @@ interface ImportResult {
   durationMs: number;
 }
 
-const CSV_HEADERS = ['name', 'meter_number', 'address', 'phone', 'subscription_id', 'email', 'password', 'is_active'];
-const REQUIRED_HEADERS = ['name', 'meter_number', 'address', 'phone', 'subscription_id'];
+// New CSV format: customer + meter fields. No registration invoice generated on import.
+const CSV_HEADERS = ['name', 'email', 'phone', 'address', 'meter_number', 'subscription_type_id', 'install_date', 'initial_reading', 'password', 'is_active'];
+const REQUIRED_HEADERS = ['name', 'meter_number', 'subscription_type_id', 'install_date'];
 
 const TEMPLATE_ROWS = [
-  { name: 'John Doe', meter_number: 'MTR-001', address: 'Jl. Merdeka No. 1', phone: '081234567890', subscription_id: '123e4567-e89b-12d3-a456-426614174000', email: 'john@example.com', password: 'rahasia123', is_active: 'true' },
-  { name: 'Jane Smith', meter_number: 'MTR-002', address: 'Jl. Sudirman No. 5', phone: '082345678901', subscription_id: '123e4567-e89b-12d3-a456-426614174001', email: '', password: '', is_active: 'true' },
+  { name: 'Budi Santoso', email: 'budi@example.com', phone: '08123456789', address: 'Jl. Mawar 1', meter_number: 'MET-001', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-01-01', initial_reading: '0', password: 'rahasia123', is_active: 'true' },
+  { name: 'Siti Aminah', email: '', phone: '08987654321', address: 'Jl. Melati 2', meter_number: 'MET-002', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-02-15', initial_reading: '150', password: '', is_active: 'true' },
 ];
 
 export default function BulkImportPelanggan() {
@@ -249,11 +252,13 @@ export default function BulkImportPelanggan() {
         </div>
         <p className="text-xs text-blue-600 mb-3">* Wajib diisi</p>
         <p className="text-xs text-blue-700 mb-3">
-          Kolom <span className="font-mono">email</span> dan <span className="font-mono">password</span> bersifat opsional. Jika <span className="font-mono">password</span> diisi, pelanggan bisa login memakai nomor meter atau email.
+          Kolom <span className="font-mono">subscription_type_id</span> wajib diisi dengan UUID golongan langganan yang valid. Kolom <span className="font-mono">install_date</span> menggunakan format <span className="font-mono">YYYY-MM-DD</span>.
         </p>
-        <p className="text-xs text-blue-700 mb-3">
-          Kolom <span className="font-mono">subscription_id</span> wajib diisi dengan UUID golongan pelanggan yang valid milik tenant.
-        </p>
+        <div className="mt-2 rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2">
+          <p className="text-xs font-medium text-yellow-800">
+            ⚠️ Import tidak akan menghasilkan invoice registrasi otomatis. Invoice registrasi harus dibuat secara manual jika diperlukan.
+          </p>
+        </div>
         <div className="flex flex-wrap gap-4">
           <button
             onClick={handleDownloadTemplate}

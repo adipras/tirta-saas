@@ -8,19 +8,21 @@ import (
 
 type Meter struct {
 	BaseModel
-	TenantID       uuid.UUID  `gorm:"type:char(36);not null;index:idx_tenant_meter" json:"tenant_id"`
+	TenantID       uuid.UUID  `gorm:"type:char(36);not null;index:idx_tenant_meter;uniqueIndex:uni_tenant_meter_number" json:"tenant_id"`
 	CustomerID     uuid.UUID  `gorm:"type:char(36);not null;index:idx_customer_meter" json:"customer_id"`
-	MeterNumber    string     `gorm:"type:varchar(50);not null" json:"meter_number"`
+	MeterNumber    string     `gorm:"type:varchar(50);not null;uniqueIndex:uni_tenant_meter_number" json:"meter_number"`
 	Brand          string     `gorm:"type:varchar(100)" json:"brand"`
 	Model          string     `gorm:"type:varchar(100)" json:"model"`
 	InstallDate    time.Time  `gorm:"type:date;not null" json:"install_date"`
 	LastCalibDate  *time.Time `gorm:"type:date" json:"last_calib_date"`
 	NextCalibDate  *time.Time `gorm:"type:date" json:"next_calib_date"`
 	InitialReading float64    `gorm:"type:decimal(10,2);default:0" json:"initial_reading"`
-	Status         string     `gorm:"type:varchar(20);default:'active';not null" json:"status"`
-	Notes          string     `gorm:"type:text" json:"notes"`
+	Status             string     `gorm:"type:varchar(20);default:'active';not null" json:"status"`
+	Notes              string     `gorm:"type:text" json:"notes"`
+	SubscriptionTypeID *uuid.UUID `gorm:"type:char(36);index" json:"subscription_type_id"`
 
 	// Relationships
+	SubscriptionType *SubscriptionType `gorm:"foreignKey:SubscriptionTypeID;references:ID" json:"subscription_type,omitempty"`
 	Tenant      Tenant            `gorm:"foreignKey:TenantID;constraint:OnDelete:CASCADE" json:"-"`
 	Customer    Customer          `gorm:"foreignKey:CustomerID;constraint:OnDelete:CASCADE" json:"customer"`
 	Readings    []WaterUsage      `gorm:"foreignKey:MeterID" json:"-"`

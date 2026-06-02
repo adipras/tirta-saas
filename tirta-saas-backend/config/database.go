@@ -101,6 +101,10 @@ func Migrate() {
 		log.Fatalf("❌ Migrasi schema user gagal: %v", err)
 	}
 
+	if err := applyMultiMeterSchemaAdjustments(); err != nil {
+		log.Fatalf("❌ Migrasi schema multi-meter gagal: %v", err)
+	}
+
 	log.Println("✅ Migrasi database selesai.")
 
 	// Apply database optimizations after migration
@@ -275,4 +279,37 @@ func initializeDefaultPermissions(db *gorm.DB) {
 	}
 
 	log.Println("✅ Default permissions initialized")
+}
+
+// applyMultiMeterSchemaAdjustments handles schema changes from the multi-meter refactor
+// that GORM AutoMigrate cannot perform automatically (DROP COLUMN, composite indexes, etc.)
+func applyMultiMeterSchemaAdjustments() error {
+	// 1. Drop customers.meter_number — AutoMigrate never drops columns
+	type colInfo struct{ Count int64 }
+	var col colInfo
+	DB.Raw(`
+		SELECT COUNT(*) as count
+		FROM information_schema.columns
+		WHERE table_schema = DATABASE()
+		  AND table_name = 'customers'
+		  AND column_name = 'meter_number'
+	`).Scan(&col)
+	if col.Count > 0 {
+		// Drop the unique key first (if it still exists), then the column
+		_ = DB.Exec("ALTER TABLE customers DROP INDEX uni_customers_meter_number").Error
+		if err := DB.Exec("ALTER TABLE customers DROP COLUMN meter_number").Error; err != nil {
+			return fmt.Errorf("gagal drop customers.meter_number: %w", err)
+		}
+		log.Println("✅ customers.meter_number berhasil dihapus")
+	}
+
+	// 2. Add composite unique index on meters(tenant_id, meter_number) if not exists
+	if !hasTableIndex("meters", "uni_tenant_meter_number") {
+		if err := DB.Exec("ALTER TABLE meters ADD UNIQUE KEY uni_tenant_meter_number (tenant_id, meter_number)").Error; err != nil {
+			return fmt.Errorf("gagal menambah unique index uni_tenant_meter_number: %w", err)
+		}
+		log.Println("✅ Unique index uni_tenant_meter_number pada meters berhasil ditambahkan")
+	}
+
+	return nil
 }

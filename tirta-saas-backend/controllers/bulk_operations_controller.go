@@ -81,8 +81,9 @@ func BulkImportCustomers(c *gin.Context) {
 		return
 	}
 
-	// Validate headers
-	requiredHeaders := []string{"name", "meter_number", "address", "phone", "subscription_id"}
+	// New CSV format: name, email, phone, address, meter_number, subscription_type_id, install_date, initial_reading
+	// Optional: password, is_active, service_area_id, reading_route_id
+	requiredHeaders := []string{"name", "meter_number", "subscription_type_id", "install_date"}
 	headerMap := make(map[string]int)
 	for i, header := range headers {
 		headerMap[strings.ToLower(strings.TrimSpace(header))] = i
@@ -101,7 +102,14 @@ func BulkImportCustomers(c *gin.Context) {
 
 	startTime := time.Now()
 	var successCount, failureCount, skippedCount int
-	var errors []string
+	var importErrors []string
+
+	getField := func(record []string, key string) string {
+		if idx, ok := headerMap[key]; ok && idx < len(record) {
+			return strings.TrimSpace(record[idx])
+		}
+		return ""
+	}
 
 	// Read and process records
 	lineNumber := 1
@@ -113,107 +121,129 @@ func BulkImportCustomers(c *gin.Context) {
 		lineNumber++
 
 		if err != nil {
-			errors = append(errors, fmt.Sprintf("Line %d: Failed to read - %s", lineNumber, err.Error()))
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: Failed to read - %s", lineNumber, err.Error()))
 			failureCount++
 			continue
 		}
 
-		// Extract data
-		name := strings.TrimSpace(record[headerMap["name"]])
-		meterNumber := strings.TrimSpace(record[headerMap["meter_number"]])
-		if meterIdx, exists := headerMap["meter_number"]; !exists || meterIdx >= len(record) {
-			meterNumber = fmt.Sprintf("MTR-%d-%d", time.Now().Unix(), lineNumber)
-		}
-		address := strings.TrimSpace(record[headerMap["address"]])
-		phone := strings.TrimSpace(record[headerMap["phone"]])
-		subscriptionIDRaw := strings.TrimSpace(record[headerMap["subscription_id"]])
+		name := getField(record, "name")
+		meterNumber := getField(record, "meter_number")
+		subscriptionTypeIDRaw := getField(record, "subscription_type_id")
+		installDateRaw := getField(record, "install_date")
 
-		// Validate required fields
-		if name == "" || meterNumber == "" || subscriptionIDRaw == "" {
-			errors = append(errors, fmt.Sprintf("Line %d: Missing name, meter number, or subscription_id", lineNumber))
+		if name == "" || meterNumber == "" || subscriptionTypeIDRaw == "" || installDateRaw == "" {
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: Missing required fields (name, meter_number, subscription_type_id, install_date)", lineNumber))
 			failureCount++
 			continue
 		}
 
-		// Check if customer already exists
-		var existingCustomer models.Customer
-		if err := config.DB.Where("tenant_id = ? AND meter_number = ?", tenantID, meterNumber).First(&existingCustomer).Error; err == nil {
-			errors = append(errors, fmt.Sprintf("Line %d: Meter number '%s' already exists", lineNumber, meterNumber))
+		// Check meter_number uniqueness in meters table
+		var existingMeter models.Meter
+		if err := config.DB.Where("tenant_id = ? AND meter_number = ? AND deleted_at IS NULL", tenantID, meterNumber).First(&existingMeter).Error; err == nil {
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: Nomor meter '%s' sudah digunakan", lineNumber, meterNumber))
 			skippedCount++
 			continue
 		}
 
-		// Optional fields
-		email := ""
-		if idx, exists := headerMap["email"]; exists && idx < len(record) {
-			email = strings.TrimSpace(record[idx])
-		}
-
-		password := ""
-		if idx, exists := headerMap["password"]; exists && idx < len(record) {
-			password = strings.TrimSpace(record[idx])
-		}
-
+		email := getField(record, "email")
 		if email != "" {
-			var existingCustomerByEmail models.Customer
-			if err := config.DB.Where("tenant_id = ? AND email = ?", tenantID, email).First(&existingCustomerByEmail).Error; err == nil {
-				errors = append(errors, fmt.Sprintf("Line %d: Email '%s' already exists", lineNumber, email))
+			var existingByEmail models.Customer
+			if err := config.DB.Where("tenant_id = ? AND email = ?", tenantID, email).First(&existingByEmail).Error; err == nil {
+				importErrors = append(importErrors, fmt.Sprintf("Line %d: Email '%s' sudah digunakan", lineNumber, email))
 				skippedCount++
 				continue
 			}
 		}
 
+		password := getField(record, "password")
 		hashedPassword := ""
 		if password != "" {
 			if len(password) < 6 {
-				errors = append(errors, fmt.Sprintf("Line %d: Password minimal 6 karakter", lineNumber))
+				importErrors = append(importErrors, fmt.Sprintf("Line %d: Password minimal 6 karakter", lineNumber))
 				failureCount++
 				continue
 			}
-
 			hashedPassword, err = utils.HashPassword(password)
 			if err != nil {
-				errors = append(errors, fmt.Sprintf("Line %d: Failed to hash password - %s", lineNumber, err.Error()))
+				importErrors = append(importErrors, fmt.Sprintf("Line %d: Failed to hash password", lineNumber))
 				failureCount++
 				continue
 			}
 		}
 
-		isActive := true
-		if idx, exists := headerMap["is_active"]; exists && idx < len(record) {
-			isActive = strings.ToLower(strings.TrimSpace(record[idx])) == "true"
+		isActive := false
+		if v := getField(record, "is_active"); strings.ToLower(v) == "true" {
+			isActive = true
 		}
 
-		subscriptionID, err := uuid.Parse(subscriptionIDRaw)
+		subscriptionTypeID, err := uuid.Parse(subscriptionTypeIDRaw)
 		if err != nil {
-			errors = append(errors, fmt.Sprintf("Line %d: subscription_id '%s' is not a valid UUID", lineNumber, subscriptionIDRaw))
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: subscription_type_id '%s' tidak valid", lineNumber, subscriptionTypeIDRaw))
 			failureCount++
 			continue
 		}
 
-		// Validate subscription type for tenant
 		var subscriptionType models.SubscriptionType
-		if err := config.DB.Where("tenant_id = ? AND id = ?", tenantID, subscriptionID).First(&subscriptionType).Error; err != nil {
-			errors = append(errors, fmt.Sprintf("Line %d: subscription_id '%s' not found for tenant", lineNumber, subscriptionIDRaw))
+		if err := config.DB.Where("tenant_id = ? AND id = ?", tenantID, subscriptionTypeID).First(&subscriptionType).Error; err != nil {
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: Jenis langganan '%s' tidak ditemukan", lineNumber, subscriptionTypeIDRaw))
 			failureCount++
 			continue
 		}
 
-		// Create customer
+		installDate, err := time.Parse("2006-01-02", installDateRaw)
+		if err != nil {
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: Format install_date tidak valid, gunakan YYYY-MM-DD", lineNumber))
+			failureCount++
+			continue
+		}
+
+		initialReadingRaw := getField(record, "initial_reading")
+		var initialReading float64
+		if initialReadingRaw != "" {
+			if _, err := fmt.Sscanf(initialReadingRaw, "%f", &initialReading); err != nil {
+				initialReading = 0
+			}
+		}
+
+		// Mini-transaction: create customer + meter (no registration invoice for import)
+		tx := config.DB.Begin()
+
 		customer := models.Customer{
 			TenantID:       tenantID,
-			MeterNumber:    meterNumber,
 			Name:           name,
-			Address:        address,
-			Phone:          phone,
+			Address:        getField(record, "address"),
+			Phone:          getField(record, "phone"),
 			Email:          email,
 			Password:       hashedPassword,
 			SubscriptionID: subscriptionType.ID,
 			IsActive:       isActive,
 		}
 
-		if err := config.DB.Create(&customer).Error; err != nil {
-			errors = append(errors, fmt.Sprintf("Line %d: Failed to create customer - %s", lineNumber, err.Error()))
+		if err := tx.Create(&customer).Error; err != nil {
+			tx.Rollback()
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: Failed to create customer - %s", lineNumber, err.Error()))
+			failureCount++
+			continue
+		}
+
+		meter := models.Meter{
+			TenantID:           tenantID,
+			CustomerID:         customer.ID,
+			MeterNumber:        meterNumber,
+			SubscriptionTypeID: &subscriptionTypeID,
+			InstallDate:        installDate,
+			InitialReading:     initialReading,
+			Status:             models.MeterStatusActive,
+		}
+		if err := tx.Create(&meter).Error; err != nil {
+			tx.Rollback()
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: Failed to create meter - %s", lineNumber, err.Error()))
+			failureCount++
+			continue
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: Failed to commit - %s", lineNumber, err.Error()))
 			failureCount++
 			continue
 		}
@@ -225,13 +255,13 @@ func BulkImportCustomers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responses.SuccessResponse{
 		Status:  "success",
-		Message: fmt.Sprintf("Bulk import completed: %d succeeded, %d failed, %d skipped", successCount, failureCount, skippedCount),
+		Message: fmt.Sprintf("Bulk import completed: %d succeeded, %d failed, %d skipped. Import tidak menghasilkan invoice registrasi.", successCount, failureCount, skippedCount),
 		Data: responses.BulkOperationResponse{
 			TotalRecords: successCount + failureCount + skippedCount,
 			SuccessCount: successCount,
 			FailureCount: failureCount,
 			SkippedCount: skippedCount,
-			Errors:       errors,
+			Errors:       importErrors,
 			ProcessedAt:  time.Now(),
 			DurationMs:   duration.Milliseconds(),
 		},
@@ -385,7 +415,7 @@ func ExportCustomers(c *gin.Context) {
 		query = query.Where("is_active = ?", active)
 	}
 
-	query = query.Order("meter_number ASC")
+	query = query.Order("created_at ASC")
 
 	if err := query.Find(&customers).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, responses.ErrorResponse{
@@ -406,7 +436,7 @@ func ExportCustomers(c *gin.Context) {
 
 	// Write header
 	headers := []string{
-		"Meter Number", "Name", "Address", "Phone", "Email",
+		"Name", "Address", "Phone", "Email",
 		"Is Active", "Created At",
 	}
 	if err := writer.Write(headers); err != nil {
@@ -416,7 +446,6 @@ func ExportCustomers(c *gin.Context) {
 	// Write data
 	for _, customer := range customers {
 		record := []string{
-			customer.MeterNumber,
 			customer.Name,
 			customer.Address,
 			customer.Phone,
@@ -453,12 +482,10 @@ func BulkImportWaterUsage(c *gin.Context) {
 		return
 	}
 
-	prevMonth, err := time.Parse("2006-01", req.UsageMonth)
-	if err != nil {
+	if _, err := time.Parse("2006-01", req.UsageMonth); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Format bulan tidak valid. Gunakan YYYY-MM"})
 		return
 	}
-	prevMonthStr := prevMonth.AddDate(0, -1, 0).Format("2006-01")
 
 	type recordResult struct {
 		Row         int    `json:"row"`
@@ -472,9 +499,17 @@ func BulkImportWaterUsage(c *gin.Context) {
 	for i, rec := range req.Records {
 		rowNum := i + 1
 
+		var meter models.Meter
 		var customer models.Customer
+
 		if rec.MeterNumber != "" {
-			if err := config.DB.Where("meter_number = ? AND tenant_id = ?", rec.MeterNumber, tenantID).First(&customer).Error; err != nil {
+			// Look up meter by meter_number
+			if err := config.DB.Where("meter_number = ? AND tenant_id = ? AND deleted_at IS NULL", rec.MeterNumber, tenantID).First(&meter).Error; err != nil {
+				errs = append(errs, recordResult{Row: rowNum, MeterNumber: rec.MeterNumber, Error: "Meter tidak ditemukan"})
+				failedCount++
+				continue
+			}
+			if err := config.DB.Where("id = ? AND tenant_id = ?", meter.CustomerID, tenantID).First(&customer).Error; err != nil {
 				errs = append(errs, recordResult{Row: rowNum, MeterNumber: rec.MeterNumber, Error: "Pelanggan tidak ditemukan"})
 				failedCount++
 				continue
@@ -491,30 +526,37 @@ func BulkImportWaterUsage(c *gin.Context) {
 				failedCount++
 				continue
 			}
+			// Get first active meter for customer
+			if err := config.DB.Where("customer_id = ? AND status = 'active' AND deleted_at IS NULL", customer.ID).First(&meter).Error; err != nil {
+				errs = append(errs, recordResult{Row: rowNum, Error: "Tidak ada meter aktif untuk pelanggan ini"})
+				failedCount++
+				continue
+			}
 		} else {
 			errs = append(errs, recordResult{Row: rowNum, Error: "meter_number atau customer_id harus diisi"})
 			failedCount++
 			continue
 		}
 
-		var lastUsage models.WaterUsage
-		meterStart := 0.0
-		if err := config.DB.Where("customer_id = ? AND usage_month = ? AND tenant_id = ?", customer.ID, prevMonthStr, tenantID).First(&lastUsage).Error; err == nil {
-			meterStart = lastUsage.MeterEnd
-		}
+		meterStart, meterStartSource, _ := services.ResolveWaterUsageMeterStart(config.DB, meter.ID, req.UsageMonth)
 
 		if rec.MeterEnd < meterStart {
-			errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Meter akhir lebih kecil dari meter sebelumnya"})
+			errs = append(errs, recordResult{Row: rowNum, MeterNumber: meter.MeterNumber, Error: "Meter akhir lebih kecil dari meter sebelumnya"})
 			failedCount++
 			continue
 		}
 
+		// Get rate from meter's subscription type (not customer's deprecated SubscriptionID)
+		var subscriptionIDForRate = customer.SubscriptionID
+		if meter.SubscriptionTypeID != nil {
+			subscriptionIDForRate = *meter.SubscriptionTypeID
+		}
 		var rate models.WaterRate
 		if err := config.DB.
-			Where("subscription_id = ? AND active = ? AND tenant_id = ?", customer.SubscriptionID, true, tenantID).
+			Where("subscription_id = ? AND active = ? AND tenant_id = ?", subscriptionIDForRate, true, tenantID).
 			Order("effective_date DESC").
 			First(&rate).Error; err != nil {
-			errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Tarif air aktif tidak ditemukan"})
+			errs = append(errs, recordResult{Row: rowNum, MeterNumber: meter.MeterNumber, Error: "Tarif air aktif tidak ditemukan"})
 			failedCount++
 			continue
 		}
@@ -526,15 +568,18 @@ func BulkImportWaterUsage(c *gin.Context) {
 			if errors.Is(err, services.ErrNoActiveProgressiveRates) || errors.Is(err, services.ErrIncompleteProgressiveRates) {
 				message = err.Error()
 			}
-			errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: message})
+			errs = append(errs, recordResult{Row: rowNum, MeterNumber: meter.MeterNumber, Error: message})
 			failedCount++
 			continue
 		}
 
+		meterID := meter.ID
 		usage := models.WaterUsage{
 			CustomerID:       customer.ID,
+			MeterID:          &meterID,
 			UsageMonth:       req.UsageMonth,
 			MeterStart:       meterStart,
+			MeterStartSource: meterStartSource,
 			MeterEnd:         rec.MeterEnd,
 			UsageM3:          usageM3,
 			AmountCalculated: amountCalculated,
@@ -543,7 +588,7 @@ func BulkImportWaterUsage(c *gin.Context) {
 		}
 
 		if err := config.DB.Create(&usage).Error; err != nil {
-			errs = append(errs, recordResult{Row: rowNum, MeterNumber: customer.MeterNumber, Error: "Gagal menyimpan: " + err.Error()})
+			errs = append(errs, recordResult{Row: rowNum, MeterNumber: meter.MeterNumber, Error: "Gagal menyimpan: " + err.Error()})
 			failedCount++
 			continue
 		}

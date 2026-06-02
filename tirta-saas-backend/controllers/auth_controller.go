@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/constants"
@@ -325,16 +326,17 @@ func CreateCustomerAccount(c *gin.Context) {
 		return
 	}
 
-	// Check if meter number already exists
-	var existingCustomer models.Customer
-	if err := config.DB.Where("meter_number = ? AND tenant_id = ?", input.MeterNumber, tenantID).First(&existingCustomer).Error; err == nil {
+	// Check if meter number already exists in meters table
+	var existingMeter models.Meter
+	if err := config.DB.Where("meter_number = ? AND tenant_id = ? AND deleted_at IS NULL", input.MeterNumber, tenantID).First(&existingMeter).Error; err == nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "Meter number already exists"})
 		return
 	}
 
 	// Check if email already exists
 	if input.Email != "" {
-		if err := config.DB.Where("email = ? AND tenant_id = ?", input.Email, tenantID).First(&existingCustomer).Error; err == nil {
+		var existingByEmail models.Customer
+		if err := config.DB.Where("email = ? AND tenant_id = ?", input.Email, tenantID).First(&existingByEmail).Error; err == nil {
 			c.JSON(http.StatusConflict, gin.H{"error": "Email sudah digunakan"})
 			return
 		}
@@ -355,45 +357,56 @@ func CreateCustomerAccount(c *gin.Context) {
 
 	hashedPassword, _ := utils.HashPassword(input.Password)
 
+	tx := config.DB.Begin()
+
 	customer := models.Customer{
-		MeterNumber:    input.MeterNumber,
 		Name:           input.Name,
 		Email:          input.Email,
 		Password:       hashedPassword,
 		Address:        input.Address,
 		Phone:          input.Phone,
 		SubscriptionID: subscriptionID,
-		IsActive:       false, // Will be activated after registration payment
+		IsActive:       false,
 		TenantID:       tenantID,
 	}
 
-	if err := config.DB.Create(&customer).Error; err != nil {
+	if err := tx.Create(&customer).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat akun customer"})
 		return
 	}
 
-	// Create registration invoice
-	invoice := models.Invoice{
-		CustomerID:  customer.ID,
-		UsageMonth:  "",
-		UsageM3:     0,
-		Abonemen:    subscription.RegistrationFee,
-		PricePerM3:  0,
-		TotalAmount: subscription.RegistrationFee,
-		TotalPaid:   0,
-		IsPaid:      false,
-		TenantID:    tenantID,
-		Type:        "registration",
+	// Create meter entry for the customer
+	installDate := time.Now()
+	meter := models.Meter{
+		TenantID:           tenantID,
+		CustomerID:         customer.ID,
+		MeterNumber:        input.MeterNumber,
+		SubscriptionTypeID: &subscriptionID,
+		InstallDate:        installDate,
+		Status:             models.MeterStatusActive,
+	}
+	if err := tx.Create(&meter).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat data meter"})
+		return
 	}
 
-	if err := config.DB.Create(&invoice).Error; err != nil {
+	invoice, err := services.GenerateRegistrationInvoice(tx, tenantID, customer.ID, meter.ID)
+	if err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat invoice pendaftaran"})
+		return
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan data"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message":          "Akun customer berhasil dibuat",
-		"meter_number":     customer.MeterNumber,
+		"meter_number":     meter.MeterNumber,
 		"registration_fee": subscription.RegistrationFee,
 		"invoice_id":       invoice.ID,
 	})
@@ -416,7 +429,18 @@ func resolveCustomerLoginIdentifier(input CustomerLoginInput) string {
 
 func findCustomerByLoginIdentifier(identifier string) (models.Customer, error) {
 	var customer models.Customer
-	err := config.DB.Where("meter_number = ? OR email = ?", identifier, identifier).First(&customer).Error
+	// Try email first
+	err := config.DB.Where("email = ?", identifier).First(&customer).Error
+	if err == nil {
+		return customer, nil
+	}
+	// Try meter_number via meters table
+	var meter models.Meter
+	err = config.DB.Where("meter_number = ? AND deleted_at IS NULL", identifier).First(&meter).Error
+	if err != nil {
+		return models.Customer{}, err
+	}
+	err = config.DB.Where("id = ?", meter.CustomerID).First(&customer).Error
 	return customer, err
 }
 
@@ -477,13 +501,12 @@ func CustomerLogin(c *gin.Context) {
 
 	audit.LogLogin(c, "customer", identifier, true, "")
 	c.JSON(http.StatusOK, gin.H{
-		"token":        token,
-		"id":           customer.ID,
-		"meter_number": customer.MeterNumber,
-		"email":        customer.Email,
-		"name":         customer.Name,
-		"role":         string(constants.RoleCustomer),
-		"tenant_id":    customer.TenantID,
+		"token":     token,
+		"id":        customer.ID,
+		"email":     customer.Email,
+		"name":      customer.Name,
+		"role":      string(constants.RoleCustomer),
+		"tenant_id": customer.TenantID,
 	})
 }
 

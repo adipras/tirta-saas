@@ -105,7 +105,7 @@ internal fun CustomerDetailScreen(
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onToggleActive: () -> Unit,
-    onSaveEdit: (String, String, String, String, String) -> Unit,
+    onSaveEdit: (String, String, String) -> Unit,
     onDismissEdit: () -> Unit,
     onConfirmDelete: () -> Unit,
     onDismissDelete: () -> Unit,
@@ -154,14 +154,44 @@ internal fun CustomerDetailScreen(
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             InfoRow("Nama", customer.name)
                             HorizontalDivider()
-                            InfoRow("No. Meter", customer.meterNumber)
-                            HorizontalDivider()
-                            customer.subscription?.let { InfoRow("Paket", it.name); HorizontalDivider() }
                             InfoRow("Email", customer.email.ifBlank { "-" })
                             HorizontalDivider()
                             InfoRow("No. HP", customer.phone.ifBlank { "-" })
                             HorizontalDivider()
                             InfoRow("Alamat", customer.address.ifBlank { "-" })
+                        }
+                    }
+
+                    // Meters section
+                    if (uiState.meters.isNotEmpty()) {
+                        Text(
+                            "Meter Terpasang (${uiState.meters.size})",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        uiState.meters.forEach { meter ->
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(meter.meterNumber, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
+                                        Text(
+                                            meter.status,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (meter.status == "active") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                        )
+                                    }
+                                    meter.subscriptionType?.let {
+                                        Text(it.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    if (meter.latestMeterEnd != null) {
+                                        Text(
+                                            "Bacaan terakhir: ${meter.latestMeterEnd} (${meter.latestUsageMonth ?: "-"})",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -255,16 +285,11 @@ private fun CustomerEditDialog(
     subscriptionTypes: List<SubscriptionTypeDto>,
     isSaving: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, String, String) -> Unit,
+    onSave: (String, String, String) -> Unit,
 ) {
     var name by remember { mutableStateOf(customer.name) }
-    var email by remember { mutableStateOf(customer.email) }
     var phone by remember { mutableStateOf(customer.phone) }
     var address by remember { mutableStateOf(customer.address) }
-    var selectedSubId by remember { mutableStateOf(customer.subscriptionId) }
-    var dropdownExpanded by remember { mutableStateOf(false) }
-
-    val selectedSub = subscriptionTypes.find { it.id == selectedSubId }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -275,13 +300,6 @@ private fun CustomerEditDialog(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Nama") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("Email") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -298,42 +316,11 @@ private fun CustomerEditDialog(
                     label = { Text("Alamat") },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (subscriptionTypes.isNotEmpty()) {
-                    ExposedDropdownMenuBox(
-                        expanded = dropdownExpanded,
-                        onExpandedChange = { dropdownExpanded = it },
-                    ) {
-                        OutlinedTextField(
-                            value = selectedSub?.name ?: selectedSubId,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Paket Langganan") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(dropdownExpanded) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                        )
-                        ExposedDropdownMenu(
-                            expanded = dropdownExpanded,
-                            onDismissRequest = { dropdownExpanded = false },
-                        ) {
-                            subscriptionTypes.forEach { sub ->
-                                DropdownMenuItem(
-                                    text = { Text(sub.name) },
-                                    onClick = {
-                                        selectedSubId = sub.id
-                                        dropdownExpanded = false
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(name, email, phone, address, selectedSubId) },
+                onClick = { onSave(name, phone, address) },
                 enabled = !isSaving && name.isNotBlank(),
             ) { Text(if (isSaving) "Menyimpan..." else "Simpan") }
         },

@@ -475,11 +475,12 @@ func GetUsageReport(c *gin.Context) {
 		Select(`
 			customers.id as customer_id,
 			customers.name as customer_name,
-			customers.meter_number as meter_number,
+			meters.meter_number as meter_number,
 			water_usages.usage_m3 as usage,
 			water_usages.usage_month as usage_month
 		`).
 		Joins("LEFT JOIN customers ON water_usages.customer_id = customers.id").
+		Joins("LEFT JOIN meters ON water_usages.meter_id = meters.id AND meters.deleted_at IS NULL").
 		Where("water_usages.usage_month >= ? AND water_usages.usage_month <= ?", startMonth, endMonth)
 
 	if hasSpecificTenant {

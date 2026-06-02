@@ -7,7 +7,6 @@ import (
 
 type CustomerResponse struct {
 	ID               uuid.UUID                 `json:"id" format:"uuid" doc:"Customer unique ID" example:"123e4567-e89b-12d3-a456-426614174000"`
-	MeterNumber      string                    `json:"meter_number" doc:"Water meter number" example:"MTR-001"`
 	Name             string                    `json:"name" doc:"Customer full name" example:"John Doe"`
 	Email            string                    `json:"email,omitempty" format:"email" doc:"Email address" example:"john@example.com"`
 	Phone            string                    `json:"phone,omitempty" doc:"Phone number" example:"081234567890"`

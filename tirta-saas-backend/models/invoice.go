@@ -38,9 +38,11 @@ type Invoice struct {
 	// Invoice Identity
 	InvoiceNumber string `gorm:"type:varchar(50);unique;index" json:"invoice_number"` // INV-YYYYMM-XXXX
 
-	// Customer & Tenant
+	// Customer, Meter & Tenant
 	CustomerID uuid.UUID `gorm:"type:char(36);not null" json:"customer_id"`
 	Customer   Customer  `gorm:"foreignKey:CustomerID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"customer"`
+	MeterID    *uuid.UUID `gorm:"type:char(36);index" json:"meter_id,omitempty"`
+	Meter      *Meter    `gorm:"foreignKey:MeterID;references:ID" json:"meter,omitempty"`
 	TenantID   uuid.UUID `gorm:"type:char(36);index" json:"tenant_id"`
 
 	// Usage Details

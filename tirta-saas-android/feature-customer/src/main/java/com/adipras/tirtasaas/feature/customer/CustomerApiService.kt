@@ -1,5 +1,6 @@
 package com.adipras.tirtasaas.feature.customer
 
+import com.adipras.tirtasaas.core.network.ApiResponse
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -45,4 +46,16 @@ interface CustomerApiService {
 
     @POST("customers/{id}/deactivate")
     suspend fun deactivateCustomer(@Path("id") id: String): CustomerDetailResponse
+
+    @POST("customers/{id}/meters")
+    suspend fun addMeterToCustomer(
+        @Path("id") customerId: String,
+        @Body request: MeterInputDto,
+    ): ApiResponse<Map<String, MeterDto>>
+
+    @GET("meters/{id}/resolve-meter-start")
+    suspend fun resolveMeterStart(
+        @Path("id") meterId: String,
+        @Query("month") month: String,
+    ): ApiResponse<MeterStartResolution>
 }

@@ -42,6 +42,7 @@ class DraftUsageRepository @Inject constructor(
     private fun DraftUsageEntity.toRequest() = CreateWaterUsageRequest(
         id = this.id,
         customerId = this.customerId,
+        meterId = this.meterId,
         usageMonth = this.usageMonth,
         meterEnd = this.meterEnd,
         notes = this.notes,

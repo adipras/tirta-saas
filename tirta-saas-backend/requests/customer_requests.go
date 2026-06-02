@@ -2,23 +2,45 @@ package requests
 
 import "github.com/google/uuid"
 
+// MeterInput represents one meter to be registered for a customer.
+type MeterInput struct {
+	MeterNumber        string    `json:"meter_number" binding:"required"`
+	SubscriptionTypeID uuid.UUID `json:"subscription_type_id" binding:"required"`
+	InstallDate        string    `json:"install_date" binding:"required"` // YYYY-MM-DD
+	InitialReading     float64   `json:"initial_reading"`
+	Brand              string    `json:"brand,omitempty"`
+	Model              string    `json:"model,omitempty"`
+	Notes              string    `json:"notes,omitempty"`
+}
+
+// CreateCustomerRequest is the new request body for POST /api/customers.
+// Meters array is mandatory — minimum 1 element.
 type CreateCustomerRequest struct {
-	MeterNumber    string     `json:"meter_number" binding:"required" minLength:"3" maxLength:"20" doc:"Unique water meter number" example:"MTR-001"`
-	Name           string     `json:"name" binding:"required" minLength:"3" maxLength:"100" doc:"Full name of the customer" example:"John Doe"`
-	Email          string     `json:"email,omitempty" binding:"omitempty,email" format:"email" doc:"Optional email address for login and notifications" example:"john.doe@example.com"`
-	Password       string     `json:"password" binding:"required,min=6" minLength:"6" maxLength:"100" doc:"Password for customer account (min 6 characters)" example:"SecurePass123!"`
-	SubscriptionID uuid.UUID  `json:"subscription_id" binding:"required" format:"uuid" doc:"ID of the subscription type/plan" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Phone          string     `json:"phone,omitempty" pattern:"^[0-9+\\-\\s()]{10,20}$" doc:"Phone number for contact" example:"081234567890"`
-	Address        string     `json:"address,omitempty" maxLength:"500" doc:"Full address of the customer" example:"Jl. Merdeka No. 123, Jakarta"`
-	ServiceAreaID  *uuid.UUID `json:"service_area_id,omitempty" format:"uuid" doc:"Service area ID for geographic grouping"`
-	ReadingRouteID *uuid.UUID `json:"reading_route_id,omitempty" format:"uuid" doc:"Reading route ID for meter reader assignment"`
+	Name           string      `json:"name" binding:"required"`
+	Email          string      `json:"email,omitempty" binding:"omitempty,email"`
+	Password       string      `json:"password" binding:"required,min=6"`
+	Phone          string      `json:"phone,omitempty"`
+	Address        string      `json:"address,omitempty"`
+	ServiceAreaID  *uuid.UUID  `json:"service_area_id,omitempty"`
+	ReadingRouteID *uuid.UUID  `json:"reading_route_id,omitempty"`
+	Meters         []MeterInput `json:"meters" binding:"required,min=1,dive"`
+}
+
+// AddMeterRequest is the request body for POST /api/customers/:id/meters.
+type AddMeterRequest struct {
+	MeterNumber        string    `json:"meter_number" binding:"required"`
+	SubscriptionTypeID uuid.UUID `json:"subscription_type_id" binding:"required"`
+	InstallDate        string    `json:"install_date" binding:"required"` // YYYY-MM-DD
+	InitialReading     float64   `json:"initial_reading"`
+	Brand              string    `json:"brand,omitempty"`
+	Model              string    `json:"model,omitempty"`
+	Notes              string    `json:"notes,omitempty"`
 }
 
 type UpdateCustomerRequest struct {
-	Name           string     `json:"name" binding:"required" minLength:"3" maxLength:"100" doc:"Full name of the customer" example:"John Doe Updated"`
-	SubscriptionID uuid.UUID  `json:"subscription_id" binding:"required" format:"uuid" doc:"ID of the subscription type/plan" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Phone          string     `json:"phone,omitempty" pattern:"^[0-9+\\-\\s()]{10,20}$" doc:"Phone number for contact" example:"081234567890"`
-	Address        string     `json:"address,omitempty" maxLength:"500" doc:"Full address of the customer" example:"Jl. Merdeka No. 123, Jakarta Selatan"`
-	ServiceAreaID  *uuid.UUID `json:"service_area_id,omitempty" format:"uuid" doc:"Service area ID for geographic grouping"`
-	ReadingRouteID *uuid.UUID `json:"reading_route_id,omitempty" format:"uuid" doc:"Reading route ID for meter reader assignment"`
+	Name           string     `json:"name" binding:"required"`
+	Phone          string     `json:"phone,omitempty"`
+	Address        string     `json:"address,omitempty"`
+	ServiceAreaID  *uuid.UUID `json:"service_area_id,omitempty"`
+	ReadingRouteID *uuid.UUID `json:"reading_route_id,omitempty"`
 }

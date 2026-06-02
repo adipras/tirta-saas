@@ -7,12 +7,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CustomerDto(
     val id: String,
-    @SerialName("meter_number") val meterNumber: String,
     val name: String,
     val email: String = "",
     val phone: String = "",
     val address: String = "",
-    @SerialName("subscription_id") val subscriptionId: String,
+    @SerialName("subscription_id") val subscriptionId: String = "",
     val subscription: SubscriptionTypeDto? = null,
     @SerialName("service_area_id") val serviceAreaId: String? = null,
     @SerialName("service_area_name") val serviceAreaName: String? = null,
@@ -20,6 +19,34 @@ data class CustomerDto(
     @SerialName("reading_route_name") val readingRouteName: String? = null,
     @SerialName("is_active") val isActive: Boolean,
     @SerialName("created_at") val createdAt: String = "",
+    val meters: List<MeterDto> = emptyList(),
+)
+
+@Serializable
+data class MeterDto(
+    val id: String,
+    @SerialName("meter_number") val meterNumber: String,
+    val status: String = "active",
+    @SerialName("subscription_type_id") val subscriptionTypeId: String? = null,
+    @SerialName("subscription_type") val subscriptionType: SubscriptionTypeDto? = null,
+    @SerialName("install_date") val installDate: String = "",
+    @SerialName("initial_reading") val initialReading: Double = 0.0,
+    @SerialName("latest_usage_month") val latestUsageMonth: String? = null,
+    @SerialName("latest_meter_end") val latestMeterEnd: Double? = null,
+)
+
+@Serializable
+data class CustomerDetailData(
+    val customer: CustomerDto,
+    val meters: List<MeterDto> = emptyList(),
+)
+
+@Serializable
+data class MeterStartResolution(
+    val value: Double,
+    val source: String,
+    val description: String,
+    val month: String,
 )
 
 @Serializable
@@ -37,7 +64,7 @@ data class CustomerListData(
 )
 
 typealias CustomerListResponse = ApiResponse<CustomerListData>
-typealias CustomerDetailResponse = ApiResponse<CustomerDto>
+typealias CustomerDetailResponse = ApiResponse<CustomerDetailData>
 
 @Serializable
 data class ServiceAreaDto(
@@ -53,14 +80,24 @@ data class ServiceAreaListResponse(
 )
 
 @Serializable
+data class MeterInputDto(
+    @SerialName("meter_number") val meterNumber: String,
+    @SerialName("subscription_type_id") val subscriptionTypeId: String,
+    @SerialName("install_date") val installDate: String,
+    @SerialName("initial_reading") val initialReading: Double = 0.0,
+    val brand: String? = null,
+    val model: String? = null,
+    val notes: String? = null,
+)
+
+@Serializable
 data class CreateCustomerRequest(
     val name: String,
-    val email: String,
+    val email: String?,
     val phone: String,
     val address: String,
     val password: String,
-    @SerialName("meter_number") val meterNumber: String,
-    @SerialName("subscription_id") val subscriptionId: String,
+    val meters: List<MeterInputDto>,
     @SerialName("service_area_id") val serviceAreaId: String? = null,
     @SerialName("reading_route_id") val readingRouteId: String? = null,
 )
@@ -68,10 +105,8 @@ data class CreateCustomerRequest(
 @Serializable
 data class UpdateCustomerRequest(
     val name: String,
-    val email: String,
     val phone: String,
     val address: String,
-    @SerialName("subscription_id") val subscriptionId: String,
     @SerialName("service_area_id") val serviceAreaId: String? = null,
     @SerialName("reading_route_id") val readingRouteId: String? = null,
 )

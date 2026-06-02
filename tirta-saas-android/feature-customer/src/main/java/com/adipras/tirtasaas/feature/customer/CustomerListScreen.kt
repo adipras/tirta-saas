@@ -263,11 +263,14 @@ private fun CustomerListItem(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Text(
-                        text = "No. Meter: ${customer.meterNumber}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    val primaryMeter = customer.meters.firstOrNull()
+                    if (primaryMeter != null) {
+                        Text(
+                            text = "No. Meter: ${primaryMeter.meterNumber}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     customer.subscription?.let {
                         Text(
                             text = it.name,
@@ -323,6 +326,7 @@ private fun CustomerCreateDialog(
     var password by remember { mutableStateOf("") }
     var meterNumber by remember { mutableStateOf("") }
     var selectedSubId by remember { mutableStateOf(subscriptionTypes.firstOrNull()?.id.orEmpty()) }
+    var installDate by remember { mutableStateOf(java.time.LocalDate.now().toString()) }
     var dropdownExpanded by remember { mutableStateOf(false) }
 
     val selectedSub = subscriptionTypes.find { it.id == selectedSubId }
@@ -333,13 +337,6 @@ private fun CustomerCreateDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = meterNumber,
-                    onValueChange = { meterNumber = it },
-                    label = { Text("No. Meter") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Nama") },
@@ -349,7 +346,7 @@ private fun CustomerCreateDialog(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email") },
+                    label = { Text("Email (opsional)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -373,6 +370,20 @@ private fun CustomerCreateDialog(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
+                OutlinedTextField(
+                    value = meterNumber,
+                    onValueChange = { meterNumber = it },
+                    label = { Text("No. Meter") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = installDate,
+                    onValueChange = { installDate = it },
+                    label = { Text("Tgl Pasang (YYYY-MM-DD)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
                 if (subscriptionTypes.isNotEmpty()) {
                     ExposedDropdownMenuBox(
                         expanded = dropdownExpanded,
@@ -382,7 +393,7 @@ private fun CustomerCreateDialog(
                             value = selectedSub?.name ?: "",
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Paket Langganan") },
+                            label = { Text("Golongan Langganan") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -418,21 +429,26 @@ private fun CustomerCreateDialog(
                     onSave(
                         CreateCustomerRequest(
                             name = name,
-                            email = email,
+                            email = email.ifBlank { null },
                             phone = phone,
                             address = address,
                             password = password,
-                            meterNumber = meterNumber,
-                            subscriptionId = selectedSubId,
+                            meters = listOf(
+                                MeterInputDto(
+                                    meterNumber = meterNumber,
+                                    subscriptionTypeId = selectedSubId,
+                                    installDate = installDate,
+                                )
+                            ),
                         ),
                     )
                 },
                 enabled = !isSaving &&
                     meterNumber.isNotBlank() &&
                     name.isNotBlank() &&
-                    email.isNotBlank() &&
                     password.length >= 6 &&
-                    selectedSubId.isNotBlank(),
+                    selectedSubId.isNotBlank() &&
+                    installDate.isNotBlank(),
             ) {
                 Text(if (isSaving) "Menyimpan..." else "Simpan")
             }

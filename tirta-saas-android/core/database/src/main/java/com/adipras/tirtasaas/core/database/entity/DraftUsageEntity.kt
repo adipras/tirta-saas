@@ -13,6 +13,9 @@ data class DraftUsageEntity(
     @ColumnInfo(name = "customer_id")
     val customerId: String,
 
+    @ColumnInfo(name = "meter_id")
+    val meterId: String? = null,
+
     @ColumnInfo(name = "usage_month")
     val usageMonth: String,
 

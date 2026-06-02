@@ -6,7 +6,7 @@ import { customerService } from '../../services/customerService';
 import { waterRateService } from '../../services/waterRateService';
 import { CustomerSearchSelect } from '../../components';
 import type { WaterPemakaianFormData } from '../../types/usage';
-import type { Customer } from '../../types/customer';
+import type { Customer, Meter, MeterStartResolution } from '../../types/customer';
 import type { WaterRate } from '../../types/waterRate';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
@@ -22,12 +22,15 @@ export default function MeterReadingForm() {
 
   const [loading, setLoading] = useState(false);
   const [customers, setPelanggan] = useState<Customer[]>([]);
+  const [customerMeters, setCustomerMeters] = useState<Meter[]>([]);
+  const [selectedMeterId, setSelectedMeterId] = useState<string>('');
+  const [meterStartInfo, setMeterStartInfo] = useState<MeterStartResolution | null>(null);
   const [previousReading, setPreviousReading] = useState<number | null>(null);
   const [calculatedPemakaian, setCalculatedPemakaian] = useState<number>(0);
   const [activeRate, setActiveRate] = useState<WaterRate | null>(null);
   const [isCheckingRate, setIsCheckingRate] = useState(false);
   const [rateWarning, setRateWarning] = useState<string>('');
-  
+
   const [formData, setFormData] = useState<WaterPemakaianFormData>({
     customerId: '',
     usageMonth: new Date().toISOString().slice(0, 7),
@@ -72,7 +75,6 @@ export default function MeterReadingForm() {
     try {
       const history = await usageService.getCustomerPemakaianHistoryById(customerId);
       if (history.length > 0) {
-        // Backend returns DESC order, so index 0 is the most recent reading
         const lastReading = history[0];
         setPreviousReading(lastReading.meterEnd);
       } else {
@@ -80,6 +82,31 @@ export default function MeterReadingForm() {
       }
     } catch {
       setPreviousReading(0);
+    }
+  }, []);
+
+  const fetchCustomerMeters = useCallback(async (customerId: string) => {
+    try {
+      const result = await customerService.getCustomerWithMeters(customerId);
+      const activeMeters = (result.meters ?? []).filter((m) => m.status === 'active');
+      setCustomerMeters(activeMeters);
+      if (activeMeters.length === 1) {
+        setSelectedMeterId(activeMeters[0].id);
+      } else {
+        setSelectedMeterId('');
+      }
+    } catch {
+      setCustomerMeters([]);
+    }
+  }, []);
+
+  const resolveMeterStart = useCallback(async (meterId: string, month: string) => {
+    try {
+      const info = await customerService.resolveMeterStart(meterId, month);
+      setMeterStartInfo(info);
+      setPreviousReading(info.value);
+    } catch {
+      setMeterStartInfo(null);
     }
   }, []);
 
@@ -109,10 +136,18 @@ export default function MeterReadingForm() {
   }, [fetchPelanggan, fetchWaterPemakaian, id, isEditMode]);
 
   useEffect(() => {
-    if (formData.customerId && formData.usageMonth && !isEditMode) {
+    if (formData.customerId && !isEditMode) {
+      void fetchCustomerMeters(formData.customerId);
+    }
+  }, [fetchCustomerMeters, formData.customerId, isEditMode]);
+
+  useEffect(() => {
+    if (selectedMeterId && formData.usageMonth && !isEditMode) {
+      void resolveMeterStart(selectedMeterId, formData.usageMonth);
+    } else if (formData.customerId && formData.usageMonth && !isEditMode && !selectedMeterId) {
       void fetchPreviousReading(formData.customerId);
     }
-  }, [fetchPreviousReading, formData.customerId, formData.usageMonth, isEditMode]);
+  }, [fetchPreviousReading, formData.customerId, formData.usageMonth, isEditMode, resolveMeterStart, selectedMeterId]);
 
   useEffect(() => {
     if (!formData.customerId) {
@@ -189,6 +224,7 @@ export default function MeterReadingForm() {
 
       const payload = {
         customerId: formData.customerId,
+        meterId: selectedMeterId || undefined,
         usageMonth: formData.usageMonth,
         meterEnd: parseFloat(formData.meterEnd),
         notes: formData.notes.trim() || undefined,
@@ -244,7 +280,10 @@ export default function MeterReadingForm() {
                   value={formData.customerId}
                   onChange={(customerId) => {
                     setFormData({ ...formData, customerId });
-                   setErrors({ ...errors, customerId: '' });
+                    setErrors({ ...errors, customerId: '' });
+                    setCustomerMeters([]);
+                    setSelectedMeterId('');
+                    setMeterStartInfo(null);
                   }}
                   disabled={isEditMode}
                   error={errors.customerId}
@@ -252,6 +291,36 @@ export default function MeterReadingForm() {
                   required
                 />
               </div>
+
+              {/* Meter Selection */}
+              {formData.customerId && !isEditMode && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Pilih Meter <span className="text-red-500">*</span>
+                  </label>
+                  {customerMeters.length === 0 ? (
+                    <p className="mt-1 text-sm text-gray-400">Memuat meter...</p>
+                  ) : customerMeters.length === 1 ? (
+                    <div className="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                      {customerMeters[0].meter_number} — {customerMeters[0].subscription_type?.name ?? 'Tidak diketahui'}
+                      <span className="ml-2 text-xs text-gray-400">(satu-satunya meter)</span>
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedMeterId}
+                      onChange={(e) => setSelectedMeterId(e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                    >
+                      <option value="">Pilih meter</option>
+                      {customerMeters.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.meter_number} — {m.subscription_type?.name ?? '-'}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label htmlFor="usageMonth" className="block text-sm font-medium text-gray-700">
@@ -321,7 +390,7 @@ export default function MeterReadingForm() {
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Meter Sebelumnya
+                  Angka Awal (Meter Start)
                 </label>
                 <input
                   type="text"
@@ -329,8 +398,8 @@ export default function MeterReadingForm() {
                   disabled
                   className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm"
                 />
-                <p className="mt-1 text-sm text-gray-500">
-                  Diambil dari catatan bulan sebelumnya
+                <p className="mt-1 text-xs text-gray-500">
+                  {meterStartInfo ? meterStartInfo.description : 'Diambil dari catatan bulan sebelumnya'}
                 </p>
               </div>
 

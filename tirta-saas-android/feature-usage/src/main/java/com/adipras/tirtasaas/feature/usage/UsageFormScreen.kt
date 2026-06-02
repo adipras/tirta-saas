@@ -15,7 +15,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +31,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
@@ -145,6 +152,61 @@ fun UsageFormScreen(
                 enabled = usageId == null,
                 singleLine = true,
             )
+
+            // Meter selection — shown after customer is entered
+            if (usageId == null && state.customerId.isNotBlank()) {
+                if (state.customerMeters.size == 1) {
+                    val meter = state.customerMeters[0]
+                    Text(
+                        text = "Meter: ${meter.meterNumber} — ${meter.subscriptionType?.name ?: "-"}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else if (state.customerMeters.size > 1) {
+                    var meterDropdownExpanded by remember { mutableStateOf(false) }
+                    val selectedMeter = state.customerMeters.firstOrNull { it.id == state.selectedMeterId }
+                    ExposedDropdownMenuBox(
+                        expanded = meterDropdownExpanded,
+                        onExpandedChange = { meterDropdownExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedMeter?.let { "${it.meterNumber} — ${it.subscriptionType?.name ?: "-"}" } ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Pilih Meter") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(meterDropdownExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = meterDropdownExpanded,
+                            onDismissRequest = { meterDropdownExpanded = false },
+                        ) {
+                            state.customerMeters.forEach { meter ->
+                                DropdownMenuItem(
+                                    text = { Text("${meter.meterNumber} — ${meter.subscriptionType?.name ?: "-"}") },
+                                    onClick = {
+                                        viewModel.onMeterSelected(meter.id)
+                                        meterDropdownExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Show resolved meter_start as read-only info
+                if (state.meterStartValue != null) {
+                    OutlinedTextField(
+                        value = "%.2f m³".format(state.meterStartValue),
+                        onValueChange = {},
+                        label = { Text("Angka Awal (Otomatis)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = false,
+                        supportingText = { Text(state.meterStartDescription) },
+                    )
+                }
+            }
+
             OutlinedTextField(
                 value = state.usageMonth,
                 onValueChange = viewModel::onUsageMonthChange,

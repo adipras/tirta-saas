@@ -2,6 +2,9 @@ package com.adipras.tirtasaas.feature.usage
 
 import com.adipras.tirtasaas.core.network.PagedApiResponse
 import com.adipras.tirtasaas.core.network.requireData
+import com.adipras.tirtasaas.feature.customer.CustomerRepository
+import com.adipras.tirtasaas.feature.customer.MeterDto
+import com.adipras.tirtasaas.feature.customer.MeterStartResolution
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -11,7 +14,13 @@ import javax.inject.Singleton
 @Singleton
 class UsageRepository @Inject constructor(
     private val api: UsageApiService,
+    private val customerRepository: CustomerRepository,
 ) {
+    suspend fun getCustomerMeters(customerId: String): Result<List<MeterDto>> =
+        customerRepository.getCustomerMeters(customerId)
+
+    suspend fun resolveMeterStart(meterId: String, usageMonth: String): Result<MeterStartResolution> =
+        customerRepository.resolveMeterStart(meterId, usageMonth)
     suspend fun getUsages(
         page: Int = 1,
         pageSize: Int = 20,

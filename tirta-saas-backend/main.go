@@ -139,6 +139,7 @@ func main() {
 	routes.PaymentMethodRoutes(r)
 	routes.TariffRoutes(r)
 	routes.UserManagementRoutes(r)
+	routes.MeterRoutes(r)
 
 	logger.Info("🚀 Server ready and listening", map[string]interface{}{
 		"port":    port,
