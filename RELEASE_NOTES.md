@@ -1,5 +1,42 @@
 # Release Notes
 
+## v1.1.1 - 2026-06-02
+
+**Tipe rilis:** Patch  
+**Cakupan:** Backend + Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.1.1`
+
+### Ringkasan
+- Memperbaiki error startup backend akibat index yang invalid di `database_optimization.go`.
+- Menghapus perintah MySQL yang tidak kompatibel dengan MySQL 8.0+.
+- Memperbaiki TypeScript error di frontend akibat referensi `meter_number` yang tertinggal di beberapa komponen yang tidak ikut diubah pada refactor v1.1.0.
+
+### Akar masalah
+- `database_optimization.go` mendefinisikan index `idx_customers_tenant_customer(tenant_id, customer_id)` pada tabel `customers`, padahal kolom `customer_id` tidak pernah ada di tabel tersebut (copy-paste error lama). Error ini sebelumnya tidak terlihat karena fungsi `createIndexIfNotExists` hanya log warning tanpa menghentikan startup — namun kini ditangani lebih bersih.
+- `SET SESSION query_cache_type = ON` menghasilkan `Unknown system variable` di MySQL 8.0+ karena variabel tersebut sudah dihapus dari MySQL versi tersebut.
+- Beberapa komponen frontend (`CustomerSearchSelect`, `UsageList`, `UsageHistory`, `NotificationManagement`) dan halaman `BulkImportCustomers` masih mengakses `customer.meter_number` yang sudah tidak ada sejak tipe `Customer` diperbarui di v1.1.0.
+
+### Perubahan teknis
+- Hapus entry `{"customers", []string{"tenant_id", "customer_id"}, "idx_customers_tenant_customer"}` dari daftar index di `database_optimization.go`.
+- Hapus `SET SESSION query_cache_type = ON` dari daftar query optimasi MySQL.
+- Ganti semua referensi `customer.meter_number` di frontend dengan `customer.meters?.[0]?.meter_number`.
+- Perbaiki typo `row.subscription_id` menjadi `row.subscription_type_id` di tabel preview bulk import.
+
+### Dampak deploy
+- Backend restart tidak lagi menghasilkan error index invalid atau warning `query_cache_type`.
+- Frontend build (TypeScript) kembali bersih tanpa error.
+- Tidak ada perubahan schema database.
+
+### File yang berubah
+- `tirta-saas-backend/config/database_optimization.go`
+- `tirta-saas-frontend/src/components/CustomerSearchSelect.tsx`
+- `tirta-saas-frontend/src/pages/usage/UsageList.tsx`
+- `tirta-saas-frontend/src/pages/usage/UsageHistory.tsx`
+- `tirta-saas-frontend/src/pages/notifications/NotificationManagement.tsx`
+- `tirta-saas-frontend/src/pages/customers/BulkImportCustomers.tsx`
+
+---
+
 ## v1.1.0 - 2026-06-02
 
 **Tipe rilis:** Minor — breaking change pada contract API customer dan format CSV import  
