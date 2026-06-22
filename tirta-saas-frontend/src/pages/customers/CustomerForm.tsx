@@ -23,6 +23,7 @@ interface MeterFormRow {
   subscription_type_id: string;
   install_date: string;
   initial_reading: string;
+  location_name: string;
   brand: string;
   model: string;
   notes: string;
@@ -33,6 +34,7 @@ const emptyMeterRow = (): MeterFormRow => ({
   subscription_type_id: '',
   install_date: new Date().toISOString().slice(0, 10),
   initial_reading: '0',
+  location_name: '',
   brand: '',
   model: '',
   notes: '',
@@ -149,6 +151,7 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
             subscription_type_id: m.subscription_type_id,
             install_date: m.install_date,
             initial_reading: parseFloat(m.initial_reading) || 0,
+            location_name: m.location_name || undefined,
             brand: m.brand || undefined,
             model: m.model || undefined,
             notes: m.notes || undefined,
@@ -374,6 +377,18 @@ export default function CustomerForm({ mode }: CustomerFormProps) {
                               onChange={(e) => updateMeter(index, 'meter_number', e.target.value)}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                               placeholder="MET-001"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600">
+                              Lokasi Pemasangan
+                            </label>
+                            <input
+                              type="text"
+                              value={meter.location_name}
+                              onChange={(e) => updateMeter(index, 'location_name', e.target.value)}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                              placeholder="Contoh: Rumah Induk, Kos Belakang"
                             />
                           </div>
                           <div>

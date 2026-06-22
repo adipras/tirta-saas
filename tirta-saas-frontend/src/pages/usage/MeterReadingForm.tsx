@@ -302,7 +302,9 @@ export default function MeterReadingForm() {
                     <p className="mt-1 text-sm text-gray-400">Memuat meter...</p>
                   ) : customerMeters.length === 1 ? (
                     <div className="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                      {customerMeters[0].meter_number} — {customerMeters[0].subscription_type?.name ?? 'Tidak diketahui'}
+                      {customerMeters[0].meter_number}
+                      {customerMeters[0].location_name && ` (${customerMeters[0].location_name})`}
+                      {' — '}{customerMeters[0].subscription_type?.name ?? 'Tidak diketahui'}
                       <span className="ml-2 text-xs text-gray-400">(satu-satunya meter)</span>
                     </div>
                   ) : (
@@ -314,7 +316,7 @@ export default function MeterReadingForm() {
                       <option value="">Pilih meter</option>
                       {customerMeters.map((m) => (
                         <option key={m.id} value={m.id}>
-                          {m.meter_number} — {m.subscription_type?.name ?? '-'}
+                          {m.meter_number}{m.location_name ? ` (${m.location_name})` : ''} — {m.subscription_type?.name ?? '-'}
                         </option>
                       ))}
                     </select>

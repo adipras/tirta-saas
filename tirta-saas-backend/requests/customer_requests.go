@@ -8,6 +8,7 @@ type MeterInput struct {
 	SubscriptionTypeID uuid.UUID `json:"subscription_type_id" binding:"required"`
 	InstallDate        string    `json:"install_date" binding:"required"` // YYYY-MM-DD
 	InitialReading     float64   `json:"initial_reading"`
+	LocationName       string    `json:"location_name,omitempty"`
 	Brand              string    `json:"brand,omitempty"`
 	Model              string    `json:"model,omitempty"`
 	Notes              string    `json:"notes,omitempty"`
@@ -32,6 +33,7 @@ type AddMeterRequest struct {
 	SubscriptionTypeID uuid.UUID `json:"subscription_type_id" binding:"required"`
 	InstallDate        string    `json:"install_date" binding:"required"` // YYYY-MM-DD
 	InitialReading     float64   `json:"initial_reading"`
+	LocationName       string    `json:"location_name,omitempty"`
 	Brand              string    `json:"brand,omitempty"`
 	Model              string    `json:"model,omitempty"`
 	Notes              string    `json:"notes,omitempty"`

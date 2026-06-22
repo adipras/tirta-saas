@@ -1,6 +1,7 @@
 export interface Meter {
   id: string;
   meter_number: string;
+  location_name?: string;
   status: string;
   subscription_type_id?: string;
   subscription_type?: SubscriptionType;
@@ -19,6 +20,7 @@ export interface MeterInput {
   subscription_type_id: string;
   install_date: string;
   initial_reading?: number;
+  location_name?: string;
   brand?: string;
   model?: string;
   notes?: string;
@@ -92,6 +94,7 @@ export interface AddMeterDto {
   subscription_type_id: string;
   install_date: string;
   initial_reading?: number;
+  location_name?: string;
   brand?: string;
   model?: string;
   notes?: string;

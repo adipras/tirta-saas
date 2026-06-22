@@ -11,6 +11,7 @@ import (
 type MeterResponse struct {
 	ID             uuid.UUID  `json:"id"`
 	MeterNumber    string     `json:"meter_number"`
+	LocationName   string     `json:"location_name,omitempty"`
 	Brand          string     `json:"brand"`
 	Model          string     `json:"model"`
 	InstallDate    time.Time  `json:"install_date"`
@@ -53,6 +54,7 @@ func ToMeterResponse(meter *models.Meter) MeterResponse {
 	response := MeterResponse{
 		ID:             meter.ID,
 		MeterNumber:    meter.MeterNumber,
+		LocationName:   meter.LocationName,
 		Brand:          meter.Brand,
 		Model:          meter.Model,
 		InstallDate:    meter.InstallDate,

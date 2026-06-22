@@ -190,6 +190,7 @@ func BulkImportCustomers(c *gin.Context) {
 				SubscriptionTypeID: &subscriptionTypeID,
 				InstallDate:        installDate,
 				InitialReading:     initialReading,
+				LocationName:       getField(record, "location_name"),
 				Status:             models.MeterStatusActive,
 			}
 			if err := tx.Create(&meter).Error; err != nil {
@@ -267,6 +268,7 @@ func BulkImportCustomers(c *gin.Context) {
 			SubscriptionTypeID: &subscriptionTypeID,
 			InstallDate:        installDate,
 			InitialReading:     initialReading,
+			LocationName:       getField(record, "location_name"),
 			Status:             models.MeterStatusActive,
 		}
 		if err := tx.Create(&meter).Error; err != nil {

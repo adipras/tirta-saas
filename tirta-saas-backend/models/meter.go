@@ -17,6 +17,7 @@ type Meter struct {
 	LastCalibDate  *time.Time `gorm:"type:date" json:"last_calib_date"`
 	NextCalibDate  *time.Time `gorm:"type:date" json:"next_calib_date"`
 	InitialReading float64    `gorm:"type:decimal(10,2);default:0" json:"initial_reading"`
+	LocationName       string     `gorm:"type:varchar(200)" json:"location_name"`
 	Status             string     `gorm:"type:varchar(20);default:'active';not null" json:"status"`
 	Notes              string     `gorm:"type:text" json:"notes"`
 	SubscriptionTypeID *uuid.UUID `gorm:"type:char(36);index" json:"subscription_type_id"`

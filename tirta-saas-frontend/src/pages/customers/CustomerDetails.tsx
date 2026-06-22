@@ -31,6 +31,7 @@ function AddMeterModal({ open, onClose, onSuccess, customerId, subscriptionTypes
     subscription_type_id: '',
     install_date: new Date().toISOString().slice(0, 10),
     initial_reading: 0,
+    location_name: '',
     brand: '',
     model: '',
     notes: '',
@@ -72,6 +73,16 @@ function AddMeterModal({ open, onClose, onSuccess, customerId, subscriptionTypes
                 onChange={(e) => setForm((f) => ({ ...f, meter_number: e.target.value }))}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 placeholder="MET-002"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Lokasi Pemasangan</label>
+              <input
+                type="text"
+                value={form.location_name || ''}
+                onChange={(e) => setForm((f) => ({ ...f, location_name: e.target.value }))}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                placeholder="Contoh: Rumah Induk, Kos Belakang"
               />
             </div>
             <div>
@@ -344,7 +355,7 @@ export default function CustomerDetails() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {['No', 'Nomor Meter', 'Golongan Langganan', 'Tgl Pasang', 'Angka Awal', 'Bacaan Terakhir', 'Status'].map(
+                  {['No', 'Nomor Meter', 'Lokasi', 'Golongan Langganan', 'Tgl Pasang', 'Angka Awal', 'Bacaan Terakhir', 'Status'].map(
                     (h) => (
                       <th
                         key={h}
@@ -361,6 +372,9 @@ export default function CustomerDetails() {
                   <tr key={meter.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-900">{meter.meter_number}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">
+                      {meter.location_name || <span className="text-gray-400">-</span>}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {meter.subscription_type?.name ?? '-'}
                     </td>

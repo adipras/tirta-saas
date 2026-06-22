@@ -1,5 +1,51 @@
 # Release Notes
 
+## v1.3.0 - 2026-06-23
+
+**Tipe rilis:** Minor  
+**Cakupan:** Backend + Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.3.0`
+
+### Ringkasan
+- Menambahkan field **Lokasi Pemasangan** (`location_name`) pada meter, sehingga pencatat meter dapat membedakan meter milik pelanggan yang sama ketika pelanggan memiliki lebih dari 1 meter (misal: *Rumah Induk*, *Kos Belakang*).
+
+### Perubahan teknis
+
+**Backend:**
+- `models/meter.go` — tambah field `LocationName string` dengan tipe `varchar(200)`, nullable. GORM AutoMigrate menambahkan kolom `location_name` ke tabel `meters` secara otomatis saat restart.
+- `requests/customer_requests.go` — tambah field `location_name` (opsional) di `MeterInput` dan `AddMeterRequest`.
+- `responses/meter_response.go` — tambah field `LocationName` di `MeterResponse` dan fungsi `ToMeterResponse()`.
+- `controllers/customer_controller.go` — `LocationName` disertakan saat membuat `models.Meter` di dua endpoint: `POST /api/customers` dan `POST /api/customers/:id/meters`.
+- `controllers/bulk_operations_controller.go` — `LocationName` dibaca dari kolom `location_name` CSV dan disertakan pada dua titik pembuatan meter: meter pelanggan baru dan meter tambahan (baris berulang nama sama).
+
+**Frontend:**
+- `types/customer.ts` — tambah `location_name?` di interface `Meter`, `MeterInput`, dan `AddMeterDto`.
+- `CustomerForm.tsx` — tambah input **Lokasi Pemasangan** di tiap baris meter pada form buat pelanggan baru.
+- `CustomerDetails.tsx` — tambah input **Lokasi Pemasangan** di modal Tambah Meter; tambah kolom **Lokasi** di tabel meter terpasang.
+- `MeterReadingForm.tsx` — dropdown pilih meter kini menampilkan lokasi: `MET-001 (Rumah Induk) — Golongan R1`.
+- `BulkImportCustomers.tsx` — tambah kolom `location_name` di `CSV_HEADERS`, template rows (contoh: `Rumah Induk`, `Kos Belakang`), dan tabel preview.
+
+### Perubahan schema database
+- `meters` — tambah kolom `location_name VARCHAR(200) NULL`. Diterapkan otomatis saat backend restart via GORM AutoMigrate.
+
+### Dampak deploy
+- File CSV bulk import lama tanpa kolom `location_name` tetap valid — kolom ini opsional.
+- Meter existing tidak terpengaruh; `location_name` default kosong dan bisa diisi saat tambah meter baru.
+
+### File yang berubah
+- `tirta-saas-backend/models/meter.go`
+- `tirta-saas-backend/requests/customer_requests.go`
+- `tirta-saas-backend/responses/meter_response.go`
+- `tirta-saas-backend/controllers/customer_controller.go`
+- `tirta-saas-backend/controllers/bulk_operations_controller.go`
+- `tirta-saas-frontend/src/types/customer.ts`
+- `tirta-saas-frontend/src/pages/customers/CustomerForm.tsx`
+- `tirta-saas-frontend/src/pages/customers/CustomerDetails.tsx`
+- `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
+- `tirta-saas-frontend/src/pages/customers/BulkImportCustomers.tsx`
+
+---
+
 ## v1.2.0 - 2026-06-23
 
 **Tipe rilis:** Minor  

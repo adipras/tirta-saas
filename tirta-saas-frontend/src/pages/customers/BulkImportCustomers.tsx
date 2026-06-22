@@ -20,6 +20,7 @@ interface PreviewRow {
   phone?: string;
   address?: string;
   meter_number: string;
+  location_name?: string;
   subscription_type_id: string;
   install_date: string;
   initial_reading?: string;
@@ -37,14 +38,14 @@ interface ImportResult {
 }
 
 // New CSV format: customer + meter fields. No registration invoice generated on import.
-const CSV_HEADERS = ['name', 'email', 'phone', 'address', 'meter_number', 'subscription_type_id', 'install_date', 'initial_reading', 'password', 'is_active'];
+const CSV_HEADERS = ['name', 'email', 'phone', 'address', 'meter_number', 'location_name', 'subscription_type_id', 'install_date', 'initial_reading', 'password', 'is_active'];
 const REQUIRED_HEADERS = ['name', 'meter_number', 'subscription_type_id', 'install_date'];
 
 // Rows with the same name will add meters to the same customer (multi-meter support).
 const TEMPLATE_ROWS = [
-  { name: 'Budi Santoso', email: 'budi@example.com', phone: '08123456789', address: 'Jl. Mawar 1', meter_number: 'MET-001', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-01-01', initial_reading: '0', password: 'rahasia123', is_active: 'true' },
-  { name: 'Budi Santoso', email: '', phone: '', address: '', meter_number: 'MET-002', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-01-01', initial_reading: '0', password: '', is_active: '' },
-  { name: 'Siti Aminah', email: '', phone: '08987654321', address: 'Jl. Melati 2', meter_number: 'MET-003', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-02-15', initial_reading: '150', password: '', is_active: 'true' },
+  { name: 'Budi Santoso', email: 'budi@example.com', phone: '08123456789', address: 'Jl. Mawar 1', meter_number: 'MET-001', location_name: 'Rumah Induk', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-01-01', initial_reading: '0', password: 'rahasia123', is_active: 'true' },
+  { name: 'Budi Santoso', email: '', phone: '', address: '', meter_number: 'MET-002', location_name: 'Kos Belakang', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-01-01', initial_reading: '0', password: '', is_active: '' },
+  { name: 'Siti Aminah', email: '', phone: '08987654321', address: 'Jl. Melati 2', meter_number: 'MET-003', location_name: '', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-02-15', initial_reading: '150', password: '', is_active: 'true' },
 ];
 
 export default function BulkImportPelanggan() {
@@ -333,7 +334,7 @@ export default function BulkImportPelanggan() {
             <table className="min-w-full text-sm divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {['name', 'meter_number', 'subscription_id', 'address', 'phone', 'email'].map((h) => (
+                  {['name', 'meter_number', 'location_name', 'subscription_id', 'address', 'phone', 'email'].map((h) => (
                     <th key={h} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
                   ))}
                 </tr>
@@ -343,6 +344,7 @@ export default function BulkImportPelanggan() {
                   <tr key={i} className="hover:bg-gray-50">
                     <td className="px-4 py-2 text-gray-900">{row.name}</td>
                     <td className="px-4 py-2 text-gray-600 font-mono">{row.meter_number}</td>
+                    <td className="px-4 py-2 text-gray-600">{row.location_name || '—'}</td>
                     <td className="px-4 py-2 text-gray-600 font-mono">{row.subscription_type_id}</td>
                     <td className="px-4 py-2 text-gray-600">{row.address}</td>
                     <td className="px-4 py-2 text-gray-600">{row.phone}</td>
