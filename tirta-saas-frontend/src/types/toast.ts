@@ -8,7 +8,6 @@ export interface Toast {
 }
 
 export interface ToastContextValue {
-  toasts: Toast[];
   addToast: (type: ToastType, message: string, duration?: number) => void;
   removeToast: (id: string) => void;
   success: (message: string, duration?: number) => void;

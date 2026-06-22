@@ -61,8 +61,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [addToast]);
 
   const contextValue = useMemo(
-    () => ({ toasts, addToast, removeToast, success, error, warning, info }),
-    [toasts, addToast, removeToast, success, error, warning, info]
+    () => ({ addToast, removeToast, success, error, warning, info }),
+    [addToast, removeToast, success, error, warning, info]
   );
 
   return (
