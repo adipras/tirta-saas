@@ -1,5 +1,48 @@
 # Release Notes
 
+## v1.3.1 - 2026-06-23
+
+**Tipe rilis:** Patch  
+**Cakupan:** Backend + Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.3.1`
+
+### Ringkasan
+- Memperbaiki 500 Internal Server Error pada semua endpoint list berpaginasi (water-usage, invoice, payment, dll).
+- Memperbaiki frontend yang terus-menerus melakukan request ulang saat menerima response error.
+
+### Akar masalah
+
+**Backend — 500 pada endpoint list:**  
+Di GORM v2, memanggil `.Count()` pada sebuah `*gorm.DB` variable dapat memutasi state internal `Statement.Selects` menjadi `count(*)`. Ketika variable `query` yang sama digunakan kembali untuk `.Find(&records)`, GORM mencoba scan hasil `count(*)` ke dalam slice struct — yang gagal dan menghasilkan 500.
+
+**Frontend — infinite retry:**  
+`ToastContextValue` menyertakan `toasts` state dalam dependency `useMemo`. Setiap kali toast muncul, `toasts` berubah → context object berubah referensi → `useToast()` mengembalikan object baru → `useCallback` yang menyertakan `toast` di deps-nya dibuat ulang → `useEffect` terpicu → fetch ulang → error → toast lagi → loop tak terbatas.
+
+### Perubahan teknis
+
+**Backend:**
+- Tambah `.Session(&gorm.Session{})` sebelum `.Count()` di semua controller dengan pola paginated query agar Count berjalan pada salinan query yang terpisah: `water_usage_controller.go`, `invoice_controller.go`, `payment_controller.go`, `payment_proof_controller.go`, `monitoring_controller.go`, `subscription_payment_controller.go`, `platform_controller.go`.
+
+**Frontend:**
+- Hapus `toasts` dari `ToastContextValue` interface dan dari `contextValue` useMemo di `ToastProvider`. Context kini hanya berisi action functions (`success`, `error`, `warning`, `info`) yang referensinya stable — `toasts` tetap dipass langsung ke `ToastContainer` via prop sehingga rendering toast tidak terpengaruh.
+
+### Dampak deploy
+- Backend wajib di-deploy ulang untuk menghilangkan error 500 pada semua halaman list (pemakaian air, tagihan, pembayaran, dll).
+- Frontend wajib di-deploy ulang untuk menghentikan loop request ulang saat terjadi error.
+
+### File yang berubah
+- `tirta-saas-backend/controllers/water_usage_controller.go`
+- `tirta-saas-backend/controllers/invoice_controller.go`
+- `tirta-saas-backend/controllers/payment_controller.go`
+- `tirta-saas-backend/controllers/payment_proof_controller.go`
+- `tirta-saas-backend/controllers/monitoring_controller.go`
+- `tirta-saas-backend/controllers/subscription_payment_controller.go`
+- `tirta-saas-backend/controllers/platform_controller.go`
+- `tirta-saas-frontend/src/types/toast.ts`
+- `tirta-saas-frontend/src/components/Toast.tsx`
+
+---
+
 ## v1.3.0 - 2026-06-23
 
 **Tipe rilis:** Minor  
