@@ -71,20 +71,6 @@ export default function MeterReadingForm() {
     }
   }, [inactiveRateGuidance]);
 
-  const fetchPreviousReading = useCallback(async (customerId: string) => {
-    try {
-      const history = await usageService.getCustomerPemakaianHistoryById(customerId);
-      if (history.length > 0) {
-        const lastReading = history[0];
-        setPreviousReading(lastReading.meterEnd);
-      } else {
-        setPreviousReading(0);
-      }
-    } catch {
-      setPreviousReading(0);
-    }
-  }, []);
-
   const fetchCustomerMeters = useCallback(async (customerId: string) => {
     try {
       const result = await customerService.getCustomerWithMeters(customerId);
@@ -142,12 +128,14 @@ export default function MeterReadingForm() {
   }, [fetchCustomerMeters, formData.customerId, isEditMode]);
 
   useEffect(() => {
-    if (selectedMeterId && formData.usageMonth && !isEditMode) {
+    if (isEditMode) return;
+    if (selectedMeterId && formData.usageMonth) {
       void resolveMeterStart(selectedMeterId, formData.usageMonth);
-    } else if (formData.customerId && formData.usageMonth && !isEditMode && !selectedMeterId) {
-      void fetchPreviousReading(formData.customerId);
+    } else {
+      setPreviousReading(null);
+      setMeterStartInfo(null);
     }
-  }, [fetchPreviousReading, formData.customerId, formData.usageMonth, isEditMode, resolveMeterStart, selectedMeterId]);
+  }, [formData.usageMonth, isEditMode, resolveMeterStart, selectedMeterId]);
 
   useEffect(() => {
     if (!formData.customerId) {
@@ -273,7 +261,7 @@ export default function MeterReadingForm() {
           {/* Customer Selection */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Pelanggan</h3>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <CustomerSearchSelect
                   customers={customers}
@@ -284,6 +272,7 @@ export default function MeterReadingForm() {
                     setCustomerMeters([]);
                     setSelectedMeterId('');
                     setMeterStartInfo(null);
+                    setPreviousReading(null);
                   }}
                   disabled={isEditMode}
                   error={errors.customerId}
@@ -291,38 +280,6 @@ export default function MeterReadingForm() {
                   required
                 />
               </div>
-
-              {/* Meter Selection */}
-              {formData.customerId && !isEditMode && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Pilih Meter <span className="text-red-500">*</span>
-                  </label>
-                  {customerMeters.length === 0 ? (
-                    <p className="mt-1 text-sm text-gray-400">Memuat meter...</p>
-                  ) : customerMeters.length === 1 ? (
-                    <div className="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                      {customerMeters[0].meter_number}
-                      {customerMeters[0].location_name && ` (${customerMeters[0].location_name})`}
-                      {' — '}{customerMeters[0].subscription_type?.name ?? 'Tidak diketahui'}
-                      <span className="ml-2 text-xs text-gray-400">(satu-satunya meter)</span>
-                    </div>
-                  ) : (
-                    <select
-                      value={selectedMeterId}
-                      onChange={(e) => setSelectedMeterId(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    >
-                      <option value="">Pilih meter</option>
-                      {customerMeters.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.meter_number}{m.location_name ? ` (${m.location_name})` : ''} — {m.subscription_type?.name ?? '-'}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              )}
 
               <div>
                 <label htmlFor="usageMonth" className="block text-sm font-medium text-gray-700">
@@ -346,6 +303,37 @@ export default function MeterReadingForm() {
                 )}
               </div>
             </div>
+
+            {/* Meter Selection */}
+            {formData.customerId && !isEditMode && (
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700">
+                  Pilih Meter <span className="text-red-500">*</span>
+                </label>
+                {customerMeters.length === 0 ? (
+                  <p className="mt-1 text-sm text-gray-400">Memuat meter...</p>
+                ) : customerMeters.length === 1 ? (
+                  <div className="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                    {customerMeters[0].meter_number}
+                    {customerMeters[0].location_name && ` (${customerMeters[0].location_name})`}
+                    <span className="ml-2 text-xs text-gray-400">(satu-satunya meter)</span>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedMeterId}
+                    onChange={(e) => setSelectedMeterId(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  >
+                    <option value="">Pilih meter</option>
+                    {customerMeters.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.meter_number}{m.location_name ? ` (${m.location_name})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
             {formData.customerId && (
               <div className={`mt-4 rounded-lg border p-4 ${
