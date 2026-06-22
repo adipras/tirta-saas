@@ -165,18 +165,18 @@ jobs:
 
           for image in "${images[@]}"; do
             echo "Waiting for $image"
-            for attempt in $(seq 1 20); do
+            for attempt in $(seq 1 40); do
               if docker buildx imagetools inspect "$image" >/dev/null 2>&1; then
                 echo "$image is available"
                 break
               fi
 
-              if [ "$attempt" -eq 20 ]; then
+              if [ "$attempt" -eq 40 ]; then
                 echo "Image $image for commit $DEPLOY_SHA was not found in GHCR" >&2
                 exit 1
               fi
 
-              sleep 15
+              sleep 30
             done
           done
 
