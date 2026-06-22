@@ -16,6 +16,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/services"
 	"github.com/adipras/tirta-saas-backend/utils"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"github.com/google/uuid"
 )
 
@@ -272,7 +273,7 @@ func GetPaymentProofs(c *gin.Context) {
 
 	// Count total
 	var total int64
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 
 	// Get payment proofs
 	var paymentProofs []models.PaymentProof

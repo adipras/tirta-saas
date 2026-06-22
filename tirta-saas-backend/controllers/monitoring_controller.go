@@ -10,6 +10,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/models"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"github.com/google/uuid"
 )
 
@@ -119,7 +120,7 @@ func GetAuditLogs(c *gin.Context) {
 
 	// Count total
 	var total int64
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 
 	// Get records
 	offset := (page - 1) * pageSize
@@ -191,7 +192,7 @@ func GetErrorLogs(c *gin.Context) {
 
 	// Count total
 	var total int64
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 
 	// Get records
 	offset := (page - 1) * pageSize

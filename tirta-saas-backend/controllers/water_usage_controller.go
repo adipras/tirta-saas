@@ -17,6 +17,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // CreateWaterUsage godoc
@@ -252,8 +253,8 @@ func GetWaterUsages(c *gin.Context) {
 		query = query.Where("is_draft = ?", false)
 	}
 
-	// Count total
-	if err := query.Count(&total).Error; err != nil {
+	// Count total — use Session to prevent Count from mutating query's SELECT state
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung data"})
 		return
 	}

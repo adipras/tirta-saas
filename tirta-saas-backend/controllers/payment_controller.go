@@ -17,6 +17,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"github.com/google/uuid"
 )
 
@@ -462,7 +463,7 @@ func GetAllPayments(c *gin.Context) {
 		query = query.Where("invoice_id = ?", invoiceID)
 	}
 
-	if err := query.Count(&total).Error; err != nil {
+	if err := query.Session(&gorm.Session{}).Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghitung data pembayaran"})
 		return
 	}

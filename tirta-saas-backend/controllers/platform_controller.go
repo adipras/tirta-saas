@@ -81,7 +81,7 @@ func ListTenants(c *gin.Context) {
 
 	// Count total records
 	var total int64
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 
 	// Apply sorting
 	sortField := req.SortBy
