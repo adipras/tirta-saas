@@ -1,5 +1,26 @@
 # Release Notes
 
+## v1.3.2 - 2026-06-23
+
+**Tipe rilis:** Patch  
+**Cakupan:** Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.3.2`
+
+### Ringkasan
+- Perbaikan tampilan halaman Catat Pembacaan Meter (`/admin/usage/create`): konsistensi layout field, label pilihan meter, dan penampilan angka awal meter.
+
+### Perubahan teknis
+
+**Frontend — `MeterReadingForm.tsx`:**
+- **Layout konsisten:** Field *Pelanggan* dan *Bulan Pemakaian* kini selalu berada di baris yang sama (grid 2 kolom). Sebelumnya posisi *Bulan Pemakaian* bergeser antara kolom 1 dan kolom 2 tergantung apakah selector meter ditampilkan atau tidak. Selector meter dipindah ke baris tersendiri (full-width) di bawah.
+- **Label meter ringkas:** Pilihan meter di dropdown dan tampilan meter tunggal kini hanya menampilkan `nomor_meter (lokasi)`, tanpa menyertakan nama tipe langganan yang tidak relevan saat pemilihan meter.
+- **Angka awal dari `initial_reading`:** Hapus fallback `fetchPreviousReading` yang tidak filter per meter dan berpotensi race condition dengan `resolveMeterStart`. Sebelumnya ketika `fetchPreviousReading` selesai lebih lambat dari `resolveMeterStart`, nilainya bisa menimpa `initial_reading` dengan 0. Kini `previousReading` tetap `null` (tampil `-`) sampai meter dipilih, lalu `resolveMeterStart` menentukan nilai dengan prioritas: bacaan bulan lalu → `meters.initial_reading` → 0.
+
+### File yang berubah
+- `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
+
+---
+
 ## v1.3.1 - 2026-06-23
 
 **Tipe rilis:** Patch  
