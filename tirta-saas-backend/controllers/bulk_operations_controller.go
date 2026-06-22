@@ -111,6 +111,9 @@ func BulkImportCustomers(c *gin.Context) {
 		return ""
 	}
 
+	// tracks name (lowercase) → customer ID for multi-meter rows within one import batch
+	nameToCustomerID := make(map[string]uuid.UUID)
+
 	// Read and process records
 	lineNumber := 1
 	for {
@@ -145,6 +148,66 @@ func BulkImportCustomers(c *gin.Context) {
 			continue
 		}
 
+		subscriptionTypeID, err := uuid.Parse(subscriptionTypeIDRaw)
+		if err != nil {
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: subscription_type_id '%s' tidak valid", lineNumber, subscriptionTypeIDRaw))
+			failureCount++
+			continue
+		}
+
+		var subscriptionType models.SubscriptionType
+		if err := config.DB.Where("tenant_id = ? AND id = ?", tenantID, subscriptionTypeID).First(&subscriptionType).Error; err != nil {
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: Jenis langganan '%s' tidak ditemukan", lineNumber, subscriptionTypeIDRaw))
+			failureCount++
+			continue
+		}
+
+		installDate, err := time.Parse("2006-01-02", installDateRaw)
+		if err != nil {
+			importErrors = append(importErrors, fmt.Sprintf("Line %d: Format install_date tidak valid, gunakan YYYY-MM-DD", lineNumber))
+			failureCount++
+			continue
+		}
+
+		initialReadingRaw := getField(record, "initial_reading")
+		var initialReading float64
+		if initialReadingRaw != "" {
+			if _, err := fmt.Sscanf(initialReadingRaw, "%f", &initialReading); err != nil {
+				initialReading = 0
+			}
+		}
+
+		normalizedName := strings.ToLower(name)
+		existingCustomerID, isAdditionalMeter := nameToCustomerID[normalizedName]
+
+		if isAdditionalMeter {
+			// Add meter to the customer created earlier in this batch
+			tx := config.DB.Begin()
+			meter := models.Meter{
+				TenantID:           tenantID,
+				CustomerID:         existingCustomerID,
+				MeterNumber:        meterNumber,
+				SubscriptionTypeID: &subscriptionTypeID,
+				InstallDate:        installDate,
+				InitialReading:     initialReading,
+				Status:             models.MeterStatusActive,
+			}
+			if err := tx.Create(&meter).Error; err != nil {
+				tx.Rollback()
+				importErrors = append(importErrors, fmt.Sprintf("Line %d: Failed to create meter - %s", lineNumber, err.Error()))
+				failureCount++
+				continue
+			}
+			if err := tx.Commit().Error; err != nil {
+				importErrors = append(importErrors, fmt.Sprintf("Line %d: Failed to commit - %s", lineNumber, err.Error()))
+				failureCount++
+				continue
+			}
+			successCount++
+			continue
+		}
+
+		// New customer: validate email and password, then create customer + first meter
 		email := getField(record, "email")
 		if email != "" {
 			var existingByEmail models.Customer
@@ -174,35 +237,6 @@ func BulkImportCustomers(c *gin.Context) {
 		isActive := false
 		if v := getField(record, "is_active"); strings.ToLower(v) == "true" {
 			isActive = true
-		}
-
-		subscriptionTypeID, err := uuid.Parse(subscriptionTypeIDRaw)
-		if err != nil {
-			importErrors = append(importErrors, fmt.Sprintf("Line %d: subscription_type_id '%s' tidak valid", lineNumber, subscriptionTypeIDRaw))
-			failureCount++
-			continue
-		}
-
-		var subscriptionType models.SubscriptionType
-		if err := config.DB.Where("tenant_id = ? AND id = ?", tenantID, subscriptionTypeID).First(&subscriptionType).Error; err != nil {
-			importErrors = append(importErrors, fmt.Sprintf("Line %d: Jenis langganan '%s' tidak ditemukan", lineNumber, subscriptionTypeIDRaw))
-			failureCount++
-			continue
-		}
-
-		installDate, err := time.Parse("2006-01-02", installDateRaw)
-		if err != nil {
-			importErrors = append(importErrors, fmt.Sprintf("Line %d: Format install_date tidak valid, gunakan YYYY-MM-DD", lineNumber))
-			failureCount++
-			continue
-		}
-
-		initialReadingRaw := getField(record, "initial_reading")
-		var initialReading float64
-		if initialReadingRaw != "" {
-			if _, err := fmt.Sscanf(initialReadingRaw, "%f", &initialReading); err != nil {
-				initialReading = 0
-			}
 		}
 
 		// Mini-transaction: create customer + meter (no registration invoice for import)
@@ -248,6 +282,7 @@ func BulkImportCustomers(c *gin.Context) {
 			continue
 		}
 
+		nameToCustomerID[normalizedName] = customer.ID
 		successCount++
 	}
 

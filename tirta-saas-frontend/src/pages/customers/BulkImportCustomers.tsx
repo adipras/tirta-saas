@@ -40,9 +40,11 @@ interface ImportResult {
 const CSV_HEADERS = ['name', 'email', 'phone', 'address', 'meter_number', 'subscription_type_id', 'install_date', 'initial_reading', 'password', 'is_active'];
 const REQUIRED_HEADERS = ['name', 'meter_number', 'subscription_type_id', 'install_date'];
 
+// Rows with the same name will add meters to the same customer (multi-meter support).
 const TEMPLATE_ROWS = [
   { name: 'Budi Santoso', email: 'budi@example.com', phone: '08123456789', address: 'Jl. Mawar 1', meter_number: 'MET-001', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-01-01', initial_reading: '0', password: 'rahasia123', is_active: 'true' },
-  { name: 'Siti Aminah', email: '', phone: '08987654321', address: 'Jl. Melati 2', meter_number: 'MET-002', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-02-15', initial_reading: '150', password: '', is_active: 'true' },
+  { name: 'Budi Santoso', email: '', phone: '', address: '', meter_number: 'MET-002', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-01-01', initial_reading: '0', password: '', is_active: '' },
+  { name: 'Siti Aminah', email: '', phone: '08987654321', address: 'Jl. Melati 2', meter_number: 'MET-003', subscription_type_id: 'isi-uuid-subscription-type-di-sini', install_date: '2024-02-15', initial_reading: '150', password: '', is_active: 'true' },
 ];
 
 export default function BulkImportPelanggan() {
@@ -251,9 +253,14 @@ export default function BulkImportPelanggan() {
           ))}
         </div>
         <p className="text-xs text-blue-600 mb-3">* Wajib diisi</p>
-        <p className="text-xs text-blue-700 mb-3">
+        <p className="text-xs text-blue-700 mb-2">
           Kolom <span className="font-mono">subscription_type_id</span> wajib diisi dengan UUID golongan langganan yang valid. Kolom <span className="font-mono">install_date</span> menggunakan format <span className="font-mono">YYYY-MM-DD</span>.
         </p>
+        <div className="mb-3 rounded-md bg-blue-50 border border-blue-200 px-3 py-2">
+          <p className="text-xs font-medium text-blue-800">
+            Pelanggan dengan lebih dari 1 meter: tambahkan baris baru dengan kolom <span className="font-mono">name</span> yang sama. Kolom data pelanggan (email, phone, address, password, is_active) hanya dibaca dari baris pertama.
+          </p>
+        </div>
         <div className="mt-2 rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2">
           <p className="text-xs font-medium text-yellow-800">
             ⚠️ Import tidak akan menghasilkan invoice registrasi otomatis. Invoice registrasi harus dibuat secara manual jika diperlukan.
