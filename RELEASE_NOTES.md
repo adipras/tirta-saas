@@ -1,5 +1,60 @@
 # Release Notes
 
+## v1.2.0 - 2026-06-23
+
+**Tipe rilis:** Minor  
+**Cakupan:** Backend + Frontend  
+**Tag deploy yang disarankan:** `deploy-all-v1.2.0`
+
+### Ringkasan
+- Menambahkan dukungan multi-meter pada bulk import pelanggan: baris CSV dengan kolom `name` yang sama akan menambahkan meter ke customer yang sudah dibuat pada baris pertama, bukan membuat customer baru.
+
+### Perubahan teknis
+- `BulkImportCustomers` kini melacak nama pelanggan (case-insensitive) yang sudah diproses dalam satu batch via map `nameToCustomerID`.
+- Baris pertama dengan nama tertentu: buat customer + meter (perilaku lama).
+- Baris berikutnya dengan nama yang sama: skip pembuatan customer, langsung tambah meter ke customer yang ada. Kolom `email`, `phone`, `address`, `password`, `is_active` hanya dibaca dari baris pertama.
+- Validasi `subscription_type_id`, `install_date`, dan `initial_reading` tetap berjalan untuk semua baris (termasuk baris meter tambahan).
+- Template CSV diperbarui: baris kedua contoh kini menunjukkan pola multi-meter (nama sama, `meter_number` berbeda, kolom pelanggan dikosongkan).
+- Tambah hint di UI: "Pelanggan dengan lebih dari 1 meter: tambahkan baris baru dengan kolom `name` yang sama."
+
+### Dampak deploy
+- Tidak ada perubahan schema database.
+- File CSV lama tetap valid: satu baris per customer tetap berfungsi seperti sebelumnya.
+
+### File yang berubah
+- `tirta-saas-backend/controllers/bulk_operations_controller.go`
+- `tirta-saas-frontend/src/pages/customers/BulkImportCustomers.tsx`
+
+---
+
+## v1.1.2 - 2026-06-23
+
+**Tipe rilis:** Patch  
+**Cakupan:** CI/CD  
+**Tag deploy yang disarankan:** —  
+
+### Ringkasan
+- Memperbaiki kondisi race pada pipeline deploy yang menyebabkan image frontend tidak ditemukan di GHCR saat tag deploy dipush.
+
+### Akar masalah
+- `publish-images.yml` menggunakan `cancel-in-progress: true`, sehingga push hotfix berikutnya membatalkan workflow publish yang sedang berjalan. Build backend (Go) selesai lebih cepat sebelum pembatalan, sedangkan build frontend (Node.js) belum selesai — mengakibatkan image backend tersedia tapi image frontend tidak.
+- `deploy-by-tag.yml` hanya menunggu maksimal 5 menit (20 × 15 detik) untuk image tersedia, tidak cukup untuk build Node.js dari cold cache.
+- Tag deploy masih menunjuk commit lama, sehingga GitHub membaca file workflow versi lama yang belum mengandung fix.
+
+### Perubahan teknis
+- Ubah `cancel-in-progress: true` → `false` di `publish-images.yml` agar build frontend tidak dibatalkan oleh push berikutnya.
+- Perpanjang batas tunggu image di `deploy-by-tag.yml` dari 5 menit (20 × 15 detik) menjadi 20 menit (40 × 30 detik).
+
+### Dampak deploy
+- Tidak ada perubahan pada aplikasi.
+- Tag deploy berikutnya harus menunjuk ke commit yang sudah mengandung fix ini (commit `a9cae2a` atau lebih baru) agar workflow versi baru yang dijalankan.
+
+### File yang berubah
+- `.github/workflows/publish-images.yml`
+- `.github/workflows/deploy-by-tag.yml`
+
+---
+
 ## v1.1.1 - 2026-06-02
 
 **Tipe rilis:** Patch  
