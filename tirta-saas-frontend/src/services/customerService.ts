@@ -66,7 +66,7 @@ class CustomerService {
   }
 
   async addMeterToCustomer(customerId: string, data: AddMeterDto): Promise<{ meter: Meter; registration_invoice: Record<string, unknown> }> {
-    const response = await apiClient.post(`/api/customers/${customerId}/meters`, data);
+    const response = await apiClient.post(`/customers/${customerId}/meters`, data);
     return unwrapResponseData(response) as { meter: Meter; registration_invoice: Record<string, unknown> };
   }
 
@@ -80,7 +80,7 @@ class CustomerService {
   }
 
   async resolveMeterStart(meterId: string, month: string): Promise<MeterStartResolution> {
-    const response = await apiClient.get(`/api/meters/${meterId}/resolve-meter-start`, {
+    const response = await apiClient.get(`/meters/${meterId}/resolve-meter-start`, {
       params: { month },
     });
     const data = unwrapResponseData(response);
@@ -88,7 +88,7 @@ class CustomerService {
   }
 
   async getCustomerMeters(customerId: string): Promise<Meter[]> {
-    const response = await apiClient.get(`/api/customers/${customerId}/meters`);
+    const response = await apiClient.get(`/customers/${customerId}/meters`);
     return asArray<Meter>(unwrapResponseData(response));
   }
 

@@ -93,6 +93,7 @@ export default function MeterReadingForm() {
       setPreviousReading(info.value);
     } catch {
       setMeterStartInfo(null);
+      setPreviousReading(null);
     }
   }, []);
 

@@ -1,5 +1,35 @@
 # Release Notes
 
+## v1.3.3 - 2026-07-09
+
+**Tipe rilis:** Patch  
+**Cakupan:** Frontend  
+**Tag deploy yang disarankan:** `deploy-frontend-v1.3.3`
+
+### Ringkasan
+- Perbaikan bug: Angka Awal Meter (meter start) tidak terisi `initial_reading` saat pelanggan belum memiliki catatan bulan sebelumnya pada halaman Catat Pembacaan Meter.
+
+### Akar masalah
+
+**Frontend — URL dengan prefix `/api/` ganda:**  
+`customerService.ts` menggunakan path hardcoded `/api/meters/...` dan `/api/customers/.../meters` untuk beberapa fungsi. Karena `API_BASE_URL` sudah mengandung `/api` di akhirnya, Axios menggabungkan keduanya menjadi `/api/api/...` — yang menghasilkan 404 Not Found. Akibatnya `resolveMeterStart()` selalu gagal dan catch block hanya memanggil `setMeterStartInfo(null)` tanpa mereset `previousReading`, sehingga field Angka Awal Meter tetap menampilkan `-`.
+
+### Perubahan teknis
+
+**Frontend — `customerService.ts`:**
+- Hapus prefix `/api/` dari URL `resolveMeterStart` (`/api/meters/${id}/resolve-meter-start` → `/meters/${id}/resolve-meter-start`).
+- Hapus prefix `/api/` dari URL `addMeterToCustomer` (`/api/customers/${id}/meters` → `/customers/${id}/meters`).
+- Hapus prefix `/api/` dari URL `getCustomerMeters` (`/api/customers/${id}/meters` → `/customers/${id}/meters`).
+
+**Frontend — `MeterReadingForm.tsx`:**
+- Tambah `setPreviousReading(null)` di catch block `resolveMeterStart` agar state selalu konsisten saat API gagal.
+
+### File yang berubah
+- `tirta-saas-frontend/src/services/customerService.ts`
+- `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
+
+---
+
 ## v1.3.2 - 2026-06-23
 
 **Tipe rilis:** Patch  
