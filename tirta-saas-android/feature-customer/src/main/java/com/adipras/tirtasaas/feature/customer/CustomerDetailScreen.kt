@@ -173,7 +173,12 @@ internal fun CustomerDetailScreen(
                             Card(modifier = Modifier.fillMaxWidth()) {
                                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text(meter.meterNumber, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(meter.meterNumber, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
+                                            if (!meter.locationName.isNullOrBlank()) {
+                                                Text(meter.locationName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
                                         Text(
                                             meter.status,
                                             style = MaterialTheme.typography.labelSmall,

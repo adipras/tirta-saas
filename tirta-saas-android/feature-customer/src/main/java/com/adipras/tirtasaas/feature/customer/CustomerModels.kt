@@ -26,6 +26,7 @@ data class CustomerDto(
 data class MeterDto(
     val id: String,
     @SerialName("meter_number") val meterNumber: String,
+    @SerialName("location_name") val locationName: String? = null,
     val status: String = "active",
     @SerialName("subscription_type_id") val subscriptionTypeId: String? = null,
     @SerialName("subscription_type") val subscriptionType: SubscriptionTypeDto? = null,
@@ -82,6 +83,7 @@ data class ServiceAreaListResponse(
 @Serializable
 data class MeterInputDto(
     @SerialName("meter_number") val meterNumber: String,
+    @SerialName("location_name") val locationName: String? = null,
     @SerialName("subscription_type_id") val subscriptionTypeId: String,
     @SerialName("install_date") val installDate: String,
     @SerialName("initial_reading") val initialReading: Double = 0.0,

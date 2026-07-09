@@ -3,6 +3,7 @@ package com.adipras.tirtasaas.feature.usage
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.adipras.tirtasaas.feature.customer.MeterDto
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -157,20 +158,30 @@ fun UsageFormScreen(
             if (usageId == null && state.customerId.isNotBlank()) {
                 if (state.customerMeters.size == 1) {
                     val meter = state.customerMeters[0]
+                    val meterLabel = buildString {
+                        append(meter.meterNumber)
+                        if (!meter.locationName.isNullOrBlank()) append(" (${meter.locationName})")
+                        append(" — ${meter.subscriptionType?.name ?: "-"}")
+                    }
                     Text(
-                        text = "Meter: ${meter.meterNumber} — ${meter.subscriptionType?.name ?: "-"}",
+                        text = "Meter: $meterLabel",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else if (state.customerMeters.size > 1) {
                     var meterDropdownExpanded by remember { mutableStateOf(false) }
                     val selectedMeter = state.customerMeters.firstOrNull { it.id == state.selectedMeterId }
+                    fun meterDisplayLabel(meter: MeterDto) = buildString {
+                        append(meter.meterNumber)
+                        if (!meter.locationName.isNullOrBlank()) append(" (${meter.locationName})")
+                        append(" — ${meter.subscriptionType?.name ?: "-"}")
+                    }
                     ExposedDropdownMenuBox(
                         expanded = meterDropdownExpanded,
                         onExpandedChange = { meterDropdownExpanded = it },
                     ) {
                         OutlinedTextField(
-                            value = selectedMeter?.let { "${it.meterNumber} — ${it.subscriptionType?.name ?: "-"}" } ?: "",
+                            value = selectedMeter?.let { meterDisplayLabel(it) } ?: "",
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Pilih Meter") },
@@ -183,7 +194,7 @@ fun UsageFormScreen(
                         ) {
                             state.customerMeters.forEach { meter ->
                                 DropdownMenuItem(
-                                    text = { Text("${meter.meterNumber} — ${meter.subscriptionType?.name ?: "-"}") },
+                                    text = { Text(meterDisplayLabel(meter)) },
                                     onClick = {
                                         viewModel.onMeterSelected(meter.id)
                                         meterDropdownExpanded = false
