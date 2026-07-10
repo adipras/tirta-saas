@@ -1,5 +1,29 @@
 # Release Notes
 
+## v1.3.4 - 2026-07-09
+
+**Tipe rilis:** Patch  
+**Cakupan:** Frontend  
+**Tag deploy yang disarankan:** `deploy-frontend-v1.3.4`
+
+### Ringkasan
+- Perbaikan UX halaman Catat Pembacaan Meter: pembeda visual yang jelas antara field yang bisa diisi dan field otomatis/read-only.
+
+### Perubahan teknis
+
+**Frontend — `MeterReadingForm.tsx`:**
+- **Field read-only** (`Angka Awal`, `Pemakaian`) diubah dari `<input disabled>` menjadi `<div>` bergaya dashed border + background muted — tidak lagi tampak seperti kotak input yang bisa diklik.
+- **Badge label** `Otomatis` / `Dihitung otomatis` ditambahkan di samping label field read-only sebagai indikator visual.
+- **Field editable** (`Angka Akhir Meter`) diberi `border-2` biru dan focus ring agar menonjol sebagai satu-satunya field yang perlu diisi petugas.
+- **Subtitle instruksi** singkat ditambahkan di bawah heading "Pembacaan Meter" untuk memandu user.
+- **Font mono** pada tampilan nilai numerik (Angka Awal, Pemakaian) untuk keterbacaan angka yang lebih baik.
+- Perbaiki styling `<input disabled>` di edit mode (Bulan Pemakaian) dengan `border-gray-200 text-gray-500 cursor-not-allowed`.
+
+### File yang berubah
+- `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
+
+---
+
 ## v1.3.3 - 2026-07-09
 
 **Tipe rilis:** Patch  

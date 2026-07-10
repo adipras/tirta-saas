@@ -297,7 +297,7 @@ export default function MeterReadingForm() {
                     errors.usageMonth
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                       : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  } ${isEditMode ? 'bg-gray-100' : ''}`}
+                  } ${isEditMode ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
                 />
                 {errors.usageMonth && (
                   <p className="mt-1 text-sm text-red-600">{errors.usageMonth}</p>
@@ -377,26 +377,39 @@ export default function MeterReadingForm() {
 
           {/* Meter Reading */}
           <div className="pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Pembacaan Meter</h3>
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <h3 className="text-lg font-medium text-gray-900 mb-1">Pembacaan Meter</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              Hanya field <span className="font-medium text-gray-700">Angka Akhir Meter</span> yang perlu diisi. Nilai lainnya dihitung otomatis.
+            </p>
+
+            {/* Meter values row */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {/* Angka Awal — read-only */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Angka Awal (Meter Start)
-                </label>
-                <input
-                  type="text"
-                  value={previousReading !== null ? previousReading.toFixed(2) : '-'}
-                  disabled
-                  className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  {meterStartInfo ? meterStartInfo.description : 'Diambil dari catatan bulan sebelumnya'}
+                <div className="flex items-center gap-1.5 mb-1">
+                  <label className="block text-sm font-medium text-gray-600">
+                    Angka Awal
+                  </label>
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                    Otomatis
+                  </span>
+                </div>
+                <div className="flex min-h-[40px] items-center rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600 select-none">
+                  {previousReading !== null ? (
+                    <span className="font-mono font-medium">{previousReading.toFixed(2)}</span>
+                  ) : (
+                    <span className="italic text-gray-400">—</span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-400">
+                  {meterStartInfo ? meterStartInfo.description : 'Pilih pelanggan & meter terlebih dahulu'}
                 </p>
               </div>
 
+              {/* Meter Akhir — editable */}
               <div>
-                <label htmlFor="meterEnd" className="block text-sm font-medium text-gray-700">
-                  Meter Akhir <span className="text-red-500">*</span>
+                <label htmlFor="meterEnd" className="block text-sm font-medium text-gray-700 mb-1">
+                  Angka Akhir Meter <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -406,47 +419,56 @@ export default function MeterReadingForm() {
                   onChange={handleChange}
                   min="0"
                   step="0.01"
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
+                  className={`block w-full rounded-md border-2 px-3 py-2 text-sm shadow-sm transition-colors ${
                     errors.meterEnd
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                   }`}
-                   placeholder="Contoh: 1250.50"
-                 />
-                {errors.meterEnd && (
-                  <p className="mt-1 text-sm text-red-600">{errors.meterEnd}</p>
+                      ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200 focus:outline-none'
+                      : 'border-blue-400 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none'
+                  }`}
+                  placeholder="Masukkan angka meter..."
+                  autoComplete="off"
+                />
+                {errors.meterEnd ? (
+                  <p className="mt-1 text-xs text-red-600">{errors.meterEnd}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-blue-500">Ketik angka yang terbaca di meter fisik</p>
                 )}
               </div>
 
+              {/* Pemakaian — computed */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Pemakaian Terkalkulasi
-                </label>
-                <input
-                  type="text"
-                  value={`${calculatedPemakaian.toFixed(2)} m³`}
-                  disabled
-                  className="mt-1 block w-full rounded-md border-gray-300 bg-blue-50 shadow-sm sm:text-sm font-medium text-blue-900"
-                />
-                <p className="mt-1 text-sm text-gray-500">
-                  Dihitung otomatis dari meter sebelumnya dan meter akhir
-                </p>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <label className="block text-sm font-medium text-gray-600">
+                    Pemakaian
+                  </label>
+                  <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-600">
+                    Dihitung otomatis
+                  </span>
+                </div>
+                <div className="flex min-h-[40px] items-center rounded-md border border-dashed border-blue-200 bg-blue-50 px-3 py-2 text-sm select-none">
+                  <span className="font-mono font-semibold text-blue-800">
+                    {calculatedPemakaian.toFixed(2)}
+                  </span>
+                  <span className="ml-1 text-blue-600 text-xs">m³</span>
+                </div>
+                <p className="mt-1 text-xs text-gray-400">Angka akhir − angka awal</p>
               </div>
+            </div>
 
-              <div className="xl:col-span-3">
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                  Catatan
-                </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                   rows={3}
-                   value={formData.notes}
-                   onChange={handleChange}
-                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                   placeholder="Catatan tambahan tentang pembacaan ini (opsional)"
-                 />
-              </div>
+            {/* Catatan */}
+            <div className="mt-6">
+              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+                Catatan
+                <span className="ml-1 text-xs font-normal text-gray-400">(opsional)</span>
+              </label>
+              <textarea
+                id="notes"
+                name="notes"
+                rows={3}
+                value={formData.notes}
+                onChange={handleChange}
+                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none"
+                placeholder="Catatan tambahan tentang pembacaan ini..."
+              />
             </div>
           </div>
 
