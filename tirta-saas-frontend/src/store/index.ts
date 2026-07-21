@@ -8,10 +8,11 @@ import authSlice from './slices/authSlice';
 import type { AuthState } from './slices/authSlice';
 
 const authStateTransform = createTransform(
-  (inboundState: AuthState) => {
-    const { isLoading, error, currentRequestId, ...persistedState } = inboundState;
-    return persistedState;
-  },
+  (inboundState: AuthState) => ({
+    user: inboundState.user,
+    token: inboundState.token,
+    isAuthenticated: inboundState.isAuthenticated,
+  }),
   (outboundState: Partial<AuthState>): AuthState => ({
     user: outboundState.user ?? null,
     token: outboundState.token ?? null,
@@ -45,7 +46,7 @@ export const store = configureStore({
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
     }),
-  devTools: process.env.NODE_ENV !== 'production',
+  devTools: import.meta.env.MODE !== 'production',
 });
 
 export const persistor = persistStore(store);
