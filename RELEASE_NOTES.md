@@ -1,10 +1,22 @@
 # Release Notes
 
+## v1.3.5 - 2026-07-22
+
+**Tipe rilis:** Patch
+**Cakupan:** Frontend
+**Tag deploy yang disarankan:** `deploy-fe-1.3.5`
+
+### Ringkasan
+- Perbaikan Disabled Login Button Issue
+
+### File yang berubah
+- `tirta-saas-frontend/src/store/index.ts`
+
 ## v1.3.4 - 2026-07-09
 
 **Tipe rilis:** Patch  
 **Cakupan:** Frontend  
-**Tag deploy yang disarankan:** `deploy-frontend-v1.3.4`
+**Tag deploy yang disarankan:** `deploy-fe-v1.3.4`
 
 ### Ringkasan
 - Perbaikan UX halaman Catat Pembacaan Meter: pembeda visual yang jelas antara field yang bisa diisi dan field otomatis/read-only.
@@ -28,7 +40,7 @@
 
 **Tipe rilis:** Patch  
 **Cakupan:** Frontend  
-**Tag deploy yang disarankan:** `deploy-frontend-v1.3.3`
+**Tag deploy yang disarankan:** `deploy-fe-v1.3.3`
 
 ### Ringkasan
 - Perbaikan bug: Angka Awal Meter (meter start) tidak terisi `initial_reading` saat pelanggan belum memiliki catatan bulan sebelumnya pada halaman Catat Pembacaan Meter.
