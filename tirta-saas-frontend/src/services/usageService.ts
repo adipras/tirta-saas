@@ -155,6 +155,7 @@ class PemakaianService {
       API_ENDPOINTS.WATER_USAGE.CREATE,
       {
         customer_id: data.customerId,
+        meter_id: data.meterId,
         usage_month: data.usageMonth,
         meter_end: data.meterEnd,
         notes: data.notes,

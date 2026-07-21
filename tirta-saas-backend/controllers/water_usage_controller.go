@@ -128,6 +128,13 @@ func CreateWaterUsage(c *gin.Context) {
 
 	usageM3 := req.MeterEnd - meterStart
 	if usageM3 > 1000 {
+		if meterStartSource == services.MeterStartSourceDefault && meterStart == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Angka awal meter belum diatur (masih default 0), sehingga pemakaian terhitung terlalu besar. " +
+					"Perbarui \"Angka Awal Meter\" pada halaman Detail Pelanggan sesuai kondisi fisik meter saat ini, lalu catat ulang pembacaan ini.",
+			})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Jumlah pemakaian melebihi batas wajar (1000 m3/bulan)"})
 		return
 	}

@@ -1,5 +1,25 @@
 # Release Notes
 
+## v1.3.7 - 2026-07-22
+
+**Tipe rilis:** Patch
+**Cakupan:** Backend + Frontend
+**Tag deploy yang disarankan:** `deploy-all-v1.3.7`
+
+### Ringkasan
+- Perbaikan catat pembacaan meter
+
+### Perubahan teknis
+
+- types/usage.ts  — menambahkan field  meterId?: string  ke  CreateWaterPemakaianDto .
+- services/usageService.ts  — meneruskan  meter_id: data.meterId  ke payload POST  /water-usage .
+
+### File yang berubah
+- `tirta-saas-backend/controllers/water_usage_controller.go`
+- `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
+- `tirta-saas-frontend/src/services/usageService.ts`
+- `tirta-saas-frontend/src/types/usage.ts`
+
 ## v1.3.6 - 2026-07-22
 
 **Tipe rilis:** Patch
@@ -11,7 +31,7 @@
 
 ### Perubahan teknis
 
-**Frontend — `MeterReadingForm.tsx`:**
+**Frontend — `MeterReaderDashboard.tsx`:**
 - Menghapus  infoCards  dan  DashboardStatCard  yang redundan — sudah tidak diperlukan.
 - Diganti dengan visual step point (stepper): 3 tahap kerja (Catat pembacaan → Cek daftar pemakaian → Validasi histori) dengan nomor bulat, garis penghubung antar-step, dan deskripsi singkat — layout horizontal di desktop, vertical di mobile.
 - Section Pintasan cepat dipisah jelas sebagai kartu yang bisa diklik ( QuickActionCard ), tanpa border/background berat sehingga terasa lebih ringan dan profesional dibanding versi sebelumnya yang penuh label "Informasi"/"Bisa diklik".

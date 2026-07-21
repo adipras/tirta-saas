@@ -27,6 +27,7 @@ export interface WaterPemakaian {
 
 export interface CreateWaterPemakaianDto {
   customerId: string;
+  meterId?: string;
   usageMonth: string;
   meterEnd: number;
   notes?: string;

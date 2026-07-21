@@ -382,6 +382,17 @@ export default function MeterReadingForm() {
               Hanya field <span className="font-medium text-gray-700">Angka Akhir Meter</span> yang perlu diisi. Nilai lainnya dihitung otomatis.
             </p>
 
+            {!isEditMode && meterStartInfo?.source === 'default' && (
+              <div className="mb-5 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                <p className="font-medium">Angka awal meter belum diatur (masih 0.00)</p>
+                <p className="mt-1">
+                  Ini bisa menyebabkan pemakaian terhitung sangat besar dan gagal disimpan. Jika meter fisik pelanggan
+                  ini sudah pernah dipakai sebelumnya, perbarui &quot;Angka Awal Meter&quot; di halaman Detail Pelanggan
+                  sesuai kondisi fisik saat ini sebelum mencatat pembacaan.
+                </p>
+              </div>
+            )}
+
             {/* Meter values row */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               {/* Angka Awal — read-only */}
