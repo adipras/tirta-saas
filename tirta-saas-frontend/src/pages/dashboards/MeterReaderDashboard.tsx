@@ -5,7 +5,6 @@ import {
   PlusIcon,
 } from '@heroicons/react/24/outline';
 import {
-  DashboardStatCard,
   PageHeader,
   QuickActionCard,
 } from '../../components';
@@ -13,24 +12,39 @@ import {
 export default function MeterReaderDashboard() {
   const navigate = useNavigate();
 
+  const workflowSteps = [
+    {
+      title: 'Catat pembacaan',
+      description: 'Input angka awal dan akhir meter segera setelah kunjungan lapangan.',
+    },
+    {
+      title: 'Cek daftar pemakaian',
+      description: 'Pastikan data yang baru masuk sudah lengkap dan sesuai pelanggan.',
+    },
+    {
+      title: 'Validasi histori',
+      description: 'Bandingkan dengan riwayat pelanggan bila ada lonjakan atau anomali.',
+    },
+  ];
+
   const quickActions = [
     {
       title: 'Catat Pembacaan Baru',
-      description: 'Masukkan hasil pembacaan meter terbaru untuk pelanggan.',
+      description: 'Klik untuk input hasil pembacaan meter terbaru pelanggan.',
       icon: PlusIcon,
       tone: 'blue' as const,
       onClick: () => navigate('/admin/usage/create'),
     },
     {
       title: 'Lihat Semua Pembacaan',
-      description: 'Buka daftar pemakaian air untuk meninjau seluruh data meter.',
+      description: 'Klik untuk membuka daftar pemakaian air seluruh pelanggan.',
       icon: ClipboardDocumentListIcon,
       tone: 'green' as const,
       onClick: () => navigate('/admin/usage'),
     },
     {
       title: 'Pantau Riwayat Pelanggan',
-      description: 'Gunakan daftar pemakaian untuk membuka histori pelanggan tertentu.',
+      description: 'Klik untuk meninjau histori pemakaian pelanggan tertentu.',
       icon: ClockIcon,
       tone: 'indigo' as const,
       onClick: () => navigate('/admin/usage'),
@@ -41,63 +55,57 @@ export default function MeterReaderDashboard() {
     <div className="space-y-6">
       <PageHeader
         title="Dashboard Petugas Meter"
-        subtitle="Akses cepat untuk mencatat pembacaan, membuka daftar pemakaian, dan meninjau histori pelanggan dari tampilan yang ringkas di mobile."
+        subtitle="Dashboard ringkas untuk membantu pencatatan meter harian tanpa informasi berulang."
       />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <DashboardStatCard
-          title="Langkah Utama"
-          value="Input Meter"
-          helper="Mulai dari sini"
-          subtitle="Catat hasil pembacaan meter baru sebelum data digunakan pada proses tagihan."
-          icon={PlusIcon}
-          tone="blue"
-        />
-        <DashboardStatCard
-          title="Pemeriksaan"
-          value="Daftar Pemakaian"
-          helper="Cek ulang data"
-          subtitle="Tinjau pembacaan yang sudah masuk untuk memastikan data pelanggan sudah lengkap."
-          icon={ClipboardDocumentListIcon}
-          tone="green"
-        />
-        <DashboardStatCard
-          title="Riwayat"
-          value="Histori Pelanggan"
-          helper="Pantau tren"
-          subtitle="Lihat pola pemakaian pelanggan saat perlu validasi atau tindak lanjut lapangan."
-          icon={ClockIcon}
-          tone="purple"
-        />
-      </div>
-
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        {quickActions.map((action) => (
-          <QuickActionCard
-            key={action.title}
-            title={action.title}
-            description={action.description}
-            icon={action.icon}
-            tone={action.tone}
-            onClick={action.onClick}
-          />
-        ))}
-      </section>
-
-      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-blue-900">Panduan singkat petugas meter</h2>
-        <div className="mt-3 space-y-2 text-sm leading-6 text-blue-900">
-          <p>1. Catat pembacaan meter terbaru segera setelah kunjungan lapangan selesai.</p>
-          <p>2. Pastikan angka awal dan akhir meter masuk dengan benar sebelum menyimpan.</p>
-          <p>3. Gunakan daftar pemakaian untuk memeriksa histori bila ada lonjakan atau anomali.</p>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="mb-6">
+          <h2 className="text-base font-semibold text-gray-900">Alur kerja pencatatan meter</h2>
+          <p className="mt-1 text-sm leading-6 text-gray-500">
+            Ikuti tiga tahap ini secara berurutan agar data pemakaian tercatat rapi dan siap dipakai proses tagihan.
+          </p>
         </div>
+
+        <ol className="grid grid-cols-1 gap-6 sm:grid-cols-3 sm:gap-4">
+          {workflowSteps.map((step, index) => (
+            <li key={step.title} className="relative flex gap-4 sm:flex-col sm:gap-3">
+              <div className="flex flex-shrink-0 flex-col items-center sm:w-full sm:flex-row">
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">
+                  {index + 1}
+                </span>
+                {index < workflowSteps.length - 1 && (
+                  <span
+                    className="mt-1 w-px flex-1 bg-gray-200 sm:ml-3 sm:mt-0 sm:h-px sm:w-full"
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+              <div className="pb-2 sm:pb-0">
+                <p className="text-sm font-semibold text-gray-900">{step.title}</p>
+                <p className="mt-1 text-sm leading-6 text-gray-500">{step.description}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Aktivitas terbaru</h2>
-        <p className="mt-2 text-sm leading-6 text-gray-500">
-          Belum ada aktivitas terbaru yang perlu ditampilkan di dashboard ini.
-        </p>
+      <section>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-gray-900">Pintasan cepat</h2>
+          <p className="mt-1 text-sm text-gray-500">Klik salah satu kartu untuk langsung membuka halaman kerja.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          {quickActions.map((action) => (
+            <QuickActionCard
+              key={action.title}
+              title={action.title}
+              description={action.description}
+              icon={action.icon}
+              tone={action.tone}
+              onClick={action.onClick}
+            />
+          ))}
+        </div>
       </section>
     </div>
   );

@@ -1,10 +1,30 @@
 # Release Notes
 
+## v1.3.6 - 2026-07-22
+
+**Tipe rilis:** Patch
+**Cakupan:** Frontend
+**Tag deploy yang disarankan:** `deploy-fe-v1.3.6`
+
+### Ringkasan
+- Perbaikan Dashboard petugas meter
+
+### Perubahan teknis
+
+**Frontend — `MeterReadingForm.tsx`:**
+- Menghapus  infoCards  dan  DashboardStatCard  yang redundan — sudah tidak diperlukan.
+- Diganti dengan visual step point (stepper): 3 tahap kerja (Catat pembacaan → Cek daftar pemakaian → Validasi histori) dengan nomor bulat, garis penghubung antar-step, dan deskripsi singkat — layout horizontal di desktop, vertical di mobile.
+- Section Pintasan cepat dipisah jelas sebagai kartu yang bisa diklik ( QuickActionCard ), tanpa border/background berat sehingga terasa lebih ringan dan profesional dibanding versi sebelumnya yang penuh label "Informasi"/"Bisa diklik".
+- Import  DashboardStatCard  dan  InformationCircleIcon  yang tidak lagi dipakai sudah dibersihkan.
+
+### File yang berubah
+- `tirta-saas-frontend/src/pages/dashboards/MeterReaderDashboard.tsx`
+
 ## v1.3.5 - 2026-07-22
 
 **Tipe rilis:** Patch
 **Cakupan:** Frontend
-**Tag deploy yang disarankan:** `deploy-fe-1.3.5`
+**Tag deploy yang disarankan:** `deploy-fe-v1.3.5`
 
 ### Ringkasan
 - Perbaikan Disabled Login Button Issue
