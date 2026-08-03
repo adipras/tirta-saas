@@ -1,5 +1,23 @@
 # Release Notes
 
+## v1.3.10 - 2026-08-03
+
+**Tipe rilis:** Patch
+**Cakupan:** Backend
+**Tag deploy yang disarankan:** `deploy-be-v1.3.10`
+
+### Ringkasan
+- Fix `meter_number` selalu kosong pada response list pemakaian air.
+
+### Perubahan teknis
+
+**Backend — `controllers/water_usage_controller.go`:**
+- Query list pemakaian kini menggunakan `Preload("Customer.Meters").Preload("Meter")` — sebelumnya hanya `Preload("Customer")` sehingga data meter tidak ikut dimuat.
+- Fallback logic: jika `record.MeterID` kosong (record lama yang dibuat sebelum meter terhubung), `meter_number` dan `location_name` diambil dari `Customer.Meters[0]` (primary meter pelanggan).
+
+### File yang berubah
+- `tirta-saas-backend/controllers/water_usage_controller.go`
+
 ## v1.3.9 - 2026-08-03
 
 **Tipe rilis:** Patch

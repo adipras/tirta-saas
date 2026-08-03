@@ -242,7 +242,7 @@ func GetWaterUsages(c *gin.Context) {
 
 	var total int64
 	var records []models.WaterUsage
-	query := config.DB.Preload("Customer").Model(&models.WaterUsage{})
+	query := config.DB.Preload("Customer.Meters").Preload("Meter").Model(&models.WaterUsage{})
 
 	if hasSpecificTenant {
 		query = query.Where("tenant_id = ?", tenantID)
@@ -292,9 +292,13 @@ func GetWaterUsages(c *gin.Context) {
 		if record.Customer.ID != uuid.Nil {
 			meterNum := ""
 			meterLocName := ""
+			// Gunakan meter yang tercatat di record; fallback ke primary meter customer
 			if record.Meter != nil {
 				meterNum = record.Meter.MeterNumber
 				meterLocName = record.Meter.LocationName
+			} else if len(record.Customer.Meters) > 0 {
+				meterNum = record.Customer.Meters[0].MeterNumber
+				meterLocName = record.Customer.Meters[0].LocationName
 			}
 			r.Customer = &responses.WaterUsageCustomer{
 				ID:                record.Customer.ID,
