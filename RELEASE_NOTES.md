@@ -1,5 +1,26 @@
 # Release Notes
 
+## v1.3.8 - 2026-08-03
+
+**Tipe rilis:** Patch
+**Cakupan:** Frontend
+**Tag deploy yang disarankan:** `deploy-fe-v1.3.8`
+
+### Ringkasan
+- Perbaikan UI/UX halaman Pemakaian Air (pencatatan meter): pagination server-side, grouping per pelanggan, dan pencarian pelanggan yang disederhanakan.
+
+### Perubahan teknis
+
+**Frontend — `UsageList.tsx`:**
+- **Pagination server-side:** State `totalPages` dan `totalItems` kini diambil langsung dari respons API. Kontrol halaman (prev/next + nomor halaman dengan ellipsis) ditampilkan di bawah daftar beserta info "Menampilkan X–Y dari Z catatan". Sebelumnya `currentPage` tidak tersambung ke DataTable sehingga pagination tidak berfungsi.
+- **Grouping per pelanggan:** Catatan dikelompokkan berdasarkan pelanggan. Setiap grup memiliki header yang menampilkan nama, ID pelanggan, nomor meter, dan alamat, disertai badge jumlah catatan. Klik header langsung menuju halaman riwayat pemakaian pelanggan tersebut.
+- **Pencarian pelanggan disederhanakan:** `<select>` tersembunyi di balik toggle filter diganti dengan combobox inline yang selalu terlihat di toolbar. Pengguna cukup mengetik nama atau nomor meter; dropdown muncul langsung tanpa perlu membuka panel filter terpisah.
+- **Badge filter aktif:** Setiap filter yang aktif ditampilkan sebagai badge dengan tombol `×` untuk menghapus per filter secara individual. Tombol "Reset" hanya muncul saat ada filter aktif.
+- Komponen `DataTable` dan import terkait (`FunnelIcon`) yang tidak lagi dipakai telah dihapus.
+
+### File yang berubah
+- `tirta-saas-frontend/src/pages/usage/UsageList.tsx`
+
 ## v1.3.7 - 2026-07-22
 
 **Tipe rilis:** Patch
