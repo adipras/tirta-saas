@@ -7,6 +7,7 @@ export interface WaterPemakaian {
     name: string;
     customerId: string;
     meterNumber?: string;
+    meterLocationName?: string;
     address?: string;
   };
   usageMonth: string;

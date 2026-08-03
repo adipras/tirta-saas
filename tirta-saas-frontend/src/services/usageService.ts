@@ -82,6 +82,7 @@ class PemakaianService {
               name: getString(customer.name),
               customerId: getString(customer.id),
               meterNumber: getString(customer.meter_number ?? customer.meterNumber),
+              meterLocationName: getString(customer.meter_location_name ?? customer.meterLocationName),
               address: getString(customer.address),
             }
           : undefined,

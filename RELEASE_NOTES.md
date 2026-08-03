@@ -1,5 +1,38 @@
 # Release Notes
 
+## v1.3.9 - 2026-08-03
+
+**Tipe rilis:** Patch
+**Cakupan:** Backend + Frontend
+**Tag deploy yang disarankan:** `deploy-all-v1.3.9`
+
+### Ringkasan
+- Tambah kolom **Meter** (`meter_number (location_name)`) pada list data pemakaian air.
+
+### Perubahan teknis
+
+**Backend — `responses/water_usage_responses.go`:**
+- Menambahkan field `MeterLocationName string` ke struct `WaterUsageCustomer`.
+
+**Backend — `controllers/water_usage_controller.go`:**
+- Mengisi `MeterLocationName` dari `record.Meter.LocationName` saat membangun response list pemakaian.
+
+**Frontend — `src/types/usage.ts`:**
+- Menambahkan `meterLocationName?: string` ke field `customer` pada interface `WaterPemakaian`.
+
+**Frontend — `src/services/usageService.ts`:**
+- Mapping `meter_location_name` dari respons API ke field `meterLocationName`.
+
+**Frontend — `src/pages/usage/UsageList.tsx`:**
+- Kolom **Meter** ditambahkan di tabel per grup, menampilkan `meter_number` dengan `(location_name)` di sampingnya jika tersedia. Kolom ini disembunyikan di layar mobile.
+
+### File yang berubah
+- `tirta-saas-backend/responses/water_usage_responses.go`
+- `tirta-saas-backend/controllers/water_usage_controller.go`
+- `tirta-saas-frontend/src/types/usage.ts`
+- `tirta-saas-frontend/src/services/usageService.ts`
+- `tirta-saas-frontend/src/pages/usage/UsageList.tsx`
+
 ## v1.3.8 - 2026-08-03
 
 **Tipe rilis:** Patch

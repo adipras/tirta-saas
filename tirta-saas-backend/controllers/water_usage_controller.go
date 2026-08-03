@@ -291,14 +291,17 @@ func GetWaterUsages(c *gin.Context) {
 		}
 		if record.Customer.ID != uuid.Nil {
 			meterNum := ""
+			meterLocName := ""
 			if record.Meter != nil {
 				meterNum = record.Meter.MeterNumber
+				meterLocName = record.Meter.LocationName
 			}
 			r.Customer = &responses.WaterUsageCustomer{
-				ID:          record.Customer.ID,
-				Name:        record.Customer.Name,
-				MeterNumber: meterNum,
-				Address:     record.Customer.Address,
+				ID:                record.Customer.ID,
+				Name:              record.Customer.Name,
+				MeterNumber:       meterNum,
+				MeterLocationName: meterLocName,
+				Address:           record.Customer.Address,
 			}
 		}
 		usageResponses[i] = r

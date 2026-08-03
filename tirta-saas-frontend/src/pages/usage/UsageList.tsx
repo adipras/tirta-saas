@@ -366,6 +366,7 @@ export default function PemakaianList() {
                 <table className="min-w-full divide-y divide-gray-100 text-sm">
                   <thead>
                     <tr className="bg-white">
+                      <th className="hidden px-4 py-2 text-left text-xs font-medium text-gray-500 sm:table-cell">Meter</th>
                       <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Periode</th>
                       <th className="hidden px-4 py-2 text-right text-xs font-medium text-gray-500 sm:table-cell">Awal</th>
                       <th className="hidden px-4 py-2 text-right text-xs font-medium text-gray-500 sm:table-cell">Akhir</th>
@@ -377,6 +378,12 @@ export default function PemakaianList() {
                   <tbody className="divide-y divide-gray-50">
                     {items.map(row => (
                       <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="hidden px-4 py-3 sm:table-cell">
+                          <span className="font-mono text-sm text-gray-900">{row.customer?.meterNumber || '-'}</span>
+                          {row.customer?.meterLocationName && (
+                            <span className="ml-1 text-xs text-gray-400">({row.customer.meterLocationName})</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
                           {formatMonth(row.usageMonth)}
                         </td>

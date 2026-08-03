@@ -6,10 +6,11 @@ import (
 )
 
 type WaterUsageCustomer struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	MeterNumber string    `json:"meter_number"`
-	Address     string    `json:"address"`
+	ID               uuid.UUID `json:"id"`
+	Name             string    `json:"name"`
+	MeterNumber      string    `json:"meter_number"`
+	MeterLocationName string   `json:"meter_location_name,omitempty"`
+	Address          string    `json:"address"`
 }
 
 type WaterUsageResponse struct {
