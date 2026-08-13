@@ -2,7 +2,7 @@
 
 _Dokumen ini menggambarkan kondisi aktual repo saat ini dan mengarah ke kesiapan produksi, bukan sekadar checklist MVP._
 
-**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 2 Juni 2026
+**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 13 Agustus 2026
 
 ---
 
@@ -172,6 +172,8 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Angka awal meter di-resolve otomatis dari API saat meter dipilih dan ditampilkan read-only beserta keterangan sumber (bacaan bulan lalu / angka awal meter / default)
 - ✅ `meter_id` kini ikut tersimpan di draft Room DB saat offline dan dikirim saat sync ke server
 - ✅ Customer detail Android kini menampilkan list meter terpasang (nomor, status, bacaan terakhir)
+- ✅ Form input pemakaian Android kini dilengkapi **combobox pencarian pelanggan** — petugas cukup mengetik nama atau nomor meter, saran pelanggan muncul dari API, pilih untuk otomatis load meter terpasang (tidak perlu ketik UUID manual)
+- ✅ List pemakaian air Android kini menampilkan **nomor meter dan lokasi meter** (`meter_number (location_name)`) di bawah nama pelanggan, selaras dengan kolom Meter yang ditambahkan di web (v1.3.9)
 - ✅ Integrasi printer thermal native sudah matang untuk paired Bluetooth Classic, preferred printer, print queue, retry gagal cetak, dan ESC/POS receipt rendering
 - ✅ Mobile security/session foundation sudah ada: JWT login, secure token storage, auto refresh, tenant status guard, dan redaksi header sensitif di network logging
 - 🟡 Namun mobile app **masih belum setara penuh** dengan seluruh surface web, terutama parity customer portal/end-user surface, QA multi-role, hardening sync conflict, dan release pipeline mobile
@@ -246,6 +248,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - ✅ Tenant settings untuk `tenant_admin`
 - ✅ Tenant user CRUD
 - ✅ Customer list/detail/create/activation
+- ✅ Pencarian pelanggan di form input pemakaian: combobox searchable (cari nama / nomor meter) — tidak perlu ketik UUID manual
 - ✅ Water usage list/create/update
 - ✅ Offline draft water usage + sync queue + retry worker
 - ✅ Filter customer by service area / route
@@ -382,11 +385,13 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Progress hardening terbaru: frontend kini juga punya baseline test otomatis untuk auth guard (`PrivateRoute`), branching login admin/customer, interaction notification bell, customer invoice detail, dan customer payment confirmation, dan workflow validasi repo sudah ikut menjalankan `npm run test`.
 - Progress dokumentasi terbaru: status Android native kini digabung ke dokumen ini agar tracking mobile/web/backend berada pada satu sumber kebenaran.
 - Progress produk terbaru (v1.1.0): refactor multi-meter selesai — satu customer kini bisa punya lebih dari 1 meter; `meter_number` dipindahkan dari tabel `customers` ke `meters`; invoice registrasi sekarang selalu ter-link ke `meter_id` spesifik; `meter_start_source` ditambahkan ke `water_usages` untuk audit trail; endpoint baru `POST /api/customers/:id/meters` dan `GET /api/meters/:id/resolve-meter-start` tersedia; form create customer, halaman detail customer, form input bacaan meter, dan bulk import CSV diperbarui di frontend; Android ikut diselaraskan dengan pemilihan meter dan tampilan meter terpasang.
+- Progress Android terbaru (v1.3.9 alignment): field `meter_location_name` ditambahkan ke `WaterUsageCustomerDto` Android; list pemakaian air kini menampilkan nomor dan lokasi meter di bawah nama pelanggan — selaras dengan kolom Meter yang ditambahkan di web.
+- Progress Android terbaru: form input pemakaian air kini punya combobox pencarian pelanggan — petugas mengetik nama atau nomor meter, saran muncul realtime dari API (`GET /customers?search=...`), pilih untuk otomatis mengisi `customer_id` dan memuat meter terpasang; field "Customer ID" (raw UUID) digantikan sepenuhnya.
 
 ---
 
 ## Ringkasan singkat
 
 **Status umum:** Core product sudah usable dan fondasi deploy produksi sudah ada.  
-**Yang paling matang:** billing flow tenant multi-meter, payment proof flow, reporting, import Excel, customer portal lengkap, payment settings, scheduler, dan fondasi Android/printer bridge/mobile operasional inti.
+**Yang paling matang:** billing flow tenant multi-meter, payment proof flow, reporting, import Excel, customer portal lengkap, payment settings, scheduler, dan fondasi Android/printer bridge/mobile operasional inti (termasuk combobox pencarian pelanggan dan tampilan meter di list pemakaian).
 **Yang paling menentukan untuk production:** automated tests, release gate, observability, audit logging aktif, hardening akses platform owner, dan automation notification/payment.

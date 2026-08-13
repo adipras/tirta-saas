@@ -4,6 +4,7 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.adipras.tirtasaas.feature.customer.MeterDto
+import com.adipras.tirtasaas.feature.customer.CustomerDto
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -145,16 +146,63 @@ fun UsageFormScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            OutlinedTextField(
-                value = state.customerId,
-                onValueChange = viewModel::onCustomerIdChange,
-                label = { Text("Customer ID") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = usageId == null,
-                singleLine = true,
-            )
+            // Customer search combobox — hanya tampil saat create baru
+            if (usageId == null) {
+                var customerDropdownExpanded by remember { mutableStateOf(false) }
+                LaunchedEffect(state.customerSuggestions) {
+                    customerDropdownExpanded = state.customerSuggestions.isNotEmpty()
+                }
+                ExposedDropdownMenuBox(
+                    expanded = customerDropdownExpanded,
+                    onExpandedChange = { customerDropdownExpanded = it },
+                ) {
+                    OutlinedTextField(
+                        value = state.customerSearchQuery,
+                        onValueChange = { query ->
+                            customerDropdownExpanded = true
+                            viewModel.onCustomerSearchChange(query)
+                        },
+                        label = { Text("Cari Pelanggan (nama / no. meter)") },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
+                        singleLine = true,
+                        trailingIcon = {
+                            if (state.isSearchingCustomers) {
+                                CircularProgressIndicator(strokeWidth = 2.dp)
+                            } else {
+                                ExposedDropdownMenuDefaults.TrailingIcon(customerDropdownExpanded)
+                            }
+                        },
+                    )
+                    if (state.customerSuggestions.isNotEmpty()) {
+                        ExposedDropdownMenu(
+                            expanded = customerDropdownExpanded,
+                            onDismissRequest = { customerDropdownExpanded = false },
+                        ) {
+                            state.customerSuggestions.forEach { customer ->
+                                val primaryMeter = customer.meters.firstOrNull()
+                                val label = buildString {
+                                    append(customer.name)
+                                    if (primaryMeter != null) {
+                                        append(" — ${primaryMeter.meterNumber}")
+                                        if (!primaryMeter.locationName.isNullOrBlank()) {
+                                            append(" (${primaryMeter.locationName})")
+                                        }
+                                    }
+                                }
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        customerDropdownExpanded = false
+                                        viewModel.onCustomerSelected(customer)
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
-            // Meter selection — shown after customer is entered
+            // Meter selection — shown after customer is selected
             if (usageId == null && state.customerId.isNotBlank()) {
                 if (state.customerMeters.size == 1) {
                     val meter = state.customerMeters[0]

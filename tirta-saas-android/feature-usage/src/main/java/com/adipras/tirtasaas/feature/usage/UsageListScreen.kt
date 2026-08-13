@@ -173,6 +173,18 @@ private fun UsageListItem(usage: WaterUsageDto, onClick: () -> Unit) {
                 )
                 Text(usage.usageMonth, style = MaterialTheme.typography.labelMedium)
             }
+            val customer = usage.customer
+            if (customer != null && customer.meterNumber.isNotBlank()) {
+                val meterLabel = buildString {
+                    append(customer.meterNumber)
+                    if (!customer.meterLocationName.isNullOrBlank()) append(" (${customer.meterLocationName})")
+                }
+                Text(
+                    text = meterLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("${usage.usageM3} m³", style = MaterialTheme.typography.bodyMedium)

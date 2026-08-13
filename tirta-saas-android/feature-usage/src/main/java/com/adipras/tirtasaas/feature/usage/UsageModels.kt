@@ -23,6 +23,7 @@ data class WaterUsageCustomerDto(
     val id: String,
     val name: String,
     @SerialName("meter_number") val meterNumber: String = "",
+    @SerialName("meter_location_name") val meterLocationName: String? = null,
     val address: String = "",
 )
 

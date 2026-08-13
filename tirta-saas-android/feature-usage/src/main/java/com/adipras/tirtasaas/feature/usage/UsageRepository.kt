@@ -2,6 +2,7 @@ package com.adipras.tirtasaas.feature.usage
 
 import com.adipras.tirtasaas.core.network.PagedApiResponse
 import com.adipras.tirtasaas.core.network.requireData
+import com.adipras.tirtasaas.feature.customer.CustomerDto
 import com.adipras.tirtasaas.feature.customer.CustomerRepository
 import com.adipras.tirtasaas.feature.customer.MeterDto
 import com.adipras.tirtasaas.feature.customer.MeterStartResolution
@@ -21,6 +22,12 @@ class UsageRepository @Inject constructor(
 
     suspend fun resolveMeterStart(meterId: String, usageMonth: String): Result<MeterStartResolution> =
         customerRepository.resolveMeterStart(meterId, usageMonth)
+
+    suspend fun searchCustomers(query: String): Result<List<CustomerDto>> = runCatching {
+        customerRepository.getCustomers(page = 1, limit = 10, search = query)
+            .getOrThrow().customers
+    }
+
     suspend fun getUsages(
         page: Int = 1,
         pageSize: Int = 20,

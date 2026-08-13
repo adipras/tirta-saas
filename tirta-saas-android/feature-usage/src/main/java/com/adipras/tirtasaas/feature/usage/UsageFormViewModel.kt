@@ -5,9 +5,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.adipras.tirtasaas.core.database.entity.DraftUsageEntity
+import com.adipras.tirtasaas.feature.customer.CustomerDto
 import com.adipras.tirtasaas.feature.customer.MeterDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +24,11 @@ data class UsageFormUiState(
     val isSaving: Boolean = false,
     val usageId: String? = null,
     val customerId: String = "",
+    // Customer search combobox
+    val customerSearchQuery: String = "",
+    val customerSuggestions: List<CustomerDto> = emptyList(),
+    val selectedCustomerName: String = "",
+    val isSearchingCustomers: Boolean = false,
     // Meter selection — populated after customer is selected
     val customerMeters: List<MeterDto> = emptyList(),
     val selectedMeterId: String = "",
@@ -48,6 +56,7 @@ class UsageFormViewModel @Inject constructor(
     val uiState: StateFlow<UsageFormUiState> = _uiState.asStateFlow()
 
     private val usageId: String? = savedStateHandle["usageId"]
+    private var searchJob: Job? = null
 
     init {
         if (usageId != null) loadExisting(usageId)
@@ -70,6 +79,55 @@ class UsageFormViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }
+    }
+
+    fun onCustomerSearchChange(query: String) {
+        _uiState.value = _uiState.value.copy(
+            customerSearchQuery = query,
+            selectedCustomerName = "",
+            customerId = "",
+            customerMeters = emptyList(),
+            selectedMeterId = "",
+            meterStartValue = null,
+        )
+        searchJob?.cancel()
+        if (query.isBlank()) {
+            _uiState.value = _uiState.value.copy(customerSuggestions = emptyList())
+            return
+        }
+        searchJob = viewModelScope.launch {
+            delay(300)
+            _uiState.value = _uiState.value.copy(isSearchingCustomers = true)
+            repository.searchCustomers(query).onSuccess { customers ->
+                _uiState.value = _uiState.value.copy(
+                    customerSuggestions = customers,
+                    isSearchingCustomers = false,
+                )
+            }.onFailure {
+                _uiState.value = _uiState.value.copy(isSearchingCustomers = false)
+            }
+        }
+    }
+
+    fun onCustomerSelected(customer: CustomerDto) {
+        val primaryMeter = customer.meters.firstOrNull()
+        val label = buildString {
+            append(customer.name)
+            if (primaryMeter != null) {
+                append(" — ${primaryMeter.meterNumber}")
+                if (!primaryMeter.locationName.isNullOrBlank()) append(" (${primaryMeter.locationName})")
+            }
+        }
+        _uiState.value = _uiState.value.copy(
+            customerId = customer.id,
+            customerSearchQuery = label,
+            selectedCustomerName = label,
+            customerSuggestions = emptyList(),
+            customerMeters = emptyList(),
+            selectedMeterId = "",
+            meterStartValue = null,
+        )
+        loadCustomerMeters(customer.id)
     }
 
     fun onCustomerIdChange(v: String) {
