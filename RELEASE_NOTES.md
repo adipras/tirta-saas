@@ -1,5 +1,33 @@
 # Release Notes
 
+## v1.3.11 - 2026-08-15
+
+**Tipe rilis:** Patch
+**Cakupan:** Backend + Frontend
+**Tag deploy yang disarankan:** `deploy-all-v1.3.11`
+
+### Ringkasan
+- Perbaikan ekspor CSV pelanggan agar kompatibel dengan regional Excel Indonesia.
+- Penyederhanaan halaman daftar pelanggan: filter ringkas, pencarian cepat, dan penyaringan data di sisi frontend.
+
+### Perubahan teknis
+
+**Backend — `controllers/bulk_operations_controller.go`:**
+- Endpoint `ExportCustomers` sekarang menulis CSV dengan delimiter `;` (`writer.Comma = ';'`) agar kolom tidak tergabung menjadi satu saat dibuka di Excel dengan pengaturan regional yang memakai pemisah desimal koma.
+- Menetapkan `Content-Type` menjadi `text/csv; charset=utf-8`.
+
+**Frontend — `src/pages/customers/CustomerList.tsx`:**
+- Toolbar filter disederhanakan menjadi pencarian + status + golongan yang selalu terlihat (tanpa panel filter collapse).
+- Menghapus filter `hasOutstandingBalance` dari UI daftar pelanggan.
+- Daftar pelanggan kini diambil sekali (`getPelanggan(1, 1000)`), lalu difilter di client menggunakan `useMemo` berdasarkan keyword, status aktif, dan golongan.
+- Tabel kini merender `filteredCustomers` dan statistik kartu dashboard mengikuti hasil filter aktif.
+- Menghapus kolom tabel `No. Meter` dan mengganti ikon filter dengan ikon pencarian pada input keyword.
+
+### File yang berubah
+- `tirta-saas-backend/controllers/bulk_operations_controller.go`
+- `tirta-saas-frontend/src/pages/customers/CustomerList.tsx`
+- `RELEASE_NOTES.md`
+
 ## v1.3.10 - 2026-08-03
 
 **Tipe rilis:** Patch

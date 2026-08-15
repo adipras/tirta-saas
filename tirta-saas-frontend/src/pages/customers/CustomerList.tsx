@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   PlusIcon, 
@@ -6,7 +6,7 @@ import {
   EyeIcon,
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
-  FunnelIcon,
+  MagnifyingGlassIcon,
   CheckCircleIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
@@ -22,46 +22,37 @@ export default function CustomerList() {
   
   const [customers, setPelanggan] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
   
   const [filters, setFilters] = useState({
     isActive: '' as boolean | '',
     subscriptionTypeId: '',
-    hasOutstandingBalance: '',
     search: '',
   });
   const hasActiveFilters =
     filters.isActive !== '' ||
     filters.subscriptionTypeId !== '' ||
-    filters.hasOutstandingBalance !== '' ||
-    filters.search !== '';
+    filters.search.trim() !== '';
 
   const fetchPelanggan = useCallback(async () => {
     try {
       setLoading(true);
-      const filterParams: CustomerFilters = {
-        isActive: filters.isActive === '' ? undefined : filters.isActive,
-        subscriptionTypeId: filters.subscriptionTypeId || undefined,
-        hasOutstandingBalance: filters.hasOutstandingBalance === 'true' ? true : 
-                               filters.hasOutstandingBalance === 'false' ? false : undefined,
-        search: filters.search || undefined,
-      };
-
-      const response = await customerService.getPelanggan(currentPage, 10, filterParams);
+      const response = await customerService.getPelanggan(1, 1000);
       setPelanggan(response.data);
     } catch {
       toast.error('Gagal memuat daftar pelanggan');
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filters, toast]);
+  }, [toast]);
 
   useEffect(() => {
     fetchPelanggan();
+  }, [fetchPelanggan]);
+
+  useEffect(() => {
     fetchSubscriptionTypes();
-  }, [currentPage, filters, fetchPelanggan]);
+  }, []);
 
   const fetchSubscriptionTypes = async () => {
     try {
@@ -91,9 +82,7 @@ export default function CustomerList() {
       const exportFilters: CustomerFilters = {
         isActive: filters.isActive === '' ? undefined : filters.isActive,
         subscriptionTypeId: filters.subscriptionTypeId || undefined,
-        hasOutstandingBalance: filters.hasOutstandingBalance === 'true' ? true : 
-                               filters.hasOutstandingBalance === 'false' ? false : undefined,
-        search: filters.search || undefined,
+        search: filters.search.trim() || undefined,
       };
       const blob = await customerService.exportPelanggan(exportFilters);
       const url = window.URL.createObjectURL(blob);
@@ -132,11 +121,6 @@ export default function CustomerList() {
   };
 
   const columns: Column<Customer>[] = [
-    {
-      key: 'meter_number',
-      label: 'No. Meter',
-      sortable: true,
-    },
     {
       key: 'name',
       label: 'Nama',
@@ -218,24 +202,50 @@ export default function CustomerList() {
     </div>
   );
 
-  const activeCustomers = customers.filter((customer) => customer.is_active).length;
-  const inactiveCustomers = customers.length - activeCustomers;
-  const usedSubscriptions = new Set(customers.map((customer) => customer.subscription?.id).filter(Boolean)).size;
+  const filteredCustomers = useMemo(() => {
+    const keyword = filters.search.trim().toLowerCase();
+
+    return customers.filter((customer) => {
+      if (filters.isActive !== '' && customer.is_active !== filters.isActive) {
+        return false;
+      }
+
+      if (
+        filters.subscriptionTypeId &&
+        customer.subscription?.id !== filters.subscriptionTypeId
+      ) {
+        return false;
+      }
+
+      if (!keyword) {
+        return true;
+      }
+
+      const searchableValues = [
+        customer.name,
+        customer.email,
+        customer.phone,
+        customer.address,
+        customer.subscription?.name,
+        customer.service_area_name,
+      ];
+
+      return searchableValues.some((value) =>
+        (value || '').toLowerCase().includes(keyword)
+      );
+    });
+  }, [customers, filters]);
+
+  const activeCustomers = filteredCustomers.filter((customer) => customer.is_active).length;
+  const inactiveCustomers = filteredCustomers.length - activeCustomers;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Pelanggan"
-        subtitle="Kelola pelanggan dari daftar yang lebih mudah dibaca di layar kecil, lengkap dengan filter dan aksi cepat."
+        subtitle="Kelola data pelanggan dengan pencarian cepat dan filter yang ringkas."
         actions={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
-            >
-              <FunnelIcon className="mr-2 h-4 w-4" />
-              {showFilters ? 'Tutup Filter' : 'Filter'}
-            </button>
             <button
               onClick={handleExport}
               className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
@@ -261,118 +271,81 @@ export default function CustomerList() {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <DashboardStatCard
-          title="Pelanggan tampil"
-          value={loading ? '...' : customers.length.toLocaleString('id-ID')}
-          helper={hasActiveFilters ? 'Daftar sedang difilter' : 'Semua data pada halaman'}
-          subtitle="Jumlah pelanggan yang sedang tampil pada daftar aktif saat ini."
+          title="Total Pelanggan"
+          value={loading ? '...' : filteredCustomers.length.toLocaleString('id-ID')}
+          helper={hasActiveFilters ? 'Hasil filter aktif' : undefined}
           icon={CheckCircleIcon}
           tone="blue"
         />
         <DashboardStatCard
-          title="Pelanggan aktif"
+          title="Aktif"
           value={loading ? '...' : activeCustomers.toLocaleString('id-ID')}
-          subtitle="Memudahkan pemantauan pelanggan yang masih aktif menerima layanan."
           icon={CheckCircleIcon}
           tone="green"
         />
         <DashboardStatCard
-          title="Pelanggan nonaktif"
+          title="Nonaktif"
           value={loading ? '...' : inactiveCustomers.toLocaleString('id-ID')}
-          subtitle="Cocok untuk meninjau akun yang perlu diaktifkan kembali atau diverifikasi."
           icon={XCircleIcon}
           tone="yellow"
         />
-        <DashboardStatCard
-          title="Golongan terpakai"
-          value={loading ? '...' : usedSubscriptions.toLocaleString('id-ID')}
-          subtitle="Menunjukkan berapa golongan langganan yang sedang dipakai pada hasil daftar."
-          icon={FunnelIcon}
-          tone="cyan"
-        />
       </div>
 
-      {showFilters && (
-        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">Filter pelanggan</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Saring data berdasarkan status, golongan, saldo, atau kata kunci pencarian.
-              </p>
-            </div>
-            {hasActiveFilters && (
-              <span className="inline-flex w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                Filter aktif
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div>
-              <label htmlFor="filter-status-pelanggan" className="block text-sm font-medium text-gray-700">Status</label>
-              <select
-                id="filter-status-pelanggan"
-                value={filters.isActive === '' ? '' : filters.isActive ? 'active' : 'inactive'}
-                onChange={(e) => setFilters({ ...filters, isActive: e.target.value === '' ? '' : e.target.value === 'active' })}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-              >
-                <option value="">Semua status</option>
-                <option value="active">Aktif</option>
-                <option value="inactive">Nonaktif</option>
-              </select>
-            </div>
-          
-            <div>
-              <label htmlFor="filter-tipe-langganan" className="block text-sm font-medium text-gray-700">Tipe langganan</label>
-              <select
-                id="filter-tipe-langganan"
-                value={filters.subscriptionTypeId}
-                onChange={(e) => setFilters({ ...filters, subscriptionTypeId: e.target.value })}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-              >
-                <option value="">Semua tipe</option>
-                {subscriptionTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          
-            <div>
-              <label htmlFor="filter-saldo-tertunggak" className="block text-sm font-medium text-gray-700">Saldo tertunggak</label>
-              <select
-                id="filter-saldo-tertunggak"
-                value={filters.hasOutstandingBalance}
-                onChange={(e) => setFilters({ ...filters, hasOutstandingBalance: e.target.value })}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-              >
-                <option value="">Semua</option>
-                <option value="true">Ada tunggakan</option>
-                <option value="false">Tanpa tunggakan</option>
-              </select>
-            </div>
-          
-            <div>
-              <label htmlFor="filter-pencarian-pelanggan" className="block text-sm font-medium text-gray-700">Pencarian</label>
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="md:col-span-1">
+            <label htmlFor="filter-pencarian-pelanggan" className="block text-sm font-medium text-gray-700">Pencarian</label>
+            <div className="relative mt-1">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 id="filter-pencarian-pelanggan"
                 type="text"
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                placeholder="Nama, email, telepon..."
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                placeholder="Nama, email, telepon, alamat..."
+                className="block w-full rounded-md border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
               />
             </div>
           </div>
-          
-          <div className="flex justify-end">
+          <div>
+            <label htmlFor="filter-status-pelanggan" className="block text-sm font-medium text-gray-700">Status</label>
+            <select
+              id="filter-status-pelanggan"
+              value={filters.isActive === '' ? '' : filters.isActive ? 'active' : 'inactive'}
+              onChange={(e) => setFilters({ ...filters, isActive: e.target.value === '' ? '' : e.target.value === 'active' })}
+              className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            >
+              <option value="">Semua status</option>
+              <option value="active">Aktif</option>
+              <option value="inactive">Nonaktif</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="filter-tipe-langganan" className="block text-sm font-medium text-gray-700">Golongan</label>
+            <select
+              id="filter-tipe-langganan"
+              value={filters.subscriptionTypeId}
+              onChange={(e) => setFilters({ ...filters, subscriptionTypeId: e.target.value })}
+              className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            >
+              <option value="">Semua golongan</option>
+              {subscriptionTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {hasActiveFilters && (
+          <div className="mt-3 flex justify-end">
             <button
               onClick={() => setFilters({
                 isActive: '' as boolean | '',
                 subscriptionTypeId: '',
-                hasOutstandingBalance: '',
                 search: '',
               })}
               className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
@@ -380,12 +353,12 @@ export default function CustomerList() {
               Atur ulang filter
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="bg-white shadow rounded-lg">
         <DataTable
-          data={customers}
+          data={filteredCustomers}
           columns={columns}
           actions={actions}
           loading={loading}

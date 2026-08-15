@@ -464,11 +464,14 @@ func ExportCustomers(c *gin.Context) {
 	}
 
 	// Set headers for CSV download
-	c.Header("Content-Type", "text/csv")
+	c.Header("Content-Type", "text/csv; charset=utf-8")
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=customers_export_%s.csv", time.Now().Format("20060102_150405")))
 
 	// Create CSV writer
 	writer := csv.NewWriter(c.Writer)
+	// Use semicolon to match common Excel regional settings (e.g. Indonesian locale)
+	// so columns are parsed correctly instead of appearing in a single column.
+	writer.Comma = ';'
 	defer writer.Flush()
 
 	// Write header
