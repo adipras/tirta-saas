@@ -12,6 +12,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   UserIcon,
+  BeakerIcon,
+  CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
@@ -31,7 +33,6 @@ const formatMonth = (month: string | undefined): string => {
   return new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
 };
 
-// Group records by customerId, preserving order of first appearance
 function groupByCustomer(records: WaterPemakaian[]): { customerId: string; customer: WaterPemakaian['customer']; items: WaterPemakaian[] }[] {
   const map = new Map<string, { customer: WaterPemakaian['customer']; items: WaterPemakaian[] }>();
   for (const r of records) {
@@ -56,7 +57,6 @@ export default function PemakaianList() {
   const [filters, setFilters] = useState<WaterPemakaianFilters>({ customerId: undefined, usageMonth: undefined });
   const hasActiveFilters = Boolean(filters.customerId || filters.usageMonth);
 
-  // Customer search combobox state
   const [customerQuery, setCustomerQuery] = useState('');
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const customerSearchRef = useRef<HTMLDivElement>(null);
@@ -94,7 +94,6 @@ export default function PemakaianList() {
   useEffect(() => { fetchWaterPemakaians(); }, [fetchWaterPemakaians]);
   useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (customerSearchRef.current && !customerSearchRef.current.contains(e.target as Node)) {
@@ -159,93 +158,91 @@ export default function PemakaianList() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <DashboardStatCard
           title="Total data"
-          value={loading ? '...' : totalItems.toLocaleString('id-ID')}
-          helper={hasActiveFilters ? 'Daftar sedang difilter' : 'Semua catatan'}
-          subtitle="Jumlah total catatan pemakaian sesuai filter aktif."
-          icon={ChartBarIcon}
+          value={loading ? '—' : totalItems.toLocaleString('id-ID')}
+          helper={hasActiveFilters ? 'Difilter' : 'Semua'}
+          subtitle="Jumlah catatan sesuai filter."
+          icon={BeakerIcon}
           tone="blue"
         />
         <DashboardStatCard
           title="Total pemakaian"
-          value={loading ? '...' : `${totalPemakaian.toFixed(2)} m³`}
-          subtitle="Akumulasi pemakaian pada halaman ini."
+          value={loading ? '—' : `${totalPemakaian.toFixed(2)} m³`}
+          subtitle="Akumulasi pemakaian halaman ini."
           icon={ChartBarIcon}
           tone="green"
         />
         <DashboardStatCard
           title="Total nominal"
-          value={loading ? '...' : formatCurrency(totalAmount)}
+          value={loading ? '—' : formatCurrency(totalAmount)}
           subtitle="Ringkasan nominal halaman ini."
-          icon={PlusIcon}
+          icon={CurrencyDollarIcon}
           tone="purple"
         />
         <DashboardStatCard
           title="Anomali"
-          value={loading ? '...' : anomaliesCount.toLocaleString('id-ID')}
-          subtitle="Catatan terindikasi anomali pada halaman ini."
+          value={loading ? '—' : anomaliesCount.toLocaleString('id-ID')}
+          subtitle="Indikasi anomali pada halaman ini."
           icon={ExclamationTriangleIcon}
-          tone="yellow"
+          tone={anomaliesCount > 0 ? 'red' : 'yellow'}
         />
       </div>
 
-      {/* Toolbar: filters + actions */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+      {/* Toolbar */}
+      <div className="card p-4 sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
           {/* Customer search */}
           <div className="flex-1 min-w-0" ref={customerSearchRef}>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Cari Pelanggan</label>
+            <label className="mb-1.5 block text-[12px] font-medium text-surface-500">Cari Pelanggan</label>
             <div className="relative">
-              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
               <input
                 type="text"
                 value={selectedCustomer ? selectedCustomer.name : customerQuery}
                 onChange={(e) => {
                   setCustomerQuery(e.target.value);
-                  if (filters.customerId) {
-                    setFilters(prev => ({ ...prev, customerId: undefined }));
-                  }
+                  if (filters.customerId) setFilters(prev => ({ ...prev, customerId: undefined }));
                   setShowCustomerDropdown(true);
                 }}
                 onFocus={() => setShowCustomerDropdown(true)}
                 placeholder="Nama atau nomor meter..."
-                className="block w-full rounded-lg border border-gray-300 py-2 pl-9 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="input-base pl-9"
               />
               {(filters.customerId || customerQuery) && (
                 <button
                   type="button"
                   onClick={clearCustomerFilter}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
                   aria-label="Hapus filter pelanggan"
                 >
                   <XMarkIcon className="h-4 w-4" />
                 </button>
               )}
               {showCustomerDropdown && (
-                <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg text-sm">
+                <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-surface-200 bg-white py-1 shadow-dropdown text-[13px]">
                   <li>
                     <button
                       type="button"
-                      className="w-full px-3 py-2 text-left text-gray-500 hover:bg-gray-50 italic"
+                      className="w-full px-3 py-2 text-left text-surface-500 hover:bg-surface-50 italic"
                       onMouseDown={() => selectCustomer(null)}
                     >
                       Semua pelanggan
                     </button>
                   </li>
                   {filteredCustomers.length === 0 ? (
-                    <li className="px-3 py-2 text-gray-400">Tidak ditemukan</li>
+                    <li className="px-3 py-2 text-surface-400">Tidak ditemukan</li>
                   ) : (
                     filteredCustomers.map(c => (
                       <li key={c.id}>
                         <button
                           type="button"
-                          className={`w-full px-3 py-2 text-left hover:bg-blue-50 ${filters.customerId === c.id ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-900'}`}
+                          className={`w-full px-3 py-2 text-left hover:bg-brand-50 ${filters.customerId === c.id ? 'bg-brand-50 font-medium text-brand-700' : 'text-surface-900'}`}
                           onMouseDown={() => selectCustomer(c)}
                         >
                           <span className="block truncate">{c.name}</span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-[11px] text-surface-400">
                             {c.meters?.[0]?.meter_number ?? 'No meter'}
                           </span>
                         </button>
@@ -259,12 +256,12 @@ export default function PemakaianList() {
 
           {/* Month filter */}
           <div className="w-full sm:w-44">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Periode</label>
+            <label className="mb-1.5 block text-[12px] font-medium text-surface-500">Periode</label>
             <input
               type="month"
               value={filters.usageMonth || ''}
               onChange={(e) => handleMonthChange(e.target.value)}
-              className="block w-full rounded-lg border border-gray-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="input-base"
             />
           </div>
 
@@ -273,7 +270,7 @@ export default function PemakaianList() {
             <button
               type="button"
               onClick={clearFilters}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 whitespace-nowrap"
+              className="btn-ghost whitespace-nowrap"
             >
               <XMarkIcon className="h-4 w-4" />
               Reset
@@ -284,37 +281,38 @@ export default function PemakaianList() {
             <button
               type="button"
               onClick={() => navigate('/admin/usage/bulk-import')}
-              className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+              className="btn-secondary whitespace-nowrap"
             >
-              <ArrowUpTrayIcon className="h-4 w-4 mr-1.5" />
+              <ArrowUpTrayIcon className="h-4 w-4" />
               Import
             </button>
             <button
               type="button"
               onClick={() => navigate('/admin/usage/create')}
-              className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 whitespace-nowrap"
+              className="btn-primary whitespace-nowrap"
             >
-              <PlusIcon className="h-4 w-4 mr-1.5" />
+              <PlusIcon className="h-4 w-4" />
               Tambah
             </button>
           </div>
         </div>
 
+        {/* Active filter chips */}
         {hasActiveFilters && (
           <div className="mt-3 flex flex-wrap gap-2">
             {filters.customerId && selectedCustomer && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-0.5 text-xs font-medium text-blue-700">
+              <span className="badge-info">
                 <UserIcon className="h-3 w-3" />
                 {selectedCustomer.name}
-                <button type="button" onClick={clearCustomerFilter} className="ml-1 hover:text-blue-900" aria-label="Hapus filter pelanggan">
+                <button type="button" onClick={clearCustomerFilter} className="ml-1 hover:text-info-900">
                   <XMarkIcon className="h-3 w-3" />
                 </button>
               </span>
             )}
             {filters.usageMonth && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-3 py-0.5 text-xs font-medium text-green-700">
+              <span className="badge-success">
                 {formatMonth(filters.usageMonth)}
-                <button type="button" onClick={() => handleMonthChange('')} className="ml-1 hover:text-green-900" aria-label="Hapus filter periode">
+                <button type="button" onClick={() => handleMonthChange('')} className="ml-1 hover:text-success-900">
                   <XMarkIcon className="h-3 w-3" />
                 </button>
               </span>
@@ -324,106 +322,111 @@ export default function PemakaianList() {
       </div>
 
       {/* Grouped list */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {loading ? (
-          <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center text-sm text-gray-400">
-            Memuat data...
+          <div className="card p-10 text-center">
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-surface-200 border-t-brand-600" />
+            <p className="mt-3 text-[13px] text-surface-400">Memuat data...</p>
           </div>
         ) : grouped.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-400">
-            Belum ada data pemakaian yang sesuai dengan filter
+          <div className="card p-12 text-center">
+            <BeakerIcon className="mx-auto h-10 w-10 text-surface-300" />
+            <p className="mt-3 text-sm font-medium text-surface-500">Belum ada data pemakaian</p>
+            <p className="mt-1 text-[12px] text-surface-400">Tidak ada data yang sesuai dengan filter.</p>
           </div>
         ) : (
           grouped.map(({ customerId, customer, items }) => (
-            <div key={customerId} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div key={customerId} className="card overflow-hidden">
               {/* Customer group header */}
               <div
-                className="flex cursor-pointer items-center gap-3 border-b border-gray-100 bg-gray-50 px-4 py-3 hover:bg-gray-100 transition-colors"
+                className="flex cursor-pointer items-center gap-3 border-b border-surface-100 bg-surface-50/80 px-4 py-3 transition-colors hover:bg-surface-100"
                 onClick={() => navigate(`/admin/usage/${customerId}/history`)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => e.key === 'Enter' && navigate(`/admin/usage/${customerId}/history`)}
                 aria-label={`Lihat riwayat pemakaian ${customer?.name ?? customerId}`}
               >
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                  <UserIcon className="h-4 w-4" />
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-50 ring-1 ring-brand-100">
+                  <UserIcon className="h-4 w-4 text-brand-600" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">{customer?.name ?? '-'}</p>
-                  <p className="truncate text-xs text-gray-500">
+                  <p className="truncate text-[13px] font-semibold text-surface-900">{customer?.name ?? '-'}</p>
+                  <p className="truncate text-[11px] text-surface-400">
                     {customer?.customerId ? `ID: ${customer.customerId}` : ''}
                     {customer?.meterNumber ? ` • Meter: ${customer.meterNumber}` : ''}
                     {customer?.address ? ` • ${customer.address}` : ''}
                   </p>
                 </div>
-                <span className="flex-shrink-0 rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-medium text-white">
+                <span className="badge-primary">
                   {items.length} catatan
                 </span>
               </div>
 
               {/* Records table */}
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-100 text-sm">
+                <table className="min-w-full divide-y divide-surface-100 text-[13px]">
                   <thead>
                     <tr className="bg-white">
-                      <th className="hidden px-4 py-2 text-left text-xs font-medium text-gray-500 sm:table-cell">Meter</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Periode</th>
-                      <th className="hidden px-4 py-2 text-right text-xs font-medium text-gray-500 sm:table-cell">Awal</th>
-                      <th className="hidden px-4 py-2 text-right text-xs font-medium text-gray-500 sm:table-cell">Akhir</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Pemakaian</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Nominal</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Aksi</th>
+                      <th className="hidden px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-surface-500 sm:table-cell">Meter</th>
+                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-surface-500">Periode</th>
+                      <th className="hidden px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-surface-500 sm:table-cell">Awal</th>
+                      <th className="hidden px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-surface-500 sm:table-cell">Akhir</th>
+                      <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-surface-500">Pemakaian</th>
+                      <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-surface-500">Nominal</th>
+                      <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-surface-500">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-surface-50">
                     {items.map(row => (
-                      <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={row.id} className="transition-colors hover:bg-surface-50/50">
                         <td className="hidden px-4 py-3 sm:table-cell">
-                          <span className="font-mono text-sm text-gray-900">{row.customer?.meterNumber || '-'}</span>
+                          <span className="font-mono text-surface-700">{row.customer?.meterNumber || '—'}</span>
                           {row.customer?.meterLocationName && (
-                            <span className="ml-1 text-xs text-gray-400">({row.customer.meterLocationName})</span>
+                            <span className="ml-1 text-[11px] text-surface-400">({row.customer.meterLocationName})</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                        <td className="px-4 py-3 font-medium text-surface-900 whitespace-nowrap">
                           {formatMonth(row.usageMonth)}
                         </td>
-                        <td className="hidden px-4 py-3 text-right text-gray-600 font-mono sm:table-cell">
+                        <td className="hidden px-4 py-3 text-right font-mono text-surface-600 sm:table-cell">
                           {(row.meterStart ?? 0).toFixed(2)}
                         </td>
-                        <td className="hidden px-4 py-3 text-right text-gray-600 font-mono sm:table-cell">
+                        <td className="hidden px-4 py-3 text-right font-mono text-surface-600 sm:table-cell">
                           {(row.meterEnd ?? 0).toFixed(2)}
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <span className="font-medium text-gray-900">{(row.usageM3 ?? 0).toFixed(2)} m³</span>
+                          <span className="font-medium text-surface-900">{(row.usageM3 ?? 0).toFixed(2)} m³</span>
                           {row.isAnomaly && (
                             <ExclamationTriangleIcon
-                              className="ml-1.5 inline h-4 w-4 text-yellow-500"
+                              className="ml-1.5 inline h-4 w-4 text-warning-500"
                               title="Terdeteksi anomali"
-                              aria-label="Terdeteksi anomali"
                             />
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right whitespace-nowrap text-gray-700">
+                        <td className="px-4 py-3 text-right whitespace-nowrap text-surface-600">
                           {formatCurrency(row.amountCalculated)}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end gap-1">
                             <ActionIconButton
                               icon={ChartBarIcon}
                               label={`Riwayat ${row.customer?.name ?? ''}`}
                               tone="purple"
+                              variant="ghost"
                               onClick={() => navigate(`/admin/usage/${row.customerId}/history`)}
                             />
                             <ActionIconButton
                               icon={PencilIcon}
                               label={`Ubah ${row.customer?.name ?? ''}`}
-                              tone="blue"
+                              tone="brand"
+                              variant="ghost"
                               onClick={() => navigate(`/admin/usage/edit/${row.id}`)}
                             />
                             <ActionIconButton
                               icon={TrashIcon}
                               label={`Hapus ${row.customer?.name ?? ''}`}
                               tone="red"
+                              variant="ghost"
                               onClick={() => handleDelete(row.id)}
                             />
                           </div>
@@ -441,21 +444,20 @@ export default function PemakaianList() {
       {/* Pagination */}
       {!loading && totalItems > 0 && (
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-          <p className="text-sm text-gray-500">
-            Menampilkan <span className="font-medium text-gray-700">{pageStart}–{pageEnd}</span> dari{' '}
-            <span className="font-medium text-gray-700">{totalItems.toLocaleString('id-ID')}</span> catatan
+          <p className="text-[13px] text-surface-500">
+            Menampilkan <span className="font-medium text-surface-700">{pageStart}–{pageEnd}</span> dari{' '}
+            <span className="font-medium text-surface-700">{totalItems.toLocaleString('id-ID')}</span> catatan
           </p>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="inline-flex items-center rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Halaman sebelumnya"
+              className="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-600 disabled:opacity-30"
+              aria-label="Sebelumnya"
             >
               <ChevronLeftIcon className="h-4 w-4" />
             </button>
-
             {Array.from({ length: totalPages }, (_, i) => i + 1)
               .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
               .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
@@ -465,29 +467,28 @@ export default function PemakaianList() {
               }, [])
               .map((p, i) =>
                 p === 'ellipsis' ? (
-                  <span key={`e${i}`} className="px-1 text-gray-400">…</span>
+                  <span key={`e${i}`} className="px-1 text-surface-300">…</span>
                 ) : (
                   <button
                     key={p}
                     type="button"
                     onClick={() => setCurrentPage(p as number)}
-                    className={`min-w-[36px] rounded-lg border px-3 py-1.5 text-sm font-medium ${
+                    className={`min-w-[32px] rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors ${
                       currentPage === p
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        ? 'bg-brand-50 text-brand-700'
+                        : 'text-surface-500 hover:bg-surface-100 hover:text-surface-700'
                     }`}
                   >
                     {p}
                   </button>
                 )
               )}
-
             <button
               type="button"
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="inline-flex items-center rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Halaman berikutnya"
+              className="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-600 disabled:opacity-30"
+              aria-label="Berikutnya"
             >
               <ChevronRightIcon className="h-4 w-4" />
             </button>

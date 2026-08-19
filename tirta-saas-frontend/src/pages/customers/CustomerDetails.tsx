@@ -3,16 +3,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeftIcon,
   PencilIcon,
-  CheckCircleIcon,
-  XCircleIcon,
   CreditCardIcon,
   DocumentTextIcon,
   ChartBarIcon,
   PlusIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  MapPinIcon,
+  BoltIcon,
 } from '@heroicons/react/24/outline';
 import customerService from '../../services/customerService';
 import type { Customer, Meter, AddMeterDto, SubscriptionType } from '../../types/customer';
-import { PageHeader } from '../../components';
+import { PageHeader, Modal } from '../../components';
 import { useToast } from '../../components';
 
 interface AddMeterModalProps {
@@ -56,119 +58,107 @@ function AddMeterModal({ open, onClose, onSuccess, customerId, subscriptionTypes
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={onClose} />
-        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Tambah Meter</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Nomor Meter *</label>
-              <input
-                type="text"
-                value={form.meter_number}
-                onChange={(e) => setForm((f) => ({ ...f, meter_number: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                placeholder="MET-002"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Lokasi Pemasangan</label>
-              <input
-                type="text"
-                value={form.location_name || ''}
-                onChange={(e) => setForm((f) => ({ ...f, location_name: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                placeholder="Contoh: Rumah Induk, Kos Belakang"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Golongan Langganan *</label>
-              <select
-                value={form.subscription_type_id}
-                onChange={(e) => setForm((f) => ({ ...f, subscription_type_id: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              >
-                <option value="">Pilih golongan</option>
-                {subscriptionTypes.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} — Rp {t.monthly_fee.toLocaleString()}/bln
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Tanggal Pasang *</label>
-              <input
-                type="date"
-                value={form.install_date}
-                onChange={(e) => setForm((f) => ({ ...f, install_date: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Angka Awal Meter</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.initial_reading ?? 0}
-                onChange={(e) => setForm((f) => ({ ...f, initial_reading: parseFloat(e.target.value) || 0 }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Merek</label>
-                <input
-                  type="text"
-                  value={form.brand || ''}
-                  onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Model</label>
-                <input
-                  type="text"
-                  value={form.model || ''}
-                  onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Catatan</label>
-              <input
-                type="text"
-                value={form.notes || ''}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Batal
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {saving ? 'Menyimpan...' : 'Tambah Meter'}
-              </button>
-            </div>
-          </form>
+    <Modal isOpen={open} onClose={onClose} title="Tambah Meter" size="lg">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-surface-700">Nomor Meter *</label>
+            <input
+              type="text"
+              value={form.meter_number}
+              onChange={(e) => setForm((f) => ({ ...f, meter_number: e.target.value }))}
+              className="input-base"
+              placeholder="MET-002"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-surface-700">Lokasi Pemasangan</label>
+            <input
+              type="text"
+              value={form.location_name || ''}
+              onChange={(e) => setForm((f) => ({ ...f, location_name: e.target.value }))}
+              className="input-base"
+              placeholder="Rumah Induk, Kos Belakang"
+            />
+          </div>
         </div>
-      </div>
-    </div>
+        <div>
+          <label className="mb-1.5 block text-[13px] font-medium text-surface-700">Golongan Langganan *</label>
+          <select
+            value={form.subscription_type_id}
+            onChange={(e) => setForm((f) => ({ ...f, subscription_type_id: e.target.value }))}
+            className="input-base"
+          >
+            <option value="">Pilih golongan</option>
+            {subscriptionTypes.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} — Rp {t.monthly_fee.toLocaleString()}/bln
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-surface-700">Tanggal Pasang *</label>
+            <input
+              type="date"
+              value={form.install_date}
+              onChange={(e) => setForm((f) => ({ ...f, install_date: e.target.value }))}
+              className="input-base"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-surface-700">Angka Awal Meter</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.initial_reading ?? 0}
+              onChange={(e) => setForm((f) => ({ ...f, initial_reading: parseFloat(e.target.value) || 0 }))}
+              className="input-base"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-surface-700">Merek</label>
+            <input
+              type="text"
+              value={form.brand || ''}
+              onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
+              className="input-base"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-surface-700">Model</label>
+            <input
+              type="text"
+              value={form.model || ''}
+              onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+              className="input-base"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-[13px] font-medium text-surface-700">Catatan</label>
+          <input
+            type="text"
+            value={form.notes || ''}
+            onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+            className="input-base"
+          />
+        </div>
+        <div className="flex justify-end gap-3 pt-2 border-t border-surface-100">
+          <button type="button" onClick={onClose} className="btn-secondary">
+            Batal
+          </button>
+          <button type="submit" disabled={saving} className="btn-primary">
+            {saving ? 'Menyimpan...' : 'Tambah Meter'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -225,60 +215,54 @@ export default function CustomerDetails() {
     setMeters((prev) => [...prev, newMeter]);
   };
 
-  const statusBadge = (isActive: boolean) => (
-    <span
-      className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-        isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-      }`}
-    >
-      {isActive ? (
-        <><CheckCircleIcon className="mr-2 h-4 w-4" />Active</>
-      ) : (
-        <><XCircleIcon className="mr-2 h-4 w-4" />Inactive</>
-      )}
-    </span>
-  );
-
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div className="flex items-center justify-center py-20">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-surface-200 border-t-brand-600" />
       </div>
     );
   }
 
   if (!customer) {
-    return <div className="text-center py-12"><p className="text-gray-500">Customer not found</p></div>;
+    return (
+      <div className="card p-12 text-center">
+        <p className="text-sm text-surface-500">Pelanggan tidak ditemukan</p>
+      </div>
+    );
   }
 
-  const primaryMeterNumber = meters[0]?.meter_number ?? '-';
+  const primaryMeterNumber = meters[0]?.meter_number ?? '—';
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={customer.name || 'Customer Details'}
-        subtitle={`Meter Utama: ${primaryMeterNumber}`}
+        title={customer.name || 'Detail Pelanggan'}
+        subtitle={`Meter utama: ${primaryMeterNumber}`}
+        breadcrumbs={[
+          { label: 'Pelanggan', href: '/admin/customers' },
+          { label: customer.name },
+        ]}
         actions={
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/admin/customers')}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-50"
+              className="btn-secondary"
             >
-              <ArrowLeftIcon className="mr-2 h-4 w-4" />
-              Back
+              <ArrowLeftIcon className="h-4 w-4" />
+              Kembali
             </button>
-            <div className="flex items-center space-x-2">
-              <span className={`text-sm font-medium ${customer.is_active ? 'text-green-600' : 'text-gray-500'}`}>
-                {customer.is_active ? 'Active' : 'Inactive'}
+            <div className="flex items-center gap-2 rounded-lg border border-surface-200 px-3 py-1.5">
+              <span className={`text-[12px] font-medium ${customer.is_active ? 'text-success-600' : 'text-surface-400'}`}>
+                {customer.is_active ? 'Aktif' : 'Nonaktif'}
               </span>
               <button
                 onClick={() => handleStatusChange(!customer.is_active)}
-                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                  customer.is_active ? 'bg-green-600' : 'bg-gray-300'
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 ${
+                  customer.is_active ? 'bg-success-500' : 'bg-surface-300'
                 }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition-transform duration-200 ${
                     customer.is_active ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
@@ -286,115 +270,131 @@ export default function CustomerDetails() {
             </div>
             <button
               onClick={() => navigate(`/admin/customers/${customer.id}/edit`)}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              className="btn-secondary"
             >
-              <PencilIcon className="mr-2 h-4 w-4" />
+              <PencilIcon className="h-4 w-4" />
               Ubah
             </button>
           </div>
         }
       />
 
-      {/* Customer Info */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6 flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900">{customer.name}</h3>
-            <p className="mt-1 text-sm text-gray-500">Pelanggan sejak {new Date(customer.created_at).toLocaleDateString('id-ID')}</p>
+      {/* Customer Info Card */}
+      <div className="card overflow-hidden">
+        <div className="flex items-center justify-between border-b border-surface-100 px-5 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 ring-1 ring-brand-100">
+              <span className="text-lg font-bold text-brand-600">
+                {customer.name?.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-surface-900">{customer.name}</h2>
+              <p className="text-[12px] text-surface-400">
+                Pelanggan sejak {new Date(customer.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
           </div>
-          {statusBadge(customer.is_active)}
+          <span className={`badge ${customer.is_active ? 'badge-success' : 'badge-neutral'}`}>
+            {customer.is_active ? 'Aktif' : 'Nonaktif'}
+          </span>
         </div>
-        <div className="border-t border-gray-200">
-          <dl className="sm:divide-y sm:divide-gray-200">
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Email</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {customer.email ? (
-                  <a href={`mailto:${customer.email}`} className="text-blue-600 hover:text-blue-800">{customer.email}</a>
-                ) : '-'}
-              </dd>
+        <div className="grid grid-cols-1 divide-y sm:grid-cols-2 sm:divide-y-0 sm:divide-x">
+          <div className="p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <EnvelopeIcon className="h-4 w-4 text-surface-400" />
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-surface-400">Email</p>
+                <p className="text-[13px] text-surface-700">
+                  {customer.email ? (
+                    <a href={`mailto:${customer.email}`} className="text-brand-600 hover:text-brand-700">{customer.email}</a>
+                  ) : '—'}
+                </p>
+              </div>
             </div>
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Nomor Telepon</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {customer.phone || '-'}
-              </dd>
+            <div className="flex items-center gap-3">
+              <PhoneIcon className="h-4 w-4 text-surface-400" />
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-surface-400">Telepon</p>
+                <p className="text-[13px] text-surface-700">{customer.phone || '—'}</p>
+              </div>
             </div>
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Alamat</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{customer.address || '-'}</dd>
+          </div>
+          <div className="p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <MapPinIcon className="h-4 w-4 text-surface-400" />
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-surface-400">Alamat</p>
+                <p className="text-[13px] text-surface-700">{customer.address || '—'}</p>
+              </div>
             </div>
-            <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500">Area Layanan</dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {customer.service_area_name || <span className="text-gray-400">Belum ditentukan</span>}
-              </dd>
+            <div className="flex items-center gap-3">
+              <BoltIcon className="h-4 w-4 text-surface-400" />
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-surface-400">Area Layanan</p>
+                <p className="text-[13px] text-surface-700">{customer.service_area_name || '—'}</p>
+              </div>
             </div>
-          </dl>
+          </div>
         </div>
       </div>
 
       {/* Meter Terpasang */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-4 sm:px-6 flex items-center justify-between border-b border-gray-200">
-          <h3 className="text-base font-semibold text-gray-900">Meter Terpasang ({meters.length})</h3>
+      <div className="card overflow-hidden">
+        <div className="flex items-center justify-between border-b border-surface-100 px-5 py-4">
+          <div>
+            <h3 className="text-sm font-semibold text-surface-900">Meter Terpasang</h3>
+            <p className="text-[12px] text-surface-400">{meters.length} meter terdaftar</p>
+          </div>
           <button
             onClick={() => setShowAddMeter(true)}
-            className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="btn-primary text-[13px]"
           >
             <PlusIcon className="h-4 w-4" />
-            Tambah Meter
+            Tambah
           </button>
         </div>
         {meters.length === 0 ? (
-          <div className="px-6 py-8 text-center text-gray-500 text-sm">
-            Belum ada meter terpasang.
+          <div className="px-5 py-12 text-center">
+            <BoltIcon className="mx-auto h-10 w-10 text-surface-300" />
+            <p className="mt-3 text-sm text-surface-500">Belum ada meter terpasang</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-surface-100">
+              <thead className="bg-surface-50/80">
                 <tr>
-                  {['No', 'Nomor Meter', 'Lokasi', 'Golongan Langganan', 'Tgl Pasang', 'Angka Awal', 'Bacaan Terakhir', 'Status'].map(
+                  {['No', 'Nomor Meter', 'Lokasi', 'Golongan', 'Tgl Pasang', 'Awal', 'Bacaan Terakhir', 'Status'].map(
                     (h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
+                      <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-surface-500">
                         {h}
                       </th>
                     )
                   )}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-surface-100">
                 {meters.map((meter, idx) => (
-                  <tr key={meter.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{meter.meter_number}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {meter.location_name || <span className="text-gray-400">-</span>}
+                  <tr key={meter.id} className="transition-colors hover:bg-surface-50/50">
+                    <td className="px-4 py-3 text-[13px] text-surface-500">{idx + 1}</td>
+                    <td className="px-4 py-3 font-mono text-[13px] font-medium text-surface-900">{meter.meter_number}</td>
+                    <td className="px-4 py-3 text-[13px] text-surface-600">
+                      {meter.location_name || <span className="text-surface-300">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                      {meter.subscription_type?.name ?? '-'}
+                    <td className="px-4 py-3 text-[13px] text-surface-600">
+                      {meter.subscription_type?.name ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{meter.install_date}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
+                    <td className="px-4 py-3 text-[13px] text-surface-600">{meter.install_date}</td>
+                    <td className="px-4 py-3 text-[13px] text-surface-600">
                       {meter.initial_reading?.toLocaleString('id-ID') ?? 0}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
+                    <td className="px-4 py-3 text-[13px] text-surface-600">
                       {meter.latest_meter_end != null
                         ? `${meter.latest_meter_end.toLocaleString('id-ID')} (${meter.latest_usage_month})`
-                        : <span className="text-gray-400">Belum ada</span>}
+                        : <span className="text-surface-300">Belum ada</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                          meter.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
+                      <span className={`badge ${meter.status === 'active' ? 'badge-success' : 'badge-neutral'}`}>
                         {meter.status}
                       </span>
                     </td>
@@ -407,26 +407,25 @@ export default function CustomerDetails() {
       </div>
 
       {/* Quick actions */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
-          { icon: DocumentTextIcon, label: 'Tagihan Terbaru', action: 'Lihat tagihan', path: `/admin/invoices?customerId=${customer.id}` },
-          { icon: CreditCardIcon, label: 'Riwayat Pembayaran', action: 'Lihat pembayaran', path: `/admin/payments?customerId=${customer.id}` },
-          { icon: ChartBarIcon, label: 'Pemakaian Air', action: 'Lihat pemakaian', path: `/admin/water-usage?customerId=${customer.id}` },
-        ].map(({ icon: Icon, label, action, path }) => (
-          <div key={label} className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5 flex items-center">
-              <Icon className="h-6 w-6 text-gray-400 flex-shrink-0" />
-              <div className="ml-5">
-                <p className="text-sm font-medium text-gray-500">{label}</p>
-                <p className="text-lg font-medium text-gray-900">Lihat Semua</p>
-              </div>
+          { icon: DocumentTextIcon, label: 'Tagihan', desc: 'Lihat tagihan pelanggan', path: `/admin/invoices?customerId=${customer.id}`, tone: 'blue' },
+          { icon: CreditCardIcon, label: 'Pembayaran', desc: 'Riwayat pembayaran', path: `/admin/payments?customerId=${customer.id}`, tone: 'green' },
+          { icon: ChartBarIcon, label: 'Pemakaian', desc: 'Riwayat pemakaian air', path: `/admin/water-usage?customerId=${customer.id}`, tone: 'cyan' },
+        ].map(({ icon: Icon, label, desc, path, tone }) => (
+          <button
+            key={label}
+            onClick={() => navigate(path)}
+            className="group card-hover flex items-center gap-4 p-4 text-left"
+          >
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-${tone}-50 ring-1 ring-${tone}-100`}>
+              <Icon className={`h-5 w-5 text-${tone}-600`} />
             </div>
-            <div className="bg-gray-50 px-5 py-3">
-              <button onClick={() => navigate(path)} className="text-sm font-medium text-blue-600 hover:text-blue-500">
-                {action}
-              </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold text-surface-900">{label}</p>
+              <p className="text-[12px] text-surface-400">{desc}</p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

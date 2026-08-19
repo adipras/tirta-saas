@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { usageService } from '../../services/usageService';
 import { customerService } from '../../services/customerService';
 import { waterRateService } from '../../services/waterRateService';
@@ -199,9 +199,7 @@ export default function MeterReadingForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     if (!isEditMode && !activeRate) {
       toast.error(rateWarning || 'Tarif air aktif belum tersedia untuk pelanggan ini');
@@ -247,289 +245,265 @@ export default function MeterReadingForm() {
     <div className="space-y-6">
       <button
         onClick={() => navigate('/admin/usage')}
-        className="flex items-center text-sm text-gray-500 hover:text-gray-700"
+        className="flex items-center gap-1.5 text-[13px] text-surface-400 hover:text-surface-700 transition-colors"
       >
-        <ArrowLeftIcon className="mr-2 h-4 w-4" />
+        <ArrowLeftIcon className="h-4 w-4" />
         Kembali ke Pemakaian Air
       </button>
+
       <PageHeader
         title={isEditMode ? 'Ubah Pembacaan Meter' : 'Catat Pembacaan Meter'}
-        subtitle={isEditMode ? 'Perbarui pembacaan meter dan pemakaian akan dihitung ulang' : 'Masukkan meter akhir untuk menghitung pemakaian air'}
+        subtitle={isEditMode ? 'Perbarui pembacaan meter, pemakaian akan dihitung ulang' : 'Masukkan meter akhir untuk menghitung pemakaian air'}
       />
 
-      <div className="bg-white shadow rounded-lg">
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Customer Selection */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Pelanggan</h3>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <CustomerSearchSelect
-                  customers={customers}
-                  value={formData.customerId}
-                  onChange={(customerId) => {
-                    setFormData({ ...formData, customerId });
-                    setErrors({ ...errors, customerId: '' });
-                    setCustomerMeters([]);
-                    setSelectedMeterId('');
-                    setMeterStartInfo(null);
-                    setPreviousReading(null);
-                  }}
-                  disabled={isEditMode}
-                  error={errors.customerId}
-                  label="Pelanggan"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="usageMonth" className="block text-sm font-medium text-gray-700">
-                  Bulan Pemakaian <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="month"
-                  id="usageMonth"
-                  name="usageMonth"
-                  value={formData.usageMonth}
-                  onChange={handleChange}
-                  disabled={isEditMode}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.usageMonth
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  } ${isEditMode ? 'bg-gray-50 border-gray-200 text-gray-500 cursor-not-allowed' : 'bg-white'}`}
-                />
-                {errors.usageMonth && (
-                  <p className="mt-1 text-sm text-red-600">{errors.usageMonth}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Meter Selection */}
-            {formData.customerId && !isEditMode && (
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700">
-                  Pilih Meter <span className="text-red-500">*</span>
-                </label>
-                {customerMeters.length === 0 ? (
-                  <p className="mt-1 text-sm text-gray-400">Memuat meter...</p>
-                ) : customerMeters.length === 1 ? (
-                  <div className="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                    {customerMeters[0].meter_number}
-                    {customerMeters[0].location_name && ` (${customerMeters[0].location_name})`}
-                    <span className="ml-2 text-xs text-gray-400">(satu-satunya meter)</span>
-                  </div>
-                ) : (
-                  <select
-                    value={selectedMeterId}
-                    onChange={(e) => setSelectedMeterId(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 bg-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  >
-                    <option value="">Pilih meter</option>
-                    {customerMeters.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.meter_number}{m.location_name ? ` (${m.location_name})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            )}
-
-            {formData.customerId && (
-              <div className={`mt-4 rounded-lg border p-4 ${
-                activeRate
-                  ? 'border-green-200 bg-green-50'
-                  : 'border-yellow-200 bg-yellow-50'
-              }`}>
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {isCheckingRate ? 'Memeriksa tarif air aktif...' : 'Status Tarif Air'}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-600">
-                      Tipe langganan: {customers.find((customer) => customer.id === formData.customerId)?.subscription?.name || '-'}
-                    </p>
-                    {activeRate ? (
-                      <p className="mt-1 text-sm text-green-700">
-                        Tarif aktif tersedia: Rp {activeRate.amount.toLocaleString('id-ID')} / m3
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-sm text-yellow-800">
-                        {rateWarning || 'Tarif air aktif belum tersedia untuk pelanggan ini.'}
-                      </p>
-                    )}
-                  </div>
-
-                  {!activeRate && !isCheckingRate && !isEditMode && canManageWaterRates && (
-                    <button
-                      type="button"
-                      onClick={() => navigate('/admin/water-rates')}
-                      className="shrink-0 rounded-md border border-yellow-300 px-3 py-2 text-sm font-medium text-yellow-800 hover:bg-yellow-100"
-                    >
-                      Buka Konfigurasi Tarif Air
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Meter Reading */}
-          <div className="pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-1">Pembacaan Meter</h3>
-            <p className="text-sm text-gray-500 mb-5">
-              Hanya field <span className="font-medium text-gray-700">Angka Akhir Meter</span> yang perlu diisi. Nilai lainnya dihitung otomatis.
-            </p>
-
-            {!isEditMode && meterStartInfo?.source === 'default' && (
-              <div className="mb-5 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-                <p className="font-medium">Angka awal meter belum diatur (masih 0.00)</p>
-                <p className="mt-1">
-                  Ini bisa menyebabkan pemakaian terhitung sangat besar dan gagal disimpan. Jika meter fisik pelanggan
-                  ini sudah pernah dipakai sebelumnya, perbarui &quot;Angka Awal Meter&quot; di halaman Detail Pelanggan
-                  sesuai kondisi fisik saat ini sebelum mencatat pembacaan.
-                </p>
-              </div>
-            )}
-
-            {/* Meter values row */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {/* Angka Awal — read-only */}
-              <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <label className="block text-sm font-medium text-gray-600">
-                    Angka Awal
-                  </label>
-                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                    Otomatis
-                  </span>
-                </div>
-                <div className="flex min-h-[40px] items-center rounded-md border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-600 select-none">
-                  {previousReading !== null ? (
-                    <span className="font-mono font-medium">{previousReading.toFixed(2)}</span>
-                  ) : (
-                    <span className="italic text-gray-400">—</span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-gray-400">
-                  {meterStartInfo ? meterStartInfo.description : 'Pilih pelanggan & meter terlebih dahulu'}
-                </p>
-              </div>
-
-              {/* Meter Akhir — editable */}
-              <div>
-                <label htmlFor="meterEnd" className="block text-sm font-medium text-gray-700 mb-1">
-                  Angka Akhir Meter <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="meterEnd"
-                  name="meterEnd"
-                  value={formData.meterEnd}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  className={`block w-full rounded-md border-2 px-3 py-2 text-sm shadow-sm transition-colors ${
-                    errors.meterEnd
-                      ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-200 focus:outline-none'
-                      : 'border-blue-400 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none'
-                  }`}
-                  placeholder="Masukkan angka meter..."
-                  autoComplete="off"
-                />
-                {errors.meterEnd ? (
-                  <p className="mt-1 text-xs text-red-600">{errors.meterEnd}</p>
-                ) : (
-                  <p className="mt-1 text-xs text-blue-500">Ketik angka yang terbaca di meter fisik</p>
-                )}
-              </div>
-
-              {/* Pemakaian — computed */}
-              <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <label className="block text-sm font-medium text-gray-600">
-                    Pemakaian
-                  </label>
-                  <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-600">
-                    Dihitung otomatis
-                  </span>
-                </div>
-                <div className="flex min-h-[40px] items-center rounded-md border border-dashed border-blue-200 bg-blue-50 px-3 py-2 text-sm select-none">
-                  <span className="font-mono font-semibold text-blue-800">
-                    {calculatedPemakaian.toFixed(2)}
-                  </span>
-                  <span className="ml-1 text-blue-600 text-xs">m³</span>
-                </div>
-                <p className="mt-1 text-xs text-gray-400">Angka akhir − angka awal</p>
-              </div>
-            </div>
-
-            {/* Catatan */}
-            <div className="mt-6">
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                Catatan
-                <span className="ml-1 text-xs font-normal text-gray-400">(opsional)</span>
-              </label>
-              <textarea
-                id="notes"
-                name="notes"
-                rows={3}
-                value={formData.notes}
-                onChange={handleChange}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none"
-                placeholder="Catatan tambahan tentang pembacaan ini..."
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Customer Selection */}
+        <div className="card p-5 sm:p-6">
+          <h3 className="mb-4 text-sm font-semibold text-surface-900">Informasi Pelanggan</h3>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div>
+              <CustomerSearchSelect
+                customers={customers}
+                value={formData.customerId}
+                onChange={(customerId) => {
+                  setFormData({ ...formData, customerId });
+                  setErrors({ ...errors, customerId: '' });
+                  setCustomerMeters([]);
+                  setSelectedMeterId('');
+                  setMeterStartInfo(null);
+                  setPreviousReading(null);
+                }}
+                disabled={isEditMode}
+                error={errors.customerId}
+                label="Pelanggan"
+                required
               />
             </div>
+
+            <div>
+              <label htmlFor="usageMonth" className="mb-1.5 block text-[13px] font-medium text-surface-700">
+                Bulan Pemakaian <span className="text-danger-500">*</span>
+              </label>
+              <input
+                type="month"
+                id="usageMonth"
+                name="usageMonth"
+                value={formData.usageMonth}
+                onChange={handleChange}
+                disabled={isEditMode}
+                className={`input-base ${
+                  errors.usageMonth ? 'border-danger-300 focus:border-danger-500 focus:ring-danger-500/10' : ''
+                } ${isEditMode ? 'bg-surface-50 cursor-not-allowed opacity-60' : ''}`}
+              />
+              {errors.usageMonth && (
+                <p className="mt-1.5 text-[12px] text-danger-600">{errors.usageMonth}</p>
+              )}
+            </div>
           </div>
 
-          {/* Important Notice */}
-          {calculatedPemakaian > 100 && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-yellow-400"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+          {/* Meter Selection */}
+          {formData.customerId && !isEditMode && (
+            <div className="mt-5">
+              <label className="mb-1.5 block text-[13px] font-medium text-surface-700">
+                Pilih Meter <span className="text-danger-500">*</span>
+              </label>
+              {customerMeters.length === 0 ? (
+                <p className="text-[12px] text-surface-400">Memuat meter...</p>
+              ) : customerMeters.length === 1 ? (
+                <div className="rounded-lg border border-surface-200 bg-surface-50 px-3 py-2.5 text-[13px] text-surface-700">
+                  {customerMeters[0].meter_number}
+                  {customerMeters[0].location_name && <span className="text-surface-400"> ({customerMeters[0].location_name})</span>}
+                  <span className="ml-2 text-[11px] text-surface-400">(satu-satunya meter)</span>
                 </div>
-                <div className="ml-3">
-                   <p className="text-sm text-yellow-700">
-                     <strong>Peringatan Pemakaian Tinggi:</strong> Pemakaian terhitung ({calculatedPemakaian.toFixed(2)} m³)
-                     {' '}terlihat cukup tinggi. Pastikan angka meter yang dimasukkan sudah benar.
-                   </p>
-                 </div>
-               </div>
+              ) : (
+                <select
+                  value={selectedMeterId}
+                  onChange={(e) => setSelectedMeterId(e.target.value)}
+                  className="input-base"
+                >
+                  <option value="">Pilih meter</option>
+                  {customerMeters.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.meter_number}{m.location_name ? ` (${m.location_name})` : ''}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
 
-          {/* Form Actions */}
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={() => navigate('/admin/usage')}
-              className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={loading || (!isEditMode && !activeRate) || isCheckingRate}
-              className="w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-            >
-              {loading ? 'Menyimpan...' : isEditMode ? 'Perbarui Pembacaan' : 'Catat Pembacaan'}
-            </button>
+          {/* Rate Status */}
+          {formData.customerId && (
+            <div className={`mt-5 rounded-xl border p-4 ${
+              activeRate ? 'border-success-200 bg-success-50' : 'border-warning-200 bg-warning-50'
+            }`}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-[13px] font-semibold text-surface-900">
+                    {isCheckingRate ? 'Memeriksa tarif...' : 'Status Tarif Air'}
+                  </p>
+                  <p className="mt-1 text-[12px] text-surface-500">
+                    Tipe langganan: {customers.find((c) => c.id === formData.customerId)?.subscription?.name || '—'}
+                  </p>
+                  {activeRate ? (
+                    <p className="mt-1 text-[12px] font-medium text-success-700">
+                      Tarif aktif: Rp {activeRate.amount.toLocaleString('id-ID')} / m³
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[12px] text-warning-700">
+                      {rateWarning || 'Tarif air aktif belum tersedia.'}
+                    </p>
+                  )}
+                </div>
+
+                {!activeRate && !isCheckingRate && !isEditMode && canManageWaterRates && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/water-rates')}
+                    className="btn-secondary shrink-0 text-[12px]"
+                  >
+                    Buka Konfigurasi Tarif
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Meter Reading */}
+        <div className="card p-5 sm:p-6">
+          <div className="mb-5">
+            <h3 className="text-sm font-semibold text-surface-900">Pembacaan Meter</h3>
+            <p className="mt-1 text-[12px] text-surface-400">
+              Hanya <span className="font-medium text-surface-600">Angka Akhir Meter</span> yang perlu diisi. Nilai lainnya dihitung otomatis.
+            </p>
           </div>
-        </form>
-      </div>
+
+          {!isEditMode && meterStartInfo?.source === 'default' && (
+            <div className="mb-5 flex gap-3 rounded-xl border border-warning-200 bg-warning-50 p-4">
+              <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0 text-warning-500" />
+              <div>
+                <p className="text-[12px] font-semibold text-warning-800">Angka awal meter belum diatur (masih 0.00)</p>
+                <p className="mt-1 text-[12px] text-warning-700">
+                  Ini bisa menyebabkan pemakaian terhitung sangat besar. Perbarui "Angka Awal Meter" di halaman Detail Pelanggan sesuai kondisi fisik.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Meter values */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {/* Angka Awal — read-only */}
+            <div>
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <label className="text-[13px] font-medium text-surface-500">Angka Awal</label>
+                <span className="rounded-md bg-surface-100 px-1.5 py-0.5 text-[10px] font-medium text-surface-500">
+                  Otomatis
+                </span>
+              </div>
+              <div className="flex min-h-[42px] items-center rounded-lg border border-dashed border-surface-200 bg-surface-50 px-3 py-2 text-[13px] text-surface-600 select-none">
+                {previousReading !== null ? (
+                  <span className="font-mono font-medium">{previousReading.toFixed(2)}</span>
+                ) : (
+                  <span className="italic text-surface-300">—</span>
+                )}
+              </div>
+              <p className="mt-1 text-[11px] text-surface-400">
+                {meterStartInfo ? meterStartInfo.description : 'Pilih pelanggan & meter'}
+              </p>
+            </div>
+
+            {/* Meter Akhir — editable */}
+            <div>
+              <label htmlFor="meterEnd" className="mb-1.5 block text-[13px] font-medium text-surface-700">
+                Angka Akhir Meter <span className="text-danger-500">*</span>
+              </label>
+              <input
+                type="number"
+                id="meterEnd"
+                name="meterEnd"
+                value={formData.meterEnd}
+                onChange={handleChange}
+                min="0"
+                step="0.01"
+                className={`w-full rounded-lg border-2 px-3 py-2.5 text-[13px] font-mono transition-all ${
+                  errors.meterEnd
+                    ? 'border-danger-400 bg-danger-50 focus:border-danger-500 focus:ring-2 focus:ring-danger-100 focus:outline-none'
+                    : 'border-brand-400 bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none'
+                }`}
+                placeholder="0.00"
+                autoComplete="off"
+              />
+              {errors.meterEnd ? (
+                <p className="mt-1 text-[11px] text-danger-600">{errors.meterEnd}</p>
+              ) : (
+                <p className="mt-1 text-[11px] text-brand-500">Ketik angka yang terbaca di meter</p>
+              )}
+            </div>
+
+            {/* Pemakaian — computed */}
+            <div>
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <label className="text-[13px] font-medium text-surface-500">Pemakaian</label>
+                <span className="rounded-md bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold text-brand-600">
+                  Dihitung
+                </span>
+              </div>
+              <div className="flex min-h-[42px] items-center rounded-lg border border-dashed border-brand-200 bg-brand-50 px-3 py-2 select-none">
+                <span className="font-mono text-lg font-bold text-brand-700">
+                  {calculatedPemakaian.toFixed(2)}
+                </span>
+                <span className="ml-1 text-[12px] font-medium text-brand-500">m³</span>
+              </div>
+              <p className="mt-1 text-[11px] text-surface-400">Akhir − Awal</p>
+            </div>
+          </div>
+
+          {/* Catatan */}
+          <div className="mt-5">
+            <label htmlFor="notes" className="mb-1.5 block text-[13px] font-medium text-surface-700">
+              Catatan <span className="text-[11px] font-normal text-surface-400">(opsional)</span>
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              rows={3}
+              value={formData.notes}
+              onChange={handleChange}
+              className="input-base resize-none"
+              placeholder="Catatan tambahan tentang pembacaan ini..."
+            />
+          </div>
+        </div>
+
+        {/* High usage warning */}
+        {calculatedPemakaian > 100 && (
+          <div className="flex gap-3 rounded-xl border border-warning-200 bg-warning-50 p-4">
+            <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0 text-warning-500" />
+            <p className="text-[13px] text-warning-800">
+              <strong>Pemakaian tinggi:</strong> {calculatedPemakaian.toFixed(2)} m³ — pastikan angka meter sudah benar.
+            </p>
+          </div>
+        )}
+
+        {/* Form Actions */}
+        <div className="flex flex-col-reverse gap-3 border-t border-surface-100 pt-5 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/usage')}
+            className="btn-secondary"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            disabled={loading || (!isEditMode && !activeRate) || isCheckingRate}
+            className="btn-primary"
+          >
+            {loading ? 'Menyimpan...' : isEditMode ? 'Perbarui Pembacaan' : 'Catat Pembacaan'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
