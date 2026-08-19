@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ExclamationTriangleIcon, InformationCircleIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -67,26 +67,26 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex bg-black bg-opacity-50 transition-opacity ${
+      className={`fixed inset-0 z-50 flex bg-surface-900/20 backdrop-blur-sm transition-all duration-200 ${
         mobileFullscreen ? 'items-end justify-center p-0 sm:items-center sm:p-4' : 'items-center justify-center p-4'
       }`}
       onClick={handleOverlayClick}
     >
       <div
         ref={modalRef}
-        className={`w-full transform bg-white shadow-xl transition-all ${
+        className={`w-full transform bg-white shadow-modal transition-all duration-200 animate-scale-in ${
           mobileFullscreen
-            ? `max-h-[100dvh] min-h-[100dvh] rounded-none sm:min-h-0 sm:max-h-[90vh] sm:rounded-2xl ${sizeClasses[size]}`
-            : `rounded-lg ${sizeClasses[size]}`
+            ? `max-h-[100dvh] min-h-[100dvh] rounded-none sm:min-h-0 sm:max-h-[90vh] sm:rounded-xl ${sizeClasses[size]}`
+            : `rounded-xl ${sizeClasses[size]}`
         } ${panelClassName}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
       >
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between border-b border-gray-200 px-4 py-4 sm:px-6">
+          <div className="flex items-center justify-between border-b border-surface-100 px-5 py-4 sm:px-6">
             {title && (
-              <h3 id={titleId} className="text-lg font-semibold text-gray-900">
+              <h3 id={titleId} className="text-base font-semibold text-surface-900">
                 {title}
               </h3>
             )}
@@ -94,16 +94,16 @@ export const Modal: React.FC<ModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-600"
                 aria-label="Tutup modal"
               >
-                <XMarkIcon className="h-6 w-6" />
+                <XMarkIcon className="h-5 w-5" />
               </button>
             )}
           </div>
         )}
 
-        <div className={`px-4 py-4 sm:px-6 ${mobileFullscreen ? 'max-h-[calc(100dvh-73px)] overflow-y-auto sm:max-h-[calc(90vh-73px)]' : ''} ${bodyClassName}`}>
+        <div className={`px-5 py-4 sm:px-6 ${mobileFullscreen ? 'max-h-[calc(100dvh-73px)] overflow-y-auto sm:max-h-[calc(90vh-73px)]' : ''} ${bodyClassName}`}>
           {children}
         </div>
       </div>
@@ -123,22 +123,30 @@ export interface ConfirmModalProps {
   isLoading?: boolean;
 }
 
-const typeStyles = {
+const typeConfig = {
   danger: {
-    button: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
-    icon: 'text-red-600',
+    icon: XCircleIcon,
+    iconBg: 'bg-danger-50 ring-1 ring-danger-100',
+    iconColor: 'text-danger-600',
+    button: 'btn-danger',
   },
   warning: {
-    button: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
-    icon: 'text-yellow-600',
+    icon: ExclamationTriangleIcon,
+    iconBg: 'bg-warning-50 ring-1 ring-warning-100',
+    iconColor: 'text-warning-600',
+    button: 'inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-warning-600 text-white text-sm font-medium rounded-lg transition-all duration-150 hover:bg-warning-700 focus-visible:ring-2 focus-visible:ring-warning-500 focus-visible:ring-offset-2 disabled:opacity-50 shadow-xs',
   },
   info: {
-    button: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
-    icon: 'text-blue-600',
+    icon: InformationCircleIcon,
+    iconBg: 'bg-info-50 ring-1 ring-info-100',
+    iconColor: 'text-info-600',
+    button: 'btn-primary',
   },
   success: {
-    button: 'bg-green-600 hover:bg-green-700 focus:ring-green-500',
-    icon: 'text-green-600',
+    icon: CheckCircleIcon,
+    iconBg: 'bg-success-50 ring-1 ring-success-100',
+    iconColor: 'text-success-600',
+    button: 'inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-success-600 text-white text-sm font-medium rounded-lg transition-all duration-150 hover:bg-success-700 focus-visible:ring-2 focus-visible:ring-success-500 focus-visible:ring-offset-2 disabled:opacity-50 shadow-xs',
   },
 };
 
@@ -153,7 +161,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   type = 'info',
   isLoading = false,
 }) => {
-  const styles = typeStyles[type];
+  const config = typeConfig[type];
+  const IconComponent = config.icon;
 
   const handleConfirm = () => {
     onConfirm();
@@ -164,15 +173,20 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <div className="space-y-4">
-        <p className="text-gray-700">{message}</p>
+      <div className="space-y-5">
+        <div className="flex gap-4">
+          <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${config.iconBg}`}>
+            <IconComponent className={`h-5 w-5 ${config.iconColor}`} />
+          </div>
+          <p className="text-sm leading-relaxed text-surface-600">{message}</p>
+        </div>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-3 pt-1">
           <button
             type="button"
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="btn-secondary"
           >
             {cancelText}
           </button>
@@ -180,7 +194,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             onClick={handleConfirm}
             disabled={isLoading}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${styles.button}`}
+            className={config.button}
           >
             {isLoading ? 'Memproses...' : confirmText}
           </button>

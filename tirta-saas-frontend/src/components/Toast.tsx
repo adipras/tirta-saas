@@ -100,31 +100,27 @@ interface ToastItemProps {
 const typeConfig = {
   success: {
     icon: CheckCircleIcon,
-    bgColor: 'bg-green-50',
-    borderColor: 'border-green-400',
-    textColor: 'text-green-800',
-    iconColor: 'text-green-400',
+    bg: 'bg-success-50 border-success-200',
+    text: 'text-success-800',
+    iconColor: 'text-success-500',
   },
   error: {
     icon: XCircleIcon,
-    bgColor: 'bg-red-50',
-    borderColor: 'border-red-400',
-    textColor: 'text-red-800',
-    iconColor: 'text-red-400',
+    bg: 'bg-danger-50 border-danger-200',
+    text: 'text-danger-800',
+    iconColor: 'text-danger-500',
   },
   warning: {
     icon: ExclamationCircleIcon,
-    bgColor: 'bg-yellow-50',
-    borderColor: 'border-yellow-400',
-    textColor: 'text-yellow-800',
-    iconColor: 'text-yellow-400',
+    bg: 'bg-warning-50 border-warning-200',
+    text: 'text-warning-800',
+    iconColor: 'text-warning-500',
   },
   info: {
     icon: InformationCircleIcon,
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-400',
-    textColor: 'text-blue-800',
-    iconColor: 'text-blue-400',
+    bg: 'bg-info-50 border-info-200',
+    text: 'text-info-800',
+    iconColor: 'text-info-500',
   },
 };
 
@@ -154,16 +150,16 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
     <div
       role={toast.type === 'error' || toast.type === 'warning' ? 'alert' : 'status'}
       aria-atomic="true"
-      className={`flex items-start gap-2.5 p-3 rounded-lg border shadow-lg transition-all duration-300 ${
-        config.bgColor
-      } ${config.borderColor} ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}`}
+      className={`flex items-start gap-3 p-3.5 rounded-xl border shadow-dropdown transition-all duration-300 ${config.bg} ${
+        isExiting ? 'opacity-0 translate-y-1 scale-95' : 'opacity-100 translate-y-0 scale-100'
+      }`}
     >
-      <Icon className={`h-4 w-4 flex-shrink-0 mt-0.5 ${config.iconColor}`} aria-hidden="true" />
-      <p className={`flex-1 text-xs font-medium leading-snug ${config.textColor}`}>{toast.message}</p>
+      <Icon className={`h-4.5 w-4.5 flex-shrink-0 mt-0.5 ${config.iconColor}`} aria-hidden="true" />
+      <p className={`flex-1 text-[13px] font-medium leading-snug ${config.text}`}>{toast.message}</p>
       <button
         type="button"
         onClick={handleClose}
-        className={`flex-shrink-0 ${config.textColor} hover:opacity-70 transition-opacity`}
+        className={`flex-shrink-0 rounded-lg p-1 transition-colors ${config.text} opacity-60 hover:opacity-100 hover:bg-white/50`}
         aria-label="Tutup notifikasi"
       >
         <XMarkIcon className="h-4 w-4" aria-hidden="true" />

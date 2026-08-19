@@ -52,7 +52,7 @@ const DashboardLayout = () => {
   }, [location.pathname, navigate, user]);
 
   return (
-    <div className="flex min-h-screen min-h-[100dvh] bg-gray-50">
+    <div className="flex min-h-screen min-h-[100dvh] bg-surface-50">
       <div className="print:hidden">
         <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       </div>
@@ -61,7 +61,7 @@ const DashboardLayout = () => {
         <div className="print:hidden">
           <Header onMenuClick={() => setSidebarOpen(true)} />
         </div>
-        <main className="safe-bottom flex-1 overflow-x-clip overflow-y-auto bg-gray-50 px-4 py-4 sm:px-6 sm:py-6">
+        <main className="safe-bottom flex-1 overflow-x-clip overflow-y-auto bg-surface-50 px-4 py-5 sm:px-6 sm:py-6">
           <Outlet />
         </main>
       </div>

@@ -69,30 +69,30 @@ export default function TenantAdminDashboard() {
   const stats = [
     {
       title: 'Total pelanggan',
-      value: loading ? '...' : (data?.totalPelanggan ?? 0).toLocaleString('id-ID'),
-      helper: loading ? 'Memuat data' : `Aktif ${data?.activePelanggan ?? 0} pelanggan`,
+      value: loading ? '—' : (data?.totalPelanggan ?? 0).toLocaleString('id-ID'),
+      helper: loading ? 'Memuat...' : `${data?.activePelanggan ?? 0} aktif`,
       subtitle: 'Pantau basis pelanggan aktif untuk memastikan layanan tetap berjalan lancar.',
       icon: UserGroupIcon,
       tone: 'blue' as const,
     },
     {
       title: 'Outstanding tagihan',
-      value: loading ? '...' : data ? fmt(data.totalOutstanding) : '-',
-      helper: loading ? 'Memuat data' : `${data?.unpaidCount ?? 0} tagihan belum dibayar`,
+      value: loading ? '—' : data ? fmt(data.totalOutstanding) : '—',
+      helper: loading ? 'Memuat...' : `${data?.unpaidCount ?? 0} belum dibayar`,
       subtitle: 'Gunakan angka ini sebagai prioritas tindak lanjut pembayaran pelanggan.',
       icon: ExclamationCircleIcon,
-      tone: 'yellow' as const,
+      tone: hasOutstandingInvoices ? 'red' as const : 'yellow' as const,
     },
     {
       title: 'Pemakaian bulan ini',
-      value: loading ? '...' : `${(data?.totalPemakaianM3 ?? 0).toLocaleString('id-ID')} m3`,
+      value: loading ? '—' : `${(data?.totalPemakaianM3 ?? 0).toLocaleString('id-ID')} m³`,
       subtitle: 'Membantu mengecek apakah pencatatan meter bulan berjalan sudah bergerak sesuai rencana.',
       icon: ChartBarIcon,
       tone: 'cyan' as const,
     },
     {
       title: 'Pendapatan bulan ini',
-      value: loading ? '...' : data ? fmt(data.totalRevenue) : '-',
+      value: loading ? '—' : data ? fmt(data.totalRevenue) : '—',
       subtitle: 'Ringkasan pemasukan yang sudah tercatat dari pembayaran pelanggan bulan ini.',
       icon: BanknotesIcon,
       tone: 'green' as const,
@@ -102,35 +102,35 @@ export default function TenantAdminDashboard() {
   const quickActions = [
     {
       title: 'Langganan & pembayaran',
-      description: 'Lihat status langganan tenant, invoice registrasi, dan proses pembayaran.',
+      description: 'Lihat status langganan, invoice registrasi, dan proses pembayaran.',
       icon: CheckBadgeIcon,
       onClick: () => navigate('/admin/subscription/upgrade'),
       tone: 'indigo' as const,
     },
     {
       title: 'Tambah pelanggan',
-      description: 'Daftarkan pelanggan baru agar siap dipakai dalam pencatatan dan billing.',
+      description: 'Daftarkan pelanggan baru untuk pencatatan dan billing.',
       icon: UserGroupIcon,
       onClick: () => navigate('/admin/customers/new'),
       tone: 'blue' as const,
     },
     {
       title: 'Catat pemakaian',
-      description: 'Masukkan meter reading terbaru untuk mempermudah proses tagihan bulanan.',
+      description: 'Masukkan meter reading terbaru untuk tagihan bulanan.',
       icon: PencilSquareIcon,
       onClick: () => navigate('/admin/usage/create'),
       tone: 'cyan' as const,
     },
     {
       title: 'Lihat tagihan',
-      description: 'Tinjau tagihan pelanggan, outstanding, dan status pembayaran terkini.',
+      description: 'Tinjau tagihan pelanggan, outstanding, dan status.',
       icon: DocumentTextIcon,
       onClick: () => navigate('/admin/invoices'),
       tone: 'green' as const,
     },
     {
       title: 'Kelola pembayaran',
-      description: 'Review transaksi pembayaran, cetak bukti, atau tindak lanjuti masalah pembayaran.',
+      description: 'Review transaksi, cetak bukti, atau tindak lanjuti masalah.',
       icon: BanknotesIcon,
       onClick: () => navigate('/admin/payments'),
       tone: 'yellow' as const,
@@ -140,30 +140,31 @@ export default function TenantAdminDashboard() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dashboard Pengelola"
-        subtitle="Mulai dari ringkasan terpenting untuk operasional tenant, lalu lanjut ke aksi harian yang paling sering dipakai."
+        title="Dashboard"
+        subtitle="Ringkasan operasional tenant untuk hari ini."
       />
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-        <div className="rounded-3xl bg-gradient-to-br from-blue-600 via-blue-600 to-cyan-600 p-5 text-white shadow-sm sm:p-6">
-          <div className="flex flex-col gap-5">
-            <div className="space-y-2">
-              <span className="inline-flex w-fit rounded-full bg-white/15 px-3 py-1 text-xs font-medium tracking-wide text-blue-50">
+      {/* Hero summary */}
+      <section className="relative overflow-hidden rounded-xl border border-surface-200/80 bg-white shadow-card">
+        <div className="gradient-brand p-6 text-white sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-3">
+              <span className="inline-flex w-fit rounded-md bg-white/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/90">
                 Ringkasan hari ini
               </span>
-              <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+              <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
                 {loading
-                  ? 'Memuat ringkasan tenant...'
+                  ? 'Memuat ringkasan...'
                   : hasOutstandingInvoices
-                    ? `${data?.unpaidCount ?? 0} tagihan pelanggan perlu ditindaklanjuti`
-                    : 'Operasional tenant terlihat aman untuk hari ini'}
+                    ? `${data?.unpaidCount ?? 0} tagihan perlu ditindaklanjuti`
+                    : 'Operasional terlihat aman hari ini'}
               </h2>
-              <p className="max-w-2xl text-sm leading-6 text-blue-50/90">
+              <p className="max-w-2xl text-[13px] leading-relaxed text-white/80">
                 {loading
                   ? 'Menyiapkan statistik pelanggan, tagihan, dan pembayaran terbaru.'
                   : hasOutstandingInvoices
-                    ? `Total outstanding saat ini ${fmt(data?.totalOutstanding ?? 0)}. Prioritaskan peninjauan tagihan dan pembayaran agar tidak menumpuk.`
-                    : 'Belum ada outstanding besar yang perlu perhatian cepat. Anda bisa melanjutkan pencatatan pemakaian atau meninjau tagihan terbaru.'}
+                    ? `Total outstanding ${fmt(data?.totalOutstanding ?? 0)}. Prioritaskan peninjauan tagihan agar tidak menumpuk.`
+                    : 'Belum ada outstanding besar. Anda bisa melanjutkan pencatatan atau meninjau tagihan terbaru.'}
               </p>
             </div>
 
@@ -171,14 +172,15 @@ export default function TenantAdminDashboard() {
               <button
                 type="button"
                 onClick={() => navigate('/admin/invoices')}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 sm:w-auto"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 shadow-xs transition-all hover:bg-white/90 hover:shadow-sm sm:w-auto"
               >
                 Tinjau tagihan
+                <ArrowRightIcon className="h-4 w-4" />
               </button>
               <button
                 type="button"
                 onClick={() => navigate('/admin/payments')}
-                className="inline-flex w-full items-center justify-center rounded-xl border border-white/30 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/15 sm:w-auto"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20 sm:w-auto"
               >
                 Cek pembayaran
               </button>
@@ -186,46 +188,30 @@ export default function TenantAdminDashboard() {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Prioritas berikutnya</h2>
-              <p className="mt-1 text-sm leading-6 text-gray-500">
-                Fokus pada item yang paling berdampak untuk operasional hari ini.
-              </p>
-            </div>
-            <CheckBadgeIcon className="h-10 w-10 flex-shrink-0 text-blue-600" />
+        {/* Quick summary cards */}
+        <div className="grid grid-cols-1 divide-y border-t border-surface-100 sm:grid-cols-3 sm:divide-y-0 sm:divide-x">
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Pelanggan aktif</p>
+            <p className="mt-1 text-lg font-bold text-surface-900">
+              {loading ? '—' : `${data?.activePelanggan ?? 0} / ${data?.totalPelanggan ?? 0}`}
+            </p>
           </div>
-
-          <div className="mt-5 space-y-3">
-            <div className="rounded-2xl bg-gray-50 p-4">
-              <p className="text-sm font-medium text-gray-900">Status pelanggan aktif</p>
-              <p className="mt-1 text-sm leading-6 text-gray-600">
-                {loading
-                  ? 'Memuat status pelanggan...'
-                  : `${data?.activePelanggan ?? 0} dari ${data?.totalPelanggan ?? 0} pelanggan sudah aktif.`}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-gray-50 p-4">
-              <p className="text-sm font-medium text-gray-900">Pencatatan pemakaian bulan ini</p>
-              <p className="mt-1 text-sm leading-6 text-gray-600">
-                {loading
-                  ? 'Memuat data pemakaian...'
-                  : `${(data?.totalPemakaianM3 ?? 0).toLocaleString('id-ID')} m3 sudah tercatat pada bulan berjalan.`}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-gray-50 p-4">
-              <p className="text-sm font-medium text-gray-900">Pendapatan tercatat</p>
-              <p className="mt-1 text-sm leading-6 text-gray-600">
-                {loading
-                  ? 'Memuat data pendapatan...'
-                  : `${fmt(data?.totalRevenue ?? 0)} berhasil tercatat pada periode bulan ini.`}
-              </p>
-            </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Pemakaian tercatat</p>
+            <p className="mt-1 text-lg font-bold text-surface-900">
+              {loading ? '—' : `${(data?.totalPemakaianM3 ?? 0).toLocaleString('id-ID')} m³`}
+            </p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Pendapatan</p>
+            <p className="mt-1 text-lg font-bold text-surface-900">
+              {loading ? '—' : fmt(data?.totalRevenue ?? 0)}
+            </p>
           </div>
         </div>
       </section>
 
+      {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
           <DashboardStatCard
@@ -240,16 +226,15 @@ export default function TenantAdminDashboard() {
         ))}
       </div>
 
-      <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Aksi cepat</h2>
-            <p className="mt-1 text-sm leading-6 text-gray-500">
-              Shortcut untuk tugas tenant admin yang paling sering dipakai dari layar kecil maupun desktop.
-            </p>
-          </div>
+      {/* Quick actions */}
+      <section className="rounded-xl border border-surface-200/80 bg-white p-5 shadow-card sm:p-6">
+        <div className="mb-5">
+          <h2 className="text-base font-semibold text-surface-900">Aksi cepat</h2>
+          <p className="mt-1 text-[13px] text-surface-400">
+            Shortcut untuk tugas yang paling sering dipakai.
+          </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {quickActions.map((action) => (
             <QuickActionCard
               key={action.title}
@@ -263,51 +248,61 @@ export default function TenantAdminDashboard() {
         </div>
       </section>
 
-      <section className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Tagihan Belum Dibayar (Terlama)</h2>
+      {/* Outstanding invoices */}
+      <section className="rounded-xl border border-surface-200/80 bg-white p-5 shadow-card sm:p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-surface-900">Tagihan Belum Dibayar</h2>
+            <p className="mt-1 text-[13px] text-surface-400">Daftar tagihan terlama yang perlu ditindaklanjuti.</p>
+          </div>
           <button
             onClick={() => navigate('/admin/invoices')}
-            className="inline-flex items-center text-left text-sm font-medium text-blue-600 hover:text-blue-700"
+            className="text-[13px] font-medium text-brand-600 hover:text-brand-700 transition-colors"
           >
             Lihat semua
-            <ArrowRightIcon className="ml-1 h-4 w-4" />
           </button>
         </div>
+
         {loading ? (
-          <p className="text-sm text-gray-400">Memuat data...</p>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-20 animate-pulse rounded-xl bg-surface-100" />
+            ))}
+          </div>
         ) : data?.oldestTagihan.length === 0 ? (
-          <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-500">
-            Tidak ada tagihan outstanding. Fokus bisa dialihkan ke pencatatan pemakaian dan peninjauan tagihan terbaru.
+          <div className="rounded-xl bg-surface-50 p-8 text-center">
+            <CheckBadgeIcon className="mx-auto h-10 w-10 text-success-400" />
+            <p className="mt-3 text-sm font-medium text-surface-600">Tidak ada tagihan outstanding</p>
+            <p className="mt-1 text-[13px] text-surface-400">Semua tagihan sudah dibayar atau belum ada tagihan.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {data?.oldestTagihan.map((inv) => (
               <div
                 key={inv.invoice_id}
-                className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                className="group flex flex-col gap-4 rounded-xl border border-surface-100 bg-surface-50/50 p-4 transition-all hover:border-surface-200 hover:bg-white sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Invoice</p>
-                    <p className="mt-1 font-mono text-sm text-gray-900">{inv.invoice_id.slice(0, 8)}...</p>
-                    <p className="mt-2 text-sm text-gray-600">
-                      Tercatat sejak {new Date(inv.created_at).toLocaleDateString('id-ID')}
-                    </p>
+                <div className="min-w-0">
+                  <p className="font-mono text-[13px] font-medium text-surface-700">
+                    #{inv.invoice_id.slice(0, 8)}...
+                  </p>
+                  <p className="mt-1 text-[12px] text-surface-400">
+                    Tercatat {new Date(inv.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-left sm:text-right">
+                    <p className="text-base font-bold text-danger-600">{fmt(inv.outstanding)}</p>
+                    <p className="text-[11px] text-surface-400">dari {fmt(inv.total_amount)}</p>
                   </div>
-                  <div className="flex flex-col gap-3 sm:items-end">
-                    <div className="text-left sm:text-right">
-                      <p className="text-lg font-semibold text-red-600">{fmt(inv.outstanding)}</p>
-                      <p className="text-xs text-gray-500">dari total {fmt(inv.total_amount)}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => navigate('/admin/invoices')}
-                      className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-                    >
-                      Buka daftar tagihan
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/invoices')}
+                    className="btn-ghost hidden group-hover:inline-flex"
+                  >
+                    Buka
+                    <ArrowRightIcon className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
             ))}

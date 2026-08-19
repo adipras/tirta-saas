@@ -5,6 +5,7 @@ import {
   ChevronUpIcon,
   ChevronDownIcon,
   MagnifyingGlassIcon,
+  InboxIcon,
 } from '@heroicons/react/24/outline';
 
 export interface Column<T> {
@@ -116,10 +117,7 @@ export function DataTable<T extends object>({
   };
 
   const handleRowKeyDown = (event: React.KeyboardEvent<HTMLElement>, item: T) => {
-    if (!onRowClick) {
-      return;
-    }
-
+    if (!onRowClick) return;
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       onRowClick(item);
@@ -128,36 +126,20 @@ export function DataTable<T extends object>({
 
   const getNestedValue = (obj: unknown, path: string): unknown => {
     return path.split('.').reduce<unknown>((current, key) => {
-      if (!current || typeof current !== 'object') {
-        return undefined;
-      }
-
+      if (!current || typeof current !== 'object') return undefined;
       return (current as Record<string, unknown>)[key];
     }, obj);
   };
 
   const normalizeSortValue = (value: unknown): string | number => {
-    if (typeof value === 'number') {
-      return value;
-    }
-
+    if (typeof value === 'number') return value;
     if (typeof value === 'string') {
       const numericValue = Number(value);
-      if (!Number.isNaN(numericValue) && value.trim() !== '') {
-        return numericValue;
-      }
-
+      if (!Number.isNaN(numericValue) && value.trim() !== '') return numericValue;
       return value.toLowerCase();
     }
-
-    if (typeof value === 'boolean') {
-      return value ? 1 : 0;
-    }
-
-    if (value instanceof Date) {
-      return value.getTime();
-    }
-
+    if (typeof value === 'boolean') return value ? 1 : 0;
+    if (value instanceof Date) return value.getTime();
     return '';
   };
 
@@ -165,7 +147,6 @@ export function DataTable<T extends object>({
     if (column.key.toString().includes('.')) {
       return getNestedValue(item, column.key as string);
     }
-
     return (item as Record<string, unknown>)[column.key as string];
   };
 
@@ -174,46 +155,48 @@ export function DataTable<T extends object>({
     const renderedValue = column.render ? column.render(value, item) : value;
 
     if (renderedValue === null || renderedValue === undefined || renderedValue === '') {
-      return '-';
+      return <span className="text-surface-300">—</span>;
     }
 
-    if (
-      typeof renderedValue === 'string' ||
-      typeof renderedValue === 'number' ||
-      typeof renderedValue === 'boolean'
-    ) {
+    if (typeof renderedValue === 'string' || typeof renderedValue === 'number' || typeof renderedValue === 'boolean') {
       return renderedValue;
     }
 
-    if (Array.isArray(renderedValue)) {
-      return renderedValue as React.ReactNode;
-    }
-
-    if (React.isValidElement(renderedValue)) {
-      return renderedValue;
-    }
-
+    if (Array.isArray(renderedValue)) return renderedValue as React.ReactNode;
+    if (React.isValidElement(renderedValue)) return renderedValue;
     return String(renderedValue);
   };
 
+  // Loading skeleton
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12" role="status" aria-live="polite">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600"></div>
-        <span className="sr-only">Sedang memuat data tabel</span>
+      <div className={`card overflow-hidden ${className}`}>
+        <div className="p-4 border-b border-surface-100">
+          <div className="h-10 w-full max-w-xs animate-pulse rounded-lg bg-surface-100" />
+        </div>
+        <div className="p-4 space-y-3">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-4">
+              <div className="h-4 flex-1 animate-pulse rounded bg-surface-100" />
+              <div className="h-4 w-24 animate-pulse rounded bg-surface-100" />
+              <div className="h-4 w-16 animate-pulse rounded bg-surface-100" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={`bg-white shadow-sm rounded-lg ${className}`}>
+    <div className={`card overflow-hidden ${className}`}>
+      {/* Search */}
       {searchable && searchKeys.length > 0 && (
-        <div className="p-4 border-b border-gray-200">
+        <div className="border-b border-surface-100 px-4 py-3">
           <div className="relative">
             <label htmlFor={searchInputId} className="sr-only">
               Cari data tabel
             </label>
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
             <input
               id={searchInputId}
               type="text"
@@ -224,21 +207,25 @@ export function DataTable<T extends object>({
               }}
               placeholder="Cari..."
               aria-describedby={tableCaptionId}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="input-base pl-9 py-2"
             />
           </div>
         </div>
       )}
 
+      {/* Mobile cards */}
       <div className="sm:hidden">
         {paginatedData.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-gray-500">{emptyMessage}</div>
+          <div className="px-4 py-12 text-center">
+            <InboxIcon className="mx-auto h-10 w-10 text-surface-300" />
+            <p className="mt-3 text-sm font-medium text-surface-500">{emptyMessage}</p>
+          </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-surface-100">
             {paginatedData.map((item, index) => (
               <div
                 key={index}
-                className={`space-y-3 p-4 ${onRowClick ? 'cursor-pointer active:bg-gray-50' : ''}`}
+                className={`space-y-2.5 p-4 ${onRowClick ? 'cursor-pointer active:bg-surface-50 transition-colors' : ''}`}
                 onClick={() => onRowClick?.(item)}
                 onKeyDown={(event) => handleRowKeyDown(event, item)}
                 role={onRowClick ? 'button' : undefined}
@@ -246,17 +233,17 @@ export function DataTable<T extends object>({
               >
                 {visibleColumns.map((column) => (
                   <div key={column.key as string} className="flex items-start justify-between gap-3">
-                    <dt className="max-w-[45%] text-xs font-medium uppercase tracking-wide text-gray-500">
+                    <dt className="max-w-[45%] text-[11px] font-semibold uppercase tracking-wider text-surface-400">
                       {column.label}
                     </dt>
-                    <dd className="min-w-0 flex-1 text-right text-sm text-gray-900 break-words">
+                    <dd className="min-w-0 flex-1 text-right text-[13px] text-surface-700 break-words">
                       {renderCellValue(item, column)}
                     </dd>
                   </div>
                 ))}
                 {actions && (
                   <div
-                    className="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-3"
+                    className="flex flex-wrap justify-end gap-2 border-t border-surface-100 pt-3"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {actions(item)}
@@ -268,12 +255,13 @@ export function DataTable<T extends object>({
         )}
       </div>
 
+      {/* Desktop table */}
       <div className="hidden overflow-x-auto sm:block">
-        <table className="min-w-full divide-y divide-gray-200" aria-describedby={tableCaptionId}>
+        <table className="min-w-full divide-y divide-surface-100" aria-describedby={tableCaptionId}>
           <caption id={tableCaptionId} className="sr-only">
             Tabel data dengan {filteredData.length} baris hasil.
           </caption>
-          <thead className="bg-gray-50">
+          <thead className="bg-surface-50/80">
             <tr>
               {columns.map((column) => (
                 <th
@@ -288,60 +276,58 @@ export function DataTable<T extends object>({
                           : 'none'
                       : undefined
                   }
-                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                    column.sortable ? 'hover:bg-gray-100' : ''
+                  className={`px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-surface-500 ${
+                    column.sortable ? 'cursor-pointer select-none hover:text-surface-700' : ''
                   } ${column.className || ''}`}
                 >
                   {column.sortable ? (
                     <button
                       type="button"
                       onClick={() => handleSort(column.key)}
-                      className="flex items-center gap-1 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded-sm"
+                      className="flex items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-1 rounded"
                       aria-label={`Urutkan kolom ${column.label}`}
                     >
                       <span>{column.label}</span>
-                      <span className="ml-1" aria-hidden="true">
+                      <span className="flex-shrink-0" aria-hidden="true">
                         {sortColumn === column.key ? (
                           sortDirection === 'asc' ? (
-                            <ChevronUpIcon className="h-4 w-4" />
+                            <ChevronUpIcon className="h-3.5 w-3.5 text-brand-600" />
                           ) : sortDirection === 'desc' ? (
-                            <ChevronDownIcon className="h-4 w-4" />
+                            <ChevronDownIcon className="h-3.5 w-3.5 text-brand-600" />
                           ) : (
-                            <div className="h-4 w-4" />
+                            <div className="h-3.5 w-3.5" />
                           )
                         ) : (
-                          <div className="h-4 w-4" />
+                          <ChevronUpIcon className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100" />
                         )}
                       </span>
                     </button>
                   ) : (
-                    <div className="flex items-center">{column.label}</div>
+                    <span>{column.label}</span>
                   )}
                 </th>
               ))}
               {actions && (
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-surface-500">
                   Aksi
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-surface-100">
             {paginatedData.length === 0 ? (
               <tr>
-                <td
-                  colSpan={columns.length + (actions ? 1 : 0)}
-                  className="px-6 py-4 text-center text-gray-500"
-                >
-                  {emptyMessage}
+                <td colSpan={columns.length + (actions ? 1 : 0)} className="px-5 py-12 text-center">
+                  <InboxIcon className="mx-auto h-10 w-10 text-surface-300" />
+                  <p className="mt-3 text-sm font-medium text-surface-500">{emptyMessage}</p>
                 </td>
               </tr>
             ) : (
               paginatedData.map((item, index) => (
                 <tr
                   key={index}
-                  className={`${
-                    onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''
+                  className={`transition-colors ${
+                    onRowClick ? 'cursor-pointer hover:bg-surface-50/50' : ''
                   }`}
                   onClick={() => onRowClick?.(item)}
                   onKeyDown={(event) => handleRowKeyDown(event, item)}
@@ -350,17 +336,19 @@ export function DataTable<T extends object>({
                   {columns.map((column) => (
                     <td
                       key={column.key as string}
-                      className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${
-                        column.align === 'right' ? 'text-right' : 
-                        column.align === 'center' ? 'text-center' : 
-                        'text-left'
+                      className={`px-5 py-3.5 whitespace-nowrap text-[13px] text-surface-700 ${
+                        column.align === 'right'
+                          ? 'text-right'
+                          : column.align === 'center'
+                            ? 'text-center'
+                            : 'text-left'
                       } ${column.className || ''}`}
                     >
                       {renderCellValue(item, column)}
                     </td>
                   ))}
                   {actions && (
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-5 py-3.5 whitespace-nowrap text-right text-[13px] font-medium">
                       <div onClick={(e) => e.stopPropagation()}>
                         {actions(item)}
                       </div>
@@ -373,100 +361,79 @@ export function DataTable<T extends object>({
         </table>
       </div>
 
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-          <div className="flex-1 flex justify-between sm:hidden">
+        <div className="flex items-center justify-between border-t border-surface-100 px-4 py-3 sm:px-5">
+          <div className="flex-1 justify-between sm:hidden">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-secondary text-[13px]"
             >
               Sebelumnya
             </button>
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-secondary text-[13px] ml-3"
             >
               Berikutnya
             </button>
           </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Menampilkan{' '}
-                <span className="font-medium">
-                  {visibleStart}
-                </span>{' '}
-                sampai{' '}
-                <span className="font-medium">
-                  {visibleEnd}
-                </span>{' '}
-                dari <span className="font-medium">{filteredData.length}</span>{' '}
-                hasil
-              </p>
-            </div>
-            <div>
-              <nav
-                className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                aria-label="Navigasi halaman tabel"
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <p className="text-[13px] text-surface-500">
+              Menampilkan <span className="font-medium text-surface-700">{visibleStart}</span>–<span className="font-medium text-surface-700">{visibleEnd}</span> dari <span className="font-medium text-surface-700">{filteredData.length}</span> hasil
+            </p>
+            <nav className="flex items-center gap-1" aria-label="Navigasi halaman">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="Sebelumnya"
               >
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Ke halaman sebelumnya"
-                >
-                  <ChevronLeftIcon className="h-5 w-5" />
-                </button>
-                
-                {[...Array(totalPages)].map((_, i) => {
-                  const page = i + 1;
-                  if (
-                    page === 1 ||
-                    page === totalPages ||
-                    (page >= currentPage - 1 && page <= currentPage + 1)
-                  ) {
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => handlePageChange(page)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          page === currentPage
-                            ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
-                        aria-current={page === currentPage ? 'page' : undefined}
-                      >
-                        {page}
-                      </button>
-                    );
-                  } else if (
-                    page === currentPage - 2 ||
-                    page === currentPage + 2
-                  ) {
-                    return (
-                      <span
-                        key={page}
-                        className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
-                      >
-                        ...
-                      </span>
-                    );
-                  }
-                  return null;
-                })}
-                
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Ke halaman berikutnya"
-                >
-                  <ChevronRightIcon className="h-5 w-5" />
-                </button>
-              </nav>
-            </div>
+                <ChevronLeftIcon className="h-4 w-4" />
+              </button>
+
+              {[...Array(totalPages)].map((_, i) => {
+                const page = i + 1;
+                if (
+                  page === 1 ||
+                  page === totalPages ||
+                  (page >= currentPage - 1 && page <= currentPage + 1)
+                ) {
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`min-w-[32px] rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors ${
+                        page === currentPage
+                          ? 'bg-brand-50 text-brand-700'
+                          : 'text-surface-500 hover:bg-surface-100 hover:text-surface-700'
+                      }`}
+                      aria-current={page === currentPage ? 'page' : undefined}
+                    >
+                      {page}
+                    </button>
+                  );
+                } else if (page === currentPage - 2 || page === currentPage + 2) {
+                  return (
+                    <span key={page} className="px-1 text-surface-300">
+                      …
+                    </span>
+                  );
+                }
+                return null;
+              })}
+
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="Berikutnya"
+              >
+                <ChevronRightIcon className="h-4 w-4" />
+              </button>
+            </nav>
           </div>
         </div>
       )}

@@ -25,33 +25,53 @@ interface CustomerSidebarProps {
 }
 
 const SidebarContent = ({ onClose }: { onClose: () => void }) => (
-  <div className="flex flex-col h-full bg-white border-r border-gray-200">
-    <div className="flex items-center justify-between flex-shrink-0 px-4 py-5">
-      <h1 className="text-xl font-semibold text-indigo-600">Tirta Portal</h1>
+  <div className="flex flex-col h-full bg-white">
+    {/* Logo */}
+    <div className="flex items-center justify-between flex-shrink-0 px-5 py-5">
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600">
+          <span className="text-sm font-bold text-white">T</span>
+        </div>
+        <h1 className="text-sm font-bold text-surface-900 tracking-tight">Tirta Portal</h1>
+      </div>
       <button
         onClick={onClose}
-        className="md:hidden p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+        className="md:hidden p-1.5 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 transition-colors"
         aria-label="Tutup menu navigasi pelanggan"
       >
         <XMarkIcon className="h-5 w-5" />
       </button>
     </div>
-    <nav className="flex-1 px-2 pb-4 space-y-0.5 overflow-y-auto">
+
+    {/* Navigation */}
+    <nav className="flex-1 px-3 pb-4 pt-1 space-y-1 overflow-y-auto">
+      <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-surface-400">
+        Menu
+      </p>
       {navigation.map((item) => (
         <NavLink
           key={item.name}
           to={item.href}
           onClick={onClose}
           className={({ isActive }) =>
-            `group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+            `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
               isActive
-                ? 'bg-indigo-50 border-l-4 border-indigo-500 text-indigo-700 pl-2'
-                : 'border-l-4 border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                ? 'bg-brand-50 text-brand-700 shadow-xs'
+                : 'text-surface-500 hover:bg-surface-50 hover:text-surface-900'
             }`
           }
         >
-          <item.icon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
-          {item.name}
+          {({ isActive }) => (
+            <>
+              <item.icon
+                className={`h-[18px] w-[18px] flex-shrink-0 transition-colors ${
+                  isActive ? 'text-brand-600' : 'text-surface-400 group-hover:text-surface-600'
+                }`}
+                aria-hidden="true"
+              />
+              {item.name}
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
@@ -80,7 +100,6 @@ const CustomerSidebar = ({ open, onClose }: CustomerSidebarProps) => {
       document.body.style.removeProperty('overflow');
       return;
     }
-
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.removeProperty('overflow');
@@ -90,20 +109,20 @@ const CustomerSidebar = ({ open, onClose }: CustomerSidebarProps) => {
   return (
     <>
       {/* Desktop sidebar */}
-      <div className="hidden md:flex md:w-64 md:flex-col md:flex-shrink-0">
+      <div className="hidden md:flex md:w-64 md:flex-col md:flex-shrink-0 border-r border-surface-200/60 shadow-sidebar">
         <SidebarContent onClose={onClose} />
       </div>
 
       {/* Mobile sidebar — overlay drawer */}
       {open && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
+        <div className="fixed inset-0 z-50 flex md:hidden animate-fade-in">
           <div
-            className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity"
+            className="fixed inset-0 bg-surface-900/30 backdrop-blur-sm transition-opacity"
             onClick={onClose}
             aria-hidden="true"
           />
           <div
-            className="safe-y relative flex w-[min(20rem,88vw)] flex-col flex-shrink-0 shadow-xl"
+            className="safe-y relative flex w-[min(20rem,88vw)] flex-col flex-shrink-0 bg-white shadow-elevated animate-slide-in"
             role="dialog"
             aria-modal="true"
             aria-label="Navigasi pelanggan"

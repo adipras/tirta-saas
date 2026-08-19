@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ComponentType, SVGProps } from 'react';
 
-type ActionIconTone = 'blue' | 'gray' | 'red' | 'green' | 'orange' | 'purple' | 'emerald';
+type ActionIconTone = 'blue' | 'gray' | 'red' | 'green' | 'orange' | 'purple' | 'emerald' | 'brand';
 type ActionIconVariant = 'outline' | 'ghost';
 
 interface ActionIconButtonProps
@@ -12,33 +12,37 @@ interface ActionIconButtonProps
 }
 
 const toneStyles: Record<ActionIconTone, { outline: string; ghost: string }> = {
+  brand: {
+    outline: 'border-brand-200 text-brand-600 hover:bg-brand-50',
+    ghost: 'text-brand-600 hover:bg-brand-50 hover:text-brand-700',
+  },
   blue: {
-    outline: 'border-blue-200 text-blue-600 hover:bg-blue-50',
-    ghost: 'text-blue-600 hover:bg-blue-50 hover:text-blue-800',
+    outline: 'border-info-200 text-info-600 hover:bg-info-50',
+    ghost: 'text-info-600 hover:bg-info-50 hover:text-info-700',
   },
   gray: {
-    outline: 'border-gray-200 text-gray-600 hover:bg-gray-50',
-    ghost: 'text-gray-600 hover:bg-gray-50 hover:text-gray-800',
+    outline: 'border-surface-200 text-surface-500 hover:bg-surface-50',
+    ghost: 'text-surface-500 hover:bg-surface-50 hover:text-surface-700',
   },
   red: {
-    outline: 'border-red-200 text-red-600 hover:bg-red-50',
-    ghost: 'text-red-600 hover:bg-red-50 hover:text-red-800',
+    outline: 'border-danger-200 text-danger-600 hover:bg-danger-50',
+    ghost: 'text-danger-600 hover:bg-danger-50 hover:text-danger-700',
   },
   green: {
-    outline: 'border-green-200 text-green-600 hover:bg-green-50',
-    ghost: 'text-green-600 hover:bg-green-50 hover:text-green-800',
+    outline: 'border-success-200 text-success-600 hover:bg-success-50',
+    ghost: 'text-success-600 hover:bg-success-50 hover:text-success-700',
   },
   orange: {
-    outline: 'border-orange-200 text-orange-600 hover:bg-orange-50',
-    ghost: 'text-orange-600 hover:bg-orange-50 hover:text-orange-800',
+    outline: 'border-warning-200 text-warning-600 hover:bg-warning-50',
+    ghost: 'text-warning-600 hover:bg-warning-50 hover:text-warning-700',
   },
   purple: {
     outline: 'border-purple-200 text-purple-600 hover:bg-purple-50',
-    ghost: 'text-purple-600 hover:bg-purple-50 hover:text-purple-800',
+    ghost: 'text-purple-600 hover:bg-purple-50 hover:text-purple-700',
   },
   emerald: {
     outline: 'border-emerald-200 text-emerald-600 hover:bg-emerald-50',
-    ghost: 'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-800',
+    ghost: 'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700',
   },
 };
 
@@ -53,8 +57,8 @@ export const ActionIconButton = ({
 }: ActionIconButtonProps) => {
   const baseClassName =
     variant === 'outline'
-      ? 'inline-flex h-9 w-9 items-center justify-center rounded-lg border transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60'
-      : 'inline-flex items-center justify-center rounded-lg p-2.5 transition focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60';
+      ? 'inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50'
+      : 'inline-flex items-center justify-center rounded-lg p-2 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
   return (
     <button
@@ -64,7 +68,7 @@ export const ActionIconButton = ({
       title={title ?? label}
       {...props}
     >
-      <Icon className="h-5 w-5" aria-hidden="true" />
+      <Icon className="h-4 w-4" aria-hidden="true" />
     </button>
   );
 };

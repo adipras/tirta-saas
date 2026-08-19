@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bars3Icon, ChevronDownIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, ChevronDownIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import { useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../hooks/redux';
 import { logoutAsync } from '../store/slices/authSlice';
@@ -67,7 +67,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
       },
       {
         match: (pathname) => pathname.startsWith('/admin/platform/subscription-payments'),
-        title: 'Verifikasi Langganan Tenant',
+        title: 'Verifikasi Langganan',
         subtitle: 'Tinjau pembayaran langganan tenant.',
       },
       {
@@ -82,8 +82,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
       },
       {
         match: (pathname) => pathname.startsWith('/admin/platform/monitoring'),
-        title: 'Monitoring Platform',
-        subtitle: 'Pantau health, metrik, audit log, dan error log platform.',
+        title: 'Monitoring',
+        subtitle: 'Pantau health, metrik, audit log, dan error log.',
       },
       {
         match: (pathname) => pathname.startsWith('/admin/platform/settings'),
@@ -102,7 +102,6 @@ const Header = ({ onMenuClick }: HeaderProps) => {
     if (user?.tenant_name) {
       return user.tenant_name;
     }
-
     return import.meta.env.VITE_APP_NAME || 'Tirta SaaS';
   }, [user?.tenant_name]);
 
@@ -140,79 +139,83 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   }, []);
 
   return (
-    <header className="safe-top sticky top-0 z-30 border-b border-gray-200 bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/85">
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-6 sm:py-3">
+    <header className="safe-top sticky top-0 z-30 border-b border-surface-200/60 bg-white/95 backdrop-blur-lg supports-[backdrop-filter]:bg-white/90">
+      <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
         {/* Left: hamburger + page title */}
-        <div className="flex min-w-0 items-center">
+        <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={onMenuClick}
-            className="mr-3 flex-shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 md:hidden"
+            className="flex-shrink-0 rounded-lg p-2 text-surface-400 hover:bg-surface-100 hover:text-surface-600 transition-colors md:hidden"
             aria-label="Buka sidebar"
           >
-            <Bars3Icon className="h-6 w-6" />
+            <Bars3Icon className="h-5 w-5" />
           </button>
           <div className="min-w-0">
-            <p className="truncate text-base font-semibold text-gray-900 sm:text-lg">
+            <h1 className="truncate text-lg font-semibold text-surface-900">
               {pageMeta.title}
+            </h1>
+            <p className="mt-0.5 truncate text-[13px] text-surface-400 sm:max-w-xl">
+              {pageMeta.subtitle}
             </p>
-            <div className="mt-1 space-y-1">
-              <p className="truncate text-xs text-gray-500 sm:max-w-xl">
-                {pageMeta.subtitle}
-              </p>
-              <p className="hidden truncate text-xs font-medium text-blue-700 sm:block">
-                {accountLabel}
-              </p>
-            </div>
           </div>
         </div>
 
         {/* Right: printer indicator + bell + user menu */}
-        <div className="flex flex-shrink-0 items-center gap-1 sm:gap-3">
+        <div className="flex flex-shrink-0 items-center gap-1">
           <div className="hidden sm:block">
             <PrinterBridgeIndicator />
           </div>
           <NotificationBell scope="user" />
+
+          {/* User menu */}
           <div className="relative" ref={menuRef}>
             <button
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition hover:bg-gray-100"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-2 transition-colors hover:bg-surface-100"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
             >
-              <div className="hidden text-right sm:block">
-                <p className="text-sm font-medium text-gray-900">{user?.name || 'Pengguna Admin'}</p>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
+                {(user?.name || 'U').charAt(0).toUpperCase()}
               </div>
-              <UserCircleIcon className="h-8 w-8 flex-shrink-0 text-gray-400" />
-              <ChevronDownIcon className={`hidden h-4 w-4 text-gray-400 transition sm:block ${menuOpen ? 'rotate-180' : ''}`} />
+              <div className="hidden text-left sm:block">
+                <p className="text-sm font-medium text-surface-900 leading-tight">{user?.name || 'Pengguna'}</p>
+                <p className="text-[11px] text-surface-400 capitalize">{roleLabel}</p>
+              </div>
+              <ChevronDownIcon className={`hidden h-4 w-4 text-surface-400 transition-transform duration-200 sm:block ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
+
             {menuOpen && (
-              <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                <div className="border-b border-gray-100 px-4 py-3">
-                  <p className="truncate text-sm font-semibold text-gray-900">{user?.name || 'Pengguna Admin'}</p>
-                  <p className="truncate text-xs text-gray-500 capitalize">{roleLabel}</p>
-                  <p className="mt-1 truncate text-xs font-medium text-blue-700">{accountLabel}</p>
+              <div className="absolute right-0 z-50 mt-2 w-60 rounded-xl border border-surface-200 bg-white py-1.5 shadow-dropdown animate-scale-in">
+                <div className="border-b border-surface-100 px-4 py-3">
+                  <p className="text-sm font-semibold text-surface-900">{user?.name || 'Pengguna'}</p>
+                  <p className="mt-0.5 text-[11px] text-surface-400 capitalize">{roleLabel}</p>
+                  <p className="mt-1 text-[11px] font-medium text-brand-600">{accountLabel}</p>
                 </div>
-                {/* Printer indicator di dropdown untuk mobile */}
-                <div className="border-b border-gray-100 px-4 py-2 sm:hidden">
+                {/* Printer indicator on mobile */}
+                <div className="border-b border-surface-100 px-4 py-2.5 sm:hidden">
                   <PrinterBridgeIndicator />
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Keluar
-                </button>
+                <div className="p-1.5">
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-surface-600 transition-colors hover:bg-surface-50 hover:text-surface-900"
+                  >
+                    <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                    Keluar
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
-      <div className="px-4 pb-3 sm:hidden">
+
+      {/* Mobile: account label + printer indicator */}
+      <div className="border-t border-surface-100 px-4 py-2 sm:hidden">
         <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate text-xs font-medium text-blue-700">{accountLabel}</p>
-          </div>
+          <p className="truncate text-[11px] font-medium text-brand-600">{accountLabel}</p>
           {showPrinterBridge && (
             <PrinterBridgeIndicator className="inline-flex shrink-0" />
           )}

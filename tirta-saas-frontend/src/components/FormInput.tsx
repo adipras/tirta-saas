@@ -31,25 +31,29 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
     const helperId = !error && helperText ? `${inputId}-helper` : undefined;
     const describedBy = [props['aria-describedby'], errorId, helperId].filter(Boolean).join(' ') || undefined;
 
-    const inputClassName = `block ${fullWidth ? 'w-full' : ''} px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-      error ? 'border-red-300 text-red-900' : 'border-gray-300'
-    } ${icon ? (iconPosition === 'left' ? 'pl-10' : 'pr-10') : ''} ${
-      props.disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
+    const inputClassName = `input-base ${
+      error
+        ? 'border-danger-300 focus:border-danger-500 focus:ring-danger-500/10'
+        : ''
+    } ${
+      icon ? (iconPosition === 'left' ? 'pl-9' : 'pr-9') : ''
+    } ${
+      props.disabled ? 'bg-surface-50 cursor-not-allowed opacity-60' : ''
     } ${className}`;
 
     return (
       <div className={fullWidth ? 'w-full' : ''}>
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor={inputId} className="mb-1.5 block text-[13px] font-medium text-surface-700">
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="ml-1 text-danger-500">*</span>}
           </label>
         )}
 
         <div className="relative">
           {icon && iconPosition === 'left' && (
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              {icon}
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <span className="text-surface-400">{icon}</span>
             </div>
           )}
 
@@ -64,19 +68,19 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
           />
 
           {icon && iconPosition === 'right' && (
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              {icon}
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <span className="text-surface-400">{icon}</span>
             </div>
           )}
         </div>
 
         {error && (
-          <p id={errorId} className="mt-1 text-sm text-red-600">
+          <p id={errorId} className="mt-1.5 text-[12px] text-danger-600">
             {error}
           </p>
         )}
         {!error && helperText && (
-          <p id={helperId} className="mt-1 text-sm text-gray-500">
+          <p id={helperId} className="mt-1.5 text-[12px] text-surface-400">
             {helperText}
           </p>
         )}
@@ -105,16 +109,20 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
     const helperId = !error && helperText ? `${textareaId}-helper` : undefined;
     const describedBy = [props['aria-describedby'], errorId, helperId].filter(Boolean).join(' ') || undefined;
 
-    const textareaClassName = `block ${fullWidth ? 'w-full' : ''} px-3 py-2 border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-      error ? 'border-red-300 text-red-900' : 'border-gray-300'
-    } ${props.disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'} ${className}`;
+    const textareaClassName = `input-base resize-none ${
+      error
+        ? 'border-danger-300 focus:border-danger-500 focus:ring-danger-500/10'
+        : ''
+    } ${
+      props.disabled ? 'bg-surface-50 cursor-not-allowed opacity-60' : ''
+    } ${className}`;
 
     return (
       <div className={fullWidth ? 'w-full' : ''}>
         {label && (
-          <label htmlFor={textareaId} className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor={textareaId} className="mb-1.5 block text-[13px] font-medium text-surface-700">
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="ml-1 text-danger-500">*</span>}
           </label>
         )}
 
@@ -129,14 +137,14 @@ export const FormTextarea = forwardRef<HTMLTextAreaElement, FormTextareaProps>(
         />
 
         {error && (
-        <p id={errorId} className="mt-1 text-sm text-red-600">
-          {error}
-        </p>
+          <p id={errorId} className="mt-1.5 text-[12px] text-danger-600">
+            {error}
+          </p>
         )}
         {!error && helperText && (
-        <p id={helperId} className="mt-1 text-sm text-gray-500">
-          {helperText}
-        </p>
+          <p id={helperId} className="mt-1.5 text-[12px] text-surface-400">
+            {helperText}
+          </p>
         )}
       </div>
     );
@@ -176,16 +184,20 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
     const helperId = !error && helperText ? `${selectId}-helper` : undefined;
     const describedBy = [props['aria-describedby'], errorId, helperId].filter(Boolean).join(' ') || undefined;
 
-    const selectClassName = `block ${fullWidth ? 'w-full' : ''} px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-      error ? 'border-red-300 text-red-900' : 'border-gray-300'
-    } ${props.disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'} ${className}`;
+    const selectClassName = `input-base appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%2394a3b8%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.23%207.21a.75.75%200%20011.06.02L10%2011.168l3.71-3.938a.75.75%200%20111.08%201.04l-4.25%204.5a.75.75%200%2001-1.08%200l-4.25-4.5a.75.75%200%2001.02-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:20px] bg-[right_0.5rem_center] bg-no-repeat pr-10 ${
+      error
+        ? 'border-danger-300 focus:border-danger-500 focus:ring-danger-500/10'
+        : ''
+    } ${
+      props.disabled ? 'bg-surface-50 cursor-not-allowed opacity-60' : ''
+    } ${className}`;
 
     return (
       <div className={fullWidth ? 'w-full' : ''}>
         {label && (
-          <label htmlFor={selectId} className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor={selectId} className="mb-1.5 block text-[13px] font-medium text-surface-700">
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="ml-1 text-danger-500">*</span>}
           </label>
         )}
 
@@ -211,12 +223,12 @@ export const FormSelect = forwardRef<HTMLSelectElement, FormSelectProps>(
         </select>
 
         {error && (
-          <p id={errorId} className="mt-1 text-sm text-red-600">
+          <p id={errorId} className="mt-1.5 text-[12px] text-danger-600">
             {error}
           </p>
         )}
         {!error && helperText && (
-          <p id={helperId} className="mt-1 text-sm text-gray-500">
+          <p id={helperId} className="mt-1.5 text-[12px] text-surface-400">
             {helperText}
           </p>
         )}
@@ -248,24 +260,24 @@ export const FormCheckbox = forwardRef<HTMLInputElement, FormCheckboxProps>(
             ref={ref}
             id={checkboxId}
             type="checkbox"
-            className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${className}`}
+            className={`h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500/20 focus:ring-offset-2 focus:ring-offset-white ${className}`}
             aria-invalid={Boolean(error)}
             aria-describedby={describedBy}
             {...props}
           />
           {label && (
-            <label htmlFor={checkboxId} className="ml-2 block text-sm text-gray-900">
+            <label htmlFor={checkboxId} className="ml-2 block text-[13px] text-surface-700">
               {label}
             </label>
           )}
         </div>
         {error && (
-          <p id={errorId} className="mt-1 text-sm text-red-600">
+          <p id={errorId} className="mt-1.5 text-[12px] text-danger-600">
             {error}
           </p>
         )}
         {!error && helperText && (
-          <p id={helperId} className="mt-1 text-sm text-gray-500">
+          <p id={helperId} className="mt-1.5 text-[12px] text-surface-400">
             {helperText}
           </p>
         )}

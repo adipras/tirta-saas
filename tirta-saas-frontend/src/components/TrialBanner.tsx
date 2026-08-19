@@ -17,13 +17,11 @@ const TrialBanner = () => {
   useEffect(() => {
     const loadSubscriptionStatus = async () => {
       try {
-        // Only load for tenant_admin role — platform_owner doesn't have a trial subscription
         const userRole = authService.getUser()?.role;
         if (userRole !== 'tenant_admin') {
           setLoading(false);
           return;
         }
-
         const data = await subscriptionPaymentService.getSubscriptionStatus();
         setStatus(data);
       } catch (error) {
@@ -44,66 +42,61 @@ const TrialBanner = () => {
     navigate('/admin/subscription/upgrade');
   };
 
-  // Don't show banner if not loading and (no status or not trial/pending)
   if (loading) return null;
   if (!status) return null;
   if (!['trial', 'pending_verification', 'pending_approval', 'pending_payment'].includes(status.status)) return null;
   if (!isVisible) return null;
 
-  // Determine banner color based on days remaining
   const daysRemaining = status.daysRemaining;
   const isUrgent = daysRemaining <= 3;
-  const bgColor = isUrgent ? 'bg-red-50 border-red-200' : 'bg-yellow-50 border-yellow-200';
-  const textColor = isUrgent ? 'text-red-800' : 'text-yellow-800';
-  const iconColor = isUrgent ? 'text-red-600' : 'text-yellow-600';
-  const buttonColor = isUrgent
-    ? 'bg-red-600 hover:bg-red-700 text-white'
-    : 'bg-yellow-600 hover:bg-yellow-700 text-white';
+  const bgColor = isUrgent ? 'bg-danger-50 border-danger-200' : 'bg-warning-50 border-warning-200';
+  const textColor = isUrgent ? 'text-danger-800' : 'text-warning-800';
+  const iconColor = isUrgent ? 'text-danger-500' : 'text-warning-500';
+  const buttonBg = isUrgent ? 'btn-danger' : 'inline-flex items-center gap-2 px-4 py-1.5 bg-warning-600 text-white text-[13px] font-semibold rounded-lg transition-all hover:bg-warning-700';
 
   return (
-    <div className={`${bgColor} border-b ${textColor} px-4 py-3`}>
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        <div className="flex items-center space-x-3 flex-1">
-          <ExclamationTriangleIcon className={`h-5 w-5 ${iconColor} flex-shrink-0`} />
-          <div className="flex-1">
+    <div className={`${bgColor} border-b px-4 py-2.5`}>
+      <div className="flex items-center justify-between max-w-7xl mx-auto gap-3">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <ExclamationTriangleIcon className={`h-4 w-4 ${iconColor} flex-shrink-0`} />
+          <div className="flex-1 min-w-0">
             {status.status === 'trial' && (
-              <p className="text-sm font-medium">
-                <span className="font-bold">MODE TRIAL</span> - sisa {daysRemaining} hari
-                {isUrgent && ' (Segera upgrade agar layanan tidak terputus!)'}
+              <p className={`text-[13px] font-medium ${textColor}`}>
+                <span className="font-bold">MODE TRIAL</span> — sisa {daysRemaining} hari
+                {isUrgent && ' (Segera upgrade!)'}
               </p>
             )}
             {status.status === 'pending_verification' && (
-              <p className="text-sm font-medium">
-                <span className="font-bold">PEMBAYARAN MENUNGGU VERIFIKASI</span> - pembayaran
-                langganan Anda sedang diverifikasi oleh tim kami
+              <p className={`text-[13px] font-medium ${textColor}`}>
+                <span className="font-bold">PEMBAYARAN MENUNGGU VERIFIKASI</span> — sedang diverifikasi
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 ml-4">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {status.status === 'trial' && (
             <button
               onClick={handleUpgradeClick}
-              className={`${buttonColor} px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 flex-shrink-0`}
+              className={buttonBg}
             >
-              Upgrade Sekarang
+              Upgrade
             </button>
           )}
           {status.status === 'pending_verification' && (
             <button
               onClick={() => navigate('/admin/subscription/status')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 flex-shrink-0"
+              className="btn-primary text-[13px] px-3 py-1.5"
             >
               Lihat Status
             </button>
           )}
           <button
             onClick={handleDismiss}
-            className={`${textColor} hover:bg-opacity-20 hover:bg-black rounded-md p-1 transition-colors duration-200 flex-shrink-0`}
+            className={`rounded-lg p-1.5 transition-colors ${textColor} hover:bg-white/50`}
             aria-label="Tutup"
           >
-            <XMarkIcon className="h-5 w-5" />
+            <XMarkIcon className="h-4 w-4" />
           </button>
         </div>
       </div>

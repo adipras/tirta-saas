@@ -2,7 +2,7 @@ import type { ComponentType, SVGProps } from 'react';
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
-type DashboardStatTone = 'blue' | 'yellow' | 'cyan' | 'green' | 'purple';
+type DashboardStatTone = 'blue' | 'yellow' | 'cyan' | 'green' | 'purple' | 'red';
 
 interface DashboardStatCardProps {
   title: string;
@@ -13,26 +13,36 @@ interface DashboardStatCardProps {
   tone?: DashboardStatTone;
 }
 
-const toneClasses: Record<DashboardStatTone, { icon: string; surface: string }> = {
+const toneClasses: Record<DashboardStatTone, { icon: string; iconText: string; badge: string }> = {
   blue: {
-    icon: 'bg-blue-600 text-white',
-    surface: 'bg-blue-50 text-blue-700',
+    icon: 'bg-brand-50 ring-1 ring-brand-100',
+    iconText: 'text-brand-600',
+    badge: 'bg-brand-50 text-brand-700 ring-1 ring-brand-100',
   },
   yellow: {
-    icon: 'bg-amber-500 text-white',
-    surface: 'bg-amber-50 text-amber-700',
+    icon: 'bg-warning-50 ring-1 ring-warning-100',
+    iconText: 'text-warning-600',
+    badge: 'bg-warning-50 text-warning-700 ring-1 ring-warning-100',
   },
   cyan: {
-    icon: 'bg-cyan-600 text-white',
-    surface: 'bg-cyan-50 text-cyan-700',
+    icon: 'bg-cyan-50 ring-1 ring-cyan-100',
+    iconText: 'text-cyan-600',
+    badge: 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100',
   },
   green: {
-    icon: 'bg-green-600 text-white',
-    surface: 'bg-green-50 text-green-700',
+    icon: 'bg-success-50 ring-1 ring-success-100',
+    iconText: 'text-success-600',
+    badge: 'bg-success-50 text-success-700 ring-1 ring-success-100',
   },
   purple: {
-    icon: 'bg-purple-600 text-white',
-    surface: 'bg-purple-50 text-purple-700',
+    icon: 'bg-purple-50 ring-1 ring-purple-100',
+    iconText: 'text-purple-600',
+    badge: 'bg-purple-50 text-purple-700 ring-1 ring-purple-100',
+  },
+  red: {
+    icon: 'bg-danger-50 ring-1 ring-danger-100',
+    iconText: 'text-danger-600',
+    badge: 'bg-danger-50 text-danger-700 ring-1 ring-danger-100',
   },
 };
 
@@ -47,26 +57,26 @@ const DashboardStatCard = ({
   const classes = toneClasses[tone];
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+    <div className="group rounded-xl border border-surface-200/80 bg-white p-5 shadow-card transition-all duration-200 hover:shadow-card-hover hover:border-surface-300/80">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="mt-2 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">
+          <p className="text-[13px] font-medium text-surface-500">{title}</p>
+          <p className="mt-2 text-2xl font-bold tracking-tight text-surface-900 sm:text-3xl">
             {value}
           </p>
           {helper && (
-            <p className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${classes.surface}`}>
+            <p className={`mt-3 inline-flex rounded-md px-2 py-1 text-[11px] font-semibold ${classes.badge}`}>
               {helper}
             </p>
           )}
         </div>
-        <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${classes.icon}`}>
-          <Icon className="h-6 w-6" />
+        <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl ${classes.icon}`}>
+          <Icon className={`h-5 w-5 ${classes.iconText}`} />
         </div>
       </div>
 
       {subtitle && (
-        <p className="mt-3 text-sm leading-6 text-gray-500">{subtitle}</p>
+        <p className="mt-3 text-[13px] leading-relaxed text-surface-400">{subtitle}</p>
       )}
     </div>
   );

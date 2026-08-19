@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   ChevronDownIcon,
-  ChevronRightIcon,
   HomeIcon,
   UserGroupIcon,
   DocumentDuplicateIcon,
@@ -28,11 +27,11 @@ const allNavigation = [
   // Platform Owner Menu
   { name: 'Dashboard Platform', href: '/admin', icon: HomeIcon, roles: ['PLATFORM_OWNER'] },
   { name: 'Tenant', href: '/admin/platform/tenants', icon: BuildingOfficeIcon, roles: ['PLATFORM_OWNER'] },
-  { name: 'Verifikasi Langganan Tenant', href: '/admin/platform/subscription-payments', icon: CheckBadgeIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Verifikasi Langganan', href: '/admin/platform/subscription-payments', icon: CheckBadgeIcon, roles: ['PLATFORM_OWNER'] },
   { name: 'Paket Langganan', href: '/admin/platform/subscription-plans', icon: ClipboardDocumentListIcon, roles: ['PLATFORM_OWNER'] },
-  { name: 'Analitik Platform', href: '/admin/platform/analytics', icon: ChartBarIcon, roles: ['PLATFORM_OWNER'] },
-  { name: 'Monitoring Platform', href: '/admin/platform/monitoring', icon: ServerStackIcon, roles: ['PLATFORM_OWNER'] },
-  { name: 'Pengaturan Platform', href: '/admin/platform/settings', icon: CogIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Analitik', href: '/admin/platform/analytics', icon: ChartBarIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Monitoring', href: '/admin/platform/monitoring', icon: ServerStackIcon, roles: ['PLATFORM_OWNER'] },
+  { name: 'Pengaturan', href: '/admin/platform/settings', icon: CogIcon, roles: ['PLATFORM_OWNER'] },
   // Tenant Admin Menu
   { name: 'Dashboard', href: '/admin', icon: HomeIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE', 'METER_READER'] },
   { name: 'Pelanggan', href: '/admin/customers', icon: UserGroupIcon, roles: ['ADMIN', 'TENANT_ADMIN', 'SERVICE', 'FINANCE'] },
@@ -44,14 +43,14 @@ const allNavigation = [
 ];
 
 const settingsNavigation = [
-  { name: 'Langganan & Pembayaran', href: '/admin/subscription/upgrade', icon: CheckBadgeIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
-  { name: 'Golongan Langganan', href: '/admin/subscriptions', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Langganan', href: '/admin/subscription/upgrade', icon: CheckBadgeIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Golongan', href: '/admin/subscriptions', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Tarif Air', href: '/admin/water-rates', icon: CurrencyDollarIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Notifikasi', href: '/admin/notifications', icon: BellIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Tarif Progresif', href: '/admin/tariffs', icon: RectangleStackIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
   { name: 'Area Layanan', href: '/admin/service-areas', icon: MapIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
-  { name: 'Manajemen Pengguna', href: '/admin/users', icon: UsersIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
-  { name: 'Pengaturan Tenant', href: '/admin/settings', icon: CogIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Pengguna', href: '/admin/users', icon: UsersIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
+  { name: 'Pengaturan', href: '/admin/settings', icon: CogIcon, roles: ['ADMIN', 'TENANT_ADMIN'] },
 ];
 
 interface SidebarProps {
@@ -76,7 +75,6 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
     if (href === '/admin/subscription/upgrade') {
       return location.pathname.startsWith('/admin/subscription');
     }
-
     return location.pathname.startsWith(href);
   };
 
@@ -95,50 +93,53 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
     const resolvedUrl = resolveTenantAssetUrl(user?.tenant_logo_url);
     return resolvedUrl || null;
   }, [user?.tenant_logo_url]);
+
   const roleLabel = user?.role?.replace('_', ' ') || 'admin';
 
   return (
-    <div className="flex h-full flex-col border-r border-gray-200 bg-white">
+    <div className="flex h-full flex-col bg-white">
       {/* Logo */}
-      <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-100 px-4 py-5">
-        <div className="flex min-w-0 items-center">
+      <div className="flex flex-shrink-0 items-center justify-between px-5 py-5">
+        <div className="flex min-w-0 items-center gap-3">
           {isTenantUser ? (
             <>
               {tenantLogoUrl ? (
                 <img
                   src={tenantLogoUrl}
                   alt={`Logo ${user?.tenant_name || 'tenant'}`}
-                  className="mr-3 h-10 w-10 rounded-lg object-cover"
+                  className="h-9 w-9 rounded-lg object-cover ring-2 ring-surface-100"
                 />
               ) : (
-                <div className="mr-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-blue-700">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-sm font-bold text-brand-600 ring-2 ring-brand-100">
                   {(user?.tenant_name || 'T').charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="min-w-0">
-                <h1 className="truncate text-base font-semibold text-gray-900">
+                <h1 className="truncate text-sm font-semibold text-surface-900">
                   {user?.tenant_name || 'Tenant'}
                 </h1>
-                <p className="truncate text-xs text-gray-500">
-                  Supported by {platformName}
+                <p className="truncate text-[11px] text-surface-400">
+                  {platformName}
                 </p>
               </div>
             </>
           ) : (
-            <>
-              <h1 className="text-xl font-semibold text-gray-900">{platformName}</h1>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-brand">
+                <span className="text-sm font-bold text-white">T</span>
+              </div>
+              <h1 className="text-sm font-bold text-surface-900 tracking-tight">{platformName}</h1>
               {isPlatformOwner && (
-                <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 text-purple-800 rounded">
+                <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-brand-50 text-brand-700 rounded-md border border-brand-200">
                   Platform
                 </span>
               )}
-            </>
+            </div>
           )}
         </div>
-        {/* Close button — only visible on mobile */}
         <button
           onClick={onClose}
-          className="md:hidden p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+          className="md:hidden p-1.5 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-100 transition-colors"
           aria-label="Tutup sidebar"
         >
           <XMarkIcon className="h-5 w-5" />
@@ -146,10 +147,10 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4 pt-4">
+      <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-4 pt-1">
         <div>
-          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
-            Menu utama
+          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-surface-400">
+            Menu
           </p>
           <div className="space-y-0.5">
             {navigation.map((item) => (
@@ -159,15 +160,24 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
                 end={item.href === '/admin'}
                 onClick={onClose}
                 className={({ isActive }) =>
-                  `group flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                  `group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
                     isActive
-                      ? 'border-l-4 border-blue-500 bg-blue-50 pl-2 text-blue-700'
-                      : 'border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? 'bg-brand-50 text-brand-700 shadow-xs'
+                      : 'text-surface-500 hover:bg-surface-50 hover:text-surface-900'
                   }`
                 }
               >
-                <item.icon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                {item.name}
+                {({ isActive }) => (
+                  <>
+                    <item.icon
+                      className={`h-[18px] w-[18px] flex-shrink-0 transition-colors ${
+                        isActive ? 'text-brand-600' : 'text-surface-400 group-hover:text-surface-600'
+                      }`}
+                      aria-hidden="true"
+                    />
+                    {item.name}
+                  </>
+                )}
               </NavLink>
             ))}
           </div>
@@ -175,62 +185,82 @@ const SidebarContent = ({ onClose }: { onClose: () => void }) => {
 
         {hasSettingsMenu && (
           <div>
-            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-400">
+            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-surface-400">
               Pengaturan
             </p>
             <button
               type="button"
               onClick={() => setSettingsOpen((prev) => !prev)}
-              className={`group flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
                 hasActiveSettingsItem
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-brand-50 text-brand-700'
+                  : 'text-surface-500 hover:bg-surface-50 hover:text-surface-900'
               }`}
             >
-              <span className="flex items-center">
-                <CogIcon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                Semua pengaturan
-              </span>
-              {settingsOpen ? (
-                <ChevronDownIcon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-              ) : (
-                <ChevronRightIcon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
-              )}
+              <CogIcon
+                className={`h-[18px] w-[18px] flex-shrink-0 transition-colors ${
+                  hasActiveSettingsItem ? 'text-brand-600' : 'text-surface-400 group-hover:text-surface-600'
+                }`}
+                aria-hidden="true"
+              />
+              <span className="flex-1 text-left">Semua pengaturan</span>
+              <ChevronDownIcon
+                className={`h-4 w-4 flex-shrink-0 transition-transform duration-200 ${
+                  settingsOpen ? 'rotate-0' : '-rotate-90'
+                }`}
+                aria-hidden="true"
+              />
             </button>
 
-            {settingsOpen && (
-              <div className="mt-1 space-y-0.5 pl-4">
+            <div
+              className={`overflow-hidden transition-all duration-200 ${
+                settingsOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <div className="mt-1 space-y-0.5 pl-5">
                 {visibleSettingsNavigation.map((item) => (
                   <NavLink
                     key={item.name}
                     to={item.href}
                     onClick={onClose}
                     className={({ isActive }) =>
-                      `group flex items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                      `group flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150 ${
                         (isActive || matchesSettingsItem(item.href))
-                          ? 'bg-blue-50 border-l-4 border-blue-500 text-blue-700 pl-2'
-                          : 'border-l-4 border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          ? 'bg-brand-50 text-brand-700'
+                          : 'text-surface-500 hover:bg-surface-50 hover:text-surface-900'
                       }`
                     }
                   >
-                    <item.icon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
-                    {item.name}
+                    {({ isActive }) => (
+                      <>
+                        <item.icon
+                          className={`h-4 w-4 flex-shrink-0 transition-colors ${
+                            (isActive || matchesSettingsItem(item.href))
+                              ? 'text-brand-600'
+                              : 'text-surface-400 group-hover:text-surface-600'
+                          }`}
+                          aria-hidden="true"
+                        />
+                        {item.name}
+                      </>
+                    )}
                   </NavLink>
                 ))}
               </div>
-            )}
+            </div>
           </div>
         )}
       </nav>
 
       {/* User info footer */}
-      <div className="flex-shrink-0 border-t border-gray-200 p-4">
-        <div className="rounded-2xl bg-gray-50 p-3">
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium text-gray-700">{user?.name}</div>
-            <div className="mt-1 inline-flex rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700">
-              {roleLabel}
-            </div>
+      <div className="flex-shrink-0 border-t border-surface-100 p-3">
+        <div className="flex items-center gap-3 rounded-xl bg-surface-50 p-3 transition-colors hover:bg-surface-100">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+            {(user?.name || 'U').charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-surface-900">{user?.name}</p>
+            <p className="truncate text-[11px] text-surface-400 capitalize">{roleLabel}</p>
           </div>
         </div>
       </div>
@@ -242,7 +272,6 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
   const location = useLocation();
   const previousPathnameRef = useRef(location.pathname);
 
-  // Close sidebar on Escape key
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -255,7 +284,6 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
     if (previousPathnameRef.current !== location.pathname && open) {
       onClose();
     }
-
     previousPathnameRef.current = location.pathname;
   }, [location.pathname, open, onClose]);
 
@@ -264,7 +292,6 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
       document.body.style.removeProperty('overflow');
       return;
     }
-
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.removeProperty('overflow');
@@ -273,21 +300,19 @@ const Sidebar = ({ open, onClose }: SidebarProps) => {
 
   return (
     <>
-      {/* Desktop sidebar — always visible on md+ */}
-      <div className="hidden md:flex md:w-64 md:flex-col md:flex-shrink-0">
+      {/* Desktop sidebar */}
+      <div className="hidden md:flex md:w-64 md:flex-col md:flex-shrink-0 border-r border-surface-200/60 shadow-sidebar">
         <SidebarContent onClose={onClose} />
       </div>
 
       {/* Mobile sidebar — overlay drawer */}
       {open && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          {/* Backdrop */}
+        <div className="fixed inset-0 z-50 flex md:hidden animate-fade-in">
           <div
-            className="fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity"
+            className="fixed inset-0 bg-surface-900/30 backdrop-blur-sm transition-opacity"
             onClick={onClose}
           />
-          {/* Drawer */}
-          <div className="safe-y relative flex w-[min(20rem,88vw)] flex-col flex-shrink-0 shadow-xl">
+          <div className="safe-y relative flex w-[min(20rem,88vw)] flex-col flex-shrink-0 bg-white shadow-elevated animate-slide-in">
             <SidebarContent onClose={onClose} />
           </div>
         </div>

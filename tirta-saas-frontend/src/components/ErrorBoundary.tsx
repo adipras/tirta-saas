@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 interface Props {
   children: ReactNode;
@@ -44,33 +45,36 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-md w-full space-y-8">
+        <div className="min-h-screen flex items-center justify-center bg-surface-50 py-12 px-4">
+          <div className="max-w-md w-full space-y-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-danger-50 ring-1 ring-danger-100">
+              <ExclamationTriangleIcon className="h-8 w-8 text-danger-500" />
+            </div>
             <div>
-              <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Oops! Terjadi kesalahan
+              <h2 className="text-xl font-bold text-surface-900">
+                Terjadi kesalahan
               </h2>
-              <p className="mt-2 text-center text-sm text-gray-600">
-                Terjadi kesalahan saat memuat halaman ini.
+              <p className="mt-2 text-[13px] text-surface-400">
+                Maaf, terjadi kesalahan saat memuat halaman ini.
               </p>
             </div>
+
             {process.env.NODE_ENV === 'development' && this.state.error && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
-                <h3 className="text-sm font-medium text-red-800 mb-2">Detail Error:</h3>
-                <pre className="text-xs text-red-700 overflow-auto">
+              <div className="rounded-xl bg-danger-50 border border-danger-200 p-4 text-left">
+                <h3 className="text-[12px] font-semibold text-danger-700 mb-2">Detail Error:</h3>
+                <pre className="text-[11px] font-mono text-danger-600 overflow-auto whitespace-pre-wrap">
                   {this.state.error.toString()}
                   {this.state.errorInfo && this.state.errorInfo.componentStack}
                 </pre>
               </div>
             )}
-            <div className="mt-4">
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Muat Ulang Halaman
-              </button>
-            </div>
+
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-primary w-full"
+            >
+              Muat Ulang Halaman
+            </button>
           </div>
         </div>
       );

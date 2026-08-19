@@ -21,30 +21,30 @@ export interface BadgeProps {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  default: 'bg-gray-100 text-gray-800 border-gray-300',
-  primary: 'bg-blue-100 text-blue-800 border-blue-300',
-  secondary: 'bg-purple-100 text-purple-800 border-purple-300',
-  success: 'bg-green-100 text-green-800 border-green-300',
-  danger: 'bg-red-100 text-red-800 border-red-300',
-  warning: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-  info: 'bg-cyan-100 text-cyan-800 border-cyan-300',
+  default: 'bg-surface-100 text-surface-600 ring-1 ring-surface-200',
+  primary: 'bg-brand-50 text-brand-700 ring-1 ring-brand-100',
+  secondary: 'bg-purple-50 text-purple-700 ring-1 ring-purple-100',
+  success: 'bg-success-50 text-success-700 ring-1 ring-success-100',
+  danger: 'bg-danger-50 text-danger-700 ring-1 ring-danger-100',
+  warning: 'bg-warning-50 text-warning-700 ring-1 ring-warning-100',
+  info: 'bg-info-50 text-info-700 ring-1 ring-info-100',
 };
 
 const sizeStyles: Record<BadgeSize, string> = {
-  xs: 'px-2 py-0.5 text-xs',
-  sm: 'px-2.5 py-0.5 text-sm',
-  md: 'px-3 py-1 text-sm',
-  lg: 'px-4 py-1.5 text-base',
+  xs: 'px-2 py-0.5 text-[10px]',
+  sm: 'px-2.5 py-0.5 text-[11px]',
+  md: 'px-3 py-1 text-xs',
+  lg: 'px-3.5 py-1.5 text-sm',
 };
 
 const dotStyles: Record<BadgeVariant, string> = {
-  default: 'bg-gray-400',
-  primary: 'bg-blue-500',
+  default: 'bg-surface-400',
+  primary: 'bg-brand-500',
   secondary: 'bg-purple-500',
-  success: 'bg-green-500',
-  danger: 'bg-red-500',
-  warning: 'bg-yellow-500',
-  info: 'bg-cyan-500',
+  success: 'bg-success-500',
+  danger: 'bg-danger-500',
+  warning: 'bg-warning-500',
+  info: 'bg-info-500',
 };
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -55,11 +55,11 @@ export const Badge: React.FC<BadgeProps> = ({
   dot = false,
   rounded = false,
 }) => {
-  const roundedClass = rounded ? 'rounded-full' : 'rounded';
+  const roundedClass = rounded ? 'rounded-full' : 'rounded-md';
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-medium border ${variantStyles[variant]} ${sizeStyles[size]} ${roundedClass} ${className}`}
+      className={`inline-flex items-center gap-1.5 font-semibold ${variantStyles[variant]} ${sizeStyles[size]} ${roundedClass} ${className}`}
     >
       {dot && <span className={`h-1.5 w-1.5 rounded-full ${dotStyles[variant]}`} />}
       {children}

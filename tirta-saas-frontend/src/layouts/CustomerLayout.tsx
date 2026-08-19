@@ -7,11 +7,11 @@ const CustomerLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen min-h-[100dvh] bg-gray-50">
+    <div className="flex min-h-screen min-h-[100dvh] bg-surface-50">
       <CustomerSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <CustomerHeader onMenuClick={() => setSidebarOpen(true)} />
-        <main className="safe-bottom flex-1 overflow-x-clip overflow-y-auto bg-gray-50 px-4 py-4 sm:px-6 sm:py-6">
+        <main className="safe-bottom flex-1 overflow-x-clip overflow-y-auto bg-surface-50 px-4 py-5 sm:px-6 sm:py-6">
           <Outlet />
         </main>
       </div>
