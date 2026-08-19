@@ -7,6 +7,10 @@ import {
   XMarkIcon,
   PrinterIcon,
   PlusIcon,
+  CurrencyDollarIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { DataTable, type Column } from '../../components/DataTable';
 import invoiceService, { type InvoiceFilters } from '../../services/invoiceService';
@@ -22,11 +26,11 @@ const STATUS_LABELS: Record<Invoice['status'], string> = {
   overdue: 'Terlambat',
 };
 
-const STATUS_BADGE_CLASSES: Record<Invoice['status'], string> = {
-  paid: 'bg-green-100 text-green-800',
-  unpaid: 'bg-yellow-100 text-yellow-800',
-  partial: 'bg-blue-100 text-blue-800',
-  overdue: 'bg-red-100 text-red-800',
+const STATUS_CLASSES: Record<Invoice['status'], { bg: string; text: string; ring: string }> = {
+  paid: { bg: 'bg-success-50', text: 'text-success-700', ring: 'ring-success-200' },
+  unpaid: { bg: 'bg-warning-50', text: 'text-warning-700', ring: 'ring-warning-200' },
+  partial: { bg: 'bg-info-50', text: 'text-info-700', ring: 'ring-info-200' },
+  overdue: { bg: 'bg-danger-50', text: 'text-danger-700', ring: 'ring-danger-200' },
 };
 
 const EMPTY_STATS: InvoiceListStats = {
@@ -220,33 +224,48 @@ export default function InvoiceList() {
     };
   };
 
-  const getStatusBadge = (status: Invoice['status']) => (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASSES[status]}`}>
-      {STATUS_LABELS[status]}
-    </span>
-  );
+  const getStatusBadge = (status: Invoice['status']) => {
+    const s = STATUS_CLASSES[status] || STATUS_CLASSES.unpaid;
+    return (
+      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${s.bg} ${s.text} ${s.ring}`}>
+        {STATUS_LABELS[status]}
+      </span>
+    );
+  };
 
   const columns: Column<Invoice>[] = [
+    {
+      key: 'invoiceNumber',
+      label: 'Nomor Invoice',
+      sortable: true,
+      render: (value: unknown, invoice: Invoice) => (
+        <span className="font-medium text-brand-600">
+          {typeof value === 'string' && value ? value : invoice.invoiceNumber || '-'}
+        </span>
+      ),
+    },
     {
       key: 'meterNumber',
       label: 'Nomor Meter',
       sortable: true,
       render: (value: unknown, invoice: Invoice) => {
         const meterNumber = typeof value === 'string' && value ? value : invoice.customer?.meterNumber || '-';
-        return meterNumber;
+        return <span className="text-surface-500 font-mono text-sm">{meterNumber}</span>;
       },
     },
     {
       key: 'customerName',
       label: 'Pelanggan',
       sortable: true,
-      render: (value: unknown) => typeof value === 'string' && value ? value : '-',
+      render: (value: unknown) => <span className="text-surface-700">{typeof value === 'string' && value ? value : '-'}</span>,
     },
     {
       key: 'totalAmount',
       label: 'Nominal',
       sortable: true,
-      render: (value: unknown) => formatIDR(typeof value === 'number' ? value : 0),
+      render: (value: unknown) => (
+        <span className="font-semibold text-surface-900">{formatIDR(typeof value === 'number' ? value : 0)}</span>
+      ),
     },
     {
       key: 'status',
@@ -257,7 +276,7 @@ export default function InvoiceList() {
   ];
 
   const actions = (invoice: Invoice) => (
-    <div className="flex items-center justify-end gap-2 print:hidden">
+    <div className="flex items-center justify-end gap-1.5 print:hidden">
       <ActionIconButton
         icon={EyeIcon}
         label={`Lihat detail tagihan ${invoice.invoiceNumber}`}
@@ -276,143 +295,123 @@ export default function InvoiceList() {
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
             <button
               onClick={() => navigate('/admin/invoices/bulk-generate')}
-              className="inline-flex w-full items-center justify-center rounded-md border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-600 shadow-sm hover:bg-blue-50 sm:w-auto"
+              className="btn-secondary"
             >
-              <DocumentTextIcon className="mr-2 h-4 w-4" />
+              <DocumentTextIcon className="h-4 w-4" />
               Buat Tagihan Air
             </button>
             <button
               onClick={() => navigate('/admin/invoices/new')}
-              className="inline-flex w-full items-center justify-center rounded-md border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 sm:w-auto"
+              className="btn-primary"
             >
-              <PlusIcon className="mr-2 h-4 w-4" />
+              <PlusIcon className="h-4 w-4" />
               Buat Tagihan
             </button>
             <button
               onClick={handlePrintFilteredList}
-              className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 sm:w-auto"
+              className="btn-secondary"
             >
-              <PrinterIcon className="mr-1 h-4 w-4" aria-hidden="true" />
+              <PrinterIcon className="h-4 w-4" />
               Cetak
             </button>
           </div>
         }
       />
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardStatCard
-          title="Total nominal"
+          title="Total Tagihan"
           value={loading ? '...' : formatIDR(stats.totalAmount)}
-          subtitle="Akumulasi nominal seluruh tagihan yang cocok dengan filter aktif."
-          icon={DocumentTextIcon}
+          subtitle="Akumulasi nominal seluruh tagihan"
+          icon={CurrencyDollarIcon}
           tone="blue"
         />
         <DashboardStatCard
-          title="Belum lunas"
+          title="Belum Lunas"
           value={loading ? '...' : stats.openCount.toLocaleString('id-ID')}
-          subtitle="Mencakup tagihan belum bayar, parsial, dan yang sudah lewat jatuh tempo."
-          icon={MagnifyingGlassIcon}
+          subtitle="Belum bayar + parsial + terlambat"
+          icon={ClockIcon}
           tone="yellow"
         />
         <DashboardStatCard
           title="Terlambat"
           value={loading ? '...' : stats.overdueCount.toLocaleString('id-ID')}
-          subtitle="Jumlah tagihan yang sudah lewat jatuh tempo dan masih punya sisa pembayaran."
-          icon={XMarkIcon}
-          tone="purple"
+          subtitle="Lewat jatuh tempo"
+          icon={ExclamationTriangleIcon}
+          tone="red"
         />
         <DashboardStatCard
           title="Lunas"
           value={loading ? '...' : stats.paidCount.toLocaleString('id-ID')}
-          subtitle="Jumlah tagihan yang sudah lunas penuh dari hasil filter yang sedang aktif."
-          icon={EyeIcon}
+          subtitle="Sudah terbayar lunas"
+          icon={CheckCircleIcon}
           tone="green"
         />
       </div>
 
-      <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm print:hidden sm:p-6">
+      {/* Filters */}
+      <div className="card">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Filter tagihan</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Cari berdasarkan nomor invoice, pelanggan, atau nomor meter. Statistik dan hasil cetak mengikuti filter ini.
+            <h3 className="text-sm font-semibold text-surface-900">Filter Tagihan</h3>
+            <p className="mt-0.5 text-xs text-surface-400">
+              Cari berdasarkan nomor invoice, pelanggan, atau nomor meter. Statistik dan cetak mengikuti filter ini.
             </p>
           </div>
           {hasActiveFilters && (
-            <span className="inline-flex w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-              Filter aktif
-            </span>
+            <button
+              onClick={handleClearFilters}
+              className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
+            >
+              <XMarkIcon className="h-3 w-3" />
+              Reset filter
+            </button>
           )}
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="relative">
-            <label htmlFor="invoice-search" className="sr-only">
-              Cari nomor invoice, pelanggan, atau nomor meter
-            </label>
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-300" />
             <input
-              id="invoice-search"
               type="text"
-              placeholder="Cari nomor invoice, pelanggan, atau nomor meter..."
+              placeholder="Cari invoice, pelanggan, meter..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-md border border-gray-300 py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:ring-blue-500"
+              className="input-base pl-9"
             />
           </div>
-          <div>
-            <label htmlFor="invoice-filter-bulan" className="sr-only">Filter bulan tagihan</label>
-            <input
-              id="invoice-filter-bulan"
-              type="month"
-              value={filterBulan}
-              onChange={(e) => setFilterBulan(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              placeholder="Pilih bulan"
-            />
-          </div>
-          <div>
-            <label htmlFor="invoice-filter-status" className="sr-only">Filter status tagihan</label>
-            <select
-              id="invoice-filter-status"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as InvoiceFilters['status'] | '')}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            >
-              <option value="">Semua status</option>
-              <option value="unpaid">Belum bayar</option>
-              <option value="partial">Parsial</option>
-              <option value="overdue">Terlambat</option>
-              <option value="paid">Lunas</option>
-            </select>
-          </div>
-          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-            <label htmlFor="invoice-filter-type" className="sr-only">Filter tipe tagihan</label>
-            <select
-              id="invoice-filter-type"
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as InvoiceFilters['type'] | '')}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            >
-              <option value="">Semua tipe</option>
-              <option value="monthly">Bulanan</option>
-              <option value="registration">Registrasi</option>
-              <option value="manual">Manual</option>
-            </select>
-            {hasActiveFilters && (
-              <button
-                onClick={handleClearFilters}
-                className="inline-flex items-center justify-center rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 sm:flex-shrink-0"
-                title="Reset filter"
-                aria-label="Reset filter"
-              >
-                <XMarkIcon className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          <input
+            type="month"
+            value={filterBulan}
+            onChange={(e) => setFilterBulan(e.target.value)}
+            className="input-base"
+          />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as InvoiceFilters['status'] | '')}
+            className="input-base"
+          >
+            <option value="">Semua status</option>
+            <option value="unpaid">Belum bayar</option>
+            <option value="partial">Parsial</option>
+            <option value="overdue">Terlambat</option>
+            <option value="paid">Lunas</option>
+          </select>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as InvoiceFilters['type'] | '')}
+            className="input-base"
+          >
+            <option value="">Semua tipe</option>
+            <option value="monthly">Bulanan</option>
+            <option value="registration">Registrasi</option>
+            <option value="manual">Manual</option>
+          </select>
         </div>
       </div>
 
-      <div className="rounded-lg bg-white shadow">
+      {/* Table */}
+      <div className="card p-0">
         <DataTable
           data={invoices}
           columns={columns}

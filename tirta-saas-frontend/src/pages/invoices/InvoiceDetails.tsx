@@ -3,6 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeftIcon,
   PrinterIcon,
+  UserIcon,
+  MapPinIcon,
+  PhoneIcon,
+  CalendarDaysIcon,
+  CurrencyDollarIcon,
+  DocumentTextIcon,
+  BoltIcon,
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import invoiceService from '../../services/invoiceService';
 import { thermalPrinterService } from '../../services/thermalPrinterService';
@@ -16,11 +24,11 @@ const STATUS_LABELS: Record<Invoice['status'], string> = {
   overdue: 'Terlambat',
 };
 
-const STATUS_BADGE_CLASSES: Record<Invoice['status'], string> = {
-  paid: 'bg-green-100 text-green-800',
-  unpaid: 'bg-yellow-100 text-yellow-800',
-  partial: 'bg-blue-100 text-blue-800',
-  overdue: 'bg-red-100 text-red-800',
+const STATUS_CLASSES: Record<Invoice['status'], { bg: string; text: string; ring: string }> = {
+  paid: { bg: 'bg-success-50', text: 'text-success-700', ring: 'ring-success-200' },
+  unpaid: { bg: 'bg-warning-50', text: 'text-warning-700', ring: 'ring-warning-200' },
+  partial: { bg: 'bg-info-50', text: 'text-info-700', ring: 'ring-info-200' },
+  overdue: { bg: 'bg-danger-50', text: 'text-danger-700', ring: 'ring-danger-200' },
 };
 
 const formatCurrency = (amount: number) =>
@@ -32,7 +40,6 @@ const formatCurrency = (amount: number) =>
 
 const formatDate = (dateString?: string) => {
   if (!dateString) return '-';
-
   return new Date(dateString).toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -74,7 +81,7 @@ export default function InvoiceDetails() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded bg-gray-200" aria-hidden="true" />
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-surface-100" />
         <CardSkeleton />
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <CardSkeleton />
@@ -86,8 +93,9 @@ export default function InvoiceDetails() {
 
   if (!invoice) {
     return (
-      <div className="py-12 text-center">
-        <p className="text-gray-500">Tagihan tidak ditemukan</p>
+      <div className="flex flex-col items-center justify-center py-20">
+        <DocumentTextIcon className="h-12 w-12 text-surface-200" />
+        <p className="mt-3 text-sm text-surface-400">Tagihan tidak ditemukan</p>
       </div>
     );
   }
@@ -110,133 +118,174 @@ export default function InvoiceDetails() {
         ? invoice.amount / invoice.usage
         : 0;
 
+  const s = STATUS_CLASSES[invoice.status] || STATUS_CLASSES.unpaid;
+
   return (
     <div className="space-y-6">
+      {/* Top Navigation */}
       <div className="flex items-center justify-between print:hidden">
         <button
           onClick={() => navigate('/admin/invoices')}
-          className="flex items-center text-sm text-gray-500 hover:text-gray-700"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-surface-500 transition hover:text-brand-600"
         >
-          <ArrowLeftIcon className="mr-2 h-4 w-4" />
+          <ArrowLeftIcon className="h-4 w-4" />
           Kembali ke daftar tagihan
         </button>
-        <button
-          onClick={handlePrint}
-          className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
-        >
-          <PrinterIcon className="mr-2 h-4 w-4" aria-hidden="true" />
+        <button onClick={handlePrint} className="btn-secondary">
+          <PrinterIcon className="h-4 w-4" />
           Cetak
         </button>
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      {/* Header Card */}
+      <div className="card">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2">
-            <p className="text-sm font-medium uppercase tracking-wide text-blue-600">{invoiceTypeLabel}</p>
-            <h1 className="text-2xl font-bold text-gray-900">{invoice.invoiceNumber || '-'}</h1>
-            <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">{invoiceTypeLabel}</p>
+            <h1 className="text-2xl font-bold text-surface-900">{invoice.invoiceNumber || '-'}</h1>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-surface-500">
               <span>{invoice.customerName}</span>
-              <span className="text-gray-300">•</span>
-              <span>Nomor Meter: {invoice.meterNumber || invoice.customer?.meterNumber || '-'}</span>
+              <span className="text-surface-200">•</span>
+              <span className="font-mono text-xs">{invoice.meterNumber || invoice.customer?.meterNumber || '-'}</span>
             </div>
           </div>
-          <span className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-sm font-medium ${STATUS_BADGE_CLASSES[invoice.status]}`}>
+          <span className={`inline-flex w-fit items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset ${s.bg} ${s.text} ${s.ring}`}>
             {STATUS_LABELS[invoice.status]}
           </span>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl bg-gray-50 p-4">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Tanggal terbit</p>
-            <p className="mt-1 font-semibold text-gray-900">{formatDate(invoice.issueDate)}</p>
+        {/* Key Info Row */}
+        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="rounded-xl bg-surface-50 p-3.5">
+            <div className="flex items-center gap-2 text-xs font-medium text-surface-400">
+              <CalendarDaysIcon className="h-3.5 w-3.5" />
+              Tanggal Terbit
+            </div>
+            <p className="mt-1.5 text-sm font-semibold text-surface-900">{formatDate(invoice.issueDate)}</p>
           </div>
-          <div className="rounded-xl bg-gray-50 p-4">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Jatuh tempo</p>
-            <p className="mt-1 font-semibold text-gray-900">{formatDate(invoice.dueDate)}</p>
+          <div className="rounded-xl bg-surface-50 p-3.5">
+            <div className="flex items-center gap-2 text-xs font-medium text-surface-400">
+              <CalendarDaysIcon className="h-3.5 w-3.5" />
+              Jatuh Tempo
+            </div>
+            <p className="mt-1.5 text-sm font-semibold text-surface-900">{formatDate(invoice.dueDate)}</p>
           </div>
-          <div className="rounded-xl bg-gray-50 p-4">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Periode</p>
-            <p className="mt-1 font-semibold text-gray-900">
+          <div className="rounded-xl bg-surface-50 p-3.5">
+            <div className="flex items-center gap-2 text-xs font-medium text-surface-400">
+              <BoltIcon className="h-3.5 w-3.5" />
+              Periode
+            </div>
+            <p className="mt-1.5 text-sm font-semibold text-surface-900">
               {invoice.billingPeriod || (isRegistration ? 'Registrasi' : 'Manual')}
             </p>
           </div>
-          <div className="rounded-xl bg-gray-50 p-4">
-            <p className="text-xs uppercase tracking-wide text-gray-500">Total tagihan</p>
-            <p className="mt-1 font-semibold text-gray-900">{formatCurrency(invoice.totalAmount)}</p>
+          <div className="rounded-xl bg-surface-50 p-3.5">
+            <div className="flex items-center gap-2 text-xs font-medium text-surface-400">
+              <CurrencyDollarIcon className="h-3.5 w-3.5" />
+              Total Tagihan
+            </div>
+            <p className="mt-1.5 text-sm font-bold text-brand-600">{formatCurrency(invoice.totalAmount)}</p>
           </div>
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Informasi pelanggan</h2>
+          {/* Customer Info */}
+          <div className="card">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+              <UserIcon className="h-4 w-4 text-brand-500" />
+              Informasi Pelanggan
+            </h2>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <p className="text-sm text-gray-500">Nama pelanggan</p>
-                <p className="mt-1 font-medium text-gray-900">{invoice.customerName}</p>
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50">
+                  <UserIcon className="h-4 w-4 text-brand-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400">Nama pelanggan</p>
+                  <p className="mt-0.5 text-sm font-medium text-surface-900">{invoice.customerName}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Nomor meter</p>
-                <p className="mt-1 font-medium text-gray-900">{invoice.meterNumber || invoice.customer?.meterNumber || '-'}</p>
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-info-50">
+                  <BoltIcon className="h-4 w-4 text-info-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400">Nomor meter</p>
+                  <p className="mt-0.5 font-mono text-sm font-medium text-surface-900">{invoice.meterNumber || invoice.customer?.meterNumber || '-'}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Alamat</p>
-                <p className="mt-1 font-medium text-gray-900">{invoice.customer?.address || '-'}</p>
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning-50">
+                  <MapPinIcon className="h-4 w-4 text-warning-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400">Alamat</p>
+                  <p className="mt-0.5 text-sm font-medium text-surface-900">{invoice.customer?.address || '-'}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">Kontak</p>
-                <p className="mt-1 font-medium text-gray-900">
-                  {invoice.customer?.phone || invoice.customer?.email || '-'}
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success-50">
+                  <PhoneIcon className="h-4 w-4 text-success-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400">Kontak</p>
+                  <p className="mt-0.5 text-sm font-medium text-surface-900">
+                    {invoice.customer?.phone || invoice.customer?.email || '-'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">
-              {isRegistration ? 'Rincian biaya registrasi' : isManual ? 'Rincian tagihan manual' : 'Detail pemakaian & biaya'}
+          {/* Usage Details */}
+          <div className="card">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+              <BoltIcon className="h-4 w-4 text-info-500" />
+              {isRegistration ? 'Rincian Biaya Registrasi' : isManual ? 'Rincian Tagihan Manual' : 'Detail Pemakaian & Biaya'}
             </h2>
 
             {isRegistration ? (
-              <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div className="mt-4 rounded-xl border border-surface-100 bg-surface-50 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-gray-900">Biaya registrasi pelanggan baru</p>
-                    <p className="mt-1 text-sm text-gray-500">Tagihan satu kali untuk aktivasi pelanggan.</p>
+                    <p className="font-medium text-surface-900">Biaya registrasi pelanggan baru</p>
+                    <p className="mt-1 text-sm text-surface-400">Tagihan satu kali untuk aktivasi pelanggan.</p>
                   </div>
-                  <p className="text-lg font-semibold text-gray-900">{formatCurrency(invoice.totalAmount)}</p>
+                  <p className="text-lg font-bold text-surface-900">{formatCurrency(invoice.totalAmount)}</p>
                 </div>
               </div>
             ) : isManual ? (
               <div className="mt-4 space-y-4">
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="rounded-xl border border-surface-100 bg-surface-50 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-medium text-gray-900">Tagihan manual</p>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <p className="font-medium text-surface-900">Tagihan manual</p>
+                      <p className="mt-1 text-sm text-surface-400">
                         {invoice.notes || 'Tagihan tambahan di luar registrasi dan pemakaian air.'}
                       </p>
                     </div>
-                    <p className="text-lg font-semibold text-gray-900">{formatCurrency(invoice.totalAmount)}</p>
+                    <p className="text-lg font-bold text-surface-900">{formatCurrency(invoice.totalAmount)}</p>
                   </div>
                 </div>
 
                 {invoice.items && invoice.items.length > 0 && (
-                  <div className="overflow-hidden rounded-xl border border-gray-200">
-                    <div className="grid grid-cols-[minmax(0,1fr)_100px_160px_160px] gap-3 bg-gray-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <div className="overflow-hidden rounded-xl border border-surface-100">
+                    <div className="grid grid-cols-[minmax(0,1fr)_80px_140px_140px] gap-3 bg-surface-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-surface-400">
                       <span>Item</span>
                       <span className="text-right">Qty</span>
-                      <span className="text-right">Harga satuan</span>
+                      <span className="text-right">Harga Satuan</span>
                       <span className="text-right">Total</span>
                     </div>
-                    <div className="divide-y divide-gray-200">
+                    <div className="divide-y divide-surface-100">
                       {invoice.items.map((item, index) => (
-                        <div key={`${item.description}-${index}`} className="grid grid-cols-[minmax(0,1fr)_100px_160px_160px] gap-3 px-4 py-3 text-sm">
-                          <span className="text-gray-900">{item.description}</span>
-                          <span className="text-right text-gray-600">{Number(item.quantity).toLocaleString('id-ID')}</span>
-                          <span className="text-right text-gray-600">{formatCurrency(item.unitPrice)}</span>
-                          <span className="text-right font-medium text-gray-900">{formatCurrency(item.amount)}</span>
+                        <div key={`${item.description}-${index}`} className="grid grid-cols-[minmax(0,1fr)_80px_140px_140px] gap-3 px-4 py-3 text-sm">
+                          <span className="text-surface-900">{item.description}</span>
+                          <span className="text-right text-surface-500">{Number(item.quantity).toLocaleString('id-ID')}</span>
+                          <span className="text-right text-surface-500">{formatCurrency(item.unitPrice)}</span>
+                          <span className="text-right font-medium text-surface-900">{formatCurrency(item.amount)}</span>
                         </div>
                       ))}
                     </div>
@@ -245,41 +294,43 @@ export default function InvoiceDetails() {
               </div>
             ) : (
               <>
-                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div className="rounded-xl bg-blue-50 p-4">
-                    <p className="text-sm text-blue-700">Pemakaian air</p>
-                    <p className="mt-1 text-2xl font-bold text-blue-900">{invoice.usage.toLocaleString('id-ID')} m³</p>
+                {/* Usage Stats */}
+                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div className="rounded-xl bg-info-50 p-4">
+                    <p className="text-xs font-medium text-info-600">Pemakaian air</p>
+                    <p className="mt-1 text-2xl font-bold text-info-900">{invoice.usage.toLocaleString('id-ID')} m³</p>
                   </div>
-                  <div className="rounded-xl bg-slate-50 p-4">
-                    <p className="text-sm text-slate-600">Meter akhir - sebelumnya</p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">{meterDiffLabel}</p>
-                    <p className="mt-1 text-xs text-slate-500">
+                  <div className="rounded-xl bg-surface-50 p-4">
+                    <p className="text-xs font-medium text-surface-500">Meter akhir - sebelumnya</p>
+                    <p className="mt-1 font-mono text-2xl font-bold text-surface-900">{meterDiffLabel}</p>
+                    <p className="mt-1 text-xs text-surface-400">
                       Akhir: {typeof invoice.meterEnd === 'number' ? invoice.meterEnd.toLocaleString('id-ID') : '-'} m³
                       {' '}•{' '}
                       Awal: {typeof invoice.meterStart === 'number' ? invoice.meterStart.toLocaleString('id-ID') : '-'} m³
                     </p>
                   </div>
-                  <div className="rounded-xl bg-emerald-50 p-4">
-                    <p className="text-sm text-emerald-700">Tarif air per m³</p>
-                    <p className="mt-1 text-2xl font-bold text-emerald-900">{formatCurrency(estimatedRate)}</p>
+                  <div className="rounded-xl bg-success-50 p-4">
+                    <p className="text-xs font-medium text-success-600">Tarif air per m³</p>
+                    <p className="mt-1 text-2xl font-bold text-success-900">{formatCurrency(estimatedRate)}</p>
                   </div>
                 </div>
 
-                <div className="mt-5 divide-y divide-gray-200 rounded-xl border border-gray-200">
+                {/* Line Items */}
+                <div className="mt-4 divide-y divide-surface-100 rounded-xl border border-surface-100">
                   <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-sm text-gray-600">Biaya air</span>
-                    <span className="font-medium text-gray-900">{formatCurrency(invoice.amount)}</span>
+                    <span className="text-sm text-surface-500">Biaya air</span>
+                    <span className="font-medium text-surface-900">{formatCurrency(invoice.amount)}</span>
                   </div>
                   {(invoice.subscriptionFee || 0) > 0 && (
                     <div className="flex items-center justify-between px-4 py-3">
-                      <span className="text-sm text-gray-600">Abonemen</span>
-                      <span className="font-medium text-gray-900">{formatCurrency(invoice.subscriptionFee || 0)}</span>
+                      <span className="text-sm text-surface-500">Abonemen</span>
+                      <span className="font-medium text-surface-900">{formatCurrency(invoice.subscriptionFee || 0)}</span>
                     </div>
                   )}
                   {(invoice.penaltyAmount || 0) > 0 && (
                     <div className="flex items-center justify-between px-4 py-3">
-                      <span className="text-sm text-red-600">Denda keterlambatan</span>
-                      <span className="font-medium text-red-600">{formatCurrency(invoice.penaltyAmount || 0)}</span>
+                      <span className="text-sm text-danger-600">Denda keterlambatan</span>
+                      <span className="font-medium text-danger-600">{formatCurrency(invoice.penaltyAmount || 0)}</span>
                     </div>
                   )}
                 </div>
@@ -288,44 +339,53 @@ export default function InvoiceDetails() {
           </div>
         </div>
 
+        {/* Right Column */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Ringkasan pembayaran</h2>
+          {/* Payment Summary */}
+          <div className="card">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+              <CurrencyDollarIcon className="h-4 w-4 text-brand-500" />
+              Ringkasan Pembayaran
+            </h2>
             <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Total tagihan</span>
-                <span className="font-medium text-gray-900">{formatCurrency(invoice.totalAmount)}</span>
+                <span className="text-surface-500">Total tagihan</span>
+                <span className="font-medium text-surface-900">{formatCurrency(invoice.totalAmount)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Sudah dibayar</span>
-                <span className="font-medium text-green-600">{formatCurrency(invoice.amountPaid)}</span>
+                <span className="text-surface-500">Sudah dibayar</span>
+                <span className="font-medium text-success-600">{formatCurrency(invoice.amountPaid)}</span>
               </div>
-              <div className="border-t border-gray-200 pt-3">
+              <div className="border-t border-surface-100 pt-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-base font-semibold text-gray-900">Sisa tagihan</span>
-                  <span className="text-2xl font-bold text-red-600">{formatCurrency(invoice.amountDue)}</span>
+                  <span className="text-sm font-semibold text-surface-900">Sisa tagihan</span>
+                  <span className="text-xl font-bold text-danger-600">{formatCurrency(invoice.amountDue)}</span>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Payment History */}
           {invoice.payments && invoice.payments.length > 0 && (
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900">Riwayat pembayaran</h2>
+            <div className="card">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+                <CheckCircleIcon className="h-4 w-4 text-success-500" />
+                Riwayat Pembayaran
+              </h2>
               <div className="mt-4 space-y-3">
                 {invoice.payments.map((payment, index) => (
-                  <div key={index} className="rounded-xl border border-green-200 bg-green-50 p-4">
+                  <div key={index} className="rounded-xl border border-success-100 bg-success-50/50 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium text-gray-900">{formatDate(payment.paymentDate)}</p>
-                        <p className="mt-1 text-sm text-gray-600">
-                          Metode: {payment.paymentMethod || payment.method || '-'}
+                        <p className="text-sm font-medium text-surface-900">{formatDate(payment.paymentDate)}</p>
+                        <p className="mt-0.5 text-xs text-surface-500">
+                          {payment.paymentMethod || payment.method || '-'}
                         </p>
                         {payment.referenceNumber && (
-                          <p className="text-sm text-gray-600">Referensi: {payment.referenceNumber}</p>
+                          <p className="text-xs text-surface-400">Ref: {payment.referenceNumber}</p>
                         )}
                       </div>
-                      <p className="text-base font-semibold text-green-600">{formatCurrency(payment.amount)}</p>
+                      <p className="text-sm font-bold text-success-700">{formatCurrency(payment.amount)}</p>
                     </div>
                   </div>
                 ))}
@@ -333,10 +393,14 @@ export default function InvoiceDetails() {
             </div>
           )}
 
+          {/* Notes */}
           {invoice.notes && (
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900">Catatan</h2>
-              <p className="mt-3 text-sm text-gray-600">{invoice.notes}</p>
+            <div className="card">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+                <DocumentTextIcon className="h-4 w-4 text-surface-400" />
+                Catatan
+              </h2>
+              <p className="mt-3 text-sm text-surface-500">{invoice.notes}</p>
             </div>
           )}
         </div>

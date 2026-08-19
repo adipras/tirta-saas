@@ -4,6 +4,10 @@ import {
   ArrowLeftIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
+  CurrencyDollarIcon,
+  CalendarDaysIcon,
+  CreditCardIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { paymentService } from '../../services/paymentService';
 import customerService from '../../services/customerService';
@@ -51,14 +55,8 @@ const getErrorMessage = (error: unknown, fallback: string) => {
 };
 
 const getInvoiceTypeLabel = (invoice: OutstandingInvoice) => {
-  if (invoice.type === 'manual') {
-    return 'Tagihan manual';
-  }
-
-  if (invoice.type === 'registration') {
-    return 'Biaya registrasi';
-  }
-
+  if (invoice.type === 'manual') return 'Tagihan manual';
+  if (invoice.type === 'registration') return 'Biaya registrasi';
   return invoice.usageMonth || 'Tagihan air bulanan';
 };
 
@@ -73,7 +71,7 @@ const PaymentForm: React.FC = () => {
   const [outstandingTagihan, setOutstandingTagihan] = useState<OutstandingInvoice[]>([]);
   const [selectedTagihan, setSelectedTagihan] = useState<Set<string>>(new Set());
   const [paymentAmounts, setPaymentAmounts] = useState<Record<string, number>>({});
-  
+
   const [formData, setFormData] = useState<PaymentFormData>({
     invoiceId: '',
     amount: 0,
@@ -88,8 +86,6 @@ const PaymentForm: React.FC = () => {
   const fetchPelanggan = useCallback(async () => {
     try {
       const response = await customerService.getPelanggan(1, 1000);
-      // Allow payment for all customers (including inactive)
-      // Because registration fee payment is required to activate customer
       setPelanggan(response.data);
     } catch { /* ignore */ }
   }, []);
@@ -148,11 +144,7 @@ const PaymentForm: React.FC = () => {
     setPaymentAmounts(newPaymentAmounts);
 
     if (errors.invoices || errors.amounts) {
-      setErrors((prev) => ({
-        ...prev,
-        invoices: '',
-        amounts: '',
-      }));
+      setErrors((prev) => ({ ...prev, invoices: '', amounts: '' }));
     }
   };
 
@@ -161,7 +153,6 @@ const PaymentForm: React.FC = () => {
       ...prev,
       [invoice.id]: Math.min(Math.max(value, 0), invoice.remainingAmount),
     }));
-
     if (errors.amounts) {
       setErrors((prev) => ({ ...prev, amounts: '' }));
     }
@@ -173,24 +164,15 @@ const PaymentForm: React.FC = () => {
       acc[invoice.id] = invoice.remainingAmount;
       return acc;
     }, {});
-
     setSelectedTagihan(nextSelected);
     setPaymentAmounts(nextPaymentAmounts);
-    setErrors((prev) => ({
-      ...prev,
-      invoices: '',
-      amounts: '',
-    }));
+    setErrors((prev) => ({ ...prev, invoices: '', amounts: '' }));
   };
 
   const handleClearSelection = () => {
     setSelectedTagihan(new Set());
     setPaymentAmounts({});
-    setErrors((prev) => ({
-      ...prev,
-      invoices: '',
-      amounts: '',
-    }));
+    setErrors((prev) => ({ ...prev, invoices: '', amounts: '' }));
   };
 
   const handleInputChange = (
@@ -201,7 +183,6 @@ const PaymentForm: React.FC = () => {
       ...prev,
       [name]: name === 'amount' ? Number(value) : value,
     }));
-    
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -250,15 +231,12 @@ const PaymentForm: React.FC = () => {
     if (!selectedCustomerId) {
       newErrors.customerId = 'Pilih pelanggan terlebih dahulu';
     }
-
     if (selectedTagihan.size === 0) {
       newErrors.invoices = 'Pilih minimal satu tagihan';
     }
-
     if (!formData.paymentDate) {
       newErrors.paymentDate = 'Tanggal pembayaran wajib diisi';
     }
-
     if (!formData.paymentMethod) {
       newErrors.paymentMethod = 'Metode pembayaran wajib dipilih';
     }
@@ -278,15 +256,10 @@ const PaymentForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
       setLoading(true);
-      
-      // Process each selected invoice
       for (const invoiceId of Array.from(selectedTagihan)) {
         const invoice = outstandingTagihan.find(inv => inv.id === invoiceId);
         if (invoice) {
@@ -302,7 +275,6 @@ const PaymentForm: React.FC = () => {
           await paymentService.createPayment(paymentData);
         }
       }
-
       toast.success(
         partialInvoiceCount > 0
           ? `Pembayaran tersimpan. ${partialInvoiceCount} tagihan dibayar parsial.`
@@ -318,13 +290,15 @@ const PaymentForm: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
+      {/* Top Navigation */}
       <button
         onClick={() => navigate('/admin/payments')}
-        className="flex items-center text-sm text-gray-500 hover:text-gray-700"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-surface-500 transition hover:text-brand-600"
       >
-        <ArrowLeftIcon className="mr-2 h-4 w-4" />
+        <ArrowLeftIcon className="h-4 w-4" />
         Kembali ke Pembayaran
       </button>
+
       <PageHeader
         title="Catat Pembayaran"
         subtitle="Admin bisa mencatat pembayaran penuh atau parsial untuk satu atau beberapa tagihan sekaligus."
@@ -332,35 +306,46 @@ const PaymentForm: React.FC = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Selection */}
-        <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-          <CustomerSearchSelect
-            customers={customers}
-            value={selectedCustomerId}
-            onChange={handleCustomerChange}
-            disabled={loading}
-          />
-          {errors.customerId && (
-            <p className="text-red-500 text-sm mt-1">{errors.customerId}</p>
-          )}
+        <div className="card">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+            <svg className="h-4 w-4 text-brand-500" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+            Pilih Pelanggan
+          </h2>
+          <div className="mt-3">
+            <CustomerSearchSelect
+              customers={customers}
+              value={selectedCustomerId}
+              onChange={handleCustomerChange}
+              disabled={loading}
+            />
+            {errors.customerId && (
+              <p className="mt-1.5 text-sm text-danger-600">{errors.customerId}</p>
+            )}
+          </div>
         </div>
 
-        {/* Outstanding Tagihan Cards */}
+        {/* Outstanding Invoices */}
         {selectedCustomerId && (
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-            <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="card">
+            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Tagihan belum lunas</h2>
-                <p className="text-sm text-gray-500">
-                  Pilih tagihan, lalu sesuaikan nominal jika ingin mencatat pembayaran parsial.
+                <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+                  <DocumentTextIcon className="h-4 w-4 text-warning-500" />
+                  Tagihan Belum Lunas
+                </h2>
+                <p className="mt-0.5 text-xs text-surface-400">
+                  Pilih tagihan, lalu sesuaikan nominal untuk pembayaran parsial.
                 </p>
               </div>
               {outstandingTagihan.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={handleSelectAllInvoices}
                     disabled={loading || loadingInvoices}
-                    className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100 disabled:opacity-50"
                   >
                     Pilih semua
                   </button>
@@ -368,49 +353,60 @@ const PaymentForm: React.FC = () => {
                     type="button"
                     onClick={handleClearSelection}
                     disabled={loading || loadingInvoices || selectedTagihan.size === 0}
-                    className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-lg border border-surface-200 px-3 py-1.5 text-xs font-medium text-surface-600 transition hover:bg-surface-50 disabled:opacity-50"
                   >
-                    Kosongkan pilihan
+                    Kosongkan
                   </button>
                 </div>
               )}
             </div>
 
             {loadingInvoices && (
-              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
-                Memuat tagihan pelanggan...
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-surface-200 bg-surface-50 py-10">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-200 border-t-brand-600" />
+                <p className="mt-2 text-sm text-surface-400">Memuat tagihan pelanggan...</p>
               </div>
             )}
 
             {!loadingInvoices && outstandingTagihan.length > 0 && (
               <>
-                <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-xl bg-slate-50 p-4">
-                    <p className="text-sm text-slate-500">Jumlah tagihan aktif</p>
-                    <p className="mt-1 text-2xl font-semibold text-slate-900">{outstandingTagihan.length}</p>
+                {/* Summary Stats */}
+                <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl bg-surface-50 p-3.5">
+                    <div className="flex items-center gap-2 text-xs font-medium text-surface-400">
+                      <DocumentTextIcon className="h-3.5 w-3.5" />
+                      Tagihan Aktif
+                    </div>
+                    <p className="mt-1 text-xl font-bold text-surface-900">{outstandingTagihan.length}</p>
                   </div>
-                  <div className="rounded-xl bg-amber-50 p-4">
-                    <p className="text-sm text-amber-700">Total sisa tagihan</p>
-                    <p className="mt-1 text-2xl font-semibold text-amber-900">
-                      {formatCurrency(
-                        outstandingTagihan.reduce((sum, invoice) => sum + invoice.remainingAmount, 0)
-                      )}
+                  <div className="rounded-xl bg-warning-50 p-3.5">
+                    <div className="flex items-center gap-2 text-xs font-medium text-warning-600">
+                      <CurrencyDollarIcon className="h-3.5 w-3.5" />
+                      Total Sisa
+                    </div>
+                    <p className="mt-1 text-xl font-bold text-warning-700">
+                      {formatCurrency(outstandingTagihan.reduce((sum, inv) => sum + inv.remainingAmount, 0))}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-blue-50 p-4">
-                    <p className="text-sm text-blue-700">Dipilih untuk dibayar</p>
-                    <p className="mt-1 text-2xl font-semibold text-blue-900">{selectedTagihan.size}</p>
+                  <div className="rounded-xl bg-brand-50 p-3.5">
+                    <div className="flex items-center gap-2 text-xs font-medium text-brand-600">
+                      <CheckCircleIcon className="h-3.5 w-3.5" />
+                      Dipilih
+                    </div>
+                    <p className="mt-1 text-xl font-bold text-brand-700">{selectedTagihan.size}</p>
                   </div>
                 </div>
 
+                {/* Validation Errors */}
                 {(errors.invoices || errors.amounts) && (
-                  <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div className="mb-4 flex items-start gap-3 rounded-xl border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
                     <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
                     <div>{errors.invoices || errors.amounts}</div>
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                {/* Invoice Cards */}
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                   {outstandingTagihan.map((invoice) => {
                     const isSelected = selectedTagihan.has(invoice.id);
                     const paymentAmount = paymentAmounts[invoice.id] ?? 0;
@@ -430,33 +426,31 @@ const PaymentForm: React.FC = () => {
                         }}
                         role="button"
                         tabIndex={0}
-                        className={`relative rounded-2xl border p-5 text-left transition-all ${
+                        className={`relative rounded-xl border p-4 text-left transition-all duration-150 ${
                           isSelected
-                            ? 'border-blue-500 bg-blue-50 shadow-sm ring-2 ring-blue-100'
-                            : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                            ? 'border-brand-300 bg-brand-50/50 ring-2 ring-brand-100'
+                            : 'border-surface-100 bg-white hover:border-surface-200 hover:shadow-sm'
                         }`}
                       >
                         {isSelected && (
-                          <div className="absolute right-4 top-4">
-                            <CheckCircleIcon className="h-6 w-6 text-blue-600" />
+                          <div className="absolute right-3 top-3">
+                            <CheckCircleIcon className="h-5 w-5 text-brand-600" />
                           </div>
                         )}
 
-                        <div className="space-y-4">
-                          <div className="pr-8">
+                        <div className="space-y-3">
+                          <div className="pr-7">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-semibold text-gray-900">
+                              <span className="font-mono text-sm font-semibold text-surface-900">
                                 {invoice.invoiceNumber || `INV-${invoice.id}`}
-                              </p>
-                              <span
-                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                  invoice.status === 'overdue'
-                                    ? 'bg-red-100 text-red-700'
-                                    : invoice.status === 'partial'
-                                      ? 'bg-blue-100 text-blue-700'
-                                      : 'bg-yellow-100 text-yellow-700'
-                                }`}
-                              >
+                              </span>
+                              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
+                                invoice.status === 'overdue'
+                                  ? 'bg-danger-50 text-danger-700 ring-danger-200'
+                                  : invoice.status === 'partial'
+                                    ? 'bg-info-50 text-info-700 ring-info-200'
+                                    : 'bg-warning-50 text-warning-700 ring-warning-200'
+                              }`}>
                                 {invoice.status === 'overdue'
                                   ? 'Terlambat'
                                   : invoice.status === 'partial'
@@ -464,7 +458,7 @@ const PaymentForm: React.FC = () => {
                                     : 'Belum lunas'}
                               </span>
                             </div>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-xs text-surface-400">
                               {getInvoiceTypeLabel(invoice)} • Jatuh tempo{' '}
                               {invoice.dueDate
                                 ? new Date(invoice.dueDate).toLocaleDateString('id-ID')
@@ -472,39 +466,39 @@ const PaymentForm: React.FC = () => {
                             </p>
                           </div>
 
-                          <div className="grid grid-cols-1 gap-3 rounded-xl bg-white/80 p-4 sm:grid-cols-3">
+                          <div className="grid grid-cols-3 gap-2 rounded-lg bg-surface-50/80 p-3">
                             <div>
-                              <p className="text-xs uppercase tracking-wide text-gray-500">Total</p>
-                              <p className="mt-1 font-semibold text-gray-900">{formatCurrency(invoice.totalAmount)}</p>
+                              <p className="text-[10px] uppercase tracking-wider text-surface-400">Total</p>
+                              <p className="mt-0.5 text-sm font-semibold text-surface-900">{formatCurrency(invoice.totalAmount)}</p>
                             </div>
                             <div>
-                              <p className="text-xs uppercase tracking-wide text-gray-500">Sudah dibayar</p>
-                              <p className="mt-1 font-semibold text-emerald-600">{formatCurrency(invoice.paidAmount)}</p>
+                              <p className="text-[10px] uppercase tracking-wider text-surface-400">Dibayar</p>
+                              <p className="mt-0.5 text-sm font-semibold text-success-600">{formatCurrency(invoice.paidAmount)}</p>
                             </div>
                             <div>
-                              <p className="text-xs uppercase tracking-wide text-gray-500">Sisa tagihan</p>
-                              <p className="mt-1 font-semibold text-rose-600">{formatCurrency(invoice.remainingAmount)}</p>
+                              <p className="text-[10px] uppercase tracking-wider text-surface-400">Sisa</p>
+                              <p className="mt-0.5 text-sm font-semibold text-danger-600">{formatCurrency(invoice.remainingAmount)}</p>
                             </div>
                           </div>
 
                           {isSelected ? (
                             <div
-                              className="space-y-3 rounded-xl border border-blue-200 bg-white p-4"
+                              className="space-y-3 rounded-lg border border-brand-200 bg-white p-3"
                               onClick={(event) => event.stopPropagation()}
                             >
-                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700">
+                                  <label className="text-xs font-medium text-surface-700">
                                     Nominal dibayarkan
                                   </label>
-                                  <p className="mt-1 text-xs text-gray-500">
-                                    Isi kurang dari sisa tagihan untuk pembayaran parsial.
+                                  <p className="mt-0.5 text-[11px] text-surface-400">
+                                    Isi kurang dari sisa untuk pembayaran parsial.
                                   </p>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => setInvoicePaymentAmount(invoice, invoice.remainingAmount)}
-                                  className="rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50"
+                                  className="rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
                                 >
                                   Bayar penuh
                                 </button>
@@ -516,21 +510,21 @@ const PaymentForm: React.FC = () => {
                                 max={invoice.remainingAmount}
                                 min={0}
                                 disabled={loading}
-                                placeholder="Masukkan nominal pembayaran"
+                                placeholder="Masukkan nominal"
                               />
 
-                              <div className="flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
-                                <span className={isPartialPayment ? 'font-medium text-amber-700' : 'text-emerald-700'}>
-                                  {isPartialPayment ? 'Pembayaran parsial' : 'Tagihan akan lunas'}
+                              <div className="flex items-center justify-between text-xs">
+                                <span className={isPartialPayment ? 'font-medium text-warning-700' : 'text-success-700'}>
+                                  {isPartialPayment ? '⚠ Parsial' : '✓ Akan lunas'}
                                 </span>
-                                <span className="text-gray-600">
-                                  Sisa setelah bayar: <strong>{formatCurrency(remainingAfterPayment)}</strong>
+                                <span className="text-surface-400">
+                                  Sisa: <strong className="text-surface-600">{formatCurrency(remainingAfterPayment)}</strong>
                                 </span>
                               </div>
                             </div>
                           ) : (
-                            <div className="rounded-xl border border-dashed border-gray-200 px-4 py-3 text-sm text-gray-500">
-                              Klik kartu ini untuk memilih tagihan. Nominal otomatis diisi penuh dan bisa diubah jadi parsial.
+                            <div className="rounded-lg border border-dashed border-surface-200 px-3 py-2.5 text-center text-xs text-surface-400">
+                              Klik untuk memilih tagihan ini
                             </div>
                           )}
                         </div>
@@ -539,30 +533,31 @@ const PaymentForm: React.FC = () => {
                   })}
                 </div>
 
+                {/* Selection Summary */}
                 {selectedTagihan.size > 0 && (
-                  <div className="mt-6 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-5">
-                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+                  <div className="mt-4 rounded-xl border border-brand-200 bg-gradient-to-r from-brand-50/80 to-info-50/50 p-4">
+                    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                       <div>
-                        <p className="text-sm text-gray-600">Tagihan dipilih</p>
-                        <p className="mt-1 text-2xl font-semibold text-gray-900">{selectedTagihan.size}</p>
+                        <p className="text-xs text-surface-500">Tagihan dipilih</p>
+                        <p className="mt-0.5 text-xl font-bold text-surface-900">{selectedTagihan.size}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Total sisa tagihan terpilih</p>
-                        <p className="mt-1 text-xl font-semibold text-gray-900">{formatCurrency(selectedInvoicesTotal)}</p>
+                        <p className="text-xs text-surface-500">Total sisa terpilih</p>
+                        <p className="mt-0.5 text-lg font-semibold text-surface-900">{formatCurrency(selectedInvoicesTotal)}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Total pembayaran dicatat</p>
-                        <p className="mt-1 text-xl font-semibold text-blue-900">{formatCurrency(totalPaymentAmount)}</p>
+                        <p className="text-xs text-surface-500">Dicatat dibayar</p>
+                        <p className="mt-0.5 text-lg font-semibold text-brand-700">{formatCurrency(totalPaymentAmount)}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600">Sisa setelah pembayaran</p>
-                        <p className="mt-1 text-xl font-semibold text-amber-700">
+                        <p className="text-xs text-surface-500">Sisa setelah bayar</p>
+                        <p className="mt-0.5 text-lg font-semibold text-warning-700">
                           {formatCurrency(totalRemainingAfterPayment)}
                         </p>
                       </div>
                     </div>
                     {partialInvoiceCount > 0 && (
-                      <p className="mt-4 text-sm text-amber-700">
+                      <p className="mt-3 text-xs text-warning-700">
                         {partialInvoiceCount} tagihan akan tetap berstatus parsial setelah pembayaran ini.
                       </p>
                     )}
@@ -573,28 +568,33 @@ const PaymentForm: React.FC = () => {
           </div>
         )}
 
+        {/* Empty State */}
         {selectedCustomerId && !loadingInvoices && outstandingTagihan.length === 0 && (
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-            <div className="py-8 text-center">
-              <p className="text-gray-500">Tidak ada tagihan aktif untuk pelanggan ini.</p>
+          <div className="card">
+            <div className="flex flex-col items-center justify-center py-10">
+              <DocumentTextIcon className="h-10 w-10 text-surface-200" />
+              <p className="mt-3 text-sm font-medium text-surface-500">Tidak ada tagihan aktif</p>
+              <p className="mt-1 text-xs text-surface-400">Pelanggan ini tidak memiliki tagihan yang belum lunas.</p>
             </div>
           </div>
         )}
 
         {/* Payment Details */}
         {selectedTagihan.size > 0 && (
-          <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-            <h2 className="mb-2 text-lg font-medium text-gray-900">
+          <div className="card">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+              <CreditCardIcon className="h-4 w-4 text-brand-500" />
               Detail Pembayaran
             </h2>
-            <p className="mb-4 text-sm text-gray-500">
-              Informasi di bawah ini akan diterapkan ke semua tagihan yang sedang dipilih.
+            <p className="mt-0.5 text-xs text-surface-400">
+              Informasi ini akan diterapkan ke semua tagihan yang dipilih.
             </p>
-            
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tanggal Pembayaran <span className="text-red-500">*</span>
+                <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-surface-700">
+                  <CalendarDaysIcon className="h-3.5 w-3.5 text-surface-400" />
+                  Tanggal Pembayaran <span className="text-danger-500">*</span>
                 </label>
                 <input
                   type="date"
@@ -602,40 +602,36 @@ const PaymentForm: React.FC = () => {
                   value={formData.paymentDate}
                   onChange={handleInputChange}
                   max={new Date().toISOString().split('T')[0]}
-                  className={`w-full border rounded-md px-3 py-2 ${
-                    errors.paymentDate ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`input-base ${errors.paymentDate ? '!border-danger-300 !ring-danger-100' : ''}`}
                 />
                 {errors.paymentDate && (
-                  <p className="text-red-500 text-sm mt-1">{errors.paymentDate}</p>
+                  <p className="mt-1 text-xs text-danger-600">{errors.paymentDate}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Metode Pembayaran <span className="text-red-500">*</span>
+                <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-surface-700">
+                  <CreditCardIcon className="h-3.5 w-3.5 text-surface-400" />
+                  Metode Pembayaran <span className="text-danger-500">*</span>
                 </label>
                 <select
                   name="paymentMethod"
                   value={formData.paymentMethod}
                   onChange={handleInputChange}
-                  className={`w-full border rounded-md px-3 py-2 ${
-                    errors.paymentMethod ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`input-base ${errors.paymentMethod ? '!border-danger-300 !ring-danger-100' : ''}`}
                 >
                   {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
+                    <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
                 {errors.paymentMethod && (
-                  <p className="text-red-500 text-sm mt-1">{errors.paymentMethod}</p>
+                  <p className="mt-1 text-xs text-danger-600">{errors.paymentMethod}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-surface-700">
+                  <DocumentTextIcon className="h-3.5 w-3.5 text-surface-400" />
                   Nomor Referensi
                 </label>
                 <input
@@ -644,21 +640,24 @@ const PaymentForm: React.FC = () => {
                   value={formData.referenceNumber}
                   onChange={handleInputChange}
                   placeholder="Contoh: nomor bukti transfer"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="input-base"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-surface-700">
+                  <svg className="h-3.5 w-3.5 text-surface-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.282 48.282 0 005.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                  </svg>
                   Catatan
                 </label>
                 <textarea
                   name="notes"
                   value={formData.notes}
                   onChange={handleInputChange}
-                  rows={3}
-                  placeholder="Tambahkan catatan jika diperlukan..."
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  rows={2}
+                  placeholder="Catatan jika diperlukan..."
+                  className="input-base resize-none"
                 />
               </div>
             </div>
@@ -671,17 +670,27 @@ const PaymentForm: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/admin/payments')}
-              className="w-full rounded-md border border-gray-300 px-6 py-2 text-gray-700 hover:bg-gray-50 sm:w-auto"
+              className="btn-secondary"
               disabled={loading}
             >
               Batal
             </button>
             <button
               type="submit"
-              className="w-full rounded-md bg-blue-600 px-6 py-2 text-white hover:bg-blue-700 disabled:bg-gray-400 sm:w-auto"
+              className="btn-primary"
               disabled={loading}
             >
-              {loading ? 'Menyimpan...' : `Catat Pembayaran ${formatCurrency(totalPaymentAmount)}`}
+              {loading ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <CurrencyDollarIcon className="h-4 w-4" />
+                  Catat Pembayaran {formatCurrency(totalPaymentAmount)}
+                </>
+              )}
             </button>
           </div>
         )}

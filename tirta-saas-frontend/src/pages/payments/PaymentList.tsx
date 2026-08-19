@@ -4,9 +4,13 @@ import {
   ArrowPathIcon,
   DocumentTextIcon,
   EyeIcon,
-  FunnelIcon,
   NoSymbolIcon,
   PlusIcon,
+  MagnifyingGlassIcon,
+  CurrencyDollarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { DataTable, type Column } from '../../components/DataTable';
 import { paymentService, type PaymentFilters } from '../../services/paymentService';
@@ -19,6 +23,13 @@ import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
 } from '../../types/payment';
+
+const PaymentStatusClasses: Record<PaymentStatus, { bg: string; text: string; ring: string }> = {
+  completed: { bg: 'bg-success-50', text: 'text-success-700', ring: 'ring-success-200' },
+  pending: { bg: 'bg-warning-50', text: 'text-warning-700', ring: 'ring-warning-200' },
+  failed: { bg: 'bg-danger-50', text: 'text-danger-700', ring: 'ring-danger-200' },
+  voided: { bg: 'bg-surface-50', text: 'text-surface-500', ring: 'ring-surface-200' },
+};
 
 const PaymentList: React.FC = () => {
   const navigate = useNavigate();
@@ -107,33 +118,24 @@ const PaymentList: React.FC = () => {
     }
   };
 
-  const getStatusBadgeClass = (status: PaymentStatus) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'failed':
-        return 'bg-red-100 text-red-800';
-      case 'voided':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const columns: Column<Payment>[] = [
     {
       key: 'paymentDate',
       label: 'Tanggal',
       sortable: true,
-      render: (_value: unknown, payment: Payment) => new Date(payment.paymentDate).toLocaleDateString('id-ID'),
+      render: (_value: unknown, payment: Payment) => (
+        <span className="text-sm text-surface-600">
+          {new Date(payment.paymentDate).toLocaleDateString('id-ID')}
+        </span>
+      ),
     },
     {
       key: 'customerName',
       label: 'Pelanggan',
       sortable: true,
-      render: (_value: unknown, payment: Payment) => payment.customerName || '-',
+      render: (_value: unknown, payment: Payment) => (
+        <span className="font-medium text-surface-900">{payment.customerName || '-'}</span>
+      ),
     },
     {
       key: 'invoiceNumber',
@@ -142,7 +144,7 @@ const PaymentList: React.FC = () => {
       render: (_value: unknown, payment: Payment) => (
         <button
           onClick={() => handleViewInvoice(payment)}
-          className="text-blue-600 hover:text-blue-800 hover:underline"
+          className="font-mono text-sm font-medium text-brand-600 transition hover:text-brand-700"
         >
           {payment.invoiceNumber || '-'}
         </button>
@@ -152,37 +154,46 @@ const PaymentList: React.FC = () => {
       key: 'amount',
       label: 'Nominal',
       sortable: true,
-      render: (_value: unknown, payment: Payment) => `Rp ${payment.amount.toLocaleString('id-ID')}`,
+      render: (_value: unknown, payment: Payment) => (
+        <span className="font-semibold text-surface-900">Rp {payment.amount.toLocaleString('id-ID')}</span>
+      ),
     },
     {
       key: 'paymentMethod',
       label: 'Metode',
       sortable: true,
-      render: (_value: unknown, payment: Payment) => PAYMENT_METHOD_LABELS[payment.paymentMethod] || payment.paymentMethod,
+      render: (_value: unknown, payment: Payment) => (
+        <span className="text-sm text-surface-500">
+          {PAYMENT_METHOD_LABELS[payment.paymentMethod] || payment.paymentMethod}
+        </span>
+      ),
     },
     {
       key: 'referenceNumber',
       label: 'Referensi',
       hideOnMobile: true,
-      render: (_value: unknown, payment: Payment) => payment.referenceNumber || '-',
+      render: (_value: unknown, payment: Payment) => (
+        <span className="font-mono text-xs text-surface-400">{payment.referenceNumber || '-'}</span>
+      ),
     },
     {
       key: 'status',
       label: 'Status',
       sortable: true,
-      render: (_value: unknown, payment: Payment) => (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeClass(payment.status)}`}
-        >
-          {PAYMENT_STATUS_LABELS[payment.status]}
-        </span>
-      ),
+      render: (_value: unknown, payment: Payment) => {
+        const s = PaymentStatusClasses[payment.status] || PaymentStatusClasses.pending;
+        return (
+          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${s.bg} ${s.text} ${s.ring}`}>
+            {PAYMENT_STATUS_LABELS[payment.status]}
+          </span>
+        );
+      },
     },
     {
       key: 'actions',
-      label: 'Aksi',
+      label: '',
       render: (_value: unknown, payment: Payment) => (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-1.5">
           <ActionIconButton
             icon={DocumentTextIcon}
             label="Lihat struk pembayaran"
@@ -223,150 +234,120 @@ const PaymentList: React.FC = () => {
       <PageHeader
         title="Pembayaran"
         subtitle="Kelola transaksi pembayaran dengan ringkasan singkat, filter yang rapi, dan aksi yang mudah dijangkau di mobile."
+        actions={
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
+            <button onClick={handleExport} className="btn-secondary">
+              <ArrowPathIcon className="h-4 w-4" />
+              Ekspor
+            </button>
+            <button onClick={() => navigate('/admin/payments/new')} className="btn-primary">
+              <PlusIcon className="h-4 w-4" />
+              Catat Pembayaran
+            </button>
+          </div>
+        }
       />
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardStatCard
-          title="Transaksi tampil"
+          title="Transaksi Tampil"
           value={loading ? '...' : payments.length.toLocaleString('id-ID')}
-          helper={hasActiveFilters ? 'Daftar sedang difilter' : 'Semua item pada halaman'}
-          subtitle="Jumlah pembayaran yang sedang tampil pada daftar saat ini."
+          subtitle={hasActiveFilters ? 'Difilter' : 'Semua item pada halaman'}
           icon={DocumentTextIcon}
           tone="blue"
         />
         <DashboardStatCard
-          title="Pembayaran selesai"
+          title="Selesai"
           value={loading ? '...' : completedCount.toLocaleString('id-ID')}
-          subtitle="Transaksi yang sudah berhasil diselesaikan dan tercatat."
-          icon={EyeIcon}
+          subtitle="Transaksi berhasil diselesaikan"
+          icon={CheckCircleIcon}
           tone="green"
         />
         <DashboardStatCard
-          title="Menunggu proses"
+          title="Menunggu"
           value={loading ? '...' : pendingCount.toLocaleString('id-ID')}
-          subtitle="Membantu memantau pembayaran yang masih perlu tindakan lanjutan."
-          icon={FunnelIcon}
+          subtitle="Perlu tindakan lanjutan"
+          icon={ClockIcon}
           tone="yellow"
         />
         <DashboardStatCard
-          title="Nominal pada daftar"
+          title="Nominal"
           value={loading ? '...' : `Rp ${totalNominal.toLocaleString('id-ID')}`}
-          subtitle="Akumulasi nominal pembayaran yang tampil pada daftar aktif."
-          icon={PlusIcon}
+          subtitle="Total pada daftar aktif"
+          icon={CurrencyDollarIcon}
           tone="purple"
         />
       </div>
 
-      <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      {/* Filters */}
+      <div className="card">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Filter pembayaran</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Saring transaksi berdasarkan metode, status, tanggal, atau kata kunci pencarian.
+            <h3 className="text-sm font-semibold text-surface-900">Filter Pembayaran</h3>
+            <p className="mt-0.5 text-xs text-surface-400">
+              Saring berdasarkan metode, status, tanggal, atau kata kunci pencarian.
             </p>
           </div>
           {hasActiveFilters && (
-            <span className="inline-flex w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-              Filter aktif
-            </span>
+            <button
+              onClick={() => { setFilters({}); setSearchTerm(''); }}
+              className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
+            >
+              <XMarkIcon className="h-3 w-3" />
+              Reset
+            </button>
           )}
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Metode Pembayaran
-            </label>
-            <select
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={filters.paymentMethod || ''}
-              onChange={(e) => handleFilterChange('paymentMethod', e.target.value)}
-            >
-              <option value="">Semua metode</option>
-              {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={filters.status || ''}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-            >
-              <option value="">Semua status</option>
-              {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tanggal Mulai
-            </label>
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={filters.dateFrom || ''}
-              onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tanggal Selesai
-            </label>
-            <input
-              type="date"
-              className="w-full border border-gray-300 rounded-md px-3 py-2"
-              value={filters.dateTo || ''}
-              onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 flex justify-end">
-          <button
-            onClick={() => setFilters({})}
-            className="w-full rounded-md bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200 sm:w-auto"
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <select
+            value={filters.paymentMethod || ''}
+            onChange={(e) => handleFilterChange('paymentMethod', e.target.value)}
+            className="input-base"
           >
-            Reset Filter
-          </button>
+            <option value="">Semua metode</option>
+            {Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+          <select
+            value={filters.status || ''}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+            className="input-base"
+          >
+            <option value="">Semua status</option>
+            {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={filters.dateFrom || ''}
+            onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+            className="input-base"
+          />
+          <input
+            type="date"
+            value={filters.dateTo || ''}
+            onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+            className="input-base"
+          />
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="flex flex-col gap-3 border-b p-4 lg:flex-row lg:items-center lg:justify-between">
-          <input
-            type="text"
-            placeholder="Cari pembayaran..."
-            className="w-full rounded-md border border-gray-300 px-4 py-2 lg:max-w-md"
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              onClick={handleExport}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gray-600 px-4 py-2 text-white hover:bg-gray-700 sm:w-auto"
-            >
-              <ArrowPathIcon className="h-4 w-4" />
-              Ekspor
-            </button>
-            <button
-              onClick={() => navigate('/admin/payments/new')}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Catat Pembayaran
-            </button>
+      {/* Table */}
+      <div className="card p-0">
+        {/* Search Bar */}
+        <div className="border-b border-surface-100 px-5 py-3">
+          <div className="relative max-w-md">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-300" />
+            <input
+              type="text"
+              placeholder="Cari pembayaran..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="input-base pl-9"
+            />
           </div>
         </div>
 
@@ -380,22 +361,22 @@ const PaymentList: React.FC = () => {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-gray-600">
+          <div className="flex items-center justify-between border-t border-surface-100 px-5 py-3">
+            <span className="text-sm text-surface-400">
               Halaman {currentPage} dari {totalPages}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
+            </span>
+            <div className="flex gap-2">
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="rounded border px-3 py-1 disabled:opacity-50"
+                className="btn-secondary !px-3 !py-1.5 text-xs disabled:opacity-40"
               >
                 Sebelumnya
               </button>
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages}
-                className="rounded border px-3 py-1 disabled:opacity-50"
+                className="btn-secondary !px-3 !py-1.5 text-xs disabled:opacity-40"
               >
                 Berikutnya
               </button>
