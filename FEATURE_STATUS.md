@@ -2,7 +2,7 @@
 
 _Dokumen ini menggambarkan kondisi aktual repo saat ini dan mengarah ke kesiapan produksi, bukan sekadar checklist MVP._
 
-**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 13 Agustus 2026
+**Tanggal audit repo:** 23 Mei 2026 | **Terakhir diperbarui:** 19 Agustus 2026
 
 ---
 
@@ -15,6 +15,134 @@ Tirta SaaS saat ini **sudah melewati tahap MVP fungsional** untuk core billing P
 - memperkuat operasi produksi: security, monitoring, backup, deploy, dan auditability
 
 Dokumen ini juga menjadi **single source of truth** untuk status mobile native Android. Detail yang sebelumnya tersebar di `mobile-native-plan.md` sudah digabung ke sini agar tidak terjadi redundansi catatan dan konflik prioritas pengerjaan.
+
+---
+
+## 🎨 Status UI/UX Redesign (v1.4.0)
+
+**Tanggal:** 19 Agustus 2026 | **Gaya:** Modern SaaS (inspirasi Supabase/Stripe)
+
+### Design System baru
+- ✅ Tailwind config: palette brand (indigo), surface, success/warning/danger/info dengan shade 50–900
+- ✅ Shadow modern: `shadow-card`, `shadow-elevated`, `shadow-dropdown`, `shadow-modal`
+- ✅ Border radius baru: `rounded-4xl`, `rounded-5xl`
+- ✅ Animasi: `fade-in`, `slide-in-up/down`, `scale-in`
+- ✅ Global CSS classes: `.card`, `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.input-base`, `.badge-*`, `.table-container`
+- ✅ Inter font sebagai default
+
+### Komponen inti (sudah di-upgrade)
+- ✅ Sidebar (admin + customer) — logo modern, animated dropdown, active state `bg-brand-50`
+- ✅ Header (admin + customer) — glass blur effect, avatar user, clean dropdown
+- ✅ PageHeader — breadcrumbs support, responsive layout
+- ✅ DashboardStatCard — icon badge dengan ring, hover effect
+- ✅ QuickActionCard — icon badge, hover scale
+- ✅ DataTable — loading skeleton, search input, mobile card view, empty state, pagination
+- ✅ Modal & ConfirmModal — backdrop blur, scale-in animation
+- ✅ Badge — `ring-1` subtle borders, `font-semibold`
+- ✅ FormInput — `.input-base` class, focus rings konsisten
+- ✅ Toast — rounded-xl, smooth animation
+- ✅ LoadingSkeleton — card-based skeletons
+- ✅ ActionIconButton — smaller, brand focus ring
+- ✅ ErrorBoundary — icon badge, clean layout
+- ✅ TrialBanner — cleaner layout
+- ✅ DashboardLayout & CustomerLayout — updated ke `surface-50` colors
+
+### Halaman yang sudah di-upgrade ✅
+| Halaman | File |
+|---------|------|
+| TenantAdminDashboard | `pages/dashboards/TenantAdminDashboard.tsx` |
+| CustomerList | `pages/customers/CustomerList.tsx` |
+| CustomerDetails | `pages/customers/CustomerDetails.tsx` |
+| UsageList | `pages/usage/UsageList.tsx` |
+| MeterReadingForm | `pages/usage/MeterReadingForm.tsx` |
+| InvoiceList | `pages/invoices/InvoiceList.tsx` |
+| InvoiceDetails | `pages/invoices/InvoiceDetails.tsx` |
+| PaymentList | `pages/payments/PaymentList.tsx` |
+| PaymentForm | `pages/payments/PaymentForm.tsx` |
+| AdminLogin | `pages/auth/AdminLogin.tsx` |
+| CustomerLogin | `pages/customer/CustomerLogin.tsx` |
+| LandingPage | `pages/public/LandingPage.tsx` |
+
+### Halaman yang BELUM di-upgrade ❌
+
+**Customer Portal:**
+- ❌ CustomerDashboard (`pages/customer/CustomerDashboard.tsx`)
+- ❌ CustomerInvoiceList (`pages/customer-invoices/CustomerInvoiceList.tsx`)
+- ❌ CustomerInvoiceDetail (`pages/customer-invoices/CustomerInvoiceDetail.tsx`)
+- ❌ CustomerPaymentHistory (`pages/customer-payments/CustomerPaymentHistory.tsx`)
+- ❌ CustomerPaymentInfo (`pages/customer-payments/CustomerPaymentInfo.tsx`)
+- ❌ CustomerPaymentForm (`pages/customer-payments/CustomerPaymentForm.tsx`)
+- ❌ CustomerPaymentConfirmation (`pages/customer-payments/CustomerPaymentConfirmation.tsx`)
+- ❌ CustomerNotificationCenter (`pages/customer-notifications/CustomerNotificationCenter.tsx`)
+- ❌ CustomerProfile (`pages/customer-profile/CustomerProfile.tsx`)
+- ❌ CustomerProfileEdit (`pages/customer-profile/CustomerProfileEdit.tsx`)
+- ❌ ChangePassword (`pages/customer-profile/ChangePassword.tsx`)
+- ❌ CustomerUsageMonitor (`pages/customer-usage/CustomerUsageMonitor.tsx`)
+- ❌ CustomerPayInvoice (`pages/customer/CustomerPayInvoice.tsx`)
+- ❌ PaymentSuccess (`pages/customer-payments/PaymentSuccess.tsx`)
+
+**Reports & Analytics:**
+- ❌ ReportsDashboard (`pages/reports/ReportsDashboard.tsx`)
+- ❌ RevenueReport (`pages/reports/RevenueReport.tsx`)
+- ❌ CustomerAnalytics (`pages/reports/CustomerAnalytics.tsx`)
+- ❌ PaymentReport (`pages/reports/PaymentReport.tsx`)
+- ❌ UsageReport (`pages/reports/UsageReport.tsx`)
+- ❌ OutstandingReport (`pages/reports/OutstandingReport.tsx`)
+
+**Settings & Management:**
+- ❌ NotificationManagement (`pages/notifications/NotificationManagement.tsx`)
+- ❌ SubscriptionTypeList (`pages/subscriptions/SubscriptionTypeList.tsx`)
+- ❌ SubscriptionTypeForm (`pages/subscriptions/SubscriptionTypeForm.tsx`)
+- ❌ WaterRateList (`pages/water-rates/WaterRateList.tsx`)
+- ❌ WaterRateForm (`pages/water-rates/WaterRateForm.tsx`)
+- ❌ RateHistory (`pages/water-rates/RateHistory.tsx`)
+- ❌ ServiceAreaList (`pages/service-areas/ServiceAreaList.tsx`)
+- ❌ UserManagementList (`pages/user-management/UserManagementList.tsx`)
+- ❌ TenantPaymentSettings (`pages/settings/TenantPaymentSettings.tsx`)
+- ❌ PlatformPaymentSettings (`pages/settings/PlatformPaymentSettings.tsx`)
+- ❌ TariffManagement (`pages/tariffs/TariffManagement.tsx`)
+
+**Platform Owner:**
+- ❌ PlatformOwnerDashboard (`pages/dashboards/PlatformOwnerDashboard.tsx`)
+- ❌ MeterReaderDashboard (`pages/dashboards/MeterReaderDashboard.tsx`)
+- ❌ TenantManagement (`pages/platform/TenantManagement.tsx`)
+- ❌ PlatformAnalytics (`pages/platform/PlatformAnalytics.tsx`)
+- ❌ PlatformMonitoring (`pages/platform/PlatformMonitoring.tsx`)
+- ❌ SubscriptionPlans (`pages/platform/SubscriptionPlans.tsx`)
+
+**Payment Proof & Verification:**
+- ❌ PaymentProofList (`pages/payment-proofs/PaymentProofList.tsx`)
+- ❌ PaymentProofManagement (`pages/payment-proofs/PaymentProofManagement.tsx`)
+- ❌ PaymentProofDetailModal (`pages/payment-proofs/PaymentProofDetailModal.tsx`)
+- ❌ PaymentProofSubmitForm (`pages/payment-proofs/PaymentProofSubmitForm.tsx`)
+- ❌ TenantPaymentVerification (`pages/tenant-payments/TenantPaymentVerification.tsx`)
+- ❌ PlatformSubscriptionVerification (`pages/platform-payments/PlatformSubscriptionVerification.tsx`)
+- ❌ PaymentReceipt (`pages/payments/PaymentReceipt.tsx`)
+
+**Invoice & Usage (form tambahan):**
+- ❌ InvoiceForm (`pages/invoices/InvoiceForm.tsx`)
+- ❌ BulkInvoiceGeneration (`pages/invoices/bulk-generation/BulkInvoiceGeneration.tsx`)
+- ❌ UsageHistory (`pages/usage/UsageHistory.tsx`)
+- ❌ BulkImportCustomers (`pages/customers/BulkImportCustomers.tsx`)
+- ❌ BulkImportWaterUsage (`pages/usage/BulkImportWaterUsage.tsx`)
+
+**Auth & Onboarding:**
+- ❌ RegisterAccount (`pages/auth/RegisterAccount.tsx`)
+- ❌ TenantRegistration (`pages/auth/TenantRegistration.tsx`)
+- ❌ SetupTenant (`pages/auth/SetupTenant.tsx`)
+
+**Subscription Flow:**
+- ❌ PlanSelectionPage (`pages/subscription/PlanSelectionPage.tsx`)
+- ❌ SubscriptionStatusPage (`pages/subscription/SubscriptionStatusPage.tsx`)
+- ❌ SubscriptionUpgradePage (`pages/subscription/SubscriptionUpgradePage.tsx`)
+- ❌ PaymentSubmissionPage (`pages/subscription/PaymentSubmissionPage.tsx`)
+
+**Misc:**
+- ❌ NotFound (`pages/NotFound.tsx`)
+- ❌ Dashboard (`pages/Dashboard.tsx`)
+- ❌ RoleBasedDashboard (`pages/RoleBasedDashboard.tsx`)
+
+---
 
 ---
 

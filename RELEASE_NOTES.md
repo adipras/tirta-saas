@@ -1,5 +1,104 @@
 # Release Notes
 
+## v1.4.0 - 2026-08-19
+
+**Tipe rilis:** Minor (non-breaking, UI only)
+**Cakupan:** Frontend
+**Tag deploy yang disarankan:** `deploy-fe-v1.4.0`
+
+### Ringkasan
+- Perombakan besar-besaran UI/UX seluruh web app menuju gaya **Modern SaaS** (inspirasi Supabase/Stripe). Design system baru, komponen inti di-upgrade, dan 12 halaman utama diperbarui secara konsisten.
+
+### Perubahan teknis
+
+**Design System (`tailwind.config.js` + `index.css`):**
+- **Warna brand baru:** Palette `brand` (indigo-based) menggantikan hardcoded blue/gray. Tambah palette `surface`, `success`, `warning`, `danger`, `info` dengan shade 50–900.
+- **Shadow modern:** `shadow-card`, `shadow-elevated`, `shadow-dropdown`, `shadow-modal`.
+- **Border radius baru:** `rounded-4xl` (1.25rem), `rounded-5xl` (1.5rem).
+- **Animasi:** `fade-in`, `slide-in-up`, `slide-in-down`, `scale-in` keyframes.
+- **Global CSS classes:** `.card`, `.btn-primary`, `.btn-secondary`, `.btn-danger`, `.input-base`, `.badge-*`, `.table-container`.
+- **Inter font** sebagai default font.
+
+**Core Components (16 file):**
+- `Sidebar.tsx` / `CustomerSidebar.tsx` — logo modern, animated dropdown, active state `bg-brand-50`, user footer dengan avatar.
+- `Header.tsx` / `CustomerHeader.tsx` — glass blur effect, avatar, clean dropdown menu.
+- `PageHeader.tsx` — breadcrumbs support, responsive layout.
+- `DashboardStatCard.tsx` — icon badge dengan ring, hover effect.
+- `QuickActionCard.tsx` — icon badge, hover scale, "Buka" link on hover.
+- `DataTable.tsx` — loading skeleton, search input modern, mobile card view, empty state, pagination minimalis.
+- `Modal.tsx` — backdrop blur, scale-in animation, icon di ConfirmModal.
+- `Badge.tsx` — `ring-1` subtle borders, `font-semibold`, `rounded-md`.
+- `FormInput.tsx` — `.input-base` class, focus rings konsisten.
+- `Toast.tsx` — rounded-xl, smooth scale animation.
+- `LoadingSkeleton.tsx` — rounded-lg, surface-100 colors, card-based skeletons.
+- `ActionIconButton.tsx` — smaller (h-8 w-8), brand focus ring.
+- `ErrorBoundary.tsx` — icon badge, clean layout.
+- `TrialBanner.tsx` — cleaner layout, consistent buttons.
+- `DashboardLayout.tsx` / `CustomerLayout.tsx` — updated ke `surface-50` colors.
+
+**Halaman yang di-upgrade (12 halaman):**
+- `TenantAdminDashboard.tsx` — gradient hero card, summary row, stat cards, quick actions, outstanding list.
+- `CustomerList.tsx` — filter panel modern, stat cards, status toggle, action buttons.
+- `CustomerDetails.tsx` — info card dengan avatar, meter table, quick actions, add meter modal.
+- `UsageList.tsx` — filter toolbar, customer combobox, grouped cards, modern pagination.
+- `MeterReadingForm.tsx` — card-based layout, visual meter reading, rate status panel.
+- `InvoiceList.tsx` — status badges konsisten (`ring-1 ring-inset`), filter panel bersih.
+- `InvoiceDetails.tsx` — header card dengan icon badges, info cards, customer info layout.
+- `PaymentList.tsx` — search bar di table card, stat cards minimalis, status badges.
+- `PaymentForm.tsx` — invoice cards dengan check indicator, inline CurrencyInput, loading spinner.
+- `AdminLogin.tsx` — modern form layout, branding konsisten.
+- `CustomerLogin.tsx` — modern form layout.
+- `LandingPage.tsx` — warna brand konsisten.
+
+**Dependencies:**
+- `framer-motion` — ditambahkan untuk animasi LandingPage.
+
+### File yang berubah (34 file, ~2442 insertions, ~2226 deletions)
+
+**Design System:**
+- `tirta-saas-frontend/tailwind.config.js`
+- `tirta-saas-frontend/src/index.css`
+- `tirta-saas-frontend/package.json`
+- `tirta-saas-frontend/package-lock.json`
+
+**Core Components:**
+- `tirta-saas-frontend/src/components/Sidebar.tsx`
+- `tirta-saas-frontend/src/components/CustomerSidebar.tsx`
+- `tirta-saas-frontend/src/components/Header.tsx`
+- `tirta-saas-frontend/src/components/CustomerHeader.tsx`
+- `tirta-saas-frontend/src/components/PageHeader.tsx`
+- `tirta-saas-frontend/src/components/DashboardStatCard.tsx`
+- `tirta-saas-frontend/src/components/QuickActionCard.tsx`
+- `tirta-saas-frontend/src/components/DataTable.tsx`
+- `tirta-saas-frontend/src/components/Modal.tsx`
+- `tirta-saas-frontend/src/components/Badge.tsx`
+- `tirta-saas-frontend/src/components/FormInput.tsx`
+- `tirta-saas-frontend/src/components/Toast.tsx`
+- `tirta-saas-frontend/src/components/LoadingSkeleton.tsx`
+- `tirta-saas-frontend/src/components/ActionIconButton.tsx`
+- `tirta-saas-frontend/src/components/ErrorBoundary.tsx`
+- `tirta-saas-frontend/src/components/TrialBanner.tsx`
+
+**Layouts:**
+- `tirta-saas-frontend/src/layouts/DashboardLayout.tsx`
+- `tirta-saas-frontend/src/layouts/CustomerLayout.tsx`
+
+**Pages:**
+- `tirta-saas-frontend/src/pages/dashboards/TenantAdminDashboard.tsx`
+- `tirta-saas-frontend/src/pages/customers/CustomerList.tsx`
+- `tirta-saas-frontend/src/pages/customers/CustomerDetails.tsx`
+- `tirta-saas-frontend/src/pages/usage/UsageList.tsx`
+- `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
+- `tirta-saas-frontend/src/pages/invoices/InvoiceList.tsx`
+- `tirta-saas-frontend/src/pages/invoices/InvoiceDetails.tsx`
+- `tirta-saas-frontend/src/pages/payments/PaymentList.tsx`
+- `tirta-saas-frontend/src/pages/payments/PaymentForm.tsx`
+- `tirta-saas-frontend/src/pages/auth/AdminLogin.tsx`
+- `tirta-saas-frontend/src/pages/customer/CustomerLogin.tsx`
+- `tirta-saas-frontend/src/pages/public/LandingPage.tsx`
+
+---
+
 ## v1.3.11 - 2026-08-15
 
 **Tipe rilis:** Patch
