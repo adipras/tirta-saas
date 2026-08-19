@@ -23,33 +23,40 @@ const CustomerLogin = () => {
       await dispatch(loginAsync(formData)).unwrap();
       navigate('/customer');
     } catch {
-      // Kesalahan ditangani oleh Redux slice
+      // Error handled by Redux slice
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4 sm:p-6">
-      <div className="w-full max-w-md space-y-6">
+    <div className="flex min-h-screen items-center justify-center bg-surface-50 p-4 sm:p-6">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-brand-500/5 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative w-full max-w-md space-y-6">
+        {/* Logo & Title */}
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-indigo-600 shadow-lg">
-            <span className="text-2xl font-bold text-white">T</span>
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl gradient-brand shadow-lg shadow-brand-500/20">
+            <span className="text-xl font-bold text-white">T</span>
           </div>
-          <h1 className="mb-2 text-3xl font-bold text-indigo-600 sm:text-4xl">Portal Pelanggan</h1>
-          <p className="text-gray-600">Sistem Manajemen Air Bersih</p>
+          <h1 className="text-2xl font-bold text-surface-900 tracking-tight">Portal Pelanggan</h1>
+          <p className="mt-1 text-[13px] text-surface-400">Sistem Manajemen Air Bersih</p>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow-xl sm:p-8">
-          <h2 className="mb-6 text-2xl font-semibold text-gray-800">Masuk</h2>
+        {/* Form card */}
+        <div className="card p-6 sm:p-8">
+          <h2 className="mb-5 text-lg font-semibold text-surface-900">Masuk</h2>
 
           {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <div className="mb-4 flex items-center gap-2 rounded-xl bg-danger-50 border border-danger-200 p-3 text-[13px] text-danger-700">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="identifier" className="mb-1.5 block text-sm font-medium text-gray-700">
+              <label htmlFor="identifier" className="mb-1.5 block text-[13px] font-medium text-surface-700">
                 Nomor Meter atau Email
               </label>
               <input
@@ -59,13 +66,13 @@ const CustomerLogin = () => {
                 autoComplete="username"
                 value={formData.identifier || ''}
                 onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Contoh: MTR-001 atau pelanggan@contoh.com"
+                className="input-base"
+                placeholder="MTR-001 atau pelanggan@contoh.com"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="mb-1.5 block text-[13px] font-medium text-surface-700">
                 Kata Sandi
               </label>
               <div className="relative">
@@ -76,19 +83,19 @@ const CustomerLogin = () => {
                   autoComplete="current-password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 pr-10 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="input-base pr-10"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-surface-400 hover:text-surface-600"
                 >
                   {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5" />
+                    <EyeSlashIcon className="h-4 w-4" />
                   ) : (
-                    <EyeIcon className="h-5 w-5" />
+                    <EyeIcon className="h-4 w-4" />
                   )}
                 </button>
               </div>
@@ -97,24 +104,25 @@ const CustomerLogin = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+              className="btn-primary w-full"
             >
               {isLoading ? 'Sedang masuk...' : 'Masuk'}
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
+          <div className="mt-5 border-t border-surface-100 pt-5 text-center text-[13px] text-surface-500">
             <p>Belum punya akun?</p>
             <p className="mt-1">Hubungi admin untuk pendaftaran</p>
           </div>
         </div>
 
-        <div className="text-center">
-          <Link to="/" className="text-sm text-indigo-600 hover:text-indigo-700">
-            ← Kembali ke Beranda
+        {/* Footer links */}
+        <div className="flex items-center justify-center gap-2 text-[13px]">
+          <Link to="/" className="text-surface-500 hover:text-brand-600 transition-colors">
+            Kembali ke Beranda
           </Link>
-          <span className="mx-2 text-gray-400">·</span>
-          <Link to="/admin/login" className="text-sm text-indigo-600 hover:text-indigo-700">
+          <span className="text-surface-300">·</span>
+          <Link to="/admin/login" className="text-surface-500 hover:text-brand-600 transition-colors">
             Masuk sebagai Admin
           </Link>
         </div>
