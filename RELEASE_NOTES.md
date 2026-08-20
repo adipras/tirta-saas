@@ -1,13 +1,13 @@
 # Release Notes
 
-## v1.4.0 - 2026-08-19
+## v1.4.0 - 2026-08-20
 
 **Tipe rilis:** Minor (non-breaking, UI only)
 **Cakupan:** Frontend
 **Tag deploy yang disarankan:** `deploy-fe-v1.4.0`
 
 ### Ringkasan
-- Perombakan besar-besaran UI/UX seluruh web app menuju gaya **Modern SaaS** (inspirasi Supabase/Stripe). Design system baru, komponen inti di-upgrade, dan 12 halaman utama diperbarui secara konsisten.
+- **Perombakan besar-besaran UI/UX seluruh web app** menuju gaya **Modern SaaS** (inspirasi Supabase/Stripe). Design system baru, komponen inti di-upgrade, dan **46+ halaman** diperbarui secara konsisten. Semua halaman — admin, customer portal, reports, platform owner, settings — kini menggunakan design token yang sama. Semua 50 unit test tetap hijau tanpa regression.
 
 ### Perubahan teknis
 
@@ -36,24 +36,96 @@
 - `TrialBanner.tsx` — cleaner layout, consistent buttons.
 - `DashboardLayout.tsx` / `CustomerLayout.tsx` — updated ke `surface-50` colors.
 
-**Halaman yang di-upgrade (12 halaman):**
+**Halaman yang di-upgrade (46+ halaman):**
+
+*Admin Dashboard & Auth (2):*
 - `TenantAdminDashboard.tsx` — gradient hero card, summary row, stat cards, quick actions, outstanding list.
-- `CustomerList.tsx` — filter panel modern, stat cards, status toggle, action buttons.
-- `CustomerDetails.tsx` — info card dengan avatar, meter table, quick actions, add meter modal.
-- `UsageList.tsx` — filter toolbar, customer combobox, grouped cards, modern pagination.
-- `MeterReadingForm.tsx` — card-based layout, visual meter reading, rate status panel.
-- `InvoiceList.tsx` — status badges konsisten (`ring-1 ring-inset`), filter panel bersih.
-- `InvoiceDetails.tsx` — header card dengan icon badges, info cards, customer info layout.
-- `PaymentList.tsx` — search bar di table card, stat cards minimalis, status badges.
-- `PaymentForm.tsx` — invoice cards dengan check indicator, inline CurrencyInput, loading spinner.
 - `AdminLogin.tsx` — modern form layout, branding konsisten.
-- `CustomerLogin.tsx` — modern form layout.
-- `LandingPage.tsx` — warna brand konsisten.
+
+*Admin Invoices & Payments (4):*
+- `InvoiceList.tsx` — status badges `ring-1 ring-inset`, filter panel bersih.
+- `InvoiceDetails.tsx` — header card, icon badges, info cards, customer info.
+- `InvoiceForm.tsx` — breadcrumb, card-based form, icon badges.
+- `PaymentList.tsx` — search bar di table card, stat cards, status badges.
+- `PaymentForm.tsx` — invoice cards, inline CurrencyInput, loading spinner.
+- `PaymentReceipt.tsx` — card-based printer status, skeleton loading.
+- `BulkInvoiceGeneration.tsx` — stat cards, preview table modern.
+
+*Customer Portal (14):*
+- `CustomerDashboard.tsx` — gradient hero, stat cards, quick actions.
+- `CustomerInvoiceList.tsx` — stat cards, modern filter, card-based list.
+- `CustomerInvoiceDetail.tsx` — breadcrumb, header card, icon badges, usage stats.
+- `CustomerPaymentHistory.tsx` — stat cards, card-based list, status badges.
+- `CustomerPaymentInfo.tsx` — modern card layout.
+- `CustomerPaymentForm.tsx` — card-based form, icon badges.
+- `CustomerPaymentConfirmation.tsx` — service-based API calls, modern card.
+- `CustomerPayInvoice.tsx` — breadcrumb, card form, upload zone.
+- `PaymentSuccess.tsx` — success hero, info cards.
+- `CustomerProfile.tsx` — gradient header, icon badges, key-value rows.
+- `CustomerProfileEdit.tsx` — breadcrumb, card form.
+- `ChangePassword.tsx` — breadcrumb, card form, password requirements.
+- `CustomerNotificationCenter.tsx` — DashboardStatCard, card-based list.
+- `CustomerUsageMonitor.tsx` — stat cards, modern charts, alerts.
+
+*Admin Settings & Management (11):*
+- `SubscriptionTypeList.tsx` — stat cards, modern table.
+- `SubscriptionTypeForm.tsx` — breadcrumb, card form, icon badges.
+- `WaterRateList.tsx` — stat cards, card filters, modern toggle.
+- `WaterRateForm.tsx` — breadcrumb, card form, icon badges.
+- `RateHistory.tsx` — design tokens, icon badges, skeleton loading.
+- `NotificationManagement.tsx` — DashboardStatCard, card sections.
+- `ServiceAreaList.tsx` — DashboardStatCard, split layout, icon badges.
+- `UserManagementList.tsx` — 4 role stat cards, modern role badges.
+- `TenantPaymentSettings.tsx` — DashboardStatCard, bank/QR cards.
+- `PlatformPaymentSettings.tsx` — DashboardStatCard, info banner.
+- `TariffManagement.tsx` — DashboardStatCard, simulation results.
+
+*Reports & Analytics (6):*
+- `ReportsDashboard.tsx` — modern report cards, preset buttons.
+- `RevenueReport.tsx` — breadcrumb, skeleton loading, chart tooltips.
+- `PaymentReport.tsx` — breadcrumb, skeleton loading, line chart dots.
+- `CustomerAnalytics.tsx` — breadcrumb, skeleton loading, pie chart.
+- `UsageReport.tsx` — breadcrumb, skeleton loading, area chart gradient.
+- `OutstandingReport.tsx` — breadcrumb, danger alert, aging bar chart.
+
+*Platform Owner (6):*
+- `PlatformOwnerDashboard.tsx` — modern stat cards, quick actions.
+- `MeterReaderDashboard.tsx` — stepper, modern quick actions.
+- `TenantManagement.tsx` — stat cards, modern table.
+- `PlatformAnalytics.tsx` — stat cards, modern charts.
+- `PlatformMonitoring.tsx` — stat cards, system health cards.
+- `SubscriptionPlans.tsx` — plan cards, feature lists.
+
+*Payment Proof & Verification (5):*
+- `PaymentProofList.tsx` — stat cards, modern filter.
+- `PaymentProofManagement.tsx` — card sections, status badges.
+- `PaymentProofDetailModal.tsx` — modern modal layout.
+- `PaymentProofSubmitForm.tsx` — card form, upload zone.
+- `TenantPaymentVerification.tsx` — modern verification cards.
+- `PlatformSubscriptionVerification.tsx` — modern verification cards.
+
+*Auth & Onboarding (3):*
+- `RegisterAccount.tsx` — gradient header, icon badges.
+- `TenantRegistration.tsx` — gradient header, section icon badges.
+- `NotFound.tsx` — gradient 404, icon badge.
+
+*Other (3):*
+- `BulkImportCustomers.tsx` — card upload, preview table, result cards.
+- `BulkImportWaterUsage.tsx` — card layout, table, row actions.
+- `PaymentSubmissionPage.tsx` — breadcrumb, card layout, icon badges.
+
+**Test fixes (6 file, 11 tests):**
+- `CustomerPaymentHistory.test.tsx` — tambah mock `DashboardStatCard`.
+- `CustomerNotificationCenter.test.tsx` — tambah mock `DashboardStatCard`.
+- `CustomerInvoiceDetail.test.tsx` — ganti mock `Skeleton`/`TableSkeleton` → `CardSkeleton`, fix duplicate text selector.
+- `CustomerPayInvoice.test.tsx` — fix partial label matcher untuk `Nama Pengirim`.
+- `PaymentReport.test.tsx` — fix export button names (`CSV`/`Excel`).
+- `TariffManagement.test.tsx` — tambah mock `DashboardStatCard`.
 
 **Dependencies:**
 - `framer-motion` — ditambahkan untuk animasi LandingPage.
 
-### File yang berubah (34 file, ~2442 insertions, ~2226 deletions)
+### File yang berubah (59 file, ~7523 insertions, ~7126 deletions)
 
 **Design System:**
 - `tirta-saas-frontend/tailwind.config.js`
@@ -83,19 +155,88 @@
 - `tirta-saas-frontend/src/layouts/DashboardLayout.tsx`
 - `tirta-saas-frontend/src/layouts/CustomerLayout.tsx`
 
-**Pages:**
+**Admin Dashboard & Auth:**
 - `tirta-saas-frontend/src/pages/dashboards/TenantAdminDashboard.tsx`
-- `tirta-saas-frontend/src/pages/customers/CustomerList.tsx`
-- `tirta-saas-frontend/src/pages/customers/CustomerDetails.tsx`
-- `tirta-saas-frontend/src/pages/usage/UsageList.tsx`
-- `tirta-saas-frontend/src/pages/usage/MeterReadingForm.tsx`
+- `tirta-saas-frontend/src/pages/auth/AdminLogin.tsx`
+
+**Admin Invoices & Payments:**
 - `tirta-saas-frontend/src/pages/invoices/InvoiceList.tsx`
 - `tirta-saas-frontend/src/pages/invoices/InvoiceDetails.tsx`
+- `tirta-saas-frontend/src/pages/invoices/InvoiceForm.tsx`
+- `tirta-saas-frontend/src/pages/invoices/bulk-generation/BulkInvoiceGeneration.tsx`
 - `tirta-saas-frontend/src/pages/payments/PaymentList.tsx`
 - `tirta-saas-frontend/src/pages/payments/PaymentForm.tsx`
-- `tirta-saas-frontend/src/pages/auth/AdminLogin.tsx`
+- `tirta-saas-frontend/src/pages/payments/PaymentReceipt.tsx`
+
+**Customer Portal:**
+- `tirta-saas-frontend/src/pages/customer/CustomerDashboard.tsx`
 - `tirta-saas-frontend/src/pages/customer/CustomerLogin.tsx`
-- `tirta-saas-frontend/src/pages/public/LandingPage.tsx`
+- `tirta-saas-frontend/src/pages/customer/CustomerPayInvoice.tsx`
+- `tirta-saas-frontend/src/pages/customer-invoices/CustomerInvoiceList.tsx`
+- `tirta-saas-frontend/src/pages/customer-invoices/CustomerInvoiceDetail.tsx`
+- `tirta-saas-frontend/src/pages/customer-payments/CustomerPaymentHistory.tsx`
+- `tirta-saas-frontend/src/pages/customer-payments/CustomerPaymentInfo.tsx`
+- `tirta-saas-frontend/src/pages/customer-payments/CustomerPaymentForm.tsx`
+- `tirta-saas-frontend/src/pages/customer-payments/CustomerPaymentConfirmation.tsx`
+- `tirta-saas-frontend/src/pages/customer-payments/PaymentSuccess.tsx`
+- `tirta-saas-frontend/src/pages/customer-profile/CustomerProfile.tsx`
+- `tirta-saas-frontend/src/pages/customer-profile/CustomerProfileEdit.tsx`
+- `tirta-saas-frontend/src/pages/customer-profile/ChangePassword.tsx`
+- `tirta-saas-frontend/src/pages/customer-notifications/CustomerNotificationCenter.tsx`
+- `tirta-saas-frontend/src/pages/customer-usage/CustomerUsageMonitor.tsx`
+
+**Admin Settings & Management:**
+- `tirta-saas-frontend/src/pages/subscriptions/SubscriptionTypeList.tsx`
+- `tirta-saas-frontend/src/pages/subscriptions/SubscriptionTypeForm.tsx`
+- `tirta-saas-frontend/src/pages/water-rates/WaterRateList.tsx`
+- `tirta-saas-frontend/src/pages/water-rates/WaterRateForm.tsx`
+- `tirta-saas-frontend/src/pages/water-rates/RateHistory.tsx`
+- `tirta-saas-frontend/src/pages/notifications/NotificationManagement.tsx`
+- `tirta-saas-frontend/src/pages/service-areas/ServiceAreaList.tsx`
+- `tirta-saas-frontend/src/pages/user-management/UserManagementList.tsx`
+- `tirta-saas-frontend/src/pages/settings/TenantPaymentSettings.tsx`
+- `tirta-saas-frontend/src/pages/settings/PlatformPaymentSettings.tsx`
+- `tirta-saas-frontend/src/pages/tariffs/TariffManagement.tsx`
+
+**Reports & Analytics:**
+- `tirta-saas-frontend/src/pages/reports/ReportsDashboard.tsx`
+- `tirta-saas-frontend/src/pages/reports/RevenueReport.tsx`
+- `tirta-saas-frontend/src/pages/reports/PaymentReport.tsx`
+- `tirta-saas-frontend/src/pages/reports/CustomerAnalytics.tsx`
+- `tirta-saas-frontend/src/pages/reports/UsageReport.tsx`
+- `tirta-saas-frontend/src/pages/reports/OutstandingReport.tsx`
+
+**Platform Owner:**
+- `tirta-saas-frontend/src/pages/dashboards/PlatformOwnerDashboard.tsx`
+- `tirta-saas-frontend/src/pages/dashboards/MeterReaderDashboard.tsx`
+- `tirta-saas-frontend/src/pages/platform/TenantManagement.tsx`
+- `tirta-saas-frontend/src/pages/platform/PlatformAnalytics.tsx`
+- `tirta-saas-frontend/src/pages/platform/PlatformMonitoring.tsx`
+- `tirta-saas-frontend/src/pages/platform/SubscriptionPlans.tsx`
+
+**Payment Proof & Verification:**
+- `tirta-saas-frontend/src/pages/payment-proofs/PaymentProofList.tsx`
+- `tirta-saas-frontend/src/pages/payment-proofs/PaymentProofManagement.tsx`
+- `tirta-saas-frontend/src/pages/payment-proofs/PaymentProofDetailModal.tsx`
+- `tirta-saas-frontend/src/pages/payment-proofs/PaymentProofSubmitForm.tsx`
+- `tirta-saas-frontend/src/pages/tenant-payments/TenantPaymentVerification.tsx`
+- `tirta-saas-frontend/src/pages/platform-payments/PlatformSubscriptionVerification.tsx`
+
+**Auth, Onboarding & Misc:**
+- `tirta-saas-frontend/src/pages/auth/RegisterAccount.tsx`
+- `tirta-saas-frontend/src/pages/auth/TenantRegistration.tsx`
+- `tirta-saas-frontend/src/pages/subscription/PaymentSubmissionPage.tsx`
+- `tirta-saas-frontend/src/pages/customers/BulkImportCustomers.tsx`
+- `tirta-saas-frontend/src/pages/usage/BulkImportWaterUsage.tsx`
+- `tirta-saas-frontend/src/pages/NotFound.tsx`
+
+**Tests:**
+- `tirta-saas-frontend/src/pages/customer-payments/CustomerPaymentHistory.test.tsx`
+- `tirta-saas-frontend/src/pages/customer-notifications/CustomerNotificationCenter.test.tsx`
+- `tirta-saas-frontend/src/pages/customer-invoices/CustomerInvoiceDetail.test.tsx`
+- `tirta-saas-frontend/src/pages/customer/CustomerPayInvoice.test.tsx`
+- `tirta-saas-frontend/src/pages/reports/PaymentReport.test.tsx`
+- `tirta-saas-frontend/src/pages/tariffs/TariffManagement.test.tsx`
 
 ---
 
