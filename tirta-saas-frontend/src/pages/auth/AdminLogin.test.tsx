@@ -56,10 +56,10 @@ describe('AdminLogin', () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('Masukkan username atau email Anda'), {
+    fireEvent.change(screen.getByPlaceholderText('Masukkan username atau email'), {
       target: { value: 'admin_utama' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Masukkan kata sandi Anda'), {
+    fireEvent.change(screen.getByPlaceholderText('Masukkan kata sandi'), {
       target: { value: 'password123' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Masuk' }));
@@ -86,10 +86,10 @@ describe('AdminLogin', () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('Masukkan username atau email Anda'), {
+    fireEvent.change(screen.getByPlaceholderText('Masukkan username atau email'), {
       target: { value: 'owner_utama' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Masukkan kata sandi Anda'), {
+    fireEvent.change(screen.getByPlaceholderText('Masukkan kata sandi'), {
       target: { value: 'password123' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Masuk' }));
@@ -117,15 +117,15 @@ describe('AdminLogin', () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByPlaceholderText('Masukkan username atau email Anda'), {
+    fireEvent.change(screen.getByPlaceholderText('Masukkan username atau email'), {
       target: { value: 'admin_utama' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Masukkan kata sandi Anda'), {
+    fireEvent.change(screen.getByPlaceholderText('Masukkan kata sandi'), {
       target: { value: 'password123' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Masuk' }));
 
-    expect(await screen.findByText('Masa Trial Anda Telah Habis')).toBeInTheDocument();
+    expect(await screen.findByText('Masa Trial Telah Habis')).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalledWith('/admin');
   });
 });

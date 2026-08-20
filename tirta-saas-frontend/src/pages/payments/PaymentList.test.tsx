@@ -192,7 +192,7 @@ describe('PaymentList', () => {
       });
     });
 
-    expect(screen.getByText('Filter aktif')).toBeInTheDocument();
+    expect(screen.getByText('Reset')).toBeInTheDocument();
   });
 
   it('voids a completed payment from the confirmation flow', async () => {
