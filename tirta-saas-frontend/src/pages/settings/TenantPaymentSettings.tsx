@@ -27,7 +27,6 @@ import {
   FormTextarea,
   ImageCropModal,
   Modal,
-  PageHeader,
   useToast,
 } from '../../components';
 
@@ -237,7 +236,7 @@ export default function TenantPaymentSettings() {
       if (qrRes.status === 'fulfilled') {
         setQRCodes(qrRes.value);
       }
-    } catch  {
+    } catch {
       toast.error('Gagal memuat pengaturan tenant.');
     }
   }, [toast]);
@@ -323,7 +322,7 @@ export default function TenantPaymentSettings() {
       syncTenantIdentity(updatedSettings, uploadedLogoUrl);
       await loadSettings();
       toast.success('Profil tenant berhasil diperbarui.');
-    } catch  {
+    } catch {
       toast.error('Gagal menyimpan profil tenant.');
     } finally {
       setProfileSaving(false);
@@ -364,7 +363,7 @@ export default function TenantPaymentSettings() {
       });
       await loadSettings();
       toast.success('Siklus tagihan berhasil diperbarui.');
-    } catch  {
+    } catch {
       toast.error('Gagal menyimpan siklus tagihan.');
     } finally {
       setBillingSaving(false);
@@ -418,7 +417,7 @@ export default function TenantPaymentSettings() {
       await loadSettings();
       closeBankModal();
       toast.success('Rekening bank berhasil disimpan.');
-    } catch  {
+    } catch {
       toast.error('Gagal menyimpan rekening bank.');
     }
   };
@@ -500,7 +499,7 @@ export default function TenantPaymentSettings() {
       await loadSettings();
       closeQRModal();
       toast.success('QR code berhasil disimpan.');
-    } catch  {
+    } catch {
       toast.error('Gagal menyimpan QR code.');
     }
   };
@@ -520,7 +519,7 @@ export default function TenantPaymentSettings() {
       setDeleteTarget(null);
       await loadSettings();
       toast.success(deleteTarget.type === 'bank' ? 'Rekening bank dihapus.' : 'QR code dihapus.');
-    } catch  {
+    } catch {
       toast.error('Gagal menghapus data.');
     }
   };
@@ -529,17 +528,21 @@ export default function TenantPaymentSettings() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Pengaturan Tenant"
-        subtitle="Kelola identitas tenant, siklus tagihan, rekening bank, dan kode QR pembayaran dengan layout yang nyaman di mobile."
-      />
+      {/* Page Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-surface-900">Pengaturan Tenant</h1>
+        <p className="mt-1 text-[13px] text-surface-400">
+          Kelola identitas tenant, siklus tagihan, rekening bank, dan kode QR pembayaran.
+        </p>
+      </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
         <DashboardStatCard
           title="Profil Tenant"
           value={profileForm.companyName || 'Belum diisi'}
           helper="Identitas utama"
-          subtitle="Nama dan identitas tenant yang tampil di aplikasi."
+          subtitle="Nama dan identitas tenant."
           icon={UserCircleIcon}
           tone="blue"
         />
@@ -547,7 +550,7 @@ export default function TenantPaymentSettings() {
           title="Jadwal Tagihan"
           value={`Tgl ${billingForm.invoiceGenerationDay}`}
           helper="Jadwal bulanan"
-          subtitle={`Jatuh tempo pada tanggal ${billingForm.invoiceDueDay}.`}
+          subtitle={`Jatuh tempo: tgl ${billingForm.invoiceDueDay}.`}
           icon={CloudArrowUpIcon}
           tone="purple"
         />
@@ -555,7 +558,7 @@ export default function TenantPaymentSettings() {
           title="Rekening Aktif"
           value={stats.activeBanks.toLocaleString('id-ID')}
           helper={`${stats.banks} total rekening`}
-          subtitle="Metode transfer bank untuk pelanggan atau tenant."
+          subtitle="Metode transfer bank."
           icon={BuildingLibraryIcon}
           tone="green"
         />
@@ -563,24 +566,25 @@ export default function TenantPaymentSettings() {
           title="QR Aktif"
           value={stats.activeQrCodes.toLocaleString('id-ID')}
           helper={`${stats.qrCodes} total QR`}
-          subtitle="Channel pembayaran digital yang saat ini aktif."
+          subtitle="Channel pembayaran digital."
           icon={QrCodeIcon}
           tone="green"
         />
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 p-4 sm:p-5">
-          <h2 className="text-base font-semibold text-gray-900">Profil tenant</h2>
-          <p className="mt-1 text-sm text-gray-500">
+      {/* Profile Section */}
+      <section className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-surface-800">Profil tenant</h2>
+          <p className="mt-0.5 text-[13px] text-surface-400">
             Perbarui identitas tenant yang tampil di sidebar dan informasi kontak utama.
           </p>
         </div>
 
-        <form onSubmit={handleProfileSubmit} className="space-y-6 p-4 sm:p-5">
+        <form onSubmit={handleProfileSubmit} className="space-y-6 p-5">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
             <div className="space-y-4">
-              <div className="flex h-52 w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50">
+              <div className="flex h-52 w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-surface-200 bg-surface-50">
                 {displayedTenantLogo ? (
                   <img
                     src={displayedTenantLogo}
@@ -588,9 +592,9 @@ export default function TenantPaymentSettings() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="text-center text-gray-500">
+                  <div className="text-center text-surface-400">
                     <CloudArrowUpIcon className="mx-auto h-10 w-10" />
-                    <p className="mt-2 text-sm">Belum ada logo tenant</p>
+                    <p className="mt-2 text-[13px]">Belum ada logo tenant</p>
                   </div>
                 )}
               </div>
@@ -598,9 +602,9 @@ export default function TenantPaymentSettings() {
               <div className="space-y-2">
                 <label
                   htmlFor="tenant-logo-input"
-                  className="inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+                  className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl btn-primary"
                 >
-                  <CloudArrowUpIcon className="mr-2 h-5 w-5" />
+                  <CloudArrowUpIcon className="h-4 w-4" />
                   Unggah Logo
                 </label>
                 <input
@@ -610,12 +614,12 @@ export default function TenantPaymentSettings() {
                   className="sr-only"
                   onChange={handleTenantLogoChange}
                 />
-                <p className="text-xs text-gray-500">JPG, PNG, GIF, atau WEBP. Maksimal 5MB.</p>
+                <p className="text-[12px] text-surface-400">JPG, PNG, GIF, atau WEBP. Maksimal 5MB.</p>
                 {tenantLogoPreviewUrl && (
                   <button
                     type="button"
                     onClick={resetTenantLogoSelection}
-                    className="text-sm font-medium text-red-600 hover:text-red-700"
+                    className="text-[13px] font-medium text-danger-600 hover:text-danger-700"
                   >
                     Batalkan logo baru
                   </button>
@@ -675,11 +679,11 @@ export default function TenantPaymentSettings() {
             </div>
           </div>
 
-          <div className="flex justify-end border-t border-gray-200 pt-4">
+          <div className="flex justify-end border-t border-surface-100 pt-4">
             <button
               type="submit"
               disabled={profileSaving}
-              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400 sm:w-auto"
+              className="btn-primary"
             >
               {profileSaving ? 'Menyimpan...' : 'Simpan Profil Tenant'}
             </button>
@@ -687,15 +691,16 @@ export default function TenantPaymentSettings() {
         </form>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 p-4 sm:p-5">
-          <h2 className="text-base font-semibold text-gray-900">Siklus tagihan bulanan</h2>
-          <p className="mt-1 text-sm text-gray-500">
+      {/* Billing Section */}
+      <section className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-surface-800">Siklus tagihan bulanan</h2>
+          <p className="mt-0.5 text-[13px] text-surface-400">
             Atur tanggal generate tagihan dan batas akhir pembayaran pelanggan.
           </p>
         </div>
 
-        <form onSubmit={handleBillingSubmit} className="space-y-6 p-4 sm:p-5">
+        <form onSubmit={handleBillingSubmit} className="space-y-6 p-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <FormInput
               label="Tanggal generate tagihan"
@@ -719,16 +724,16 @@ export default function TenantPaymentSettings() {
             />
           </div>
 
-          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">
+          <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 text-[13px] text-brand-700">
             Tagihan akan digenerate tanggal <strong>{billingForm.invoiceGenerationDay}</strong> dan
             jatuh tempo pada tanggal <strong>{billingForm.invoiceDueDay}</strong>.
           </div>
 
-          <div className="flex justify-end border-t border-gray-200 pt-4">
+          <div className="flex justify-end border-t border-surface-100 pt-4">
             <button
               type="submit"
               disabled={billingSaving}
-              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400 sm:w-auto"
+              className="btn-primary"
             >
               {billingSaving ? 'Menyimpan...' : 'Simpan Siklus Tagihan'}
             </button>
@@ -736,89 +741,94 @@ export default function TenantPaymentSettings() {
         </form>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5">
+      {/* Bank Accounts Section */}
+      <section className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <BuildingLibraryIcon className="h-6 w-6 text-blue-600" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-200/60">
+                <BuildingLibraryIcon className="h-4 w-4" />
+              </div>
               <div>
-                <h2 className="text-base font-semibold text-gray-900">Rekening bank</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Metode pembayaran transfer yang tersedia untuk tenant atau pelanggan.
+                <h2 className="text-[15px] font-semibold text-surface-800">Rekening bank</h2>
+                <p className="mt-0.5 text-[13px] text-surface-400">
+                  Metode pembayaran transfer yang tersedia.
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => openBankModal()}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
+              className="btn-primary self-start"
             >
-              <PlusIcon className="h-5 w-5" />
+              <PlusIcon className="h-4 w-4" />
               Tambah Rekening
             </button>
           </div>
         </div>
 
-        <div className="p-4 sm:p-5">
+        <div className="p-5">
           {bankAccounts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-300 px-4 py-10 text-center">
-              <BuildingLibraryIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-3 text-sm font-medium text-gray-900">
+            <div className="rounded-xl border border-dashed border-surface-200 px-4 py-10 text-center">
+              <BuildingLibraryIcon className="mx-auto h-12 w-12 text-surface-300" />
+              <p className="mt-3 text-[13px] font-medium text-surface-700">
                 Belum ada rekening bank yang dikonfigurasi.
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {bankAccounts.map((bank) => (
                 <article
                   key={bank.id}
-                  className={`rounded-2xl border p-4 ${
-                    bank.isActive ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'
+                  className={`rounded-xl border p-4 transition-colors ${
+                    bank.isActive
+                      ? 'border-surface-200 bg-white hover:border-surface-300'
+                      : 'border-surface-100 bg-surface-50'
                   }`}
                 >
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-100">
-                        <BuildingLibraryIcon className="h-6 w-6 text-blue-600" />
+                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-200/60">
+                        <BuildingLibraryIcon className="h-5 w-5" />
                       </div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-semibold text-gray-900">{bank.bankName}</h3>
+                          <h3 className="text-[14px] font-semibold text-surface-800">{bank.bankName}</h3>
                           {bank.isPrimary && (
-                            <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800">
+                            <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-[12px] font-medium text-brand-700 ring-1 ring-inset ring-brand-200/60">
                               Utama
                             </span>
                           )}
                           {!bank.isActive && (
-                            <span className="rounded-full bg-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700">
+                            <span className="rounded-full bg-surface-100 px-2.5 py-0.5 text-[12px] font-medium text-surface-500 ring-1 ring-inset ring-surface-200/60">
                               Nonaktif
                             </span>
                           )}
                         </div>
-                        <p className="mt-2 text-sm text-gray-600">Nama akun: {bank.accountName}</p>
-                        <p className="mt-1 font-mono text-base font-semibold text-gray-900">
+                        <p className="mt-1.5 text-[13px] text-surface-500">Nama akun: {bank.accountName}</p>
+                        <p className="mt-1 font-mono text-[15px] font-semibold text-surface-800">
                           {bank.accountNumber}
                         </p>
-                        <p className="mt-1 text-sm text-gray-500">Kode / cabang: {bank.bankCode}</p>
+                        <p className="mt-1 text-[13px] text-surface-400">Kode / cabang: {bank.bankCode}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="flex items-center gap-1.5 self-end sm:self-auto">
                       <button
                         type="button"
                         onClick={() => openBankModal(bank)}
-                        className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
+                        className="rounded-lg p-2 text-brand-600 transition-colors hover:bg-brand-50"
                         aria-label="Ubah rekening bank"
                       >
-                        <PencilIcon className="h-5 w-5" />
+                        <PencilIcon className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setDeleteTarget({ type: 'bank', id: bank.id })}
-                        className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                        className="rounded-lg p-2 text-danger-600 transition-colors hover:bg-danger-50"
                         aria-label="Hapus rekening bank"
                       >
-                        <TrashIcon className="h-5 w-5" />
+                        <TrashIcon className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -829,51 +839,56 @@ export default function TenantPaymentSettings() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5">
+      {/* QR Codes Section */}
+      <section className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <QrCodeIcon className="h-6 w-6 text-green-600" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success-50 text-success-600 ring-1 ring-inset ring-success-200/60">
+                <QrCodeIcon className="h-4 w-4" />
+              </div>
               <div>
-                <h2 className="text-base font-semibold text-gray-900">QR code pembayaran</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  QRIS atau e-wallet yang bisa digunakan pada alur pembayaran tenant.
+                <h2 className="text-[15px] font-semibold text-surface-800">QR code pembayaran</h2>
+                <p className="mt-0.5 text-[13px] text-surface-400">
+                  QRIS atau e-wallet untuk pembayaran.
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => openQRModal()}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
+              className="inline-flex items-center gap-2 rounded-xl bg-success-600 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-success-700 self-start"
             >
-              <PlusIcon className="h-5 w-5" />
+              <PlusIcon className="h-4 w-4" />
               Tambah Kode QR
             </button>
           </div>
         </div>
 
-        <div className="p-4 sm:p-5">
+        <div className="p-5">
           {qrCodes.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-300 px-4 py-10 text-center">
-              <QrCodeIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-3 text-sm font-medium text-gray-900">Belum ada QR code pembayaran.</p>
+            <div className="rounded-xl border border-dashed border-surface-200 px-4 py-10 text-center">
+              <QrCodeIcon className="mx-auto h-12 w-12 text-surface-300" />
+              <p className="mt-3 text-[13px] font-medium text-surface-700">Belum ada QR code pembayaran.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {qrCodes.map((qr) => (
                 <article
                   key={qr.id}
-                  className={`rounded-2xl border p-4 ${
-                    qr.is_active ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'
+                  className={`rounded-xl border p-4 transition-colors ${
+                    qr.is_active
+                      ? 'border-surface-200 bg-white hover:border-surface-300'
+                      : 'border-surface-100 bg-surface-50'
                   }`}
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-800">
+                      <span className="rounded-full bg-success-50 px-2.5 py-0.5 text-[12px] font-medium text-success-700 ring-1 ring-inset ring-success-200/60">
                         {qr.type}
                       </span>
                       {qr.is_primary && (
-                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
+                        <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-[12px] font-medium text-brand-700 ring-1 ring-inset ring-brand-200/60">
                           Utama
                         </span>
                       )}
@@ -882,7 +897,7 @@ export default function TenantPaymentSettings() {
                       <button
                         type="button"
                         onClick={() => openQRModal(qr)}
-                        className="rounded p-1.5 text-blue-600 hover:bg-blue-50"
+                        className="rounded-lg p-1.5 text-brand-600 transition-colors hover:bg-brand-50"
                         aria-label="Ubah kode QR"
                       >
                         <PencilIcon className="h-4 w-4" />
@@ -890,7 +905,7 @@ export default function TenantPaymentSettings() {
                       <button
                         type="button"
                         onClick={() => setDeleteTarget({ type: 'qr', id: qr.id })}
-                        className="rounded p-1.5 text-red-600 hover:bg-red-50"
+                        className="rounded-lg p-1.5 text-danger-600 transition-colors hover:bg-danger-50"
                         aria-label="Hapus kode QR"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -898,7 +913,7 @@ export default function TenantPaymentSettings() {
                     </div>
                   </div>
 
-                  <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-gray-100">
+                  <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-surface-100">
                     {qr.imageDisplayUrl ? (
                       <img
                         src={qr.imageDisplayUrl}
@@ -906,11 +921,11 @@ export default function TenantPaymentSettings() {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <QrCodeIcon className="h-20 w-20 text-gray-400" />
+                      <QrCodeIcon className="h-20 w-20 text-surface-300" />
                     )}
                   </div>
 
-                  {qr.notes && <p className="mt-3 text-sm text-gray-500">{qr.notes}</p>}
+                  {qr.notes && <p className="mt-3 text-[13px] text-surface-400">{qr.notes}</p>}
                 </article>
               ))}
             </div>
@@ -918,6 +933,7 @@ export default function TenantPaymentSettings() {
         </div>
       </section>
 
+      {/* Bank Modal */}
       <Modal
         isOpen={showBankModal}
         onClose={closeBankModal}
@@ -958,7 +974,7 @@ export default function TenantPaymentSettings() {
               setBankForm((prev) => ({ ...prev, bankCode: event.target.value }))
             }
           />
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+          <div className="rounded-xl border border-surface-100 bg-surface-50 p-4 space-y-3">
             <FormCheckbox
               checked={bankForm.isActive}
               onChange={(event) =>
@@ -974,17 +990,17 @@ export default function TenantPaymentSettings() {
               label="Jadikan utama"
             />
           </div>
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-surface-100 pt-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={closeBankModal}
-              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
+              className="btn-secondary"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
+              className="btn-primary"
             >
               {editingBank ? 'Simpan Perubahan' : 'Tambah Rekening'}
             </button>
@@ -992,6 +1008,7 @@ export default function TenantPaymentSettings() {
         </form>
       </Modal>
 
+      {/* QR Modal */}
       <Modal
         isOpen={showQRModal}
         onClose={closeQRModal}
@@ -1009,11 +1026,11 @@ export default function TenantPaymentSettings() {
             }
             options={qrTypeOptions}
           />
-          <div className="rounded-2xl border border-gray-200 p-4">
-            <label className="block text-sm font-medium text-gray-700">
+          <div className="rounded-xl border border-surface-100 p-4">
+            <label className="block text-[13px] font-medium text-surface-700">
               Gambar QR code {editingQR ? '(opsional jika tidak diganti)' : '*'}
             </label>
-            <div className="mt-3 rounded-2xl border-2 border-dashed border-gray-300 p-4">
+            <div className="mt-3 rounded-xl border-2 border-dashed border-surface-200 p-4">
               {qrPreviewUrl ? (
                 <div className="relative">
                   <img
@@ -1028,7 +1045,7 @@ export default function TenantPaymentSettings() {
                       setQrPreviewUrl(null);
                       setQRForm((prev) => ({ ...prev, imageFile: null }));
                     }}
-                    className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white"
+                    className="absolute right-2 top-2 rounded-full bg-danger-500 p-1 text-white"
                     aria-label="Hapus preview QR"
                   >
                     <TrashIcon className="h-4 w-4" />
@@ -1036,8 +1053,8 @@ export default function TenantPaymentSettings() {
                 </div>
               ) : (
                 <div className="text-center">
-                  <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
-                  <label className="mt-2 inline-flex cursor-pointer items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700">
+                  <CloudArrowUpIcon className="mx-auto h-12 w-12 text-surface-300" />
+                  <label className="mt-2 inline-flex cursor-pointer items-center justify-center rounded-xl bg-success-600 px-4 py-2.5 text-[13px] font-medium text-white hover:bg-success-700">
                     Upload Gambar
                     <input
                       type="file"
@@ -1047,7 +1064,7 @@ export default function TenantPaymentSettings() {
                       required={!editingQR}
                     />
                   </label>
-                  <p className="mt-1 text-xs text-gray-500">PNG atau JPG, maksimal 2MB.</p>
+                  <p className="mt-1 text-[12px] text-surface-400">PNG atau JPG, maksimal 2MB.</p>
                 </div>
               )}
             </div>
@@ -1059,7 +1076,7 @@ export default function TenantPaymentSettings() {
             onChange={(event) => setQRForm((prev) => ({ ...prev, notes: event.target.value }))}
             placeholder="Catatan opsional"
           />
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+          <div className="rounded-xl border border-surface-100 bg-surface-50 p-4 space-y-3">
             <FormCheckbox
               checked={qrForm.isActive}
               onChange={(event) =>
@@ -1075,17 +1092,17 @@ export default function TenantPaymentSettings() {
               label="Jadikan utama"
             />
           </div>
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-surface-100 pt-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={closeQRModal}
-              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
+              className="btn-secondary"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
+              className="inline-flex items-center justify-center rounded-xl bg-success-600 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-success-700"
             >
               {editingQR ? 'Simpan Perubahan' : 'Tambah Kode QR'}
             </button>

@@ -34,7 +34,12 @@ vi.mock('../../components', () => ({
       {actions}
     </div>
   ),
-  TableSkeleton: () => <div>Loading...</div>,
+  DashboardStatCard: ({ title, value }: { title: string; value: string | number }) => (
+    <div>
+      <p>{title}</p>
+      <p>{String(value)}</p>
+    </div>
+  ),
   useToast: () => mockToast,
 }));
 

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  ArrowRightIcon,
   BeakerIcon,
   CalendarDaysIcon,
   ChartBarIcon,
@@ -8,7 +9,7 @@ import {
   DocumentTextIcon,
   UserGroupIcon,
 } from '@heroicons/react/24/outline';
-import { DashboardStatCard, FormInput, PageHeader } from '../../components';
+import { DashboardStatCard, FormInput } from '../../components';
 
 const today = new Date().toISOString().split('T')[0];
 const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
@@ -17,6 +18,14 @@ const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1
 const startOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0];
 const startOfLastYear = new Date(new Date().getFullYear() - 1, 0, 1).toISOString().split('T')[0];
 const endOfLastYear = new Date(new Date().getFullYear() - 1, 11, 31).toISOString().split('T')[0];
+
+const REPORT_TONE_MAP: Record<string, { icon: string; badge: string }> = {
+  green: { icon: 'bg-success-50 text-success-600 ring-success-200/60', badge: 'bg-success-50 text-success-700 ring-success-200/60' },
+  blue: { icon: 'bg-brand-50 text-brand-600 ring-brand-200/60', badge: 'bg-brand-50 text-brand-700 ring-brand-200/60' },
+  purple: { icon: 'bg-purple-50 text-purple-600 ring-purple-200/60', badge: 'bg-purple-50 text-purple-700 ring-purple-200/60' },
+  cyan: { icon: 'bg-cyan-50 text-cyan-600 ring-cyan-200/60', badge: 'bg-cyan-50 text-cyan-700 ring-cyan-200/60' },
+  yellow: { icon: 'bg-warning-50 text-warning-600 ring-warning-200/60', badge: 'bg-warning-50 text-warning-700 ring-warning-200/60' },
+};
 
 const reports = [
   {
@@ -111,17 +120,21 @@ export default function ReportsDashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Laporan & Analitik"
-        subtitle="Pilih laporan yang ingin dibuka, atur rentang tanggal default, lalu masuk ke halaman detail dari tampilan yang lebih nyaman di mobile."
-      />
+      {/* Page Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-surface-900">Laporan & Analitik</h1>
+        <p className="mt-1 text-[13px] text-surface-400">
+          Pilih laporan yang ingin dibuka, atur rentang tanggal default, lalu masuk ke halaman detail.
+        </p>
+      </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <DashboardStatCard
           title="Jenis Laporan"
           value={`${reports.length}`}
           helper="Siap dibuka"
-          subtitle="Semua pintasan laporan tersedia dari satu dashboard ringkas."
+          subtitle="Semua pintasan laporan dari satu dashboard."
           icon={ChartBarIcon}
           tone="blue"
         />
@@ -129,7 +142,7 @@ export default function ReportsDashboard() {
           title="Rentang Default"
           value={rangeSummary}
           helper="Dipakai saat buka laporan"
-          subtitle="Tanggal ini otomatis dibawa saat Anda membuka halaman laporan detail."
+          subtitle="Tanggal ini otomatis dibawa ke laporan detail."
           icon={CalendarDaysIcon}
           tone="green"
         />
@@ -137,21 +150,22 @@ export default function ReportsDashboard() {
           title="Aksi Cepat"
           value={`${quickActions.length}`}
           helper="Workflow operasional"
-          subtitle="Shortcut ke halaman tagihan, pembayaran, dan input pemakaian."
+          subtitle="Shortcut ke tagihan, pembayaran, dan input pemakaian."
           icon={DocumentTextIcon}
           tone="purple"
         />
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      {/* Date Range */}
+      <section className="card p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Rentang tanggal default</h2>
-            <p className="mt-1 text-sm leading-6 text-gray-500">
+            <h2 className="text-[15px] font-semibold text-surface-800">Rentang tanggal default</h2>
+            <p className="mt-0.5 text-[13px] text-surface-400">
               Gunakan rentang ini sebagai filter awal sebelum masuk ke laporan tertentu.
             </p>
           </div>
-          <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+          <span className="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-[13px] font-medium text-brand-700 ring-1 ring-inset ring-brand-200/60">
             {rangeSummary}
           </span>
         </div>
@@ -172,93 +186,76 @@ export default function ReportsDashboard() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => applyPreset(startOfMonth, today)}
-            className="rounded-full bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
-          >
-            Bulan Ini
-          </button>
-          <button
-            type="button"
-            onClick={() => applyPreset(startOfYear, today)}
-            className="rounded-full bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
-          >
-            Tahun Ini
-          </button>
-          <button
-            type="button"
-            onClick={() => applyPreset(startOfLastYear, endOfLastYear)}
-            className="rounded-full bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
-          >
-            Tahun Lalu
-          </button>
-        </div>
-      </section>
-
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-base font-semibold text-gray-900">Pilih laporan</h2>
-          <p className="mt-1 text-sm leading-6 text-gray-500">
-            Setiap kartu akan membuka laporan dengan rentang tanggal yang sudah dipilih di atas.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {reports.map((report) => (
-            <article
-              key={report.id}
-              className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          {[
+            { label: 'Bulan Ini', start: startOfMonth, end: today },
+            { label: 'Tahun Ini', start: startOfYear, end: today },
+            { label: 'Tahun Lalu', start: startOfLastYear, end: endOfLastYear },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => applyPreset(preset.start, preset.end)}
+              className="rounded-full bg-surface-100 px-3 py-1.5 text-[13px] font-medium text-surface-600 transition-colors hover:bg-surface-200"
             >
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gray-100">
-                  <report.icon className="h-6 w-6 text-gray-700" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">{report.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-gray-500">{report.description}</p>
-                  <span
-                    className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-                      report.tone === 'green'
-                        ? 'bg-green-50 text-green-700'
-                        : report.tone === 'blue'
-                          ? 'bg-blue-50 text-blue-700'
-                          : report.tone === 'purple'
-                            ? 'bg-purple-50 text-purple-700'
-                            : report.tone === 'cyan'
-                              ? 'bg-cyan-50 text-cyan-700'
-                              : 'bg-amber-50 text-amber-700'
-                    }`}
-                  >
-                    Default: {rangeSummary}
-                  </span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => handleViewReport(report.path)}
-                className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
-              >
-                Buka Laporan
-              </button>
-            </article>
+              {preset.label}
+            </button>
           ))}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Aksi cepat operasional</h2>
+      {/* Reports Grid */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-[15px] font-semibold text-surface-800">Pilih laporan</h2>
+          <p className="mt-0.5 text-[13px] text-surface-400">
+            Setiap kartu akan membuka laporan dengan rentang tanggal yang sudah dipilih.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          {reports.map((report) => {
+            const tone = REPORT_TONE_MAP[report.tone] || REPORT_TONE_MAP.blue;
+            const Icon = report.icon;
+            return (
+              <article
+                key={report.id}
+                className="card group cursor-pointer p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                onClick={() => handleViewReport(report.path)}
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ${tone.icon}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-[15px] font-semibold text-surface-800">{report.title}</h3>
+                    <p className="mt-1 text-[13px] text-surface-400">{report.description}</p>
+                    <div className="mt-3 flex items-center gap-3">
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${tone.badge}`}>
+                        Default: {rangeSummary}
+                      </span>
+                    </div>
+                  </div>
+                  <ArrowRightIcon className="h-5 w-5 text-surface-300 transition-transform group-hover:translate-x-1 group-hover:text-surface-500" />
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Quick Actions */}
+      <section className="card p-5">
+        <h2 className="text-[15px] font-semibold text-surface-800">Aksi cepat operasional</h2>
         <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-3">
           {quickActions.map((action) => (
             <button
               key={action.title}
               type="button"
               onClick={() => navigate(action.path)}
-              className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-left transition hover:border-gray-300 hover:bg-white"
+              className="rounded-xl border border-surface-200 bg-surface-50/50 p-4 text-left transition-all hover:border-surface-300 hover:bg-white hover:shadow-sm"
             >
-              <p className="text-sm font-semibold text-gray-900">{action.title}</p>
-              <p className="mt-2 text-sm leading-6 text-gray-500">{action.description}</p>
+              <p className="text-[14px] font-semibold text-surface-800">{action.title}</p>
+              <p className="mt-1.5 text-[13px] text-surface-400">{action.description}</p>
             </button>
           ))}
         </div>

@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowLeftIcon,
+  DocumentArrowUpIcon,
+  CreditCardIcon,
+  CalendarDaysIcon,
+  BanknotesIcon,
+  DocumentTextIcon,
+} from '@heroicons/react/24/outline';
 import { subscriptionPaymentService } from '../../services/subscriptionPaymentService';
 import { useToast } from '../../components';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -48,23 +55,20 @@ const PaymentSubmissionPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setError('File size must not exceed 5MB');
+      setError('Ukuran file maksimal 5MB');
       return;
     }
 
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
-      setError('Only JPG, PNG, and PDF files are allowed');
+      setError('Hanya file JPG, PNG, dan PDF yang diizinkan');
       return;
     }
 
     setError('');
     setProofFile(file);
 
-    // Create preview for images
     if (file.type.startsWith('image/')) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -80,12 +84,12 @@ const PaymentSubmissionPage = () => {
     e.preventDefault();
 
     if (!proofFile) {
-      setError('Please upload proof of payment');
+      setError('Unggah bukti pembayaran terlebih dahulu');
       return;
     }
 
     if (!isConfirmed) {
-      setError('Please confirm that you have completed the payment');
+      setError('Konfirmasi bahwa pembayaran sudah dilakukan');
       return;
     }
 
@@ -108,7 +112,6 @@ const PaymentSubmissionPage = () => {
         proofFile
       );
 
-      // Success - navigate to status page
       toast.success(`Pembayaran berhasil dikirim. ID konfirmasi: ${response.confirmationId}`);
       navigate('/subscription/status');
     } catch (err: unknown) {
@@ -127,38 +130,51 @@ const PaymentSubmissionPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-[13px] text-surface-400">
+        <button onClick={() => navigate(-1)} className="hover:text-surface-600 transition-colors">
+          Langganan
+        </button>
+        <span>/</span>
+        <span className="text-surface-700 font-medium">Selesaikan Pembayaran</span>
+      </nav>
+
+      {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+        className="inline-flex items-center gap-1.5 text-[13px] text-surface-400 hover:text-surface-600 transition-colors"
       >
-        <ArrowLeftIcon className="h-5 w-5 mr-2" />
+        <ArrowLeftIcon className="h-3.5 w-3.5" />
         Kembali ke Pilihan Paket
       </button>
 
-      <h1 className="text-xl font-bold text-gray-900 mb-6 sm:text-2xl">Selesaikan Pembayaran Anda</h1>
+      <h1 className="text-xl font-bold text-surface-900 sm:text-2xl">Selesaikan Pembayaran Anda</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Payment Info */}
-        <div>
+        <div className="space-y-6">
           {/* Order Summary */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Ringkasan Pesanan</h2>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Paket:</span>
-                <span className="font-medium text-gray-900">{paymentState.planName}</span>
+          <div className="card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <DocumentTextIcon className="h-5 w-5 text-surface-400" />
+              <h2 className="text-base font-semibold text-surface-900">Ringkasan Pesanan</h2>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between text-[13px]">
+                <span className="text-surface-500">Paket:</span>
+                <span className="font-medium text-surface-900">{paymentState.planName}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Periode Tagihan:</span>
-                <span className="font-medium text-gray-900">
+              <div className="flex justify-between text-[13px]">
+                <span className="text-surface-500">Periode Tagihan:</span>
+                <span className="font-medium text-surface-900">
                   {paymentState.billingPeriod} {paymentState.billingPeriod === 1 ? 'Bulan' : 'Bulan'}
                 </span>
               </div>
-              <div className="border-t border-gray-200 pt-2 mt-2">
+              <div className="border-t border-surface-100 pt-3">
                 <div className="flex justify-between">
-                  <span className="font-semibold text-gray-900">Total Pembayaran:</span>
-                  <span className="text-xl font-bold text-blue-600">
+                  <span className="font-semibold text-surface-900">Total Pembayaran:</span>
+                  <span className="text-xl font-bold text-brand-600">
                     {formatCurrency(paymentState.totalAmount)}
                   </span>
                 </div>
@@ -167,24 +183,22 @@ const PaymentSubmissionPage = () => {
           </div>
 
           {/* Payment Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="font-semibold text-blue-900 mb-3">Petunjuk Pembayaran</h3>
-            
+          <div className="rounded-xl border border-info-200 bg-info-50 p-6">
+            <h3 className="font-semibold text-info-900 mb-3">Petunjuk Pembayaran</h3>
             <div className="space-y-4">
               <div>
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Transfer Bank:</h4>
-                <div className="bg-white rounded p-3 text-sm space-y-1">
-                  <p><span className="font-medium">Bank:</span> BCA</p>
-                  <p><span className="font-medium">Rekening:</span> 1234567890</p>
-                  <p><span className="font-medium">Nama:</span> PT Tirta SaaS Indonesia</p>
+                <h4 className="text-[13px] font-medium text-info-900 mb-2">Transfer Bank:</h4>
+                <div className="rounded-xl bg-white p-3 text-[13px] space-y-1">
+                  <p><span className="font-medium text-surface-700">Bank:</span> BCA</p>
+                  <p><span className="font-medium text-surface-700">Rekening:</span> 1234567890</p>
+                  <p><span className="font-medium text-surface-700">Nama:</span> PT Tirta SaaS Indonesia</p>
                 </div>
               </div>
-
               <div>
-                <h4 className="text-sm font-medium text-blue-900 mb-2">E-Wallet (QRIS):</h4>
-                <div className="bg-white rounded p-3">
-                  <div className="w-32 h-32 bg-gray-200 rounded flex items-center justify-center">
-                    <span className="text-xs text-gray-500">Kode QR</span>
+                <h4 className="text-[13px] font-medium text-info-900 mb-2">E-Wallet (QRIS):</h4>
+                <div className="rounded-xl bg-white p-3">
+                  <div className="w-32 h-32 bg-surface-100 rounded-xl flex items-center justify-center">
+                    <span className="text-[12px] text-surface-400">Kode QR</span>
                   </div>
                 </div>
               </div>
@@ -193,51 +207,64 @@ const PaymentSubmissionPage = () => {
         </div>
 
         {/* Right Column - Payment Form */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Konfirmasi Pembayaran</h2>
+        <div className="card p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <CreditCardIcon className="h-5 w-5 text-surface-400" />
+            <h2 className="text-base font-semibold text-surface-900">Konfirmasi Pembayaran</h2>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              <div className="rounded-xl border border-danger-200 bg-danger-50 text-danger-700 px-4 py-3 text-[13px]">
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tanggal Pembayaran <span className="text-red-500">*</span>
+              <label className="block text-[13px] font-medium text-surface-700 mb-1.5">
+                Tanggal Pembayaran <span className="text-danger-500">*</span>
               </label>
-              <input
-                type="date"
-                name="paymentDate"
-                value={formData.paymentDate}
-                onChange={handleInputChange}
-                max={new Date().toISOString().split('T')[0]}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <CalendarDaysIcon className="h-4 w-4 text-surface-400" />
+                </div>
+                <input
+                  type="date"
+                  name="paymentDate"
+                  value={formData.paymentDate}
+                  onChange={handleInputChange}
+                  max={new Date().toISOString().split('T')[0]}
+                  required
+                  className="input-base pl-10"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Metode Pembayaran <span className="text-red-500">*</span>
+              <label className="block text-[13px] font-medium text-surface-700 mb-1.5">
+                Metode Pembayaran <span className="text-danger-500">*</span>
               </label>
-              <select
-                name="paymentMethod"
-                value={formData.paymentMethod}
-                onChange={handleInputChange}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="bank_transfer">Transfer Bank</option>
-                <option value="e-wallet">E-Wallet (QRIS)</option>
-                <option value="other">Lainnya</option>
-              </select>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <BanknotesIcon className="h-4 w-4 text-surface-400" />
+                </div>
+                <select
+                  name="paymentMethod"
+                  value={formData.paymentMethod}
+                  onChange={handleInputChange}
+                  required
+                  className="input-base pl-10"
+                >
+                  <option value="bank_transfer">Transfer Bank</option>
+                  <option value="e-wallet">E-Wallet (QRIS)</option>
+                  <option value="other">Lainnya</option>
+                </select>
+              </div>
             </div>
 
             {formData.paymentMethod === 'bank_transfer' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-[13px] font-medium text-surface-700 mb-1.5">
                   Nomor Rekening
                 </label>
                 <input
@@ -246,14 +273,14 @@ const PaymentSubmissionPage = () => {
                   value={formData.accountNumber}
                   onChange={handleInputChange}
                   placeholder="Nomor rekening Anda"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-base"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nama Pemilik Rekening <span className="text-red-500">*</span>
+              <label className="block text-[13px] font-medium text-surface-700 mb-1.5">
+                Nama Pemilik Rekening <span className="text-danger-500">*</span>
               </label>
               <input
                 type="text"
@@ -262,12 +289,12 @@ const PaymentSubmissionPage = () => {
                 onChange={handleInputChange}
                 placeholder="Nama pemilik rekening"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-base"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-[13px] font-medium text-surface-700 mb-1.5">
                 Nomor Referensi
               </label>
               <input
@@ -276,19 +303,20 @@ const PaymentSubmissionPage = () => {
                 value={formData.referenceNumber}
                 onChange={handleInputChange}
                 placeholder="Nomor referensi transaksi"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-base"
               />
             </div>
 
+            {/* File Upload */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bukti Pembayaran <span className="text-red-500">*</span>
+              <label className="block text-[13px] font-medium text-surface-700 mb-1.5">
+                Bukti Pembayaran <span className="text-danger-500">*</span>
               </label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-surface-200 rounded-xl hover:border-brand-400 transition-colors">
                 <div className="space-y-1 text-center">
-                  <DocumentArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
+                  <DocumentArrowUpIcon className="mx-auto h-10 w-10 text-surface-300" />
+                  <div className="flex text-[13px] text-surface-600">
+                    <label className="relative cursor-pointer rounded-xl font-medium text-brand-600 hover:text-brand-500 focus-within:outline-none">
                       <span>Unggah file</span>
                       <input
                         type="file"
@@ -299,26 +327,27 @@ const PaymentSubmissionPage = () => {
                     </label>
                     <p className="pl-1">atau tarik dan lepas</p>
                   </div>
-                  <p className="text-xs text-gray-500">JPG, PNG, PDF hingga 5MB</p>
+                  <p className="text-[12px] text-surface-400">JPG, PNG, PDF hingga 5MB</p>
                 </div>
               </div>
               {proofFile && (
                 <div className="mt-2">
-                  <p className="text-sm text-gray-600">File terpilih: {proofFile.name}</p>
+                  <p className="text-[13px] text-surface-600">File terpilih: {proofFile.name}</p>
                   {previewUrl && (
                     <img
                       src={previewUrl}
                       alt="Preview"
-                      className="mt-2 max-h-40 rounded border border-gray-300"
+                      className="mt-2 max-h-40 rounded-xl border border-surface-200"
                     />
                   )}
                 </div>
               )}
             </div>
 
+            {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Catatan (Opsional)
+              <label className="block text-[13px] font-medium text-surface-700 mb-1.5">
+                Catatan <span className="text-surface-400">(Opsional)</span>
               </label>
               <textarea
                 name="notes"
@@ -326,36 +355,45 @@ const PaymentSubmissionPage = () => {
                 onChange={handleInputChange}
                 rows={3}
                 placeholder="Informasi tambahan..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-base"
               />
             </div>
 
+            {/* Confirmation */}
             <div className="flex items-start">
               <input
                 type="checkbox"
                 checked={isConfirmed}
                 onChange={(e) => setIsConfirmed(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
+                className="h-4 w-4 text-brand-600 focus:ring-brand-500 border-surface-300 rounded mt-1"
               />
-              <label className="ml-2 text-sm text-gray-700">
+              <label className="ml-2 text-[13px] text-surface-700">
                 Saya mengonfirmasi bahwa pembayaran sudah dilakukan
               </label>
             </div>
 
+            {/* Actions */}
             <div className="flex space-x-4 pt-4">
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200"
+                className="btn-secondary flex-1"
               >
                 Batal
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="btn-primary flex-1"
               >
-                {loading ? 'Mengirim...' : 'Kirim Pembayaran'}
+                {loading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Mengirim...
+                  </span>
+                ) : (
+                  'Kirim Pembayaran'
+                )}
               </button>
             </div>
           </form>

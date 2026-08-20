@@ -22,15 +22,7 @@ vi.mock('../../services/thermalPrinterService', () => ({
 }));
 
 vi.mock('../../components', () => ({
-  PageHeader: ({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) => (
-    <div>
-      <h1>{title}</h1>
-      {subtitle ? <p>{subtitle}</p> : null}
-      {actions}
-    </div>
-  ),
-  Skeleton: () => <div>Loading skeleton</div>,
-  TableSkeleton: () => <div>Loading table</div>,
+  CardSkeleton: () => <div>Loading skeleton</div>,
   useToast: () => ({
     error: mockShowErrorToast,
   }),
@@ -73,6 +65,12 @@ describe('CustomerInvoiceDetail', () => {
       issueDate: '2026-05-01T00:00:00Z',
       dueDate: '2026-05-20T00:00:00Z',
       billingPeriod: '2026-05',
+      usage: 10,
+      amount: 20000,
+      meterNumber: 'MTR-001',
+      meterStart: 100,
+      meterEnd: 110,
+      pricePerM3: 2000,
       items: [
         {
           description: 'Pemakaian Air',
@@ -99,7 +97,8 @@ describe('CustomerInvoiceDetail', () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByText('No. INV-001')).toBeInTheDocument();
+    const invTexts = await screen.findAllByText('INV-001');
+    expect(invTexts.length).toBeGreaterThanOrEqual(2);
     expect(screen.getByRole('link', { name: 'Bayar Sekarang' })).toHaveAttribute('href', '/customer/pay/inv-1');
 
     fireEvent.click(screen.getByRole('button', { name: 'Unduh PDF' }));

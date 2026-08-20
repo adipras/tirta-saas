@@ -13,7 +13,6 @@ import {
   DashboardStatCard,
   DataTable,
   Modal,
-  PageHeader,
   type Column,
   useToast,
 } from '../../components';
@@ -52,33 +51,36 @@ interface TenantManagementStats {
 type TabType = 'pending' | 'all';
 type ModalAction = 'approve' | 'activate' | 'suspend' | 'view';
 
-const statusColors: Record<string, { bg: string; text: string; label: string }> = {
-  TRIAL: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Trial' },
+const statusColors: Record<string, { ring: string; bg: string; text: string; label: string }> = {
+  TRIAL: { ring: 'ring-brand-200/60', bg: 'bg-brand-50', text: 'text-brand-700', label: 'Trial' },
   PENDING_PAYMENT: {
-    bg: 'bg-yellow-100',
-    text: 'text-yellow-800',
+    ring: 'ring-warning-200/60',
+    bg: 'bg-warning-50',
+    text: 'text-warning-700',
     label: 'Menunggu Pembayaran',
   },
   PENDING_VERIFICATION: {
-    bg: 'bg-orange-100',
-    text: 'text-orange-800',
+    ring: 'ring-warning-200/60',
+    bg: 'bg-warning-50',
+    text: 'text-warning-700',
     label: 'Menunggu Verifikasi',
   },
-  ACTIVE: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
-  SUSPENDED: { bg: 'bg-red-100', text: 'text-red-800', label: 'Dinonaktifkan' },
-  EXPIRED: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Berakhir' },
-  INACTIVE: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Tidak Aktif' },
+  ACTIVE: { ring: 'ring-success-200/60', bg: 'bg-success-50', text: 'text-success-700', label: 'Aktif' },
+  SUSPENDED: { ring: 'ring-danger-200/60', bg: 'bg-danger-50', text: 'text-danger-700', label: 'Dinonaktifkan' },
+  EXPIRED: { ring: 'ring-surface-200/60', bg: 'bg-surface-50', text: 'text-surface-500', label: 'Berakhir' },
+  INACTIVE: { ring: 'ring-surface-200/60', bg: 'bg-surface-50', text: 'text-surface-500', label: 'Tidak Aktif' },
 };
 
-const subscriptionStatusColors: Record<string, { bg: string; text: string; label: string }> = {
-  VERIFIED: { bg: 'bg-green-100', text: 'text-green-800', label: 'Pembayaran Terverifikasi' },
+const subscriptionStatusColors: Record<string, { ring: string; bg: string; text: string; label: string }> = {
+  VERIFIED: { ring: 'ring-success-200/60', bg: 'bg-success-50', text: 'text-success-700', label: 'Pembayaran Terverifikasi' },
   PENDING_VERIFICATION: {
-    bg: 'bg-yellow-100',
-    text: 'text-yellow-800',
+    ring: 'ring-warning-200/60',
+    bg: 'bg-warning-50',
+    text: 'text-warning-700',
     label: 'Menunggu Verifikasi Pembayaran',
   },
-  ACTIVE: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Langganan Aktif' },
-  TRIAL: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Trial' },
+  ACTIVE: { ring: 'ring-brand-200/60', bg: 'bg-brand-50', text: 'text-brand-700', label: 'Langganan Aktif' },
+  TRIAL: { ring: 'ring-surface-200/60', bg: 'bg-surface-50', text: 'text-surface-500', label: 'Trial' },
 };
 
 const TenantManagement = () => {
@@ -108,7 +110,7 @@ const TenantManagement = () => {
           : API_ENDPOINTS.PLATFORM.TENANTS;
       const response = await apiClient.get(endpoint);
       setTenants(response.data || []);
-    } catch  {
+    } catch {
       toast.error('Gagal memuat data tenant.');
     } finally {
       setIsLoading(false);
@@ -128,7 +130,7 @@ const TenantManagement = () => {
           total_tenants: 0,
         }
       );
-    } catch  {
+    } catch {
       toast.error('Gagal memuat ringkasan tenant.');
     }
   }, [toast]);
@@ -193,7 +195,7 @@ const TenantManagement = () => {
 
       await Promise.all([loadTenants(), loadTenantStats()]);
       closeModal();
-    } catch  {
+    } catch {
       toast.error('Aksi tenant gagal. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
@@ -225,7 +227,7 @@ const TenantManagement = () => {
 
     return (
       <span
-        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${config.bg} ${config.text}`}
+        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${config.ring} ${config.bg} ${config.text}`}
       >
         {config.label}
       </span>
@@ -234,18 +236,19 @@ const TenantManagement = () => {
 
   const getSubscriptionStatusBadge = (status?: string) => {
     if (!status) {
-      return <span className="text-xs text-gray-400">Belum ada</span>;
+      return <span className="text-[12px] text-surface-400">Belum ada</span>;
     }
 
     const config = subscriptionStatusColors[status] || {
-      bg: 'bg-gray-100',
-      text: 'text-gray-800',
+      ring: 'ring-surface-200/60',
+      bg: 'bg-surface-50',
+      text: 'text-surface-500',
       label: status,
     };
 
     return (
       <span
-        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${config.bg} ${config.text}`}
+        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${config.ring} ${config.bg} ${config.text}`}
       >
         {config.label}
       </span>
@@ -261,8 +264,8 @@ const TenantManagement = () => {
       label: 'Organisasi',
       render: (_, tenant) => (
         <div className="min-w-0">
-          <p className="font-medium text-gray-900">{tenant.name}</p>
-          <p className="text-xs text-gray-500">{tenant.village_code}</p>
+          <p className="font-medium text-surface-800">{tenant.name}</p>
+          <p className="text-[12px] text-surface-400">{tenant.village_code}</p>
         </div>
       ),
     },
@@ -272,8 +275,8 @@ const TenantManagement = () => {
       hideOnMobile: true,
       render: (_, tenant) => (
         <div className="min-w-0">
-          <p className="text-sm text-gray-900">{tenant.admin_name}</p>
-          <p className="text-xs text-gray-500">{tenant.admin_email}</p>
+          <p className="text-[13px] text-surface-600">{tenant.admin_name}</p>
+          <p className="text-[12px] text-surface-400">{tenant.admin_email}</p>
         </div>
       ),
     },
@@ -291,12 +294,12 @@ const TenantManagement = () => {
       key: 'registered_at',
       label: 'Terdaftar',
       hideOnMobile: true,
-      render: (value) => formatDate(String(value)),
+      render: (value) => <span className="text-surface-400">{formatDate(String(value))}</span>,
     },
     {
       key: 'ends_at',
       label: 'Berakhir',
-      render: (_, tenant) => formatDate(getEndDate(tenant)),
+      render: (_, tenant) => <span className="text-surface-400">{formatDate(getEndDate(tenant))}</span>,
     },
   ];
 
@@ -308,25 +311,29 @@ const TenantManagement = () => {
   }[modalAction];
 
   const tabButtonClass = (tab: TabType) =>
-    `inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+    `inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-[13px] font-medium transition ${
       activeTab === tab
-        ? 'bg-blue-600 text-white shadow-sm'
-        : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        ? 'btn-primary'
+        : 'btn-secondary'
     }`;
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Manajemen Tenant"
-        subtitle="Kelola tenant pending, tenant aktif, dan kesiapan langganannya dari satu alur yang lebih nyaman di mobile."
-      />
+      {/* Page Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-surface-900">Manajemen Tenant</h1>
+        <p className="mt-1 text-[13px] text-surface-400">
+          Kelola tenant pending, aktif, dan kesiapan langganannya dari satu alur.
+        </p>
+      </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <DashboardStatCard
           title="Tenant Menunggu"
           value={tenantStats.pending_tenants.toLocaleString('id-ID')}
           helper="Butuh tindak lanjut"
-          subtitle="Tenant yang masih menunggu aktivasi atau verifikasi."
+          subtitle="Tenant menunggu aktivasi atau verifikasi."
           icon={ClockIcon}
           tone="yellow"
         />
@@ -334,7 +341,7 @@ const TenantManagement = () => {
           title="Tenant Aktif"
           value={tenantStats.active_tenants.toLocaleString('id-ID')}
           helper="Sudah berjalan"
-          subtitle="Tenant yang sudah dapat beroperasi normal di platform."
+          subtitle="Tenant yang sudah beroperasi normal."
           icon={CheckCircleIcon}
           tone="green"
         />
@@ -342,22 +349,23 @@ const TenantManagement = () => {
           title="Total Tenant"
           value={tenantStats.total_tenants.toLocaleString('id-ID')}
           helper="Seluruh tenant"
-          subtitle="Gabungan tenant aktif, trial, pending, dan nonaktif."
+          subtitle="Gabungan semua status tenant."
           icon={BuildingOfficeIcon}
           tone="blue"
         />
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5">
+      {/* Table Section */}
+      <div className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-base font-semibold text-gray-900">Daftar tenant</h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <h2 className="text-[15px] font-semibold text-surface-800">Daftar tenant</h2>
+              <p className="mt-0.5 text-[13px] text-surface-400">
                 Gunakan tab untuk fokus ke tenant yang perlu aksi segera.
               </p>
             </div>
-            <div className="rounded-2xl bg-gray-100 p-1">
+            <div className="rounded-xl bg-surface-100 p-1 self-start">
               <div className="grid grid-cols-2 gap-1">
                 <button
                   type="button"
@@ -389,7 +397,7 @@ const TenantManagement = () => {
               : 'Belum ada tenant yang terdaftar.'
           }
           actions={(tenant) => (
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-1.5">
               <ActionIconButton
                 icon={EyeIcon}
                 label={`Lihat detail tenant ${tenant.name}`}
@@ -427,8 +435,9 @@ const TenantManagement = () => {
             </div>
           )}
         />
-      </section>
+      </div>
 
+      {/* Modal */}
       <Modal
         isOpen={showModal && Boolean(selectedTenant)}
         onClose={closeModal}
@@ -439,12 +448,12 @@ const TenantManagement = () => {
       >
         {selectedTenant && (
           <>
-            <section className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+            <section className="rounded-xl border border-brand-200 bg-brand-50 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-blue-700">Tenant</p>
-                  <h3 className="mt-1 text-lg font-semibold text-gray-900">{selectedTenant.name}</h3>
-                  <p className="mt-1 text-sm text-gray-600">{selectedTenant.village_code}</p>
+                  <p className="text-[13px] font-medium text-brand-600">Tenant</p>
+                  <h3 className="mt-1 text-lg font-semibold text-surface-800">{selectedTenant.name}</h3>
+                  <p className="mt-0.5 text-[13px] text-surface-500">{selectedTenant.village_code}</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {getStatusBadge(selectedTenant.status)}
@@ -454,58 +463,45 @@ const TenantManagement = () => {
             </section>
 
             <section className="grid gap-4 lg:grid-cols-2">
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <h4 className="text-sm font-semibold text-gray-900">Informasi organisasi</h4>
-                <dl className="mt-4 space-y-3 text-sm">
-                  <div>
-                    <dt className="text-gray-500">Email</dt>
-                    <dd className="mt-1 text-gray-900">{selectedTenant.email || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Telepon</dt>
-                    <dd className="mt-1 text-gray-900">{selectedTenant.phone || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Alamat</dt>
-                    <dd className="mt-1 text-gray-900">{selectedTenant.address || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Terdaftar</dt>
-                    <dd className="mt-1 text-gray-900">{formatDate(selectedTenant.registered_at)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Berakhir</dt>
-                    <dd className="mt-1 text-gray-900">{formatDate(getEndDate(selectedTenant))}</dd>
-                  </div>
+              <div className="rounded-xl border border-surface-100 bg-white p-4">
+                <h4 className="text-[13px] font-semibold text-surface-800">Informasi organisasi</h4>
+                <dl className="mt-4 space-y-3 text-[13px]">
+                  {[
+                    { label: 'Email', value: selectedTenant.email },
+                    { label: 'Telepon', value: selectedTenant.phone },
+                    { label: 'Alamat', value: selectedTenant.address },
+                    { label: 'Terdaftar', value: formatDate(selectedTenant.registered_at) },
+                    { label: 'Berakhir', value: formatDate(getEndDate(selectedTenant)) },
+                  ].map((item) => (
+                    <div key={item.label}>
+                      <dt className="text-surface-400">{item.label}</dt>
+                      <dd className="mt-0.5 text-surface-700">{item.value || '-'}</dd>
+                    </div>
+                  ))}
                 </dl>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-4">
-                <h4 className="text-sm font-semibold text-gray-900">Administrator tenant</h4>
-                <dl className="mt-4 space-y-3 text-sm">
-                  <div>
-                    <dt className="text-gray-500">Nama</dt>
-                    <dd className="mt-1 text-gray-900">{selectedTenant.admin_name || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Email</dt>
-                    <dd className="mt-1 text-gray-900">{selectedTenant.admin_email || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Telepon</dt>
-                    <dd className="mt-1 text-gray-900">{selectedTenant.admin_phone || '-'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-gray-500">Paket langganan</dt>
-                    <dd className="mt-1 text-gray-900">{selectedTenant.subscription_plan || '-'}</dd>
-                  </div>
+              <div className="rounded-xl border border-surface-100 bg-white p-4">
+                <h4 className="text-[13px] font-semibold text-surface-800">Administrator tenant</h4>
+                <dl className="mt-4 space-y-3 text-[13px]">
+                  {[
+                    { label: 'Nama', value: selectedTenant.admin_name },
+                    { label: 'Email', value: selectedTenant.admin_email },
+                    { label: 'Telepon', value: selectedTenant.admin_phone },
+                    { label: 'Paket langganan', value: selectedTenant.subscription_plan },
+                  ].map((item) => (
+                    <div key={item.label}>
+                      <dt className="text-surface-400">{item.label}</dt>
+                      <dd className="mt-0.5 text-surface-700">{item.value || '-'}</dd>
+                    </div>
+                  ))}
                 </dl>
               </div>
             </section>
 
             {modalAction !== 'view' && modalAction !== 'activate' && (
-              <section className="rounded-2xl border border-gray-200 bg-white p-4">
-                <label htmlFor={actionReasonId} className="block text-sm font-semibold text-gray-900">
+              <section className="rounded-xl border border-surface-100 bg-white p-4">
+                <label htmlFor={actionReasonId} className="block text-[13px] font-semibold text-surface-800">
                   {modalAction === 'approve'
                     ? 'Catatan aktivasi (opsional)'
                     : 'Alasan penonaktifan tenant'}
@@ -515,7 +511,7 @@ const TenantManagement = () => {
                   value={actionReason}
                   onChange={(event) => setActionReason(event.target.value)}
                   rows={4}
-                  className="mt-3 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  className="input-base mt-2"
                   placeholder={
                     modalAction === 'approve'
                       ? 'Tambahkan catatan untuk tenant ini bila diperlukan.'
@@ -526,12 +522,12 @@ const TenantManagement = () => {
               </section>
             )}
 
-            <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-3 border-t border-surface-100 pt-4 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={closeModal}
                 disabled={isSubmitting}
-                className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
+                className="btn-secondary"
               >
                 Batal
               </button>
@@ -540,10 +536,10 @@ const TenantManagement = () => {
                   type="button"
                   onClick={handleAction}
                   disabled={isSubmitting || (modalAction === 'suspend' && !actionReason.trim())}
-                  className={`inline-flex w-full items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50 sm:w-auto ${
+                  className={`inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-[13px] font-medium text-white transition disabled:opacity-50 ${
                     modalAction === 'approve' || modalAction === 'activate'
-                      ? 'bg-green-600 hover:bg-green-700'
-                      : 'bg-orange-600 hover:bg-orange-700'
+                      ? 'bg-success-600 hover:bg-success-700'
+                      : 'bg-warning-600 hover:bg-warning-700'
                   }`}
                 >
                   {isSubmitting

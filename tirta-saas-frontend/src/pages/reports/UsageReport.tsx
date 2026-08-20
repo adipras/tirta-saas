@@ -21,7 +21,6 @@ import {
   DashboardStatCard,
   DataTable,
   FormInput,
-  PageHeader,
   useToast,
 } from '../../components';
 import { reportService } from '../../services/reportService';
@@ -109,24 +108,28 @@ export default function PemakaianReport() {
 
   if (loading) {
     return (
-      <div role="status" aria-label="Memuat laporan pemakaian..." className="flex h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" aria-hidden="true" />
-        <span className="sr-only">Memuat laporan pemakaian...</span>
+      <div className="space-y-6">
+        <div className="h-7 w-48 animate-pulse rounded-lg bg-surface-100" />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="card h-32 animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="card h-80 animate-pulse" />
+          <div className="card h-80 animate-pulse" />
+        </div>
       </div>
     );
   }
 
   if (!reportData) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-        <BeakerIcon className="mx-auto h-12 w-12 text-gray-300" />
-        <h2 className="mt-4 text-base font-semibold text-gray-900">Laporan pemakaian belum tersedia</h2>
-        <p className="mt-2 text-sm text-gray-500">Silakan coba lagi beberapa saat lagi.</p>
-        <button
-          type="button"
-          onClick={() => void fetchReportData()}
-          className="mt-4 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
-        >
+      <div className="card p-8 text-center">
+        <BeakerIcon className="mx-auto h-12 w-12 text-surface-300" />
+        <h2 className="mt-4 text-[15px] font-semibold text-surface-800">Laporan pemakaian belum tersedia</h2>
+        <p className="mt-2 text-[13px] text-surface-400">Silakan coba lagi beberapa saat lagi.</p>
+        <button type="button" onClick={() => void fetchReportData()} className="btn-primary mt-4">
           Muat Ulang
         </button>
       </div>
@@ -135,44 +138,42 @@ export default function PemakaianReport() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Laporan Pemakaian Air"
-        subtitle={`Analisis tren pemakaian air untuk periode ${periodLabel}.`}
-        actions={
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => navigate('/admin/reports')}
-              className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Kembali
-            </button>
-            <button
-              type="button"
-              onClick={() => handleExport('csv')}
-              className="inline-flex items-center justify-center rounded-xl bg-gray-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              <ArrowDownTrayIcon className="mr-2 h-5 w-5" aria-hidden="true" />
-              Ekspor CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => handleExport('excel')}
-              className="inline-flex items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
-            >
-              <ArrowDownTrayIcon className="mr-2 h-5 w-5" aria-hidden="true" />
-              Ekspor Excel
-            </button>
-          </div>
-        }
-      />
+      {/* Breadcrumb + Header */}
+      <nav className="flex items-center gap-2 text-[13px] text-surface-400">
+        <button onClick={() => navigate('/admin/reports')} className="transition-colors hover:text-surface-600">
+          Laporan
+        </button>
+        <span>/</span>
+        <span className="font-medium text-surface-700">Pemakaian</span>
+      </nav>
 
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-surface-900">Laporan Pemakaian Air</h1>
+          <p className="mt-1 text-[13px] text-surface-400">Analisis tren pemakaian air. Periode: {periodLabel}</p>
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => navigate('/admin/reports')} className="btn-secondary">
+            Kembali
+          </button>
+          <button type="button" onClick={() => handleExport('csv')} className="btn-secondary">
+            <ArrowDownTrayIcon className="h-4 w-4" />
+            CSV
+          </button>
+          <button type="button" onClick={() => handleExport('excel')} className="btn-primary">
+            <ArrowDownTrayIcon className="h-4 w-4" />
+            Excel
+          </button>
+        </div>
+      </div>
+
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
         <DashboardStatCard
           title="Total Pemakaian"
           value={`${reportData.totalPemakaian.toLocaleString('id-ID')} m3`}
           helper="Akumulasi periode"
-          subtitle="Total volume air yang tercatat dalam laporan ini."
+          subtitle="Total volume air yang tercatat."
           icon={BeakerIcon}
           tone="cyan"
         />
@@ -188,7 +189,7 @@ export default function PemakaianReport() {
           title="Titik Tren"
           value={`${reportData.usageTrends.length}`}
           helper="Periode terukur"
-          subtitle="Jumlah titik data yang digunakan untuk membaca tren pemakaian."
+          subtitle="Jumlah titik data tren pemakaian."
           icon={UserGroupIcon}
           tone="green"
         />
@@ -196,14 +197,15 @@ export default function PemakaianReport() {
           title="Konsumsi Tinggi"
           value={`${reportData.highConsumers.length}`}
           helper="Perlu dipantau"
-          subtitle="Pelanggan dengan pemakaian paling tinggi pada periode laporan."
+          subtitle="Pelanggan dengan pemakaian tertinggi."
           icon={BeakerIcon}
           tone="purple"
         />
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Filter periode</h2>
+      {/* Filter */}
+      <div className="card p-5">
+        <h2 className="text-[15px] font-semibold text-surface-800">Filter periode</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormInput
             type="date"
@@ -218,11 +220,12 @@ export default function PemakaianReport() {
             onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
           />
         </div>
-      </section>
+      </div>
 
+      {/* Charts */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900">Tren total pemakaian</h2>
+        <div className="card p-5">
+          <h2 className="text-[15px] font-semibold text-surface-800">Tren total pemakaian</h2>
           <div className="mt-4 h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={reportData.usageTrends}>
@@ -232,69 +235,58 @@ export default function PemakaianReport() {
                     <stop offset="95%" stopColor="#06B6D4" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value: number) => `${value.toLocaleString('id-ID')} m3`} />
-                <Area
-                  type="monotone"
-                  dataKey="totalPemakaian"
-                  stroke="#06B6D4"
-                  fill="url(#usageFill)"
-                  name="Total Pemakaian"
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94A3B8' }} />
+                <YAxis tick={{ fontSize: 12, fill: '#94A3B8' }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '13px' }}
+                  formatter={(value: number) => `${value.toLocaleString('id-ID')} m3`}
                 />
+                <Area type="monotone" dataKey="totalPemakaian" stroke="#06B6D4" fill="url(#usageFill)" name="Total Pemakaian" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </section>
+        </div>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900">Rata-rata per pelanggan</h2>
+        <div className="card p-5">
+          <h2 className="text-[15px] font-semibold text-surface-800">Rata-rata per pelanggan</h2>
           <div className="mt-4 h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={reportData.usageTrends}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value: number) => `${Number(value).toFixed(2)} m3`} />
-                <Line
-                  type="monotone"
-                  dataKey="averagePemakaian"
-                  stroke="#3B82F6"
-                  strokeWidth={2}
-                  name="Rata-rata"
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94A3B8' }} />
+                <YAxis tick={{ fontSize: 12, fill: '#94A3B8' }} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '13px' }}
+                  formatter={(value: number) => `${Number(value).toFixed(2)} m3`}
                 />
+                <Line type="monotone" dataKey="averagePemakaian" stroke="#3B82F6" strokeWidth={2} name="Rata-rata" dot={{ r: 4, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </section>
+        </div>
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Pelanggan konsumsi tertinggi</h2>
-        <div className="mt-4">
+      {/* Tables */}
+      <div className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-surface-800">Pelanggan konsumsi tertinggi</h2>
+        </div>
+        <div className="p-5">
           <DataTable
             data={reportData.highConsumers}
             searchable={false}
             pageSize={8}
             emptyMessage="Belum ada data konsumsi tinggi."
             columns={[
-              {
-                key: 'customerName',
-                label: 'Pelanggan',
-                sortable: true,
-              },
-              {
-                key: 'meterNumber',
-                label: 'Meter',
-                sortable: true,
-              },
+              { key: 'customerName', label: 'Pelanggan', sortable: true },
+              { key: 'meterNumber', label: 'Meter', sortable: true },
               {
                 key: 'usage',
                 label: 'Pemakaian',
                 sortable: true,
                 align: 'right',
-                render: (value) => `${Number(value || 0).toLocaleString('id-ID')} m3`,
+                render: (value) => <span className="font-semibold text-brand-600">{Number(value || 0).toLocaleString('id-ID')} m3</span>,
               },
               {
                 key: 'period',
@@ -304,11 +296,13 @@ export default function PemakaianReport() {
             ]}
           />
         </div>
-      </section>
+      </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Rincian tren bulanan</h2>
-        <div className="mt-4">
+      <div className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-surface-800">Rincian tren bulanan</h2>
+        </div>
+        <div className="p-5">
           <DataTable
             data={reportData.usageTrends}
             searchable={false}
@@ -335,16 +329,11 @@ export default function PemakaianReport() {
                 align: 'right',
                 render: (value) => `${Number(value || 0).toFixed(2)} m3`,
               },
-              {
-                key: 'customerCount',
-                label: 'Pelanggan',
-                sortable: true,
-                align: 'right',
-              },
+              { key: 'customerCount', label: 'Pelanggan', sortable: true, align: 'right' },
             ]}
           />
         </div>
-      </section>
+      </div>
     </div>
   );
 }

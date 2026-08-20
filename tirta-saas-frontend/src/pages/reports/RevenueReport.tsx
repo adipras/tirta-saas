@@ -22,7 +22,6 @@ import {
   DashboardStatCard,
   DataTable,
   FormInput,
-  PageHeader,
   useToast,
 } from '../../components';
 import { reportService } from '../../services/reportService';
@@ -45,8 +44,6 @@ const formatDate = (value: string) =>
     year: 'numeric',
   });
 
-const formatCurrencyShort = (value: number) => formatIDR(value);
-
 const CurrencyTooltip = ({
   active,
   payload,
@@ -61,11 +58,11 @@ const CurrencyTooltip = ({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm">
-      {label ? <p className="font-medium text-gray-900">{label}</p> : null}
+    <div className="rounded-xl border border-surface-100 bg-white px-3 py-2 text-[13px] shadow-card">
+      {label ? <p className="font-medium text-surface-800">{label}</p> : null}
       {payload.map((item) => (
-        <p key={item.dataKey as string} className="text-gray-600">
-          {item.name}: <span className="font-semibold text-gray-900">{formatIDR(Number(item.value || 0))}</span>
+        <p key={item.dataKey as string} className="text-surface-500">
+          {item.name}: <span className="font-semibold text-surface-800">{formatIDR(Number(item.value || 0))}</span>
         </p>
       ))}
     </div>
@@ -159,23 +156,33 @@ export default function RevenueReport() {
 
   if (loading) {
     return (
-      <div role="status" aria-label="Memuat laporan pendapatan..." className="flex h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" aria-hidden="true" />
-        <span className="sr-only">Memuat laporan pendapatan...</span>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="h-7 w-48 animate-pulse rounded-lg bg-surface-100" />
+            <div className="mt-2 h-4 w-64 animate-pulse rounded bg-surface-100" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="card h-32 animate-pulse" />
+          ))}
+        </div>
+        <div className="card h-80 animate-pulse" />
       </div>
     );
   }
 
   if (!reportData) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-        <ChartBarIcon className="mx-auto h-12 w-12 text-gray-300" />
-        <h2 className="mt-4 text-base font-semibold text-gray-900">Laporan pendapatan belum tersedia</h2>
-        <p className="mt-2 text-sm text-gray-500">Silakan coba lagi beberapa saat lagi.</p>
+      <div className="card p-8 text-center">
+        <ChartBarIcon className="mx-auto h-12 w-12 text-surface-300" />
+        <h2 className="mt-4 text-[15px] font-semibold text-surface-800">Laporan pendapatan belum tersedia</h2>
+        <p className="mt-2 text-[13px] text-surface-400">Silakan coba lagi beberapa saat lagi.</p>
         <button
           type="button"
           onClick={() => void fetchReportData()}
-          className="mt-4 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+          className="btn-primary mt-4"
         >
           Muat Ulang
         </button>
@@ -185,52 +192,50 @@ export default function RevenueReport() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Laporan Pendapatan"
-        subtitle={periodLabel ? `Periode laporan: ${periodLabel}` : undefined}
-        actions={
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => navigate('/admin/reports')}
-              className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Kembali
-            </button>
-            <button
-              type="button"
-              onClick={() => handleExport('csv')}
-              className="inline-flex items-center justify-center rounded-xl bg-gray-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              <ArrowDownTrayIcon className="mr-2 h-5 w-5" aria-hidden="true" />
-              Ekspor CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => handleExport('excel')}
-              className="inline-flex items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
-            >
-              <ArrowDownTrayIcon className="mr-2 h-5 w-5" aria-hidden="true" />
-              Ekspor Excel
-            </button>
-          </div>
-        }
-      />
+      {/* Breadcrumb + Header */}
+      <nav className="flex items-center gap-2 text-[13px] text-surface-400">
+        <button onClick={() => navigate('/admin/reports')} className="transition-colors hover:text-surface-600">
+          Laporan
+        </button>
+        <span>/</span>
+        <span className="font-medium text-surface-700">Pendapatan</span>
+      </nav>
 
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-surface-900">Laporan Pendapatan</h1>
+          {periodLabel && <p className="mt-1 text-[13px] text-surface-400">Periode: {periodLabel}</p>}
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => navigate('/admin/reports')} className="btn-secondary">
+            Kembali
+          </button>
+          <button type="button" onClick={() => handleExport('csv')} className="btn-secondary">
+            <ArrowDownTrayIcon className="h-4 w-4" />
+            CSV
+          </button>
+          <button type="button" onClick={() => handleExport('excel')} className="btn-primary">
+            <ArrowDownTrayIcon className="h-4 w-4" />
+            Excel
+          </button>
+        </div>
+      </div>
+
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <DashboardStatCard
           title="Total Pendapatan"
-          value={formatCurrencyShort(reportData.totalRevenue)}
+          value={formatIDR(reportData.totalRevenue)}
           helper="Akumulasi periode aktif"
-          subtitle="Total pemasukan yang tercatat pada rentang tanggal laporan."
+          subtitle="Total pemasukan pada rentang tanggal laporan."
           icon={CurrencyDollarIcon}
           tone="green"
         />
         <DashboardStatCard
           title="Rata-rata Bulanan"
-          value={formatCurrencyShort(averageMonthlyRevenue)}
+          value={formatIDR(averageMonthlyRevenue)}
           helper={`${reportData.monthlyRevenue.length} bulan tercatat`}
-          subtitle="Rata-rata pendapatan per bulan berdasarkan data di laporan ini."
+          subtitle="Rata-rata pendapatan per bulan."
           icon={ChartBarIcon}
           tone="blue"
         />
@@ -238,14 +243,15 @@ export default function RevenueReport() {
           title="Tipe & Tagihan"
           value={`${reportData.revenueBySubscriptionType.length} / ${totalInvoices}`}
           helper="Tipe langganan / total tagihan"
-          subtitle="Perbandingan jumlah segmen langganan dengan total invoice yang masuk."
+          subtitle="Perbandingan segmen langganan dengan total invoice."
           icon={TagIcon}
           tone="purple"
         />
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Filter periode</h2>
+      {/* Filter */}
+      <div className="card p-5">
+        <h2 className="text-[15px] font-semibold text-surface-800">Filter periode</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormInput
             type="date"
@@ -260,21 +266,22 @@ export default function RevenueReport() {
             onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
           />
         </div>
-      </section>
+      </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Tren pendapatan bulanan</h2>
-        <p className="mt-1 text-sm leading-6 text-gray-500">
+      {/* Bar Chart */}
+      <div className="card p-5">
+        <h2 className="text-[15px] font-semibold text-surface-800">Tren pendapatan bulanan</h2>
+        <p className="mt-0.5 text-[13px] text-surface-400">
           Gunakan grafik ini untuk melihat perubahan pendapatan dari waktu ke waktu.
         </p>
         <div className="mt-4 h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={reportData.monthlyRevenue}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis tickFormatter={(value) => `${Math.round(Number(value) / 1000000)} jt`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94A3B8' }} />
+              <YAxis tickFormatter={(value) => `${Math.round(Number(value) / 1000000)} jt`} tick={{ fontSize: 12, fill: '#94A3B8' }} />
               <Tooltip content={<CurrencyTooltip />} />
-              <Bar dataKey="revenue" fill="#3B82F6" name="Pendapatan">
+              <Bar dataKey="revenue" name="Pendapatan" radius={[4, 4, 0, 0]}>
                 {reportData.monthlyRevenue.map((_item, index) => (
                   <Cell key={`monthly-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
@@ -282,11 +289,12 @@ export default function RevenueReport() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </section>
+      </div>
 
+      {/* Pie + Summary */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900">Distribusi pendapatan per tipe</h2>
+        <div className="card p-5">
+          <h2 className="text-[15px] font-semibold text-surface-800">Distribusi pendapatan per tipe</h2>
           <div className="mt-4 h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -306,31 +314,32 @@ export default function RevenueReport() {
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </section>
+        </div>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900">Ringkasan kontribusi tipe langganan</h2>
-          <div className="mt-4 space-y-3">
+        <div className="card p-5">
+          <h2 className="text-[15px] font-semibold text-surface-800">Ringkasan kontribusi tipe langganan</h2>
+          <div className="mt-4 space-y-2">
             {reportData.revenueBySubscriptionType.map((item, index) => (
-              <div key={`${item.subscriptionType}-${index}`} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">{item.subscriptionType}</p>
-                    <p className="mt-1 text-sm text-gray-500">{item.percentage.toFixed(1)}% dari total pendapatan</p>
-                  </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-sm font-medium text-gray-700 ring-1 ring-gray-200">
-                    {formatIDR(item.revenue)}
-                  </span>
+              <div key={`${item.subscriptionType}-${index}`} className="flex items-center justify-between rounded-xl border border-surface-100 bg-surface-50/50 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-[14px] font-medium text-surface-800">{item.subscriptionType}</p>
+                  <p className="text-[12px] text-surface-400">{item.percentage.toFixed(1)}% dari total pendapatan</p>
                 </div>
+                <span className="rounded-full bg-brand-50 px-3 py-1 text-[13px] font-medium text-brand-700 ring-1 ring-inset ring-brand-200/60">
+                  {formatIDR(item.revenue)}
+                </span>
               </div>
             ))}
           </div>
-        </section>
+        </div>
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Rincian pendapatan per tipe</h2>
-        <div className="mt-4">
+      {/* Tables */}
+      <div className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-surface-800">Rincian pendapatan per tipe</h2>
+        </div>
+        <div className="p-5">
           <DataTable
             data={reportData.revenueBySubscriptionType}
             searchable={false}
@@ -347,7 +356,7 @@ export default function RevenueReport() {
                 label: 'Pendapatan',
                 sortable: true,
                 align: 'right',
-                render: (value) => formatIDR(Number(value || 0)),
+                render: (value) => <span className="font-semibold text-brand-600">{formatIDR(Number(value || 0))}</span>,
               },
               {
                 key: 'percentage',
@@ -359,11 +368,13 @@ export default function RevenueReport() {
             ]}
           />
         </div>
-      </section>
+      </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Rincian bulanan</h2>
-        <div className="mt-4">
+      <div className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-surface-800">Rincian bulanan</h2>
+        </div>
+        <div className="p-5">
           <DataTable
             data={reportData.monthlyRevenue}
             searchable={false}
@@ -381,7 +392,7 @@ export default function RevenueReport() {
                 label: 'Pendapatan',
                 sortable: true,
                 align: 'right',
-                render: (value) => formatIDR(Number(value || 0)),
+                render: (value) => <span className="font-semibold text-brand-600">{formatIDR(Number(value || 0))}</span>,
               },
               {
                 key: 'invoices',
@@ -392,7 +403,7 @@ export default function RevenueReport() {
             ]}
           />
         </div>
-      </section>
+      </div>
     </div>
   );
 }

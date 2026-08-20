@@ -1,13 +1,21 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, ArrowUpTrayIcon, CheckCircleIcon, XCircleIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowLeftIcon,
+  ArrowUpTrayIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  DocumentArrowDownIcon,
+  BoltIcon,
+  PlusIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
 import { usageService } from '../../services/usageService';
 import { PageHeader } from '../../components';
 import { useToast } from '../../components';
 import { generateExcelTemplate } from '../../utils/exportUtils';
 import { extractApiErrorMessage } from '../../utils/apiError';
-
 
 interface RowEntry {
   meter_number: string;
@@ -137,7 +145,6 @@ export default function BulkImportWaterPemakaian() {
       const res = await usageService.bulkImportWaterPemakaian(usageMonth, records);
       setResult(res);
 
-      // Mark row statuses
       const updatedRows = rows.map(r => {
         if (!r.meter_number) return r;
         const errEntry = res.errors?.find((e: ImportErrorEntry) => e.meter_number === r.meter_number);
@@ -166,55 +173,56 @@ export default function BulkImportWaterPemakaian() {
         title="Bulk Import Meter Reading"
         subtitle="Import data pembacaan meter banyak pelanggan sekaligus"
         actions={
-          <button onClick={() => navigate('/admin/usage')} aria-label="Kembali ke halaman pemakaian" className="text-gray-400 hover:text-gray-600">
-            <ArrowLeftIcon className="h-6 w-6" />
+          <button onClick={() => navigate('/admin/usage')} className="btn-secondary">
+            <ArrowLeftIcon className="h-4 w-4 mr-1.5" />
+            Kembali
           </button>
         }
       />
 
       {/* Result summary */}
       {result && (
-        <div className={`rounded-md p-4 ${result.failed === 0 ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'}`}>
-          <p className="text-sm font-medium">
-            Hasil Import: <span className="text-green-700">{result.success} berhasil</span>
-            {result.failed > 0 && <>, <span className="text-red-700">{result.failed} gagal</span></>}
+        <div className={`rounded-xl border p-4 ${result.failed === 0 ? 'border-success-200 bg-success-50' : 'border-warning-200 bg-warning-50'}`}>
+          <p className="text-[13px] font-medium">
+            Hasil Import: <span className="text-success-700">{result.success} berhasil</span>
+            {result.failed > 0 && <>, <span className="text-danger-700">{result.failed} gagal</span></>}
             {' '}dari {result.total} data
           </p>
         </div>
       )}
 
-      <div className="bg-white shadow rounded-lg p-6 space-y-6">
+      <div className="card p-6 space-y-6">
         {/* Pemakaian Month */}
         <div className="max-w-xs">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Bulan Pemakaian</label>
+          <label className="block text-[13px] font-medium text-surface-700 mb-1.5">Bulan Pemakaian</label>
           <input
             type="month"
             value={usageMonth}
             onChange={e => setPemakaianMonth(e.target.value)}
-            className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="input-base"
           />
         </div>
 
         {/* Upload Excel */}
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-gray-700">Upload File Excel</label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-[13px] font-medium text-surface-700">Upload File Excel</label>
             <button
               type="button"
               onClick={handleDownloadExcelTemplate}
-              className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+              className="inline-flex items-center text-[12px] text-brand-600 hover:text-brand-800 font-medium"
             >
               <DocumentArrowDownIcon className="h-3.5 w-3.5 mr-1" />
               Download Template Excel
             </button>
           </div>
           <div
-            className="border-2 border-dashed border-gray-300 rounded-lg p-5 text-center hover:border-blue-400 transition-colors cursor-pointer"
+            className="border-2 border-dashed border-surface-200 rounded-xl p-5 text-center hover:border-brand-400 transition-colors cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
           >
-            <ArrowUpTrayIcon className="h-7 w-7 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">Klik untuk upload file Excel (.xlsx)</p>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <ArrowUpTrayIcon className="h-7 w-7 text-surface-300 mx-auto mb-2" />
+            <p className="text-[13px] text-surface-600">Klik untuk upload file Excel (.xlsx)</p>
+            <p className="text-[12px] text-surface-400 mt-0.5">
               Kolom: <span className="font-mono">meter_number</span>, <span className="font-mono">customer_name</span> (opsional), <span className="font-mono">meter_end</span>, <span className="font-mono">notes</span>
             </p>
             <input
@@ -229,46 +237,46 @@ export default function BulkImportWaterPemakaian() {
               className="hidden"
             />
           </div>
-          <p className="text-xs text-gray-400 mt-1">Data dari Excel akan mengisi tabel di bawah untuk direview sebelum disubmit.</p>
+          <p className="text-[12px] text-surface-400 mt-1.5">Data dari Excel akan mengisi tabel di bawah untuk direview sebelum disubmit.</p>
         </div>
 
         {/* Paste CSV hint */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-[13px] font-medium text-surface-700 mb-1.5">
             Atau paste data (tab-separated: no_meter, meter_akhir, catatan)
           </label>
           <textarea
             rows={3}
             onChange={handlePasteCSV}
             placeholder="000001&#9;1250&#9;Normal&#10;000002&#9;980&#9;"
-            className="block w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            className="input-base font-mono"
           />
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
+        <div className="overflow-x-auto rounded-xl border border-surface-100">
+          <table className="min-w-full divide-y divide-surface-100 text-[13px]">
+            <thead className="bg-surface-50">
               <tr>
-                <th className="px-3 py-2 text-left font-medium text-gray-500 w-8">#</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500">No. Meter *</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500">Meter Akhir (m³) *</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500">Catatan</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-500 w-24">Status</th>
-                <th className="px-3 py-2 w-10"></th>
+                <th className="px-3 py-2.5 text-left text-[11px] font-medium text-surface-400 uppercase tracking-wider w-8">#</th>
+                <th className="px-3 py-2.5 text-left text-[11px] font-medium text-surface-400 uppercase tracking-wider">No. Meter *</th>
+                <th className="px-3 py-2.5 text-left text-[11px] font-medium text-surface-400 uppercase tracking-wider">Meter Akhir (m³) *</th>
+                <th className="px-3 py-2.5 text-left text-[11px] font-medium text-surface-400 uppercase tracking-wider">Catatan</th>
+                <th className="px-3 py-2.5 text-left text-[11px] font-medium text-surface-400 uppercase tracking-wider w-24">Status</th>
+                <th className="px-3 py-2.5 w-10"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-surface-100">
               {rows.map((row, i) => (
-                <tr key={i} className={row.status === 'error' ? 'bg-red-50' : row.status === 'success' ? 'bg-green-50' : ''}>
-                  <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                <tr key={i} className={`${row.status === 'error' ? 'bg-danger-50/50' : row.status === 'success' ? 'bg-success-50/50' : ''} transition-colors`}>
+                  <td className="px-3 py-2 text-surface-400">{i + 1}</td>
                   <td className="px-3 py-2">
                     <input
                       type="text"
                       value={row.meter_number}
                       onChange={e => updateRow(i, 'meter_number', e.target.value)}
                       placeholder="000001"
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="input-base"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -278,7 +286,7 @@ export default function BulkImportWaterPemakaian() {
                       value={row.meter_end}
                       onChange={e => updateRow(i, 'meter_end', e.target.value)}
                       placeholder="0"
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="input-base"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -286,19 +294,21 @@ export default function BulkImportWaterPemakaian() {
                       type="text"
                       value={row.notes}
                       onChange={e => updateRow(i, 'notes', e.target.value)}
-                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className="input-base"
                     />
                   </td>
                   <td className="px-3 py-2">
-                    {row.status === 'success' && <CheckCircleIcon className="h-5 w-5 text-green-500" />}
+                    {row.status === 'success' && <CheckCircleIcon className="h-5 w-5 text-success-500" />}
                     {row.status === 'error' && (
-                      <span title={row.error} className="flex items-center gap-1 text-red-600 text-xs">
+                      <span title={row.error} className="flex items-center gap-1 text-danger-600 text-[12px]">
                         <XCircleIcon className="h-4 w-4 flex-shrink-0" />{row.error}
                       </span>
                     )}
                   </td>
                   <td className="px-3 py-2">
-                    <button onClick={() => removeRow(i)} aria-label="Hapus baris ini" className="text-gray-400 hover:text-red-500 text-xs">✕</button>
+                    <button onClick={() => removeRow(i)} aria-label="Hapus baris ini" className="text-surface-400 hover:text-danger-500 transition-colors">
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -311,15 +321,16 @@ export default function BulkImportWaterPemakaian() {
           <button
             type="button"
             onClick={addRow}
-            className="text-sm text-blue-600 hover:text-blue-800"
+            className="inline-flex items-center gap-1 text-[13px] text-brand-600 hover:text-brand-800 font-medium"
           >
-            + Tambah baris
+            <PlusIcon className="h-4 w-4" />
+            Tambah baris
           </button>
           <div className="flex gap-3">
             <button
               type="button"
               onClick={() => navigate('/admin/usage')}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="btn-secondary"
             >
               Batal
             </button>
@@ -327,9 +338,9 @@ export default function BulkImportWaterPemakaian() {
               type="button"
               onClick={handleSubmit}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="btn-primary"
             >
-              <ArrowUpTrayIcon className="h-4 w-4" />
+              <BoltIcon className="h-4 w-4 mr-1.5" />
               {loading ? 'Mengimport...' : 'Import Data'}
             </button>
           </div>

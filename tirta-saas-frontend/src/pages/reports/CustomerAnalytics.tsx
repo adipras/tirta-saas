@@ -23,7 +23,6 @@ import {
   DashboardStatCard,
   DataTable,
   FormInput,
-  PageHeader,
   useToast,
 } from '../../components';
 import { reportService } from '../../services/reportService';
@@ -126,24 +125,25 @@ export default function CustomerAnalytics() {
 
   if (loading) {
     return (
-      <div role="status" aria-label="Memuat analitik pelanggan..." className="flex h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" aria-hidden="true" />
-        <span className="sr-only">Memuat analitik pelanggan...</span>
+      <div className="space-y-6">
+        <div className="h-7 w-48 animate-pulse rounded-lg bg-surface-100" />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="card h-32 animate-pulse" />
+          ))}
+        </div>
+        <div className="card h-80 animate-pulse" />
       </div>
     );
   }
 
   if (!reportData) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-        <UserGroupIcon className="mx-auto h-12 w-12 text-gray-300" />
-        <h2 className="mt-4 text-base font-semibold text-gray-900">Analitik pelanggan belum tersedia</h2>
-        <p className="mt-2 text-sm text-gray-500">Silakan coba lagi beberapa saat lagi.</p>
-        <button
-          type="button"
-          onClick={() => void fetchReportData()}
-          className="mt-4 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
-        >
+      <div className="card p-8 text-center">
+        <UserGroupIcon className="mx-auto h-12 w-12 text-surface-300" />
+        <h2 className="mt-4 text-[15px] font-semibold text-surface-800">Analitik pelanggan belum tersedia</h2>
+        <p className="mt-2 text-[13px] text-surface-400">Silakan coba lagi beberapa saat lagi.</p>
+        <button type="button" onClick={() => void fetchReportData()} className="btn-primary mt-4">
           Muat Ulang
         </button>
       </div>
@@ -152,44 +152,42 @@ export default function CustomerAnalytics() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Analitik Pelanggan"
-        subtitle={`Ringkasan pertumbuhan dan distribusi pelanggan untuk periode ${periodLabel}.`}
-        actions={
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => navigate('/admin/reports')}
-              className="inline-flex items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Kembali
-            </button>
-            <button
-              type="button"
-              onClick={() => handleExport('csv')}
-              className="inline-flex items-center justify-center rounded-xl bg-gray-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              <ArrowDownTrayIcon className="mr-2 h-5 w-5" aria-hidden="true" />
-              Ekspor CSV
-            </button>
-            <button
-              type="button"
-              onClick={() => handleExport('excel')}
-              className="inline-flex items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
-            >
-              <ArrowDownTrayIcon className="mr-2 h-5 w-5" aria-hidden="true" />
-              Ekspor Excel
-            </button>
-          </div>
-        }
-      />
+      {/* Breadcrumb + Header */}
+      <nav className="flex items-center gap-2 text-[13px] text-surface-400">
+        <button onClick={() => navigate('/admin/reports')} className="transition-colors hover:text-surface-600">
+          Laporan
+        </button>
+        <span>/</span>
+        <span className="font-medium text-surface-700">Pelanggan</span>
+      </nav>
 
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-surface-900">Analitik Pelanggan</h1>
+          <p className="mt-1 text-[13px] text-surface-400">Ringkasan pertumbuhan dan distribusi pelanggan. Periode: {periodLabel}</p>
+        </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => navigate('/admin/reports')} className="btn-secondary">
+            Kembali
+          </button>
+          <button type="button" onClick={() => handleExport('csv')} className="btn-secondary">
+            <ArrowDownTrayIcon className="h-4 w-4" />
+            CSV
+          </button>
+          <button type="button" onClick={() => handleExport('excel')} className="btn-primary">
+            <ArrowDownTrayIcon className="h-4 w-4" />
+            Excel
+          </button>
+        </div>
+      </div>
+
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
         <DashboardStatCard
           title="Total Pelanggan"
           value={`${reportData.totalPelanggan}`}
           helper="Basis pelanggan"
-          subtitle="Jumlah pelanggan yang masuk dalam cakupan laporan ini."
+          subtitle="Jumlah pelanggan dalam cakupan laporan."
           icon={UserGroupIcon}
           tone="blue"
         />
@@ -197,7 +195,7 @@ export default function CustomerAnalytics() {
           title="Pelanggan Aktif"
           value={`${reportData.activePelanggan}`}
           helper={`${activeRate.toFixed(1)}% aktif`}
-          subtitle="Pelanggan dengan status aktif dibanding total pelanggan."
+          subtitle="Pelanggan dengan status aktif."
           icon={UserIcon}
           tone="green"
         />
@@ -205,7 +203,7 @@ export default function CustomerAnalytics() {
           title="Tidak Aktif"
           value={`${reportData.inactivePelanggan}`}
           helper="Perlu tindak lanjut"
-          subtitle="Pelanggan nonaktif yang perlu dipantau ulang."
+          subtitle="Pelanggan nonaktif yang perlu dipantau."
           icon={ChartBarIcon}
           tone="yellow"
         />
@@ -213,14 +211,15 @@ export default function CustomerAnalytics() {
           title="Ditangguhkan"
           value={`${reportData.suspendedPelanggan}`}
           helper="Kasus prioritas"
-          subtitle="Jumlah pelanggan dengan status suspend pada periode ini."
+          subtitle="Pelanggan dengan status suspend."
           icon={ExclamationTriangleIcon}
           tone="purple"
         />
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Filter periode</h2>
+      {/* Filter */}
+      <div className="card p-5">
+        <h2 className="text-[15px] font-semibold text-surface-800">Filter periode</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormInput
             type="date"
@@ -235,39 +234,31 @@ export default function CustomerAnalytics() {
             onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
           />
         </div>
-      </section>
+      </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Tren pertumbuhan pelanggan</h2>
+      {/* Growth Chart */}
+      <div className="card p-5">
+        <h2 className="text-[15px] font-semibold text-surface-800">Tren pertumbuhan pelanggan</h2>
         <div className="mt-4 h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={reportData.customerGrowth}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="newPelanggan"
-                stroke="#10B981"
-                name="Pelanggan Baru"
-                strokeWidth={2}
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94A3B8' }} />
+              <YAxis tick={{ fontSize: 12, fill: '#94A3B8' }} />
+              <Tooltip
+                contentStyle={{ borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '13px' }}
               />
-              <Line
-                type="monotone"
-                dataKey="totalPelanggan"
-                stroke="#3B82F6"
-                name="Total Pelanggan"
-                strokeWidth={2}
-              />
+              <Line type="monotone" dataKey="newPelanggan" stroke="#10B981" name="Pelanggan Baru" strokeWidth={2} dot={{ r: 4, fill: '#10B981', stroke: '#fff', strokeWidth: 2 }} />
+              <Line type="monotone" dataKey="totalPelanggan" stroke="#3B82F6" name="Total Pelanggan" strokeWidth={2} dot={{ r: 4, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </section>
+      </div>
 
+      {/* Pie + Top Customers */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900">Distribusi status pelanggan</h2>
+        <div className="card p-5">
+          <h2 className="text-[15px] font-semibold text-surface-800">Distribusi status pelanggan</h2>
           <div className="mt-4 h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -283,39 +274,40 @@ export default function CustomerAnalytics() {
                     <Cell key={`status-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #E2E8F0', fontSize: '13px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </section>
+        </div>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-gray-900">Pelanggan kontribusi tertinggi</h2>
-          <div className="mt-4 space-y-3">
+        <div className="card p-5">
+          <h2 className="text-[15px] font-semibold text-surface-800">Pelanggan kontribusi tertinggi</h2>
+          <div className="mt-4 space-y-2">
             {reportData.topPelanggan.slice(0, 5).map((customer) => (
-              <div key={`${customer.customerId}-${customer.rank}`} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">
-                      #{customer.rank} {customer.customerName}
-                    </p>
-                    <p className="mt-1 text-sm text-gray-500">
-                      Pemakaian {customer.totalPemakaian.toLocaleString('id-ID')} m3
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-sm font-medium text-gray-700 ring-1 ring-gray-200">
-                    {formatIDR(customer.totalRevenue)}
-                  </span>
+              <div key={`${customer.customerId}-${customer.rank}`} className="flex items-center justify-between rounded-xl border border-surface-100 bg-surface-50/50 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-[14px] font-medium text-surface-800">
+                    #{customer.rank} {customer.customerName}
+                  </p>
+                  <p className="text-[12px] text-surface-400">
+                    Pemakaian {customer.totalPemakaian.toLocaleString('id-ID')} m3
+                  </p>
                 </div>
+                <span className="rounded-full bg-brand-50 px-3 py-1 text-[13px] font-medium text-brand-700 ring-1 ring-inset ring-brand-200/60">
+                  {formatIDR(customer.totalRevenue)}
+                </span>
               </div>
             ))}
           </div>
-        </section>
+        </div>
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Rincian pertumbuhan bulanan</h2>
-        <div className="mt-4">
+      {/* Tables */}
+      <div className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-surface-800">Rincian pertumbuhan bulanan</h2>
+        </div>
+        <div className="p-5">
           <DataTable
             data={reportData.customerGrowth}
             searchable={false}
@@ -328,18 +320,8 @@ export default function CustomerAnalytics() {
                 sortable: true,
                 render: (value, item) => `${String(value)} ${item.year}`,
               },
-              {
-                key: 'newPelanggan',
-                label: 'Pelanggan Baru',
-                sortable: true,
-                align: 'right',
-              },
-              {
-                key: 'totalPelanggan',
-                label: 'Total Pelanggan',
-                sortable: true,
-                align: 'right',
-              },
+              { key: 'newPelanggan', label: 'Pelanggan Baru', sortable: true, align: 'right' },
+              { key: 'totalPelanggan', label: 'Total Pelanggan', sortable: true, align: 'right' },
               {
                 key: 'growth_rate',
                 label: 'Pertumbuhan',
@@ -350,34 +332,31 @@ export default function CustomerAnalytics() {
                   );
                   const prevTotal = index > 0 ? reportData.customerGrowth[index - 1].totalPelanggan : 0;
                   const growthRate = prevTotal > 0 ? ((item.totalPelanggan - prevTotal) / prevTotal) * 100 : 0;
-                  return `${growthRate > 0 ? '+' : ''}${growthRate.toFixed(1)}%`;
+                  return (
+                    <span className={growthRate > 0 ? 'font-medium text-success-600' : 'text-surface-400'}>
+                      {growthRate > 0 ? '+' : ''}{growthRate.toFixed(1)}%
+                    </span>
+                  );
                 },
               },
             ]}
           />
         </div>
-      </section>
+      </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Rincian pelanggan teratas</h2>
-        <div className="mt-4">
+      <div className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-surface-800">Rincian pelanggan teratas</h2>
+        </div>
+        <div className="p-5">
           <DataTable
             data={reportData.topPelanggan}
             searchable={false}
             pageSize={8}
             emptyMessage="Belum ada data pelanggan teratas."
             columns={[
-              {
-                key: 'rank',
-                label: 'Peringkat',
-                sortable: true,
-                align: 'right',
-              },
-              {
-                key: 'customerName',
-                label: 'Pelanggan',
-                sortable: true,
-              },
+              { key: 'rank', label: 'Peringkat', sortable: true, align: 'right' },
+              { key: 'customerName', label: 'Pelanggan', sortable: true },
               {
                 key: 'totalPemakaian',
                 label: 'Pemakaian',
@@ -390,12 +369,12 @@ export default function CustomerAnalytics() {
                 label: 'Pendapatan',
                 sortable: true,
                 align: 'right',
-                render: (value) => formatIDR(Number(value || 0)),
+                render: (value) => <span className="font-semibold text-brand-600">{formatIDR(Number(value || 0))}</span>,
               },
             ]}
           />
         </div>
-      </section>
+      </div>
     </div>
   );
 }

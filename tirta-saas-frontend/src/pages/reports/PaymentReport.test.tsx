@@ -162,7 +162,7 @@ describe('PaymentReport', () => {
 
     expect(await screen.findByText('Rp 300.000')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /ekspor csv/i }));
+    fireEvent.click(screen.getByRole('button', { name: /csv/i }));
     expect(mockExportToCSV).toHaveBeenCalledWith(
       [
         {
@@ -181,7 +181,7 @@ describe('PaymentReport', () => {
       'laporan_pembayaran_2026-05-01_2026-05-31_daily.csv'
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /ekspor excel/i }));
+    fireEvent.click(screen.getByRole('button', { name: /excel/i }));
     expect(mockExportToExcel).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ sheetName: 'Penerimaan Harian' }),

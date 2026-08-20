@@ -1,10 +1,32 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { UserCircleIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, CreditCardIcon, KeyIcon } from '@heroicons/react/24/outline';
+import {
+  UserCircleIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  MapPinIcon,
+  CreditCardIcon,
+  KeyIcon,
+  PencilSquareIcon,
+  CheckCircleIcon,
+  BoltIcon,
+} from '@heroicons/react/24/outline';
 import { PageHeader, useToast } from '../../components';
 import { customerProfilService } from '../../services/customerProfileService';
 import type { CustomerProfil as CustomerProfilType } from '../../types/customerProfile';
 import { extractApiErrorMessage } from '../../utils/apiError';
+
+const STATUS_CLASSES: Record<string, { bg: string; text: string; ring: string }> = {
+  active: { bg: 'bg-success-50', text: 'text-success-700', ring: 'ring-success-200' },
+  inactive: { bg: 'bg-surface-50', text: 'text-surface-500', ring: 'ring-surface-200' },
+  suspended: { bg: 'bg-danger-50', text: 'text-danger-700', ring: 'ring-danger-200' },
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Aktif',
+  inactive: 'Nonaktif',
+  suspended: 'Ditangguhkan',
+};
 
 export default function CustomerProfil() {
   const [profile, setProfil] = useState<CustomerProfilType | null>(null);
@@ -31,65 +53,65 @@ export default function CustomerProfil() {
     void loadProfil();
   }, [loadProfil]);
 
-  const getStatusBadge = (status: string) => {
-    const badges = {
-      active: 'bg-green-100 text-green-800',
-      inactive: 'bg-gray-100 text-gray-800',
-      suspended: 'bg-red-100 text-red-800',
-    };
-    return badges[status as keyof typeof badges] || badges.inactive;
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      active: 'AKTIF',
-      inactive: 'NONAKTIF',
-      suspended: 'DITANGGUHKAN',
-    };
-
-    return labels[status] || status.toUpperCase();
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
-  };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('id-ID', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     });
-  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="space-y-6">
+        <div className="h-10 w-48 animate-pulse rounded-xl bg-surface-100" />
+        <div className="h-48 animate-pulse rounded-xl bg-surface-100" />
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className="xl:col-span-2 h-64 animate-pulse rounded-xl bg-surface-100" />
+          <div className="space-y-6">
+            <div className="h-40 animate-pulse rounded-xl bg-surface-100" />
+            <div className="h-40 animate-pulse rounded-xl bg-surface-100" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-        <p className="text-red-700">{error}</p>
-        <button onClick={() => void loadProfil()} className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700">Coba Lagi</button>
+      <div className="space-y-6">
+        <PageHeader title="Profil Saya" subtitle="Kelola informasi pribadi dan detail langganan Anda." />
+        <div className="rounded-xl border border-danger-200 bg-danger-50 p-6 text-center">
+          <p className="text-[13px] text-danger-700">{error}</p>
+          <button
+            onClick={() => void loadProfil()}
+            className="mt-4 rounded-lg bg-danger-600 px-4 py-2 text-sm text-white hover:bg-danger-700"
+          >
+            Coba Lagi
+          </button>
+        </div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <p className="text-yellow-600">Profil tidak ditemukan</p>
+      <div className="space-y-6">
+        <PageHeader title="Profil Saya" subtitle="Kelola informasi pribadi dan detail langganan Anda." />
+        <div className="rounded-xl border border-warning-200 bg-warning-50 p-6 text-center">
+          <p className="text-[13px] text-warning-700">Profil tidak ditemukan.</p>
+        </div>
       </div>
     );
   }
+
+  const s = STATUS_CLASSES[profile.status] || STATUS_CLASSES.inactive;
 
   return (
     <div className="space-y-6">
@@ -97,139 +119,169 @@ export default function CustomerProfil() {
         title="Profil Saya"
         subtitle="Kelola informasi pribadi, status akun, dan detail langganan pelanggan Anda."
         actions={
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
-              to="/customer/profile/change-password"
-              className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              <KeyIcon className="mr-2 h-5 w-5" />
+          <div className="flex flex-wrap gap-2">
+            <Link to="/customer/profile/change-password" className="btn-secondary">
+              <KeyIcon className="h-4 w-4" />
               Ubah Kata Sandi
             </Link>
-            <Link
-              to="/customer/profile/edit"
-              className="inline-flex items-center justify-center rounded-lg border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-            >
+            <Link to="/customer/profile/edit" className="btn-primary">
+              <PencilSquareIcon className="h-4 w-4" />
               Ubah Profil
             </Link>
           </div>
         }
       />
 
-      {/* Status Alert */}
+      {/* Outstanding Alert */}
       {profile.outstandingBalance > 0 && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                 Anda memiliki tunggakan sebesar <strong>{formatCurrency(profile.outstandingBalance)}</strong>.
-                 Silakan lakukan pembayaran agar layanan tidak terputus.
-              </p>
-            </div>
-          </div>
+        <div className="rounded-xl border border-warning-200 bg-warning-50 p-4">
+          <p className="text-[13px] text-warning-700">
+            Anda memiliki tunggakan sebesar <strong>{formatCurrency(profile.outstandingBalance)}</strong>.
+            Silakan lakukan pembayaran agar layanan tidak terputus.
+          </p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Personal Information */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Informasi Pribadi</h2>
+      {/* Profile Header Card */}
+      <section className="relative overflow-hidden rounded-xl border border-surface-200/80 bg-white shadow-card">
+        <div className="gradient-brand p-6 text-white sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15">
+                <UserCircleIcon className="h-10 w-10 text-white" />
+              </div>
+              <div className="space-y-1">
+                <span className="inline-flex w-fit rounded-md bg-white/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/90">
+                  Akun Pelanggan
+                </span>
+                <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{profile.name}</h2>
+                <p className="text-[13px] text-white/80">{profile.email}</p>
+              </div>
+            </div>
+            <span className={`inline-flex w-fit items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset ${s.bg} ${s.text} ${s.ring}`}>
+              <CheckCircleIcon className="h-4 w-4" />
+              {STATUS_LABELS[profile.status] ?? profile.status}
+            </span>
           </div>
-          <div className="px-6 py-4 space-y-4">
-            <div className="flex items-start">
-              <UserCircleIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-500">Nama Lengkap</p>
-                <p className="text-base text-gray-900">{profile.name}</p>
+        </div>
+
+        {/* Quick Info Row */}
+        <div className="grid grid-cols-2 divide-y border-t border-surface-100 sm:grid-cols-4 sm:divide-y-0 sm:divide-x">
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Paket</p>
+            <p className="mt-1 text-sm font-bold text-surface-900">{profile.subscriptionType.name}</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Biaya Bulanan</p>
+            <p className="mt-1 text-sm font-bold text-surface-900">{formatCurrency(profile.subscriptionType.monthlyFee)}</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">Nomor Meter</p>
+            <p className="mt-1 font-mono text-sm font-bold text-surface-900">{profile.meterNumber || '-'}</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">ID Pelanggan</p>
+            <p className="mt-1 font-mono text-sm font-bold text-surface-900">{profile.customerId}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        {/* Personal Information */}
+        <div className="card">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+            <UserCircleIcon className="h-4 w-4 text-brand-500" />
+            Informasi Pribadi
+          </h2>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-50">
+                <UserCircleIcon className="h-4 w-4 text-brand-600" />
+              </div>
+              <div>
+                <p className="text-xs text-surface-400">Nama Lengkap</p>
+                <p className="mt-0.5 text-sm font-medium text-surface-900">{profile.name}</p>
               </div>
             </div>
-
-            <div className="flex items-start">
-              <EnvelopeIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-500">Alamat Email</p>
-                <p className="text-base text-gray-900">{profile.email}</p>
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-info-50">
+                <EnvelopeIcon className="h-4 w-4 text-info-600" />
+              </div>
+              <div>
+                <p className="text-xs text-surface-400">Alamat Email</p>
+                <p className="mt-0.5 text-sm font-medium text-surface-900">{profile.email}</p>
               </div>
             </div>
-
-            <div className="flex items-start">
-              <PhoneIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-500">Nomor Telepon</p>
-                <p className="text-base text-gray-900">{profile.phone}</p>
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning-50">
+                <PhoneIcon className="h-4 w-4 text-warning-600" />
+              </div>
+              <div>
+                <p className="text-xs text-surface-400">Nomor Telepon</p>
+                <p className="mt-0.5 text-sm font-medium text-surface-900">{profile.phone}</p>
               </div>
             </div>
-
-            <div className="flex items-start">
-              <MapPinIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-500">Alamat</p>
-                <p className="text-base text-gray-900">{profile.address}</p>
-                <p className="text-sm text-gray-600">{profile.city}, {profile.postalCode}</p>
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success-50">
+                <MapPinIcon className="h-4 w-4 text-success-600" />
               </div>
-            </div>
-
-            <div className="flex items-start">
-              <CreditCardIcon className="h-5 w-5 text-gray-400 mt-0.5 mr-3" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-500">ID Pelanggan</p>
-                <p className="text-base text-gray-900 font-mono">{profile.customerId}</p>
+              <div>
+                <p className="text-xs text-surface-400">Alamat</p>
+                <p className="mt-0.5 text-sm font-medium text-surface-900">{profile.address}</p>
+                <p className="text-[12px] text-surface-500">{profile.city}, {profile.postalCode}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Subscription Information */}
+        {/* Right Column */}
         <div className="space-y-6">
           {/* Account Status */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-               <h2 className="text-lg font-semibold text-gray-900">Status Akun</h2>
-            </div>
-            <div className="px-6 py-4 space-y-3">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Status</p>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(profile.status)}`}>
-                  {getStatusLabel(profile.status)}
+          <div className="card">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+              <CheckCircleIcon className="h-4 w-4 text-brand-500" />
+              Status Akun
+            </h2>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-surface-500">Status</span>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${s.bg} ${s.text} ${s.ring}`}>
+                  {STATUS_LABELS[profile.status] ?? profile.status}
                 </span>
               </div>
-              <div>
-                  <p className="text-sm font-medium text-gray-500">Tanggal Pendaftaran</p>
-                <p className="text-base text-gray-900">{formatDate(profile.registrationDate)}</p>
+              <div className="flex items-center justify-between border-t border-surface-100 pt-3">
+                <span className="text-[13px] text-surface-500">Tanggal Pendaftaran</span>
+                <span className="text-[13px] font-medium text-surface-900">{formatDate(profile.registrationDate)}</span>
               </div>
               {profile.lastPaymentDate && (
-                <div>
-                    <p className="text-sm font-medium text-gray-500">Pembayaran Terakhir</p>
-                  <p className="text-base text-gray-900">{formatDate(profile.lastPaymentDate)}</p>
+                <div className="flex items-center justify-between border-t border-surface-100 pt-3">
+                  <span className="text-[13px] text-surface-500">Pembayaran Terakhir</span>
+                  <span className="text-[13px] font-medium text-surface-900">{formatDate(profile.lastPaymentDate)}</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Subscription Details */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-               <h2 className="text-lg font-semibold text-gray-900">Langganan</h2>
-            </div>
-            <div className="px-6 py-4 space-y-3">
-              <div>
-                  <p className="text-sm font-medium text-gray-500">Jenis Langganan</p>
-                <p className="text-base text-gray-900 font-medium">{profile.subscriptionType.name}</p>
+          <div className="card">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-surface-900">
+              <BoltIcon className="h-4 w-4 text-info-500" />
+              Langganan
+            </h2>
+            <div className="mt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-surface-500">Jenis Langganan</span>
+                <span className="text-[13px] font-semibold text-surface-900">{profile.subscriptionType.name}</span>
               </div>
-              <div>
-                  <p className="text-sm font-medium text-gray-500">Biaya Bulanan</p>
-                <p className="text-base text-gray-900">{formatCurrency(profile.subscriptionType.monthlyFee)}</p>
+              <div className="flex items-center justify-between border-t border-surface-100 pt-3">
+                <span className="text-[13px] text-surface-500">Biaya Bulanan</span>
+                <span className="text-[13px] font-semibold text-surface-900">{formatCurrency(profile.subscriptionType.monthlyFee)}</span>
               </div>
-              {profile.meterNumber && (
-                <div>
-                    <p className="text-sm font-medium text-gray-500">Nomor Meter</p>
-                  <p className="text-base text-gray-900 font-mono">{profile.meterNumber}</p>
-                </div>
-              )}
               {profile.meterLocation && (
-                <div>
-                    <p className="text-sm font-medium text-gray-500">Lokasi Meter</p>
-                  <p className="text-base text-gray-900">{profile.meterLocation}</p>
+                <div className="flex items-center justify-between border-t border-surface-100 pt-3">
+                  <span className="text-[13px] text-surface-500">Lokasi Meter</span>
+                  <span className="text-[13px] font-medium text-surface-900">{profile.meterLocation}</span>
                 </div>
               )}
             </div>
@@ -237,17 +289,18 @@ export default function CustomerProfil() {
 
           {/* Outstanding Balance */}
           {profile.outstandingBalance > 0 && (
-            <div className="bg-red-50 rounded-lg shadow border border-red-200">
-              <div className="px-6 py-4">
-                <p className="text-sm font-medium text-red-900">Tunggakan</p>
-                <p className="text-2xl font-bold text-red-600 mt-1">{formatCurrency(profile.outstandingBalance)}</p>
-                <Link
-                  to="/customer/invoices"
-                  className="inline-flex items-center text-sm text-red-700 hover:text-red-800 mt-2"
-                >
-                  Lihat Tagihan →
-                </Link>
+            <div className="rounded-xl border border-danger-200 bg-danger-50 p-5 shadow-card">
+              <div className="flex items-center gap-2 text-danger-700">
+                <CreditCardIcon className="h-5 w-5" />
+                <span className="text-sm font-semibold">Tunggakan</span>
               </div>
+              <p className="mt-2 text-2xl font-bold text-danger-600">{formatCurrency(profile.outstandingBalance)}</p>
+              <Link
+                to="/customer/invoices"
+                className="mt-3 inline-flex items-center gap-1 text-[13px] font-medium text-danger-700 hover:text-danger-800 transition-colors"
+              >
+                Lihat Tagihan →
+              </Link>
             </div>
           )}
         </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { PlusIcon, PencilIcon, TrashIcon, MapIcon } from '@heroicons/react/24/outline';
-import { ActionIconButton, ConfirmModal, DataTable, FormCheckbox, FormInput, FormSelect, FormTextarea, PageHeader, useToast } from '../../components';
+import { PlusIcon, PencilIcon, TrashIcon, MapIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { ActionIconButton, ConfirmModal, DataTable, FormCheckbox, FormInput, FormSelect, FormTextarea, useToast } from '../../components';
+import { DashboardStatCard } from '../../components';
 import serviceAreaService from '../../services/serviceAreaService';
 import type { CreateServiceAreaDto, ServiceArea, ServiceAreaType, UpdateServiceAreaDto } from '../../types/serviceArea';
 
@@ -186,7 +187,7 @@ export default function ServiceAreaList() {
       key: 'type',
       label: 'Tipe',
       render: (_value: unknown, area: ServiceArea) => (
-        <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+        <span className="inline-flex rounded-full bg-info-50 px-2.5 py-0.5 text-[12px] font-medium text-info-700 ring-1 ring-inset ring-info-200/60">
           {area.type}
         </span>
       ),
@@ -195,12 +196,16 @@ export default function ServiceAreaList() {
     {
       key: 'parent',
       label: 'Induk',
-      render: (_value: unknown, area: ServiceArea) => area.parent?.name || '-',
+      render: (_value: unknown, area: ServiceArea) => (
+        <span className="text-surface-500">{area.parent?.name || '-'}</span>
+      ),
     },
     {
       key: 'customer_count',
       label: 'Pelanggan',
-      render: (_value: unknown, area: ServiceArea) => area.customer_count.toLocaleString('id-ID'),
+      render: (_value: unknown, area: ServiceArea) => (
+        <span className="text-right font-medium text-surface-700">{area.customer_count.toLocaleString('id-ID')}</span>
+      ),
       align: 'right' as const,
     },
     {
@@ -208,8 +213,10 @@ export default function ServiceAreaList() {
       label: 'Status',
       render: (_value: unknown, area: ServiceArea) => (
         <span
-          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-            area.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+          className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${
+            area.is_active
+              ? 'bg-success-50 text-success-700 ring-success-200/60'
+              : 'bg-surface-50 text-surface-500 ring-surface-200/60'
           }`}
         >
           {area.is_active ? 'Aktif' : 'Nonaktif'}
@@ -221,7 +228,7 @@ export default function ServiceAreaList() {
       key: 'actions',
       label: 'Aksi',
       render: (_value: unknown, area: ServiceArea) => (
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-1.5">
           <ActionIconButton
             icon={PencilIcon}
             label={`Ubah area layanan ${area.name}`}
@@ -242,54 +249,64 @@ export default function ServiceAreaList() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Area Layanan"
-        subtitle="Kelola pembagian wilayah layanan seperti zone, RW, RT, atau blok agar data pelanggan lebih terstruktur."
-        actions={
-          editingArea ? (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Batal Ubah
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              <PlusIcon className="mr-2 h-5 w-5" />
-              Tambah Area Layanan
-            </button>
-          )
-        }
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-lg bg-white p-5 shadow">
-          <div className="flex items-center gap-3">
-            <MapIcon className="h-6 w-6 text-blue-500" />
-            <div>
-              <p className="text-sm text-gray-500">Total area</p>
-              <p className="text-xl font-semibold text-gray-900">{serviceAreas.length}</p>
-            </div>
-          </div>
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-surface-900">Area Layanan</h1>
+          <p className="mt-1 text-[13px] text-surface-400">
+            Kelola pembagian wilayah layanan seperti zone, RW, RT, atau blok agar data pelanggan lebih terstruktur.
+          </p>
         </div>
-        <div className="rounded-lg bg-white p-5 shadow">
-          <p className="text-sm text-gray-500">Area aktif</p>
-          <p className="text-xl font-semibold text-gray-900">{activeCount}</p>
-        </div>
-        <div className="rounded-lg bg-white p-5 shadow">
-          <p className="text-sm text-gray-500">Pelanggan terpetakan</p>
-          <p className="text-xl font-semibold text-gray-900">{totalCustomers.toLocaleString('id-ID')}</p>
-        </div>
+        {editingArea ? (
+          <button
+            type="button"
+            onClick={resetForm}
+            className="btn-secondary self-start"
+          >
+            Batal Ubah
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={resetForm}
+            className="btn-primary self-start"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Tambah Area
+          </button>
+        )}
       </div>
 
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <DashboardStatCard
+          title="Total area"
+          value={loading ? '...' : serviceAreas.length.toLocaleString('id-ID')}
+          subtitle="Semua area layanan"
+          icon={MapIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Area aktif"
+          value={loading ? '...' : activeCount.toLocaleString('id-ID')}
+          subtitle="Sedang digunakan"
+          icon={CheckCircleIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Pelanggan terpetakan"
+          value={loading ? '...' : totalCustomers.toLocaleString('id-ID')}
+          subtitle="Total dari semua area"
+          icon={MapIcon}
+          tone="purple"
+        />
+      </div>
+
+      {/* Main Content */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(360px,0.9fr)]">
+        {/* Left: Filters + Table */}
         <div className="space-y-4">
-          <div className="rounded-lg bg-white p-4 shadow">
+          <div className="card p-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <FormInput
                 label="Cari area"
@@ -319,7 +336,7 @@ export default function ServiceAreaList() {
             </div>
           </div>
 
-          <div className="rounded-lg bg-white shadow">
+          <div className="card overflow-hidden">
             <DataTable
               columns={columns}
               data={filteredServiceAreas}
@@ -329,17 +346,20 @@ export default function ServiceAreaList() {
           </div>
         </div>
 
-        <div className="rounded-lg bg-white p-6 shadow">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {editingArea ? `Ubah ${editingArea.name}` : 'Tambah Area Layanan'}
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            {editingArea
-              ? 'Perbarui informasi area layanan yang sudah ada.'
-              : 'Masukkan data area layanan baru untuk kebutuhan segmentasi pelanggan.'}
-          </p>
+        {/* Right: Form */}
+        <div className="card overflow-hidden">
+          <div className="border-b border-surface-100 px-5 py-4">
+            <h2 className="text-[15px] font-semibold text-surface-800">
+              {editingArea ? `Ubah ${editingArea.name}` : 'Tambah Area Layanan'}
+            </h2>
+            <p className="mt-0.5 text-[13px] text-surface-400">
+              {editingArea
+                ? 'Perbarui informasi area layanan yang sudah ada.'
+                : 'Masukkan data area layanan baru untuk kebutuhan segmentasi pelanggan.'}
+            </p>
+          </div>
 
-          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+          <form className="p-5 space-y-4" onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormInput
                 label="Kode"
@@ -411,11 +431,11 @@ export default function ServiceAreaList() {
               />
             )}
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-2 border-t border-surface-100">
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary"
               >
                 {saving ? 'Menyimpan...' : editingArea ? 'Simpan Perubahan' : 'Tambah Area'}
               </button>
@@ -423,7 +443,7 @@ export default function ServiceAreaList() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="btn-secondary"
                 >
                   Reset
                 </button>

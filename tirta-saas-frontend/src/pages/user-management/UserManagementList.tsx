@@ -11,9 +11,17 @@ import { tenantUserService } from '../../services/tenantUserService';
 import type { TenantUser } from '../../services/tenantUserService';
 import CreateUserModal from './CreateUserModal';
 import EditUserModal from './EditUserModal';
-import { PageHeader, ConfirmModal, DataTable, type Column } from '../../components';
+import { ConfirmModal, DataTable, type Column } from '../../components';
+import { DashboardStatCard } from '../../components';
 import { useToast } from '../../components';
 import { extractApiErrorMessage } from '../../utils/apiError';
+
+const ROLE_CONFIG: Record<string, { ring: string; bg: string; text: string; label: string }> = {
+  tenant_admin: { ring: 'ring-brand-200/60', bg: 'bg-brand-50', text: 'text-brand-700', label: 'Admin' },
+  meter_reader: { ring: 'ring-info-200/60', bg: 'bg-info-50', text: 'text-info-700', label: 'Pembaca Meter' },
+  finance: { ring: 'ring-success-200/60', bg: 'bg-success-50', text: 'text-success-700', label: 'Keuangan' },
+  service: { ring: 'ring-warning-200/60', bg: 'bg-warning-50', text: 'text-warning-700', label: 'Layanan' },
+};
 
 export default function UserManagementList() {
   const toast = useToast();
@@ -100,17 +108,10 @@ export default function UserManagementList() {
   };
 
   const getRoleBadge = (role: string) => {
-    const roleConfig: Record<string, { bg: string; text: string; label: string }> = {
-      tenant_admin: { bg: 'bg-purple-100', text: 'text-purple-800', label: 'Admin' },
-      meter_reader: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Pembaca Meter' },
-      finance: { bg: 'bg-green-100', text: 'text-green-800', label: 'Keuangan' },
-      service: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Layanan' },
-    };
+    const config = ROLE_CONFIG[role] || { ring: 'ring-surface-200/60', bg: 'bg-surface-50', text: 'text-surface-600', label: role };
 
-    const config = roleConfig[role] || { bg: 'bg-gray-100', text: 'text-gray-800', label: role };
-    
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
+      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${config.ring} ${config.bg} ${config.text}`}>
         {config.label}
       </span>
     );
@@ -121,17 +122,23 @@ export default function UserManagementList() {
       key: 'name',
       label: 'Nama',
       sortable: true,
+      render: (_value, user) => (
+        <span className="font-medium text-surface-800">{user.name}</span>
+      ),
     },
     {
       key: 'username',
       label: 'Username',
       sortable: true,
+      render: (_value, user) => (
+        <span className="text-surface-600">{user.username}</span>
+      ),
     },
     {
       key: 'email',
       label: 'Email',
       sortable: true,
-      render: (_value, user) => user.email || '-',
+      render: (_value, user) => <span className="text-surface-400">{user.email || '-'}</span>,
     },
     {
       key: 'role',
@@ -143,7 +150,9 @@ export default function UserManagementList() {
       key: 'created_at',
       label: 'Dibuat',
       sortable: true,
-      render: (_value, user) => user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID') : '-',
+      render: (_value, user) => (
+        <span className="text-surface-400">{user.created_at ? new Date(user.created_at).toLocaleDateString('id-ID') : '-'}</span>
+      ),
     },
   ];
 
@@ -151,90 +160,83 @@ export default function UserManagementList() {
     <>
       <button
         onClick={() => handleEdit(user)}
-        className="inline-flex items-center justify-center rounded-md p-2.5 text-blue-600 hover:bg-blue-50 hover:text-blue-900"
+        className="inline-flex items-center justify-center rounded-lg p-2 text-brand-600 transition-colors hover:bg-brand-50"
         title="Ubah pengguna"
         aria-label={`Ubah pengguna ${user.name}`}
       >
-        <PencilIcon className="h-5 w-5" />
+        <PencilIcon className="h-4 w-4" />
       </button>
       <button
         onClick={() => handleDelete(user.id)}
-        className="inline-flex items-center justify-center rounded-md p-2.5 text-red-600 hover:bg-red-50 hover:text-red-900"
+        className="inline-flex items-center justify-center rounded-lg p-2 text-danger-600 transition-colors hover:bg-danger-50"
         title="Hapus pengguna"
         aria-label={`Hapus pengguna ${user.name}`}
       >
-        <TrashIcon className="h-5 w-5" />
+        <TrashIcon className="h-4 w-4" />
       </button>
     </>
   );
 
+  const meterReaderCount = users.filter((u) => u.role === 'meter_reader').length;
+  const financeCount = users.filter((u) => u.role === 'finance').length;
+  const serviceCount = users.filter((u) => u.role === 'service').length;
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Manajemen Pengguna"
-        subtitle="Kelola pengguna operasional (pembaca meter, keuangan, layanan)"
-        actions={
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 sm:w-auto"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Tambah Pengguna
-          </button>
-        }
-      />
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-surface-900">Manajemen Pengguna</h1>
+          <p className="mt-1 text-[13px] text-surface-400">
+            Kelola pengguna operasional (pembaca meter, keuangan, layanan)
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="btn-primary self-start"
+        >
+          <PlusIcon className="h-4 w-4" />
+          Tambah Pengguna
+        </button>
+      </div>
 
-      {/* Stats */}
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center">
-            <UserGroupIcon className="h-8 w-8 text-blue-500" />
-            <div className="ml-3">
-              <p className="text-sm text-gray-600">Total Pengguna</p>
-              <p className="text-2xl font-bold">{users.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center">
-            <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-blue-600 text-sm font-bold">M</span>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-gray-600">Pembaca Meter</p>
-              <p className="text-2xl font-bold">{users.filter((u) => u.role === 'meter_reader').length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center">
-            <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
-              <span className="text-green-600 text-sm font-bold">K</span>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-gray-600">Keuangan</p>
-              <p className="text-2xl font-bold">{users.filter((u) => u.role === 'finance').length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center">
-            <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
-              <span className="text-orange-600 text-sm font-bold">L</span>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-gray-600">Layanan</p>
-              <p className="text-2xl font-bold">{users.filter((u) => u.role === 'service').length}</p>
-            </div>
-          </div>
-        </div>
+        <DashboardStatCard
+          title="Total Pengguna"
+          value={loading ? '...' : users.length.toLocaleString('id-ID')}
+          subtitle="Semua pengguna operasional"
+          icon={UserGroupIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Pembaca Meter"
+          value={loading ? '...' : meterReaderCount.toLocaleString('id-ID')}
+          subtitle="Petugas lapangan"
+          icon={UserGroupIcon}
+          tone="cyan"
+        />
+        <DashboardStatCard
+          title="Keuangan"
+          value={loading ? '...' : financeCount.toLocaleString('id-ID')}
+          subtitle="Tim keuangan"
+          icon={UserGroupIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Layanan"
+          value={loading ? '...' : serviceCount.toLocaleString('id-ID')}
+          subtitle="Tim layanan pelanggan"
+          icon={UserGroupIcon}
+          tone="purple"
+        />
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="card p-4">
         <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" aria-hidden="true" />
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-300" aria-hidden="true" />
             <label htmlFor="search-pengguna" className="sr-only">Cari pengguna</label>
             <input
               id="search-pengguna"
@@ -242,7 +244,7 @@ export default function UserManagementList() {
               placeholder="Cari nama, username, atau email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              className="input-base pl-10"
             />
           </div>
           <div>
@@ -251,7 +253,7 @@ export default function UserManagementList() {
               id="filter-peran"
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="input-base"
             >
               <option value="">Semua Peran</option>
               <option value="meter_reader">Pembaca Meter</option>
@@ -263,9 +265,9 @@ export default function UserManagementList() {
             <div>
               <button
                 onClick={handleClearFilters}
-                className="inline-flex w-full items-center justify-center rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 sm:w-auto"
+                className="btn-secondary"
               >
-                <XMarkIcon className="h-4 w-4 mr-1" aria-hidden="true" />
+                <XMarkIcon className="h-4 w-4" />
                 Hapus Filter
               </button>
             </div>
@@ -274,7 +276,7 @@ export default function UserManagementList() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="card overflow-hidden">
         <DataTable
           data={filteredUsers}
           columns={columns}

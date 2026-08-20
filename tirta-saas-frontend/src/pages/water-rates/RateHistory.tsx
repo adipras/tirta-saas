@@ -1,23 +1,17 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeftIcon,
   CheckCircleIcon,
   ClockIcon,
   CurrencyDollarIcon,
+  MagnifyingGlassIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { waterRateService } from '../../services/waterRateService';
 import { subscriptionService } from '../../services/subscriptionService';
 import type { RateHistory } from '../../types/waterRate';
 import type { SubscriptionType } from '../../types/subscription';
-import {
-  DashboardStatCard,
-  DataTable,
-  FormSelect,
-  PageHeader,
-} from '../../components';
-import type { Column } from '../../components';
+import { DashboardStatCard } from '../../components';
 import { useToast } from '../../components';
 
 const formatCurrency = (amount: number) =>
@@ -50,7 +44,7 @@ export default function RateHistory() {
   const [history, setHistory] = useState<RateHistory[]>([]);
   const [subscriptionTypes, setSubscriptionTypes] = useState<SubscriptionType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage] = useState(1);
   const [selectedSubscription, setSelectedSubscription] = useState('');
 
   const fetchHistory = useCallback(async () => {
@@ -62,7 +56,7 @@ export default function RateHistory() {
         20
       );
       setHistory(response.data);
-    } catch  {
+    } catch {
       toast.error('Riwayat tarif air belum bisa dimuat');
     } finally {
       setLoading(false);
@@ -88,88 +82,45 @@ export default function RateHistory() {
   const inactiveCount = history.filter((item) => !item.active).length;
   const latestRate = history[0]?.amount || 0;
 
-  const columns: Column<RateHistory>[] = [
-    {
-      key: 'subscription_name',
-      label: 'Golongan Langganan',
-      sortable: true,
-    },
-    {
-      key: 'amount',
-      label: 'Tarif per m3',
-      render: (_value, row) => formatCurrency(row.amount),
-      align: 'right',
-      sortable: true,
-    },
-    {
-      key: 'effective_date',
-      label: 'Mulai Berlaku',
-      render: (_value, row) => formatDate(row.effective_date),
-      sortable: true,
-    },
-    {
-      key: 'created_at',
-      label: 'Dibuat',
-      render: (_value, row) => formatDateTime(row.created_at),
-      sortable: true,
-    },
-    {
-      key: 'active',
-      label: 'Status',
-      render: (_value, row) => (
-        <span
-          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
-            row.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {row.active ? (
-            <>
-              <CheckCircleIcon className="mr-1 h-4 w-4" />
-              Aktif
-            </>
-          ) : (
-            <>
-              <XCircleIcon className="mr-1 h-4 w-4" />
-              Nonaktif
-            </>
-          )}
-        </span>
-      ),
-      align: 'center',
-    },
-  ];
-
-  const subscriptionOptions = useMemo(
-    () => [
-      { value: '', label: 'Semua golongan langganan' },
-      ...subscriptionTypes.map((type) => ({ value: type.id, label: type.name })),
-    ],
-    [subscriptionTypes]
-  );
+  const filteredHistory = history;
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Riwayat Tarif Air"
-        subtitle="Pantau perubahan tarif air dari waktu ke waktu dengan filter yang lebih ringkas dan daftar yang mobile-friendly."
-        actions={
-          <button
-            type="button"
-            onClick={() => navigate('/admin/water-rates')}
-            className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
-          >
-            <ArrowLeftIcon className="mr-2 h-4 w-4" />
-            Kembali ke Tarif Air
-          </button>
-        }
-      />
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-[13px] text-surface-400">
+        <button
+          onClick={() => navigate('/admin/water-rates')}
+          className="transition-colors hover:text-surface-600"
+        >
+          Tarif Air
+        </button>
+        <span>/</span>
+        <span className="font-medium text-surface-700">Riwayat</span>
+      </nav>
 
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-surface-900">Riwayat Tarif Air</h1>
+          <p className="mt-1 text-[13px] text-surface-400">
+            Pantau perubahan tarif air dari waktu ke waktu.
+          </p>
+        </div>
+        <button
+          onClick={() => navigate('/admin/water-rates')}
+          className="btn-secondary self-start"
+        >
+          ← Kembali ke Tarif
+        </button>
+      </div>
+
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <DashboardStatCard
           title="Riwayat Tampil"
-          value={loading ? '...' : history.length.toLocaleString('id-ID')}
+          value={loading ? '...' : filteredHistory.length.toLocaleString('id-ID')}
           helper={selectedSubscription ? 'Sudah difilter' : 'Semua data pada halaman'}
-          subtitle="Jumlah riwayat tarif yang sedang tampil pada daftar aktif."
+          subtitle="Jumlah riwayat tarif yang sedang tampil."
           icon={ClockIcon}
           tone="blue"
         />
@@ -177,7 +128,7 @@ export default function RateHistory() {
           title="Tarif Aktif"
           value={loading ? '...' : activeCount.toLocaleString('id-ID')}
           helper={`${inactiveCount.toLocaleString('id-ID')} nonaktif`}
-          subtitle="Membantu memantau berapa entri tarif yang masih aktif digunakan."
+          subtitle="Entri tarif yang masih aktif."
           icon={CheckCircleIcon}
           tone="green"
         />
@@ -185,66 +136,198 @@ export default function RateHistory() {
           title="Tarif Terbaru"
           value={loading ? '...' : formatCurrency(latestRate)}
           helper="Entri teratas"
-          subtitle="Nilai tarif paling baru dari hasil daftar riwayat yang tampil."
+          subtitle="Nilai tarif paling baru."
           icon={CurrencyDollarIcon}
           tone="purple"
         />
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Filter riwayat</h2>
+      {/* Filter */}
+      <div className="card p-5">
+        <h2 className="text-[15px] font-semibold text-surface-800">Filter riwayat</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 md:max-w-lg">
-          <FormSelect
-            label="Golongan langganan"
-            value={selectedSubscription}
-            onChange={(e) => {
-              setSelectedSubscription(e.target.value);
-              setCurrentPage(1);
-            }}
-            options={subscriptionOptions}
-          />
+          <div>
+            <label className="label-base">Golongan langganan</label>
+            <div className="relative mt-1.5">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <MagnifyingGlassIcon className="h-4 w-4 text-surface-300" />
+              </div>
+              <select
+                value={selectedSubscription}
+                onChange={(e) => {
+                  setSelectedSubscription(e.target.value);
+                }}
+                className="input-base pl-10"
+              >
+                <option value="">Semua golongan langganan</option>
+                {subscriptionTypes.map((type) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Timeline perubahan tarif</h2>
-        {history.length > 0 ? (
-          <div className="mt-4 space-y-4">
-            {history.slice(0, 5).map((rate) => (
-              <div key={rate.id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      {/* Timeline */}
+      <div className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-surface-800">Timeline perubahan tarif</h2>
+        </div>
+        {loading ? (
+          <div className="space-y-3 p-5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 animate-pulse rounded-xl bg-surface-100" />
+            ))}
+          </div>
+        ) : filteredHistory.length > 0 ? (
+          <div className="divide-y divide-surface-100 p-5">
+            {filteredHistory.slice(0, 5).map((rate) => (
+              <div key={rate.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${
+                    rate.active
+                      ? 'bg-success-50 text-success-600 ring-1 ring-inset ring-success-200'
+                      : 'bg-surface-50 text-surface-400 ring-1 ring-inset ring-surface-200'
+                  }`}>
+                    {rate.active ? (
+                      <CheckCircleIcon className="h-4 w-4" />
+                    ) : (
+                      <XCircleIcon className="h-4 w-4" />
+                    )}
+                  </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{rate.subscription_name}</p>
-                    <p className="mt-1 text-sm text-gray-500">{formatDate(rate.effective_date)}</p>
-                    <p className="mt-1 text-xs text-gray-500">Dibuat {formatDateTime(rate.created_at)}</p>
+                    <p className="text-[14px] font-medium text-surface-800">{rate.subscription_name}</p>
+                    <p className="mt-0.5 text-[13px] text-surface-400">{formatDate(rate.effective_date)}</p>
+                    <p className="mt-0.5 text-[12px] text-surface-400">Dibuat {formatDateTime(rate.created_at)}</p>
                   </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-lg font-semibold text-gray-900">{formatCurrency(rate.amount)}</p>
-                    <p className="text-xs text-gray-500">per m3</p>
-                  </div>
+                </div>
+                <div className="text-left sm:text-right">
+                  <p className="text-lg font-semibold text-surface-800">{formatCurrency(rate.amount)}</p>
+                  <p className="text-[12px] text-surface-400">per m3</p>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
-            Belum ada riwayat tarif yang tersedia.
+          <div className="p-8 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-surface-100">
+              <ClockIcon className="h-6 w-6 text-surface-300" />
+            </div>
+            <p className="text-[13px] text-surface-400">
+              Belum ada riwayat tarif yang tersedia.
+            </p>
           </div>
         )}
-      </section>
+      </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 px-5 py-4">
-          <h2 className="text-base font-semibold text-gray-900">Riwayat lengkap</h2>
+      {/* Full History Table */}
+      <div className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
+          <h2 className="text-[15px] font-semibold text-surface-800">Riwayat lengkap</h2>
         </div>
-        <DataTable
-          columns={columns}
-          data={history}
-          loading={loading}
-          searchable={false}
-          emptyMessage="Belum ada riwayat tarif yang cocok dengan filter."
-        />
-      </section>
+
+        {/* Desktop Table */}
+        <div className="hidden lg:block">
+          <table className="w-full text-left text-[13px]">
+            <thead>
+              <tr className="border-b border-surface-100 bg-surface-50/50">
+                <th className="px-5 py-3 font-medium text-surface-500">Golongan Langganan</th>
+                <th className="px-5 py-3 text-right font-medium text-surface-500">Tarif per m3</th>
+                <th className="px-5 py-3 font-medium text-surface-500">Mulai Berlaku</th>
+                <th className="px-5 py-3 font-medium text-surface-500">Dibuat</th>
+                <th className="px-5 py-3 text-center font-medium text-surface-500">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-100">
+              {loading ? (
+                [1, 2, 3, 4, 5].map((i) => (
+                  <tr key={i}>
+                    <td colSpan={5} className="px-5 py-4">
+                      <div className="h-5 animate-pulse rounded bg-surface-100" />
+                    </td>
+                  </tr>
+                ))
+              ) : filteredHistory.length > 0 ? (
+                filteredHistory.map((rate) => (
+                  <tr key={rate.id} className="transition-colors hover:bg-surface-50/50">
+                    <td className="px-5 py-3.5 font-medium text-surface-800">
+                      {rate.subscription_name}
+                    </td>
+                    <td className="px-5 py-3.5 text-right font-semibold text-brand-600">
+                      {formatCurrency(rate.amount)}
+                    </td>
+                    <td className="px-5 py-3.5 text-surface-600">{formatDate(rate.effective_date)}</td>
+                    <td className="px-5 py-3.5 text-surface-400">{formatDateTime(rate.created_at)}</td>
+                    <td className="px-5 py-3.5 text-center">
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${
+                        rate.active
+                          ? 'bg-success-50 text-success-700 ring-success-200/60'
+                          : 'bg-surface-50 text-surface-500 ring-surface-200/60'
+                      }`}>
+                        {rate.active ? (
+                          <><CheckCircleIcon className="h-3.5 w-3.5" /> Aktif</>
+                        ) : (
+                          <><XCircleIcon className="h-3.5 w-3.5" /> Nonaktif</>
+                        )}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-5 py-12 text-center text-surface-400">
+                    Belum ada riwayat tarif yang cocok dengan filter.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="lg:hidden">
+          {loading ? (
+            <div className="space-y-3 p-5">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 animate-pulse rounded-xl bg-surface-100" />
+              ))}
+            </div>
+          ) : filteredHistory.length > 0 ? (
+            <div className="divide-y divide-surface-100">
+              {filteredHistory.map((rate) => (
+                <div key={rate.id} className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[14px] font-medium text-surface-800">{rate.subscription_name}</p>
+                      <p className="mt-0.5 text-[12px] text-surface-400">
+                        Berlaku: {formatDate(rate.effective_date)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[14px] font-semibold text-brand-600">{formatCurrency(rate.amount)}</p>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
+                        rate.active
+                          ? 'bg-success-50 text-success-700 ring-success-200/60'
+                          : 'bg-surface-50 text-surface-500 ring-surface-200/60'
+                      }`}>
+                        {rate.active ? <CheckCircleIcon className="h-3 w-3" /> : <XCircleIcon className="h-3 w-3" />}
+                        {rate.active ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-[13px] text-surface-400">
+              Belum ada riwayat tarif yang cocok dengan filter.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

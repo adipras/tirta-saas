@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
-import { ArrowLeftIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import {
+  ArrowLeftIcon,
+  PlusIcon,
+  TrashIcon,
+  DocumentTextIcon,
+  CalendarDaysIcon,
+  BanknotesIcon,
+  CurrencyDollarIcon,
+} from '@heroicons/react/24/outline';
 import invoiceService, { type CreateInvoicePayload } from '../../services/invoiceService';
 import customerService from '../../services/customerService';
 import CustomerSearchSelect from '../../components/CustomerSearchSelect';
@@ -111,14 +119,14 @@ export default function InvoiceForm() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 animate-pulse rounded bg-gray-200" aria-hidden="true" />
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm p-6 space-y-4">
-          <div className="h-6 w-40 animate-pulse rounded bg-gray-200" aria-hidden="true" />
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-surface-100" />
+        <div className="card p-6 space-y-4">
+          <div className="h-6 w-40 animate-pulse rounded-lg bg-surface-100" />
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="h-10 animate-pulse rounded bg-gray-200" aria-hidden="true" />
-            <div className="h-10 animate-pulse rounded bg-gray-200" aria-hidden="true" />
+            <div className="h-10 animate-pulse rounded-xl bg-surface-100" />
+            <div className="h-10 animate-pulse rounded-xl bg-surface-100" />
           </div>
-          <div className="h-20 animate-pulse rounded bg-gray-200" aria-hidden="true" />
+          <div className="h-20 animate-pulse rounded-xl bg-surface-100" />
         </div>
       </div>
     );
@@ -126,26 +134,43 @@ export default function InvoiceForm() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={() => navigate('/admin/invoices')}
-          className="flex items-center text-sm text-gray-500 hover:text-gray-700"
-        >
-          <ArrowLeftIcon className="mr-2 h-4 w-4" />
-          Kembali ke daftar tagihan
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-[13px] text-surface-400">
+        <button onClick={() => navigate('/admin/invoices')} className="hover:text-surface-600 transition-colors">
+          Tagihan
         </button>
-      </div>
+        <span>/</span>
+        <span className="text-surface-700 font-medium">Buat Tagihan Manual</span>
+      </nav>
+
+      {/* Back Button */}
+      <button
+        onClick={() => navigate('/admin/invoices')}
+        className="inline-flex items-center gap-1.5 text-[13px] text-surface-400 hover:text-surface-600 transition-colors"
+      >
+        <ArrowLeftIcon className="h-3.5 w-3.5" />
+        Kembali ke daftar tagihan
+      </button>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="space-y-6 px-4 py-5 sm:p-6">
-            <div>
-              <h3 className="text-lg font-medium leading-6 text-gray-900">Buat tagihan manual</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Digunakan untuk tagihan di luar registrasi dan pemakaian air. Status otomatis diset sebagai belum bayar.
-              </p>
+        <div className="card overflow-hidden">
+          {/* Header */}
+          <div className="border-b border-surface-100 px-6 py-5">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-brand-50 p-2">
+                <DocumentTextIcon className="h-5 w-5 text-brand-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-surface-900">Buat tagihan manual</h3>
+                <p className="mt-0.5 text-[12px] text-surface-400">
+                  Digunakan untuk tagihan di luar registrasi dan pemakaian air. Status otomatis diset sebagai belum bayar.
+                </p>
+              </div>
             </div>
+          </div>
 
+          {/* Body */}
+          <div className="space-y-6 px-6 py-5">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
                 <input
@@ -168,21 +193,26 @@ export default function InvoiceForm() {
               </div>
 
               <div>
-                <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="dueDate" className="block text-[13px] font-medium text-surface-700 mb-1.5">
                   Jatuh tempo *
                 </label>
-                <input
-                  {...register('dueDate', { required: 'Jatuh tempo wajib diisi' })}
-                  type="date"
-                  id="dueDate"
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-                {errors.dueDate && <p className="mt-2 text-sm text-red-600">{errors.dueDate.message}</p>}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <CalendarDaysIcon className="h-4 w-4 text-surface-400" />
+                  </div>
+                  <input
+                    {...register('dueDate', { required: 'Jatuh tempo wajib diisi' })}
+                    type="date"
+                    id="dueDate"
+                    className="input-base pl-10"
+                  />
+                </div>
+                {errors.dueDate && <p className="mt-1.5 text-[12px] text-danger-600">{errors.dueDate.message}</p>}
               </div>
             </div>
 
             <div>
-              <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="notes" className="block text-[13px] font-medium text-surface-700 mb-1.5">
                 Catatan
               </label>
               <textarea
@@ -190,39 +220,40 @@ export default function InvoiceForm() {
                 id="notes"
                 rows={3}
                 placeholder="Contoh: biaya pemasangan ulang, denda administrasi, atau layanan tambahan."
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                className="input-base"
               />
             </div>
 
+            {/* Items Section */}
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h4 className="text-md font-medium text-gray-800">Rincian tagihan</h4>
-                  <p className="text-sm text-gray-500">Tambahkan item biaya yang akan masuk ke invoice manual ini.</p>
+                  <h4 className="text-sm font-medium text-surface-800">Rincian tagihan</h4>
+                  <p className="text-[12px] text-surface-400">Tambahkan item biaya yang akan masuk ke invoice manual ini.</p>
                 </div>
-                <div className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700">
+                <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700">
                   Total: Rp{totalAmount.toLocaleString('id-ID')}
                 </div>
               </div>
 
               {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 p-4 md:grid-cols-[minmax(0,1fr)_120px_180px_auto] md:items-center">
+                <div key={field.id} className="grid grid-cols-1 gap-3 rounded-xl border border-surface-100 bg-surface-50/50 p-4 md:grid-cols-[minmax(0,1fr)_120px_180px_auto] md:items-center">
                   <div>
-                    <label htmlFor={`items.${index}.description`} className="mb-1 block text-sm font-medium text-gray-700">
+                    <label htmlFor={`items.${index}.description`} className="mb-1 block text-[12px] font-medium text-surface-600">
                       Deskripsi item {index + 1}
                     </label>
                     <input
                       {...register(`items.${index}.description`, { required: 'Deskripsi wajib diisi' })}
                       id={`items.${index}.description`}
                       placeholder="Deskripsi biaya"
-                      className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="input-base"
                     />
                     {errors.items?.[index]?.description && (
-                      <p className="mt-2 text-sm text-red-600">{errors.items[index]?.description?.message}</p>
+                      <p className="mt-1 text-[12px] text-danger-600">{errors.items[index]?.description?.message}</p>
                     )}
                   </div>
                   <div>
-                    <label htmlFor={`items.${index}.quantity`} className="mb-1 block text-sm font-medium text-gray-700">
+                    <label htmlFor={`items.${index}.quantity`} className="mb-1 block text-[12px] font-medium text-surface-600">
                       Qty
                     </label>
                     <input
@@ -230,26 +261,31 @@ export default function InvoiceForm() {
                       id={`items.${index}.quantity`}
                       type="number"
                       placeholder="Qty"
-                      className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      className="input-base"
                     />
                   </div>
                   <div>
-                    <label htmlFor={`items.${index}.unitPrice`} className="mb-1 block text-sm font-medium text-gray-700">
+                    <label htmlFor={`items.${index}.unitPrice`} className="mb-1 block text-[12px] font-medium text-surface-600">
                       Harga satuan
                     </label>
-                    <input
-                      {...register(`items.${index}.unitPrice`, { valueAsNumber: true, min: { value: 0, message: 'Minimal 0' } })}
-                      id={`items.${index}.unitPrice`}
-                      type="number"
-                      step="1"
-                      placeholder="Harga satuan"
-                      className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    />
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <BanknotesIcon className="h-3.5 w-3.5 text-surface-400" />
+                      </div>
+                      <input
+                        {...register(`items.${index}.unitPrice`, { valueAsNumber: true, min: { value: 0, message: 'Minimal 0' } })}
+                        id={`items.${index}.unitPrice`}
+                        type="number"
+                        step="1"
+                        placeholder="Harga satuan"
+                        className="input-base pl-8"
+                      />
+                    </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => remove(index)}
-                    className="inline-flex items-center justify-center rounded-md p-2 text-red-600 hover:bg-red-50 hover:text-red-800"
+                    className="inline-flex items-center justify-center rounded-lg p-2 text-danger-500 hover:bg-danger-50 hover:text-danger-700 transition-colors"
                     aria-label={`Hapus item ${index + 1}`}
                   >
                     <TrashIcon className="h-5 w-5" aria-hidden="true" />
@@ -260,28 +296,39 @@ export default function InvoiceForm() {
               <button
                 type="button"
                 onClick={() => append({ description: '', quantity: 1, unitPrice: 0 })}
-                className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-brand-300 bg-brand-50/50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 transition-colors"
               >
-                <PlusIcon className="mr-2 h-4 w-4" />
+                <PlusIcon className="h-4 w-4" />
                 Tambah item
               </button>
             </div>
           </div>
 
-          <div className="space-x-3 bg-gray-50 px-4 py-3 text-right sm:px-6">
+          {/* Footer */}
+          <div className="border-t border-surface-100 bg-surface-50/50 px-6 py-4 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={() => navigate('/admin/invoices')}
-              className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="btn-secondary"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="btn-primary"
             >
-              {saving ? 'Menyimpan...' : 'Buat tagihan'}
+              {saving ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Menyimpan...
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  <CurrencyDollarIcon className="h-4 w-4" />
+                  Buat tagihan
+                </span>
+              )}
             </button>
           </div>
         </div>

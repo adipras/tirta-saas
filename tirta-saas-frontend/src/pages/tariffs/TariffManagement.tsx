@@ -14,10 +14,10 @@ import {
   FormInput,
   FormSelect,
   FormTextarea,
-  PageHeader,
   useToast,
   type Column,
 } from '../../components';
+import { DashboardStatCard } from '../../components';
 import tariffService from '../../services/tariffService';
 import type {
   BillSimulationResult,
@@ -363,12 +363,19 @@ export default function TariffManagement() {
   const categoryColumns = useMemo<Column<TariffCategory>[]>(
     () => [
       { key: 'code', label: 'Kode', sortable: true },
-      { key: 'name', label: 'Kategori', sortable: true },
+      {
+        key: 'name',
+        label: 'Kategori',
+        sortable: true,
+        render: (_value, item) => (
+          <span className="font-medium text-surface-800">{item.name}</span>
+        ),
+      },
       {
         key: 'type',
         label: 'Tipe',
         render: (value) => (
-          <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+          <span className="inline-flex rounded-full bg-info-50 px-2.5 py-0.5 text-[12px] font-medium text-info-700 ring-1 ring-inset ring-info-200/60">
             {getCategoryTypeLabel(value as TariffCategoryType)}
           </span>
         ),
@@ -378,8 +385,10 @@ export default function TariffManagement() {
         label: 'Status',
         render: (_value, item) => (
           <span
-            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-              item.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${
+              item.is_active
+                ? 'bg-success-50 text-success-700 ring-success-200/60'
+                : 'bg-surface-50 text-surface-500 ring-surface-200/60'
             }`}
           >
             {item.is_active ? 'Aktif' : 'Nonaktif'}
@@ -391,7 +400,7 @@ export default function TariffManagement() {
         key: 'actions',
         label: 'Aksi',
         render: (_value, item) => (
-          <div className="flex justify-center gap-2">
+          <div className="flex justify-center gap-1.5">
             <ActionIconButton
               icon={PencilIcon}
               label={`Ubah kategori tarif ${item.name}`}
@@ -417,15 +426,19 @@ export default function TariffManagement() {
       {
         key: 'min_volume',
         label: 'Rentang',
-        render: (_value, item) =>
-          `${formatNumber(item.min_volume)} - ${
-            item.max_volume === null ? 'Tanpa batas' : `${formatNumber(item.max_volume)} m³`
-          }`,
+        render: (_value, item) => (
+          <span className="text-surface-700">
+            {formatNumber(item.min_volume)} -{' '}
+            {item.max_volume === null ? 'Tanpa batas' : `${formatNumber(item.max_volume)} m³`}
+          </span>
+        ),
       },
       {
         key: 'price_per_unit',
         label: 'Harga per m³',
-        render: (value) => formatCurrency(Number(value)),
+        render: (value) => (
+          <span className="font-semibold text-brand-600">{formatCurrency(Number(value))}</span>
+        ),
       },
       {
         key: 'display_order',
@@ -437,8 +450,10 @@ export default function TariffManagement() {
         label: 'Status',
         render: (_value, item) => (
           <span
-            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-              item.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${
+              item.is_active
+                ? 'bg-success-50 text-success-700 ring-success-200/60'
+                : 'bg-surface-50 text-surface-500 ring-surface-200/60'
             }`}
           >
             {item.is_active ? 'Aktif' : 'Nonaktif'}
@@ -449,7 +464,7 @@ export default function TariffManagement() {
         key: 'actions',
         label: 'Aksi',
         render: (_value, item) => (
-          <div className="flex justify-center gap-2">
+          <div className="flex justify-center gap-1.5">
             <ActionIconButton
               icon={PencilIcon}
               label={`Ubah tier tarif ${item.category.name}`}
@@ -472,43 +487,53 @@ export default function TariffManagement() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Tarif Progresif"
-        subtitle="Kelola kategori tarif, susun tier harga progresif per m³, lalu uji simulasi tagihan sebelum dipakai operasional."
-        actions={
-          <div className="text-sm text-gray-500">
-            {selectedCategory ? `Kategori aktif: ${selectedCategory.name}` : 'Belum ada kategori tarif'}
-          </div>
-        }
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <RectangleStackIcon className="h-6 w-6 text-blue-600" />
-            <div>
-              <p className="text-sm text-gray-500">Total kategori</p>
-              <p className="text-xl font-semibold text-gray-900">{categories.length}</p>
-            </div>
-          </div>
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-surface-900">Tarif Progresif</h1>
+          <p className="mt-1 text-[13px] text-surface-400">
+            Kelola kategori tarif, susun tier harga progresif per m³, lalu uji simulasi tagihan.
+          </p>
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Kategori aktif</p>
-          <p className="text-xl font-semibold text-gray-900">{activeCategoryCount}</p>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Tier simulasi terakhir</p>
-          <p className="text-xl font-semibold text-gray-900">{totalSimulationTiers}</p>
+        <div className="text-[13px] text-surface-400">
+          {selectedCategory ? `Kategori aktif: ${selectedCategory.name}` : 'Belum ada kategori tarif'}
         </div>
       </div>
 
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <DashboardStatCard
+          title="Total kategori"
+          value={loadingCategories ? '...' : categories.length.toLocaleString('id-ID')}
+          subtitle="Semua kategori tarif"
+          icon={RectangleStackIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Kategori aktif"
+          value={loadingCategories ? '...' : activeCategoryCount.toLocaleString('id-ID')}
+          subtitle="Siap digunakan"
+          icon={RectangleStackIcon}
+          tone="green"
+        />
+        <DashboardStatCard
+          title="Tier simulasi terakhir"
+          value={totalSimulationTiers.toLocaleString('id-ID')}
+          subtitle="Hasil simulasi terakhir"
+          icon={CalculatorIcon}
+          tone="purple"
+        />
+      </div>
+
+      {/* Main Content */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(380px,0.9fr)]">
+        {/* Left: Categories + Rates */}
         <div className="space-y-4">
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="border-b border-gray-200 p-4 sm:p-5">
-              <h2 className="text-base font-semibold text-gray-900">Kategori tarif</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Pisahkan tarif rumah tangga, komersial, industri, sosial, atau pemerintah agar skema billing lebih presisi.
+          <div className="card overflow-hidden">
+            <div className="border-b border-surface-100 px-5 py-4">
+              <h2 className="text-[15px] font-semibold text-surface-800">Kategori tarif</h2>
+              <p className="mt-0.5 text-[13px] text-surface-400">
+                Pisahkan tarif rumah tangga, komersial, industri, sosial, atau pemerintah.
               </p>
             </div>
 
@@ -526,11 +551,11 @@ export default function TariffManagement() {
             />
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="flex flex-col gap-3 border-b border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="card overflow-hidden">
+            <div className="flex flex-col gap-3 border-b border-surface-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-semibold text-gray-900">Tier tarif progresif</h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <h2 className="text-[15px] font-semibold text-surface-800">Tier tarif progresif</h2>
+                <p className="mt-0.5 text-[13px] text-surface-400">
                   {selectedCategory
                     ? `Tier aktif untuk kategori ${selectedCategory.name}.`
                     : 'Pilih kategori tarif lebih dulu untuk melihat tier harga.'}
@@ -540,15 +565,15 @@ export default function TariffManagement() {
                 <button
                   type="button"
                   onClick={resetRateForm}
-                  className="inline-flex items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                  className="btn-primary self-start"
                 >
-                  <PlusIcon className="mr-2 h-5 w-5" />
+                  <PlusIcon className="h-4 w-4" />
                   Tambah Tier
                 </button>
               )}
             </div>
 
-            <div className="p-4 sm:p-5">
+            <div className="p-5">
               {selectedCategory ? (
                 <DataTable
                   data={rates}
@@ -558,7 +583,7 @@ export default function TariffManagement() {
                   emptyMessage="Belum ada tier tarif untuk kategori ini."
                 />
               ) : (
-                <p className="rounded-2xl border border-dashed border-gray-300 px-4 py-6 text-sm text-gray-500">
+                <p className="rounded-xl border border-dashed border-surface-200 px-4 py-6 text-center text-[13px] text-surface-400">
                   Pilih kategori tarif untuk melihat dan mengelola tier harga progresif.
                 </p>
               )}
@@ -566,12 +591,16 @@ export default function TariffManagement() {
           </div>
         </div>
 
+        {/* Right: Forms */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <h2 className="text-base font-semibold text-gray-900">
-              {editingCategory ? 'Ubah kategori tarif' : 'Tambah kategori tarif'}
-            </h2>
-            <form className="mt-4 space-y-4" onSubmit={handleCategorySubmit}>
+          {/* Category Form */}
+          <div className="card overflow-hidden">
+            <div className="border-b border-surface-100 px-5 py-4">
+              <h2 className="text-[15px] font-semibold text-surface-800">
+                {editingCategory ? 'Ubah kategori tarif' : 'Tambah kategori tarif'}
+              </h2>
+            </div>
+            <form className="p-5 space-y-4" onSubmit={handleCategorySubmit}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormInput
                   label="Kode kategori"
@@ -623,12 +652,12 @@ export default function TariffManagement() {
                 />
               )}
 
-              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 pt-2 border-t border-surface-100 sm:flex-row sm:justify-end">
                 {editingCategory && (
                   <button
                     type="button"
                     onClick={resetCategoryForm}
-                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="btn-secondary"
                   >
                     Batal Ubah
                   </button>
@@ -636,7 +665,7 @@ export default function TariffManagement() {
                 <button
                   type="submit"
                   disabled={savingCategory}
-                  className="rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="btn-primary"
                 >
                   {savingCategory ? 'Menyimpan...' : editingCategory ? 'Perbarui Kategori' : 'Simpan Kategori'}
                 </button>
@@ -644,11 +673,14 @@ export default function TariffManagement() {
             </form>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <h2 className="text-base font-semibold text-gray-900">
-              {editingRate ? 'Ubah tier tarif' : 'Tambah tier tarif'}
-            </h2>
-            <form className="mt-4 space-y-4" onSubmit={handleRateSubmit}>
+          {/* Rate Form */}
+          <div className="card overflow-hidden">
+            <div className="border-b border-surface-100 px-5 py-4">
+              <h2 className="text-[15px] font-semibold text-surface-800">
+                {editingRate ? 'Ubah tier tarif' : 'Tambah tier tarif'}
+              </h2>
+            </div>
+            <form className="p-5 space-y-4" onSubmit={handleRateSubmit}>
               <FormSelect
                 label="Kategori tarif"
                 value={rateForm.category_id}
@@ -706,12 +738,12 @@ export default function TariffManagement() {
                 />
               )}
 
-              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 pt-2 border-t border-surface-100 sm:flex-row sm:justify-end">
                 {(editingRate || rateForm.category_id) && (
                   <button
                     type="button"
                     onClick={resetRateForm}
-                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="btn-secondary"
                   >
                     Batal
                   </button>
@@ -719,7 +751,7 @@ export default function TariffManagement() {
                 <button
                   type="submit"
                   disabled={savingRate || categories.length === 0}
-                  className="rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="btn-primary"
                 >
                   {savingRate ? 'Menyimpan...' : editingRate ? 'Perbarui Tier' : 'Simpan Tier'}
                 </button>
@@ -727,12 +759,17 @@ export default function TariffManagement() {
             </form>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex items-center gap-2">
-              <CalculatorIcon className="h-5 w-5 text-blue-600" />
-              <h2 className="text-base font-semibold text-gray-900">Simulasi tagihan</h2>
+          {/* Simulation */}
+          <div className="card overflow-hidden">
+            <div className="border-b border-surface-100 px-5 py-4">
+              <div className="flex items-center gap-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-info-50 text-info-600 ring-1 ring-inset ring-info-200/60">
+                  <CalculatorIcon className="h-4 w-4" />
+                </div>
+                <h2 className="text-[15px] font-semibold text-surface-800">Simulasi tagihan</h2>
+              </div>
             </div>
-            <form className="mt-4 space-y-4" onSubmit={handleSimulationSubmit}>
+            <form className="p-5 space-y-4" onSubmit={handleSimulationSubmit}>
               <FormSelect
                 label="Kategori simulasi"
                 value={simulationForm.category_id}
@@ -761,41 +798,41 @@ export default function TariffManagement() {
               <button
                 type="submit"
                 disabled={simulating || categories.length === 0}
-                className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="btn-primary w-full"
               >
                 {simulating ? 'Menghitung...' : 'Hitung Simulasi'}
               </button>
             </form>
 
             {simulationResult && (
-              <div className="mt-5 space-y-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+              <div className="mx-5 mb-5 space-y-4 rounded-xl border border-brand-200 bg-brand-50 p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm text-blue-700">Kategori simulasi</p>
-                    <p className="text-base font-semibold text-blue-900">{simulationResult.category.name}</p>
+                    <p className="text-[13px] text-brand-600">Kategori simulasi</p>
+                    <p className="text-[15px] font-semibold text-brand-800">{simulationResult.category.name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-blue-700">Total tagihan</p>
-                    <p className="text-lg font-semibold text-blue-900">
+                    <p className="text-[13px] text-brand-600">Total tagihan</p>
+                    <p className="text-lg font-semibold text-brand-800">
                       {formatCurrency(simulationResult.total_amount)}
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {simulationResult.breakdown.map((item) => (
                     <div
                       key={`${item.tier_range}-${item.volume}`}
-                      className="rounded-xl border border-blue-100 bg-white px-4 py-3"
+                      className="rounded-lg border border-brand-100 bg-white px-4 py-3"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{item.tier_range}</p>
-                          <p className="mt-1 text-xs text-gray-500">
+                          <p className="text-[13px] font-medium text-surface-800">{item.tier_range}</p>
+                          <p className="mt-0.5 text-[12px] text-surface-400">
                             {formatNumber(item.volume)} m³ x {formatCurrency(item.price_per_unit)}
                           </p>
                         </div>
-                        <p className="text-sm font-semibold text-gray-900">{formatCurrency(item.amount)}</p>
+                        <p className="text-[13px] font-semibold text-surface-800">{formatCurrency(item.amount)}</p>
                       </div>
                     </div>
                   ))}

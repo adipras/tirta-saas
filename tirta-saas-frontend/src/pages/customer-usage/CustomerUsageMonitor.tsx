@@ -2,8 +2,9 @@ import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import {
   ArrowTrendingDownIcon,
   ArrowTrendingUpIcon,
-  CalculatorIcon,
+  BoltIcon,
   ChartBarIcon,
+  CalculatorIcon,
 } from '@heroicons/react/24/outline';
 import {
   Area,
@@ -19,7 +20,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { PageHeader, Skeleton, TableSkeleton, useToast } from '../../components';
+import { PageHeader, DashboardStatCard, useToast } from '../../components';
 import { usageService } from '../../services/usageService';
 import type { WaterPemakaian } from '../../types/usage';
 import { extractApiErrorMessage } from '../../utils/apiError';
@@ -173,31 +174,6 @@ export default function CustomerPemakaianMonitor() {
     [usageHistory]
   );
 
-  const getTrendIcon = () => {
-    if (!stats) return null;
-
-    if (stats.trend === 'up') {
-      return <ArrowTrendingUpIcon className="h-6 w-6 text-red-600" aria-hidden="true" />;
-    }
-
-    if (stats.trend === 'down') {
-      return <ArrowTrendingDownIcon className="h-6 w-6 text-green-600" aria-hidden="true" />;
-    }
-
-    return (
-      <div className="flex h-6 w-6 items-center justify-center text-gray-400" aria-hidden="true">
-        ━
-      </div>
-    );
-  };
-
-  const getTrendColor = () => {
-    if (!stats) return 'text-gray-600';
-    if (stats.trend === 'up') return 'text-red-600';
-    if (stats.trend === 'down') return 'text-green-600';
-    return 'text-gray-600';
-  };
-
   const getChangeText = (change: number) => {
     if (change > 0) return `Naik ${change.toFixed(1)}%`;
     if (change < 0) return `Turun ${Math.abs(change).toFixed(1)}%`;
@@ -205,69 +181,36 @@ export default function CustomerPemakaianMonitor() {
   };
 
   const hasUsageHistory = usageHistory.length > 0;
-  const pageTitle = 'Pemakaian Air';
-  const pageSubtitle =
-    'Pantau konsumsi air, bandingkan tren pemakaian, dan cek riwayat pembacaan meter Anda.';
 
   const periodSelect = (
-    <div className="space-y-1">
-      <label htmlFor={periodSelectId} className="sr-only">
-        Pilih periode riwayat pemakaian
-      </label>
-      <select
-        id={periodSelectId}
-        value={period}
-        onChange={(event) => setPeriod(event.target.value as UsagePeriod)}
-        aria-describedby={periodSelectHelpId}
-        className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto"
-      >
-        {PERIOD_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <p id={periodSelectHelpId} className="sr-only">
-        Pilih rentang waktu untuk menampilkan grafik dan tabel pemakaian air Anda.
-      </p>
-    </div>
+    <select
+      id={periodSelectId}
+      value={period}
+      onChange={(event) => setPeriod(event.target.value as UsagePeriod)}
+      aria-describedby={periodSelectHelpId}
+      className="input-base sm:w-auto"
+    >
+      {PERIOD_OPTIONS.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
   );
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <PageHeader
-          title={pageTitle}
-          subtitle={pageSubtitle}
-          actions={<Skeleton height={40} width={220} className="rounded-lg" />}
-        />
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4" aria-hidden="true">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="rounded-lg bg-white p-6 shadow">
-              <Skeleton height={16} width="45%" />
-              <Skeleton height={32} width="55%" className="mt-3" />
-              <Skeleton height={14} width="35%" className="mt-3" />
-            </div>
+        <div className="h-10 w-48 animate-pulse rounded-xl bg-surface-100" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 animate-pulse rounded-xl bg-surface-100" />
           ))}
         </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2" aria-hidden="true">
-          <div className="rounded-lg bg-white p-6 shadow">
-            <Skeleton height={24} width="45%" />
-            <Skeleton height={280} className="mt-4" />
-          </div>
-          <div className="rounded-lg bg-white p-6 shadow">
-            <Skeleton height={24} width="55%" />
-            <Skeleton height={280} className="mt-4" />
-          </div>
-        </div>
-
-        <div className="rounded-lg bg-white p-6 shadow" aria-hidden="true">
-          <Skeleton height={24} width="30%" />
-          <div className="mt-4">
-            <TableSkeleton rows={5} cols={5} />
-          </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-80 animate-pulse rounded-xl bg-surface-100" />
+          ))}
         </div>
       </div>
     );
@@ -276,14 +219,13 @@ export default function CustomerPemakaianMonitor() {
   if (error) {
     return (
       <div className="space-y-6">
-        <PageHeader title={pageTitle} subtitle={pageSubtitle} actions={periodSelect} />
-
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center" role="alert">
-          <p className="text-red-700">{error}</p>
+        <PageHeader title="Pemakaian Air" subtitle="Pantau konsumsi air dan tren pemakaian Anda." actions={periodSelect} />
+        <div className="rounded-xl border border-danger-200 bg-danger-50 p-6 text-center">
+          <p className="text-[13px] text-danger-700">{error}</p>
           <button
             type="button"
             onClick={() => void loadPemakaianData()}
-            className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            className="mt-4 rounded-lg bg-danger-600 px-4 py-2 text-sm text-white hover:bg-danger-700"
           >
             Coba Lagi
           </button>
@@ -294,113 +236,94 @@ export default function CustomerPemakaianMonitor() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={pageTitle} subtitle={pageSubtitle} actions={periodSelect} />
+      <PageHeader
+        title="Pemakaian Air"
+        subtitle="Pantau konsumsi air, bandingkan tren pemakaian, dan cek riwayat pembacaan meter Anda."
+        actions={periodSelect}
+      />
 
+      {/* Empty State */}
       {!hasUsageHistory && (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center shadow-sm">
-          <ChartBarIcon className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
-          <h2 className="mt-4 text-lg font-semibold text-gray-900">Belum ada data pemakaian</h2>
-          <p className="mt-2 text-sm text-gray-500">
+        <div className="rounded-xl border border-dashed border-surface-300 bg-white p-8 text-center">
+          <ChartBarIcon className="mx-auto h-10 w-10 text-surface-300" />
+          <p className="mt-3 text-sm font-medium text-surface-600">Belum ada data pemakaian</p>
+          <p className="mt-1 text-[13px] text-surface-400">
             Riwayat pemakaian air akan tampil di sini setelah pembacaan meter pertama tersedia.
           </p>
           <button
             type="button"
             onClick={() => void loadPemakaianData()}
-            className="mt-4 inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="btn-secondary mt-4"
           >
             Muat Ulang Data
           </button>
         </div>
       )}
 
+      {/* Stat Cards */}
       {stats && hasUsageHistory && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Bulan Ini</p>
-                <p className="mt-2 text-2xl font-bold text-gray-900">{stats.currentMonth} m³</p>
-              </div>
-              <ChartBarIcon className="h-10 w-10 text-indigo-600" aria-hidden="true" />
-            </div>
-          </div>
-
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Bulan Lalu</p>
-                <p className="mt-2 text-2xl font-bold text-gray-900">{stats.lastMonth} m³</p>
-              </div>
-              <CalculatorIcon className="h-10 w-10 text-gray-600" aria-hidden="true" />
-            </div>
-          </div>
-
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Rata-Rata Pemakaian</p>
-                <p className="mt-2 text-2xl font-bold text-gray-900">{stats.average.toFixed(1)} m³</p>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center text-gray-400" aria-hidden="true">
-                ≈
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Tren</p>
-                <p className={`mt-2 text-2xl font-bold ${getTrendColor()}`}>
-                  {stats.percentageChange > 0 ? '+' : ''}
-                  {stats.percentageChange.toFixed(1)}%
-                </p>
-                <p className="mt-1 text-sm text-gray-500">{getChangeText(stats.percentageChange)}</p>
-              </div>
-              {getTrendIcon()}
-            </div>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <DashboardStatCard
+            title="Bulan Ini"
+            value={`${stats.currentMonth} m³`}
+            subtitle="Pemakaian air bulan berjalan."
+            icon={ChartBarIcon}
+            tone="blue"
+          />
+          <DashboardStatCard
+            title="Bulan Lalu"
+            value={`${stats.lastMonth} m³`}
+            subtitle="Pemakaian air bulan sebelumnya."
+            icon={CalculatorIcon}
+            tone="blue"
+          />
+          <DashboardStatCard
+            title="Rata-Rata Pemakaian"
+            value={`${stats.average.toFixed(1)} m³`}
+            subtitle="Rata-rata dari seluruh periode."
+            icon={BoltIcon}
+            tone="cyan"
+          />
+          <DashboardStatCard
+            title="Tren"
+            value={`${stats.percentageChange > 0 ? '+' : ''}${stats.percentageChange.toFixed(1)}%`}
+            subtitle={getChangeText(stats.percentageChange)}
+            icon={stats.trend === 'up' ? ArrowTrendingUpIcon : stats.trend === 'down' ? ArrowTrendingDownIcon : BoltIcon}
+            tone={stats.trend === 'up' ? 'red' : stats.trend === 'down' ? 'green' : 'blue'}
+          />
         </div>
       )}
 
+      {/* Alerts */}
       {stats && hasUsageHistory && stats.trend === 'up' && stats.percentageChange > 20 && (
-        <div className="border-l-4 border-yellow-400 bg-yellow-50 p-4" role="status">
-          <div className="flex">
-            <div className="ml-3">
-              <p className="text-sm text-yellow-700">
-                <strong>Peringatan Pemakaian Tinggi!</strong> Konsumsi air Anda meningkat sebesar{' '}
-                <strong>{stats.percentageChange.toFixed(1)}%</strong> dibandingkan bulan lalu.
-                Periksa kemungkinan kebocoran atau kurangi pemakaian.
-              </p>
-            </div>
-          </div>
+        <div className="rounded-xl border border-warning-200 bg-warning-50 p-4">
+          <p className="text-[13px] text-warning-700">
+            <strong>Peringatan Pemakaian Tinggi!</strong> Konsumsi air Anda meningkat sebesar{' '}
+            <strong>{stats.percentageChange.toFixed(1)}%</strong> dibandingkan bulan lalu.
+            Periksa kemungkinan kebocoran atau kurangi pemakaian.
+          </p>
         </div>
       )}
 
       {stats && hasUsageHistory && stats.trend === 'down' && stats.percentageChange < -20 && (
-        <div className="border-l-4 border-green-400 bg-green-50 p-4" role="status">
-          <div className="flex">
-            <div className="ml-3">
-              <p className="text-sm text-green-700">
-                <strong>Bagus sekali!</strong> Konsumsi air Anda berkurang sebesar{' '}
-                <strong>{Math.abs(stats.percentageChange).toFixed(1)}%</strong> dibandingkan bulan
-                lalu. Pertahankan terus!
-              </p>
-            </div>
-          </div>
+        <div className="rounded-xl border border-success-200 bg-success-50 p-4">
+          <p className="text-[13px] text-success-700">
+            <strong>Bagus sekali!</strong> Konsumsi air Anda berkurang sebesar{' '}
+            <strong>{Math.abs(stats.percentageChange).toFixed(1)}%</strong> dibandingkan bulan
+            lalu. Pertahankan terus!
+          </p>
         </div>
       )}
 
+      {/* Charts */}
       {hasUsageHistory && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <section className="rounded-lg bg-white p-6 shadow" aria-labelledby="customer-usage-trend-chart">
-            <h2 id="customer-usage-trend-chart" className="mb-2 text-lg font-semibold text-gray-900">
-              Tren Pemakaian
-            </h2>
-            <p className="mb-4 text-sm text-gray-500">
+          <section className="card">
+            <h2 className="text-sm font-semibold text-surface-900">Tren Pemakaian</h2>
+            <p className="mt-1 text-[13px] text-surface-400">
               Grafik ini menampilkan total pemakaian air per bulan untuk periode yang dipilih.
             </p>
-            <div aria-hidden="true">
+            <div className="mt-4">
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={chartData}>
                   <defs>
@@ -409,10 +332,17 @@ export default function CustomerPemakaianMonitor() {
                       <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis label={{ value: 'm³', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94A3B8' }} />
+                  <YAxis tick={{ fontSize: 12, fill: '#94A3B8' }} label={{ value: 'm³', angle: -90, position: 'insideLeft', fill: '#94A3B8' }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                    }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="usage"
@@ -425,29 +355,28 @@ export default function CustomerPemakaianMonitor() {
             </div>
           </section>
 
-          <section
-            className="rounded-lg bg-white p-6 shadow"
-            aria-labelledby="customer-usage-comparison-chart"
-          >
-            <h2
-              id="customer-usage-comparison-chart"
-              className="mb-2 text-lg font-semibold text-gray-900"
-            >
-              Perbandingan dengan Rata-Rata
-            </h2>
-            <p className="mb-4 text-sm text-gray-500">
+          <section className="card">
+            <h2 className="text-sm font-semibold text-surface-900">Perbandingan dengan Rata-Rata</h2>
+            <p className="mt-1 text-[13px] text-surface-400">
               Bandingkan pemakaian enam bulan terakhir dengan rata-rata pemakaian Anda.
             </p>
-            <div aria-hidden="true">
+            <div className="mt-4">
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={comparisonData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis label={{ value: 'm³', angle: -90, position: 'insideLeft' }} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="Pemakaian Bulan Ini" fill="#6366F1" />
-                  <Bar dataKey="Rata-Rata" fill="#94A3B8" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94A3B8' }} />
+                  <YAxis tick={{ fontSize: 12, fill: '#94A3B8' }} label={{ value: 'm³', angle: -90, position: 'insideLeft', fill: '#94A3B8' }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Bar dataKey="Pemakaian Bulan Ini" fill="#6366F1" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Rata-Rata" fill="#94A3B8" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -455,28 +384,35 @@ export default function CustomerPemakaianMonitor() {
         </div>
       )}
 
+      {/* Meter Reading Chart */}
       {hasUsageHistory && (
-        <section className="rounded-lg bg-white p-6 shadow" aria-labelledby="customer-meter-reading-chart">
-          <h2 id="customer-meter-reading-chart" className="mb-2 text-lg font-semibold text-gray-900">
-            Riwayat Pembacaan Meter
-          </h2>
-          <p className="mb-4 text-sm text-gray-500">
+        <section className="card">
+          <h2 className="text-sm font-semibold text-surface-900">Riwayat Pembacaan Meter</h2>
+          <p className="mt-1 text-[13px] text-surface-400">
             Grafik ini memperlihatkan perkembangan pembacaan meter awal dan akhir pada tiap periode.
           </p>
-          <div aria-hidden="true">
+          <div className="mt-4">
             <ResponsiveContainer width="100%" height={350}>
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis label={{ value: 'Meter', angle: -90, position: 'insideLeft' }} />
-                <Tooltip />
-                <Legend />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94A3B8' }} />
+                <YAxis tick={{ fontSize: 12, fill: '#94A3B8' }} label={{ value: 'Meter', angle: -90, position: 'insideLeft', fill: '#94A3B8' }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '12px',
+                    fontSize: '13px',
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
                 <Line
                   type="monotone"
                   dataKey="previousReading"
                   stroke="#94A3B8"
                   strokeWidth={2}
                   name="Pembacaan Awal"
+                  dot={{ r: 4, fill: '#94A3B8' }}
                 />
                 <Line
                   type="monotone"
@@ -484,6 +420,7 @@ export default function CustomerPemakaianMonitor() {
                   stroke="#6366F1"
                   strokeWidth={2}
                   name="Pembacaan Akhir"
+                  dot={{ r: 4, fill: '#6366F1' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -491,57 +428,27 @@ export default function CustomerPemakaianMonitor() {
         </section>
       )}
 
-      <div className="rounded-lg bg-white shadow">
-        <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Riwayat Pemakaian</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <caption className="sr-only">
-              Tabel riwayat pemakaian air yang menampilkan tanggal baca, meter awal, meter akhir,
-              total pemakaian, dan perubahan dibanding periode sebelumnya.
-            </caption>
-            <thead className="bg-gray-50">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                >
-                  Tanggal Baca
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                >
-                  Meter Awal
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                >
-                  Meter Akhir
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                >
-                  Pemakaian (m³)
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                >
-                  Perubahan
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {usageHistory.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    Belum ada data pemakaian
-                  </td>
-                </tr>
+      {/* Usage History Table */}
+      {hasUsageHistory && (
+        <section className="card">
+          <h2 className="text-sm font-semibold text-surface-900">Riwayat Pemakaian</h2>
+          <p className="mt-1 text-[13px] text-surface-400">
+            Tabel riwayat pemakaian air dengan detail pembacaan meter per periode.
+          </p>
+
+          <div className="mt-4 overflow-hidden rounded-xl border border-surface-100">
+            <div className="grid grid-cols-[minmax(0,1.2fr)_100px_100px_100px_100px] gap-3 bg-surface-50 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-surface-400">
+              <span>Tanggal Baca</span>
+              <span className="text-right">Meter Awal</span>
+              <span className="text-right">Meter Akhir</span>
+              <span className="text-right">Pemakaian</span>
+              <span className="text-right">Perubahan</span>
+            </div>
+            <div className="divide-y divide-surface-100">
+              {usageHistoryRows.length === 0 ? (
+                <div className="px-4 py-8 text-center text-[13px] text-surface-400">
+                  Belum ada data pemakaian
+                </div>
               ) : (
                 usageHistoryRows.map((usage, index, array) => {
                   const previousPemakaian = array[index + 1]?.usage;
@@ -550,60 +457,57 @@ export default function CustomerPemakaianMonitor() {
                     : 0;
 
                   return (
-                    <tr key={usage.id} className="hover:bg-gray-50">
-                      <th
-                        scope="row"
-                        className="whitespace-nowrap px-6 py-4 text-left text-sm font-medium text-gray-900"
-                      >
+                    <div
+                      key={usage.id}
+                      className="grid grid-cols-[minmax(0,1.2fr)_100px_100px_100px_100px] gap-3 px-4 py-3 text-sm transition hover:bg-surface-50"
+                    >
+                      <span className="font-medium text-surface-900">
                         {formatFullDate(usage.readingDate)}
-                      </th>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                      </span>
+                      <span className="text-right font-mono text-surface-500">
                         {usage.previousReading}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                      </span>
+                      <span className="text-right font-mono text-surface-500">
                         {usage.currentReading}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-gray-900">
+                      </span>
+                      <span className="text-right font-semibold text-surface-900">
                         {usage.usage} m³
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm">
-                        {index < array.length - 1 ? (
-                          <span
-                            className={
-                              change > 0
-                                ? 'text-red-600'
-                                : change < 0
-                                  ? 'text-green-600'
-                                  : 'text-gray-600'
-                            }
-                            aria-label={getChangeText(change)}
-                          >
-                            {change > 0 ? '+' : ''}
-                            {change.toFixed(1)}%
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                    </tr>
+                      </span>
+                      <span className={`text-right font-medium ${
+                        index < array.length - 1
+                          ? change > 0
+                            ? 'text-danger-600'
+                            : change < 0
+                              ? 'text-success-600'
+                              : 'text-surface-500'
+                          : 'text-surface-300'
+                      }`}>
+                        {index < array.length - 1
+                          ? `${change > 0 ? '+' : ''}${change.toFixed(1)}%`
+                          : '-'}
+                      </span>
+                    </div>
                   );
                 })
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </div>
+          </div>
+        </section>
+      )}
 
-      <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-6">
-        <h3 className="mb-3 text-lg font-semibold text-indigo-900">Tips Hemat Air</h3>
-        <ul className="space-y-2 text-sm text-indigo-800">
-          <li>• Perbaiki keran yang bocor. Satu tetesan dapat membuang hingga 80 liter per hari.</li>
-          <li>• Mandi lebih singkat. Mengurangi 2 menit saja dapat menghemat hingga 40 liter.</li>
-          <li>• Jalankan mesin cuci dan pencuci piring hanya saat penuh.</li>
-          <li>• Gunakan perlengkapan dan peralatan hemat air.</li>
-          <li>• Periksa meter secara rutin untuk mendeteksi kenaikan tidak wajar akibat kebocoran.</li>
-        </ul>
-      </div>
+      {/* Tips */}
+      {hasUsageHistory && (
+        <section className="rounded-xl border border-info-200 bg-info-50 p-5">
+          <h3 className="text-sm font-semibold text-info-900">Tips Hemat Air</h3>
+          <ul className="mt-2 space-y-1.5 text-[13px] text-info-800">
+            <li>• Perbaiki keran yang bocor. Satu tetesan dapat membuang hingga 80 liter per hari.</li>
+            <li>• Mandi lebih singkat. Mengurangi 2 menit saja dapat menghemat hingga 40 liter.</li>
+            <li>• Jalankan mesin cuci dan pencuci piring hanya saat penuh.</li>
+            <li>• Gunakan perlengkapan dan peralatan hemat air.</li>
+            <li>• Periksa meter secara rutin untuk mendeteksi kenaikan tidak wajar akibat kebocoran.</li>
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

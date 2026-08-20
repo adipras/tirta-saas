@@ -14,7 +14,6 @@ import {
   FormInput,
   FormSelect,
   FormTextarea,
-  PageHeader,
   useToast,
   type Column,
 } from '../../components';
@@ -31,6 +30,7 @@ import type {
   UpdateNotificationTemplateDto,
 } from '../../types/notificationAdmin';
 import { extractApiErrorMessage } from '../../utils/apiError';
+import { DashboardStatCard } from '../../components';
 
 type TemplateFormState = {
   code: string;
@@ -106,10 +106,10 @@ const INITIAL_SEND_FORM: SendFormState = {
 };
 
 const CHANNEL_BADGE_CLASS: Record<NotificationChannel, string> = {
-  IN_APP: 'bg-blue-50 text-blue-700',
-  EMAIL: 'bg-emerald-50 text-emerald-700',
-  SMS: 'bg-amber-50 text-amber-700',
-  WHATSAPP: 'bg-green-50 text-green-700',
+  IN_APP: 'bg-brand-50 text-brand-700 ring-brand-200/60',
+  EMAIL: 'bg-success-50 text-success-700 ring-success-200/60',
+  SMS: 'bg-warning-50 text-warning-700 ring-warning-200/60',
+  WHATSAPP: 'bg-success-50 text-success-600 ring-success-200/60',
 };
 
 const getChannelLabel = (channel: NotificationChannel) =>
@@ -457,8 +457,8 @@ export default function NotificationManagement() {
         sortable: true,
         render: (_value, template) => (
           <div>
-            <p className="font-medium text-gray-900">{template.code}</p>
-            <p className="text-xs text-gray-500">{template.name}</p>
+            <p className="font-medium text-surface-800">{template.code}</p>
+            <p className="text-[12px] text-surface-400">{template.name}</p>
           </div>
         ),
       },
@@ -468,7 +468,7 @@ export default function NotificationManagement() {
         sortable: true,
         render: (_value, template) => (
           <span
-            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${CHANNEL_BADGE_CLASS[template.channel]}`}
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${CHANNEL_BADGE_CLASS[template.channel]}`}
           >
             {getChannelLabel(template.channel)}
           </span>
@@ -487,8 +487,10 @@ export default function NotificationManagement() {
         sortable: true,
         render: (_value, template) => (
           <span
-            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-              template.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+            className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${
+              template.is_active
+                ? 'bg-success-50 text-success-700 ring-success-200/60'
+                : 'bg-surface-50 text-surface-500 ring-surface-200/60'
             }`}
           >
             {template.is_active ? 'Aktif' : 'Nonaktif'}
@@ -500,13 +502,15 @@ export default function NotificationManagement() {
         key: 'updated_at',
         label: 'Diperbarui',
         sortable: true,
-        render: (_value, template) => formatDateTime(template.updated_at),
+        render: (_value, template) => (
+          <span className="text-surface-400">{formatDateTime(template.updated_at)}</span>
+        ),
       },
       {
         key: 'actions',
         label: 'Aksi',
         render: (_value, template) => (
-          <div className="flex justify-center gap-2">
+          <div className="flex justify-center gap-1.5">
             <ActionIconButton
               icon={PencilIcon}
               label={`Ubah template ${template.name}`}
@@ -529,80 +533,78 @@ export default function NotificationManagement() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Manajemen Notifikasi"
-        subtitle="Kelola template notifikasi tenant dan kirim notifikasi manual ke pengguna atau pelanggan."
-      />
+      {/* Page Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-surface-900">Manajemen Notifikasi</h1>
+        <p className="mt-1 text-[13px] text-surface-400">
+          Kelola template notifikasi tenant dan kirim notifikasi manual ke pengguna atau pelanggan.
+        </p>
+      </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
-              <BellAlertIcon className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Total template</p>
-              <p className="text-2xl font-semibold text-gray-900">{totalTemplates}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600">
-              <EnvelopeIcon className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Template aktif</p>
-              <p className="text-2xl font-semibold text-gray-900">{activeTemplates}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-          <p className="text-sm font-medium text-amber-900">Status delivery</p>
-          <p className="mt-1 text-sm text-amber-800">
+        <DashboardStatCard
+          title="Total template"
+          value={loadingTemplates ? '...' : totalTemplates.toLocaleString('id-ID')}
+          subtitle="Semua template notifikasi"
+          icon={BellAlertIcon}
+          tone="blue"
+        />
+        <DashboardStatCard
+          title="Template aktif"
+          value={loadingTemplates ? '...' : activeTemplates.toLocaleString('id-ID')}
+          subtitle="Siap digunakan"
+          icon={EnvelopeIcon}
+          tone="green"
+        />
+        <div className="card border-warning-200 bg-warning-50 p-4">
+          <p className="text-[13px] font-medium text-warning-700">Status delivery</p>
+          <p className="mt-1 text-[13px] text-warning-600">
             Notifikasi <strong>in-app</strong> langsung masuk inbox. Channel email/SMS saat ini
             masih tercatat sebagai log pengiriman, karena provider eksternal belum diaktifkan.
           </p>
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[1.5fr_1fr]">
+        {/* Left: Templates */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-gray-900">Daftar template</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Gunakan filter untuk melihat template aktif atau channel tertentu.
-                </p>
-              </div>
+          {/* Template List */}
+          <div className="card overflow-hidden">
+            <div className="border-b border-surface-100 px-5 py-4">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h2 className="text-[15px] font-semibold text-surface-800">Daftar template</h2>
+                  <p className="mt-0.5 text-[13px] text-surface-400">
+                    Gunakan filter untuk melihat template aktif atau channel tertentu.
+                  </p>
+                </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <FormSelect
-                  label="Filter channel"
-                  value={filterChannel}
-                  onChange={(event) =>
-                    setFilterChannel(event.target.value as '' | NotificationChannel)
-                  }
-                  options={[
-                    { value: '', label: 'Semua channel' },
-                    ...CHANNEL_OPTIONS.map((item) => ({
-                      value: item.value,
-                      label: item.label,
-                    })),
-                  ]}
-                />
-                <FormCheckbox
-                  label="Tampilkan template nonaktif"
-                  checked={includeInactive}
-                  onChange={(event) => setIncludeInactive(event.target.checked)}
-                />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <FormSelect
+                    label="Filter channel"
+                    value={filterChannel}
+                    onChange={(event) =>
+                      setFilterChannel(event.target.value as '' | NotificationChannel)
+                    }
+                    options={[
+                      { value: '', label: 'Semua channel' },
+                      ...CHANNEL_OPTIONS.map((item) => ({
+                        value: item.value,
+                        label: item.label,
+                      })),
+                    ]}
+                  />
+                  <FormCheckbox
+                    label="Tampilkan nonaktif"
+                    checked={includeInactive}
+                    onChange={(event) => setIncludeInactive(event.target.checked)}
+                  />
+                </div>
               </div>
             </div>
-
-            <div className="mt-5">
+            <div className="p-5">
               <DataTable
                 data={templates}
                 columns={columns}
@@ -613,11 +615,14 @@ export default function NotificationManagement() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-            <h2 className="text-base font-semibold text-gray-900">
-              {editingTemplate ? 'Ubah template notifikasi' : 'Tambah template notifikasi'}
-            </h2>
-            <form className="mt-4 space-y-4" onSubmit={handleTemplateSubmit}>
+          {/* Template Form */}
+          <div className="card overflow-hidden">
+            <div className="border-b border-surface-100 px-5 py-4">
+              <h2 className="text-[15px] font-semibold text-surface-800">
+                {editingTemplate ? 'Ubah template notifikasi' : 'Tambah template notifikasi'}
+              </h2>
+            </div>
+            <form className="p-5 space-y-4" onSubmit={handleTemplateSubmit}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormInput
                   label="Kode template"
@@ -627,7 +632,7 @@ export default function NotificationManagement() {
                   }
                   disabled={Boolean(editingTemplate)}
                   required
-                  helperText="Gunakan huruf/angka tanpa spasi atau simbol, mis. INVOICEREMINDER."
+                  helperText="Gunakan huruf/angka tanpa spasi, mis. INVOICEREMINDER."
                 />
                 <FormInput
                   label="Nama template"
@@ -727,12 +732,12 @@ export default function NotificationManagement() {
                 />
               )}
 
-              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 pt-2 border-t border-surface-100 sm:flex-row sm:justify-end">
                 {(editingTemplate || templateForm.code || templateForm.name || templateForm.body) && (
                   <button
                     type="button"
                     onClick={resetTemplateForm}
-                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="btn-secondary"
                   >
                     Batal
                   </button>
@@ -740,7 +745,7 @@ export default function NotificationManagement() {
                 <button
                   type="submit"
                   disabled={savingTemplate}
-                  className="rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="btn-primary"
                 >
                   {savingTemplate
                     ? 'Menyimpan...'
@@ -753,12 +758,15 @@ export default function NotificationManagement() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex items-center gap-2">
-            <PaperAirplaneIcon className="h-5 w-5 text-blue-600" />
-            <h2 className="text-base font-semibold text-gray-900">Kirim notifikasi manual</h2>
+        {/* Right: Send Notification */}
+        <div className="card overflow-hidden">
+          <div className="border-b border-surface-100 px-5 py-4">
+            <div className="flex items-center gap-2">
+              <PaperAirplaneIcon className="h-4 w-4 text-brand-500" />
+              <h2 className="text-[15px] font-semibold text-surface-800">Kirim notifikasi manual</h2>
+            </div>
           </div>
-          <form className="mt-4 space-y-4" onSubmit={handleSendNotification}>
+          <form className="p-5 space-y-4" onSubmit={handleSendNotification}>
             <FormSelect
               label="Tipe penerima"
               value={sendForm.recipient_type}
@@ -795,7 +803,7 @@ export default function NotificationManagement() {
                 { value: '', label: 'Tanpa template (isi manual)' },
                 ...availableTemplateOptions,
               ]}
-              helperText="Template yang muncul hanya yang aktif dan kompatibel dengan channel pengiriman saat ini."
+              helperText="Template yang muncul hanya yang aktif dan kompatibel dengan channel saat ini."
             />
 
             <FormSelect
@@ -820,14 +828,14 @@ export default function NotificationManagement() {
             />
 
             {selectedTemplate ? (
-              <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-                <p className="text-sm font-medium text-blue-900">{selectedTemplate.name}</p>
-                <p className="mt-1 text-sm text-blue-800">
+              <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+                <p className="text-[13px] font-medium text-brand-700">{selectedTemplate.name}</p>
+                <p className="mt-1 text-[13px] text-brand-600">
                   Template <strong>{selectedTemplate.code}</strong> akan dipakai untuk channel{' '}
                   {getChannelLabel(selectedTemplate.channel)}.
                 </p>
                 {selectedTemplate.variables.length > 0 && (
-                  <p className="mt-2 text-xs text-blue-700">
+                  <p className="mt-2 text-[12px] text-brand-500">
                     Variabel: {selectedTemplate.variables.join(', ')}
                   </p>
                 )}
@@ -869,7 +877,7 @@ export default function NotificationManagement() {
             <button
               type="submit"
               disabled={sendingNotification || loadingRecipients}
-              className="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-primary w-full"
             >
               {sendingNotification ? 'Mengirim...' : 'Kirim Notifikasi'}
             </button>

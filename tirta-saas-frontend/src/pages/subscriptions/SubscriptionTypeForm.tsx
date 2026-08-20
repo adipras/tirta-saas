@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { subscriptionService } from '../../services/subscriptionService';
 import type { SubscriptionTypeFormData } from '../../types/subscription';
-import { PageHeader } from '../../components';
 import { useToast } from '../../components';
 
 export default function SubscriptionTypeForm() {
@@ -38,7 +37,7 @@ export default function SubscriptionTypeForm() {
         late_fee_per_day: data.late_fee_per_day.toString(),
         max_late_fee: data.max_late_fee.toString(),
       });
-    } catch  {
+    } catch {
       toast.error('Gagal memuat data golongan langganan');
     } finally {
       setLoading(false);
@@ -104,7 +103,6 @@ export default function SubscriptionTypeForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name as keyof SubscriptionTypeFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -139,7 +137,7 @@ export default function SubscriptionTypeForm() {
       }
 
       navigate('/admin/subscriptions');
-    } catch  {
+    } catch {
       toast.error(`Gagal ${isEditMode ? 'memperbarui' : 'membuat'} golongan langganan`);
     } finally {
       setLoading(false);
@@ -148,27 +146,39 @@ export default function SubscriptionTypeForm() {
 
   return (
     <div className="space-y-6">
-      <button
-        onClick={() => navigate('/admin/subscriptions')}
-        className="flex items-center text-sm text-gray-500 hover:text-gray-700"
-      >
-        <ArrowLeftIcon className="mr-2 h-4 w-4" />
-        Kembali ke Golongan Langganan
-      </button>
-      <PageHeader
-        title={isEditMode ? 'Ubah Golongan Langganan' : 'Buat Golongan Langganan'}
-        subtitle={isEditMode ? 'Perbarui detail golongan langganan dan struktur biayanya' : 'Tambahkan golongan langganan baru beserta struktur biayanya'}
-      />
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-1.5 text-sm text-surface-500">
+        <button onClick={() => navigate('/admin/subscriptions')} className="hover:text-brand-600 transition-colors">
+          Golongan Langganan
+        </button>
+        <span className="text-surface-300">/</span>
+        <span className="text-surface-700 font-medium">{isEditMode ? 'Ubah' : 'Tambah'}</span>
+      </div>
 
-      <div className="bg-white shadow rounded-lg">
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="card">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-surface-900">
+            {isEditMode ? 'Ubah Golongan Langganan' : 'Tambah Golongan Langganan'}
+          </h2>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/subscriptions')}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-surface-500 transition hover:text-brand-600"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            Kembali
+          </button>
+        </div>
+
+        <div className="mt-5 space-y-5">
           {/* Basic Information */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Dasar</h3>
-            <div className="grid grid-cols-1 gap-6">
+            <h3 className="mb-3 text-[13px] font-semibold text-surface-700">Informasi Dasar</h3>
+            <div className="grid grid-cols-1 gap-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Nama <span className="text-red-500">*</span>
+                <label htmlFor="name" className="mb-1.5 block text-[13px] font-medium text-surface-700">
+                  Nama <span className="text-danger-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -176,20 +186,14 @@ export default function SubscriptionTypeForm() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.name
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
+                  className={`input-base ${errors.name ? 'border-danger-300 focus:ring-danger-500/20' : ''}`}
                   placeholder="Contoh: Rumah Tangga, Niaga, Industri"
                 />
-                {errors.name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                )}
+                {errors.name && <p className="mt-1.5 text-[12px] text-danger-600">{errors.name}</p>}
               </div>
 
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="description" className="mb-1.5 block text-[13px] font-medium text-surface-700">
                   Deskripsi
                 </label>
                 <textarea
@@ -198,7 +202,7 @@ export default function SubscriptionTypeForm() {
                   rows={3}
                   value={formData.description}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="input-base"
                   placeholder="Deskripsi singkat untuk golongan langganan ini"
                 />
               </div>
@@ -206,12 +210,12 @@ export default function SubscriptionTypeForm() {
           </div>
 
           {/* Fee Structure */}
-          <div className="pt-6 border-t border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Struktur Biaya</h3>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="border-t border-surface-100 pt-5">
+            <h3 className="mb-3 text-[13px] font-semibold text-surface-700">Struktur Biaya</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="registration_fee" className="block text-sm font-medium text-gray-700">
-                  Biaya Pendaftaran (Rp) <span className="text-red-500">*</span>
+                <label htmlFor="registration_fee" className="mb-1.5 block text-[13px] font-medium text-surface-700">
+                  Biaya Pendaftaran (Rp) <span className="text-danger-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -221,21 +225,14 @@ export default function SubscriptionTypeForm() {
                   onChange={handleChange}
                   min="0"
                   step="1000"
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.registration_fee
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                  placeholder="0"
+                  className={`input-base ${errors.registration_fee ? 'border-danger-300 focus:ring-danger-500/20' : ''}`}
                 />
-                {errors.registration_fee && (
-                  <p className="mt-1 text-sm text-red-600">{errors.registration_fee}</p>
-                )}
+                {errors.registration_fee && <p className="mt-1.5 text-[12px] text-danger-600">{errors.registration_fee}</p>}
               </div>
 
               <div>
-                <label htmlFor="monthly_fee" className="block text-sm font-medium text-gray-700">
-                  Biaya Bulanan (Rp) <span className="text-red-500">*</span>
+                <label htmlFor="monthly_fee" className="mb-1.5 block text-[13px] font-medium text-surface-700">
+                  Biaya Bulanan (Rp) <span className="text-danger-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -245,20 +242,13 @@ export default function SubscriptionTypeForm() {
                   onChange={handleChange}
                   min="0"
                   step="1000"
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.monthly_fee
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                  placeholder="0"
+                  className={`input-base ${errors.monthly_fee ? 'border-danger-300 focus:ring-danger-500/20' : ''}`}
                 />
-                {errors.monthly_fee && (
-                  <p className="mt-1 text-sm text-red-600">{errors.monthly_fee}</p>
-                )}
+                {errors.monthly_fee && <p className="mt-1.5 text-[12px] text-danger-600">{errors.monthly_fee}</p>}
               </div>
 
               <div>
-                <label htmlFor="maintenance_fee" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="maintenance_fee" className="mb-1.5 block text-[13px] font-medium text-surface-700">
                   Biaya Pemeliharaan (Rp)
                 </label>
                 <input
@@ -269,21 +259,14 @@ export default function SubscriptionTypeForm() {
                   onChange={handleChange}
                   min="0"
                   step="1000"
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.maintenance_fee
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                  placeholder="0"
+                  className={`input-base ${errors.maintenance_fee ? 'border-danger-300 focus:ring-danger-500/20' : ''}`}
                 />
-                {errors.maintenance_fee && (
-                  <p className="mt-1 text-sm text-red-600">{errors.maintenance_fee}</p>
-                )}
+                {errors.maintenance_fee && <p className="mt-1.5 text-[12px] text-danger-600">{errors.maintenance_fee}</p>}
               </div>
 
               <div>
-                <label htmlFor="late_fee_per_day" className="block text-sm font-medium text-gray-700">
-                  Denda Keterlambatan per Hari (Rp)
+                <label htmlFor="late_fee_per_day" className="mb-1.5 block text-[13px] font-medium text-surface-700">
+                  Denda Keterlambatan/Hari (Rp)
                 </label>
                 <input
                   type="number"
@@ -293,23 +276,14 @@ export default function SubscriptionTypeForm() {
                   onChange={handleChange}
                   min="0"
                   step="1000"
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.late_fee_per_day
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                  placeholder="0"
+                  className={`input-base ${errors.late_fee_per_day ? 'border-danger-300 focus:ring-danger-500/20' : ''}`}
                 />
-                {errors.late_fee_per_day && (
-                  <p className="mt-1 text-sm text-red-600">{errors.late_fee_per_day}</p>
-                )}
-                <p className="mt-1 text-sm text-gray-500">
-                  Denda keterlambatan harian dalam rupiah per hari
-                </p>
+                <p className="mt-1 text-[12px] text-surface-400">Denda keterlambatan harian dalam rupiah</p>
+                {errors.late_fee_per_day && <p className="mt-1.5 text-[12px] text-danger-600">{errors.late_fee_per_day}</p>}
               </div>
 
               <div>
-                <label htmlFor="max_late_fee" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="max_late_fee" className="mb-1.5 block text-[13px] font-medium text-surface-700">
                   Batas Maksimum Denda (Rp)
                 </label>
                 <input
@@ -320,42 +294,34 @@ export default function SubscriptionTypeForm() {
                   onChange={handleChange}
                   min="0"
                   step="1000"
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.max_late_fee
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                  placeholder="0"
+                  className={`input-base ${errors.max_late_fee ? 'border-danger-300 focus:ring-danger-500/20' : ''}`}
                 />
-                {errors.max_late_fee && (
-                  <p className="mt-1 text-sm text-red-600">{errors.max_late_fee}</p>
-                )}
-                <p className="mt-1 text-sm text-gray-500">
-                  Batas maksimum total denda keterlambatan
-                </p>
+                <p className="mt-1 text-[12px] text-surface-400">Batas maksimum total denda keterlambatan</p>
+                {errors.max_late_fee && <p className="mt-1.5 text-[12px] text-danger-600">{errors.max_late_fee}</p>}
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Form Actions */}
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={() => navigate('/admin/subscriptions')}
-              className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-            >
-              {loading ? 'Menyimpan...' : isEditMode ? 'Perbarui' : 'Buat'}
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Footer */}
+        <div className="mt-6 flex items-center justify-end gap-3 border-t border-surface-100 pt-5">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/subscriptions')}
+            disabled={loading}
+            className="btn-secondary disabled:opacity-50"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary disabled:opacity-50"
+          >
+            {loading ? 'Menyimpan...' : isEditMode ? 'Perbarui' : 'Buat'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

@@ -43,6 +43,12 @@ vi.mock('../../components', () => ({
     </button>
   ),
   ConfirmModal: () => null,
+  DashboardStatCard: ({ title, value }: { title: string; value: ReactNode }) => (
+    <div>
+      <p>{title}</p>
+      <p>{value}</p>
+    </div>
+  ),
   DataTable: ({ data, emptyMessage }: { data: Array<Record<string, unknown>>; emptyMessage?: string }) =>
     data.length ? (
       <div>

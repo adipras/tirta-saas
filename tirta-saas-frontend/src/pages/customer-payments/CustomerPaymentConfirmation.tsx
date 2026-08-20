@@ -1,375 +1,358 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  CloudArrowUpIcon,
+  DocumentTextIcon,
+  BanknotesIcon,
+  ArrowLeftIcon,
+  PaperAirplaneIcon,
+  ExclamationTriangleIcon,
+  PhotoIcon,
   XMarkIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  CameraIcon,
 } from '@heroicons/react/24/outline';
-import { PageHeader, useToast } from '../../components';
-import { invoiceService } from '../../services/invoiceService';
-import type { Invoice } from '../../types/invoice';
+import { useToast } from '../../components';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
 interface PaymentConfirmationData {
-  invoiceId: string;
-  amount: number;
-  paymentDate: string;
-  paymentMethod: string;
-  accountNumber: string;
-  accountName: string;
-  referenceNumber: string;
-  notes: string;
-  proofFile: File | null;
+  invoice: {
+    id: string;
+    invoice_number: string;
+    amount: number;
+    due_date: string;
+    description: string;
+    customer?: {
+      name: string;
+    };
+  };
+  payment?: {
+    id: string;
+    payment_date: string;
+    amount: number;
+    method: string;
+    reference_number?: string;
+    notes?: string;
+    status: string;
+    payment_proof_url?: string;
+  };
 }
 
 export default function CustomerPaymentConfirmation() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const invoiceId = searchParams.get('invoice');
-  const { error: showErrorToast } = useToast();
+  const navigate = useNavigate();
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
+
+  const invoiceId = searchParams.get('invoice_id');
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [data, setData] = useState<PaymentConfirmationData | null>(null);
+  const [error, setError] = useState('');
 
-  const [formData, setFormData] = useState<PaymentConfirmationData>({
-    invoiceId: invoiceId || '',
-    amount: 0,
-    paymentDate: new Date().toISOString().split('T')[0],
-    paymentMethod: 'bank_transfer',
-    accountNumber: '',
-    accountName: '',
-    referenceNumber: '',
-    notes: '',
-    proofFile: null,
-  });
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const loadInvoice = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await invoiceService.getCustomerInvoiceById(invoiceId!);
-      setInvoice(data);
-      setFormData((prev) => ({
-        ...prev,
-        amount: data.amountDue || data.totalAmount,
-      }));
-    } catch (err: unknown) {
-      const message = extractApiErrorMessage(err, 'Gagal memuat tagihan');
-      setError(message);
-      showErrorToast(message);
-    } finally {
-      setLoading(false);
-    }
-  }, [invoiceId, showErrorToast]);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [notes, setNotes] = useState('');
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
 
   useEffect(() => {
-    if (invoiceId) {
-      void loadInvoice();
+    if (!invoiceId) {
+      setError('Invoice ID tidak ditemukan');
+      setLoading(false);
+      return;
     }
-  }, [invoiceId, loadInvoice]);
+    fetchData();
+  }, [invoiceId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === 'amount' ? parseFloat(value) || 0 : value,
-    }));
-    if (errors[name]) {
-      const newErrors = { ...errors };
-      delete newErrors[name];
-      setErrors(newErrors);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // Use existing services instead of direct api calls
+      const { invoiceService } = await import('../../services/invoiceService');
+      const invoiceData = await invoiceService.getCustomerInvoiceById(invoiceId!);
+      setData({
+        invoice: {
+          id: invoiceData.id,
+          invoice_number: invoiceData.invoiceNumber,
+          amount: invoiceData.totalAmount,
+          due_date: invoiceData.dueDate,
+          description: '',
+        },
+        payment: undefined,
+      });
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError(extractApiErrorMessage(err, 'Gagal memuat data'));
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-      if (!validTypes.includes(file.type)) {
-        setErrors({ ...errors, proofFile: 'File harus berformat JPG, PNG, atau PDF' });
-        return;
-      }
       if (file.size > 5 * 1024 * 1024) {
-        setErrors({ ...errors, proofFile: 'Ukuran file maksimal 5MB' });
+        showErrorToast('Ukuran file maksimal 5MB');
         return;
       }
-
-      setFormData((prev) => ({ ...prev, proofFile: file }));
-
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onloadend = () => setPreviewUrl(reader.result as string);
-        reader.readAsDataURL(file);
-      } else {
-        setPreviewUrl(null);
+      if (!file.type.startsWith('image/')) {
+        showErrorToast('File harus berupa gambar');
+        return;
       }
-
-      const newErrors = { ...errors };
-      delete newErrors.proofFile;
-      setErrors(newErrors);
+      setProofFile(file);
+      const reader = new FileReader();
+      reader.onload = (ev) => setProofPreview(ev.target?.result as string);
+      reader.readAsDataURL(file);
     }
   };
 
-  const removeFile = () => {
-    setFormData((prev) => ({ ...prev, proofFile: null }));
-    setPreviewUrl(null);
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.paymentDate) newErrors.paymentDate = 'Tanggal pembayaran wajib diisi';
-    if (!formData.accountNumber) newErrors.accountNumber = 'Nomor rekening wajib diisi';
-    if (!formData.accountName) newErrors.accountName = 'Nama rekening wajib diisi';
-    if (!formData.proofFile) newErrors.proofFile = 'Bukti pembayaran wajib diunggah';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const removeProof = () => {
+    setProofFile(null);
+    setProofPreview(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!data?.invoice) return;
 
-    setSubmitting(true);
-    setError(null);
+    if (!proofFile) {
+      showErrorToast('Bukti pembayaran wajib diunggah');
+      return;
+    }
 
     try {
-      const submitData = new FormData();
-      submitData.append('invoice_id', formData.invoiceId);
-      submitData.append('amount', formData.amount.toString());
-      submitData.append('payment_date', formData.paymentDate);
-      submitData.append('payment_method', formData.paymentMethod);
-      submitData.append('account_number', formData.accountNumber);
-      submitData.append('account_name', formData.accountName);
-      submitData.append('reference_number', formData.referenceNumber);
-      submitData.append('notes', formData.notes);
-      if (formData.proofFile) {
-        submitData.append('payment_proof', formData.proofFile);
-      }
+      setSubmitting(true);
+      const paymentProofService = (await import('../../services/paymentProofService')).default;
+      await paymentProofService.submitPaymentProof({
+        invoice_id: data.invoice.id,
+        amount: data.invoice.amount,
+        payment_date: paymentDate,
+        payment_method: 'bank_transfer',
+        account_name: bankName,
+        account_number: accountNumber || undefined,
+        notes: notes || undefined,
+        proof_image: proofFile,
+      });
 
-      // TODO: API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      setSuccess(true);
-      setTimeout(() => {
-        navigate('/customer/payments/success?confirmed=true');
-      }, 2000);
+      showSuccessToast('Bukti pembayaran berhasil dikirim!');
+      navigate('/customer/payments/history');
     } catch (err: unknown) {
-      const message = extractApiErrorMessage(err, 'Gagal mengirim konfirmasi pembayaran');
-      setError(message);
-      showErrorToast(message);
+      console.error('Error submitting payment:', err);
+      showErrorToast(extractApiErrorMessage(err, 'Gagal mengirim bukti pembayaran'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-gray-500">Memuat data tagihan...</div>
+      <div className="space-y-6">
+        <div className="h-10 w-64 animate-pulse rounded-xl bg-surface-100" />
+        <div className="h-48 animate-pulse rounded-xl bg-surface-100" />
+        <div className="h-80 animate-pulse rounded-xl bg-surface-100" />
       </div>
     );
   }
 
-  if (success) {
+  if (error || !data) {
     return (
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-          <CheckCircleIcon className="h-20 w-20 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Konfirmasi Pembayaran Terkirim!</h2>
-          <p className="text-gray-600">Kami akan memverifikasi dalam 1-2 hari kerja</p>
+      <div className="flex flex-col items-center justify-center py-16">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-danger-100">
+          <ExclamationTriangleIcon className="h-8 w-8 text-danger-500" />
         </div>
+        <p className="mb-6 text-[15px] font-medium text-surface-800">{error || 'Data tidak ditemukan'}</p>
+        <button
+          onClick={() => navigate('/customer/invoices')}
+          className="inline-flex items-center gap-2 rounded-lg border border-surface-200 px-4 py-2 text-[13px] font-medium text-surface-600 transition-colors hover:bg-surface-50"
+        >
+          <ArrowLeftIcon className="h-4 w-4" />
+          Kembali ke Tagihan
+        </button>
       </div>
     );
   }
+
+  const invoice = data.invoice;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <PageHeader
-        title="Konfirmasi Pembayaran"
-        subtitle="Unggah bukti transfer dan isi detail pembayaran untuk dikonfirmasi."
-      />
+    <div className="space-y-6">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-[13px] text-surface-400">
+        <button onClick={() => navigate('/customer/invoices')} className="hover:text-surface-600">
+          Tagihan
+        </button>
+        <span>/</span>
+        <span className="text-surface-700">Bayar</span>
+      </nav>
 
-      {error && (
-        <div role="alert" className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg flex items-start">
-          <ExclamationCircleIcon className="h-5 w-5 text-red-400 mt-0.5" aria-hidden="true" />
-          <p className="ml-3 text-sm text-red-800">{error}</p>
-        </div>
-      )}
-
-      {invoice && (
-        <div className="bg-indigo-50 rounded-lg p-6 border-l-4 border-indigo-600">
-          <h2 className="font-semibold text-gray-900 mb-3">Tagihan {invoice.invoiceNumber}</h2>
-          <p className="text-2xl font-bold text-indigo-600">{formatCurrency(formData.amount)}</p>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6 space-y-6">
-        {/* Upload */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Bukti Pembayaran <span className="text-red-500">*</span>
-          </label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-            {!formData.proofFile ? (
-              <div>
-                <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
-                <label htmlFor="file-upload" className="mt-4 inline-block cursor-pointer">
-                  <span className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 inline-flex items-center">
-                    <CameraIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-                    Pilih File
-                  </span>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    className="sr-only"
-                    accept="image/jpeg,image/jpg,image/png,application/pdf"
-                    onChange={handleFileChange}
-                  />
-                </label>
-                <p className="mt-2 text-xs text-gray-500">PNG, JPG, atau PDF maksimal 5MB</p>
-              </div>
-            ) : (
-              <div className="relative">
-                {previewUrl && (
-                  <img src={previewUrl} alt="Pratinjau bukti pembayaran" className="max-h-64 mx-auto rounded-lg" />
-                )}
-                <button
-                  type="button"
-                  onClick={removeFile}
-                  aria-label="Hapus file"
-                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full"
-                >
-                  <XMarkIcon className="h-5 w-5" aria-hidden="true" />
-                </button>
-              </div>
-            )}
+      {/* Invoice Summary Card */}
+      <div className="rounded-xl border border-surface-100 bg-surface-50 p-5">
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50">
+            <DocumentTextIcon className="h-5 w-5 text-brand-500" />
           </div>
-          {errors.proofFile && <p className="mt-1 text-sm text-red-600">{errors.proofFile}</p>}
+          <div>
+            <p className="text-[13px] font-medium text-surface-500">Tagihan</p>
+            <p className="text-[15px] font-semibold text-surface-800">{invoice.invoice_number}</p>
+          </div>
+        </div>
+        <div className="flex items-end justify-between border-t border-surface-100 pt-3">
+          <div>
+            <p className="text-[12px] text-surface-400">Jumlah yang harus dibayar</p>
+            <p className="text-2xl font-bold text-surface-800">
+              Rp {invoice.amount.toLocaleString('id-ID')}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[12px] text-surface-400">Jatuh Tempo</p>
+            <p className="text-[14px] font-medium text-surface-700">
+              {new Date(invoice.due_date).toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Form */}
+      <form onSubmit={handleSubmit} className="card">
+        <div className="border-b border-surface-100 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50">
+              <BanknotesIcon className="h-5 w-5 text-brand-500" />
+            </div>
+            <div>
+              <h2 className="text-[15px] font-semibold text-surface-800">Formulir Konfirmasi Pembayaran</h2>
+              <p className="text-[13px] text-surface-400">Isi data pembayaran dan unggah bukti transfer</p>
+            </div>
+          </div>
         </div>
 
-        {/* Form Fields */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-5 p-6">
+          {/* Payment Date */}
           <div>
-            <label htmlFor="paymentDate" className="block text-sm font-medium text-gray-700 mb-1">
-              Tanggal Pembayaran <span className="text-red-500">*</span>
+            <label className="mb-2 block text-[13px] font-medium text-surface-700">
+              Tanggal Pembayaran <span className="text-danger-500">*</span>
             </label>
             <input
               type="date"
-              id="paymentDate"
-              name="paymentDate"
-              value={formData.paymentDate}
-              onChange={handleChange}
-              max={new Date().toISOString().split('T')[0]}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              required
+              className="w-full rounded-lg border border-surface-200 px-3 py-2 text-[13px] text-surface-800 placeholder-surface-400 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             />
-            {errors.paymentDate && <p className="mt-1 text-sm text-red-600">{errors.paymentDate}</p>}
           </div>
 
-          <div>
-            <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700 mb-1">
-              Metode Pembayaran <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="paymentMethod"
-              name="paymentMethod"
-              value={formData.paymentMethod}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="bank_transfer">Transfer Bank</option>
-              <option value="e_wallet">Dompet Digital (QRIS)</option>
-            </select>
+          {/* Bank Transfer Details */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-surface-700">
+                Nama Bank <span className="text-danger-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                placeholder="Contoh: BCA, Mandiri, BRI"
+                required
+                className="w-full rounded-lg border border-surface-200 px-3 py-2 text-[13px] text-surface-800 placeholder-surface-400 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-[13px] font-medium text-surface-700">
+                Nomor Rekening <span className="text-danger-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
+                placeholder="Nomor rekening pengirim"
+                required
+                className="w-full rounded-lg border border-surface-200 px-3 py-2 text-[13px] text-surface-800 placeholder-surface-400 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              />
+            </div>
           </div>
 
+          {/* Upload Proof */}
           <div>
-            <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700 mb-1">
-              Nomor Rekening Pengirim <span className="text-red-500">*</span>
+            <label className="mb-2 block text-[13px] font-medium text-surface-700">
+              Bukti Pembayaran <span className="text-danger-500">*</span>
             </label>
-            <input
-              type="text"
-              id="accountNumber"
-              name="accountNumber"
-              value={formData.accountNumber}
-              onChange={handleChange}
-              placeholder="mis. 1234567890"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-            />
-            {errors.accountNumber && <p className="mt-1 text-sm text-red-600">{errors.accountNumber}</p>}
+            <p className="mb-3 text-[12px] text-surface-400">
+              Unggah bukti transfer (screenshot/struk). Format: JPG, PNG. Maks 5MB.
+            </p>
+
+            {proofPreview ? (
+              <div className="relative inline-block">
+                <img
+                  src={proofPreview}
+                  alt="Bukti pembayaran"
+                  className="h-48 rounded-xl border border-surface-200 object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={removeProof}
+                  className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-danger-500 text-white shadow-sm hover:bg-danger-600"
+                >
+                  <XMarkIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-surface-200 bg-surface-50 px-6 py-8 transition-colors hover:border-brand-300 hover:bg-brand-50/30">
+                <PhotoIcon className="mb-2 h-8 w-8 text-surface-300" />
+                <span className="text-[13px] font-medium text-surface-500">Klik untuk unggah bukti</span>
+                <span className="mt-1 text-[12px] text-surface-400">JPG, PNG (Maks 5MB)</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+            )}
           </div>
 
+          {/* Notes */}
           <div>
-            <label htmlFor="accountName" className="block text-sm font-medium text-gray-700 mb-1">
-              Nama Rekening Pengirim <span className="text-red-500">*</span>
+            <label className="mb-2 block text-[13px] font-medium text-surface-700">
+              Catatan (Opsional)
             </label>
-            <input
-              type="text"
-              id="accountName"
-              name="accountName"
-              value={formData.accountName}
-              onChange={handleChange}
-              placeholder="mis. Budi Santoso"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Catatan tambahan untuk admin..."
+              rows={3}
+              className="w-full resize-none rounded-lg border border-surface-200 px-3 py-2 text-[13px] text-surface-800 placeholder-surface-400 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             />
-            {errors.accountName && <p className="mt-1 text-sm text-red-600">{errors.accountName}</p>}
           </div>
         </div>
 
-        <div>
-          <label htmlFor="referenceNumber" className="block text-sm font-medium text-gray-700 mb-1">
-            Nomor Referensi (Opsional)
-          </label>
-          <input
-            type="text"
-            id="referenceNumber"
-            name="referenceNumber"
-            value={formData.referenceNumber}
-            onChange={handleChange}
-            placeholder="Nomor referensi dari bank"
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
-          <textarea
-            id="notes"
-            name="notes"
-            value={formData.notes}
-            onChange={handleChange}
-            rows={3}
-            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-
-        <div className="flex justify-between pt-4 border-t">
+        <div className="flex items-center justify-between border-t border-surface-100 bg-surface-50/50 px-6 py-4">
           <button
             type="button"
-            onClick={() => navigate(-1)}
-            className="px-6 py-2 border text-gray-700 rounded-lg hover:bg-gray-50"
+            onClick={() => navigate('/customer/invoices')}
+            className="inline-flex items-center gap-2 rounded-lg border border-surface-200 px-4 py-2 text-[13px] font-medium text-surface-600 transition-colors hover:bg-surface-50"
           >
-            Batal
+            <ArrowLeftIcon className="h-4 w-4" />
+            Kembali
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 font-medium"
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {submitting ? 'Mengirim...' : 'Kirim Konfirmasi'}
+            {submitting ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Mengirim...
+              </>
+            ) : (
+              <>
+                <PaperAirplaneIcon className="h-4 w-4" />
+                Kirim Bukti Pembayaran
+              </>
+            )}
           </button>
         </div>
       </form>

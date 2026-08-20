@@ -20,7 +20,6 @@ import {
   FormTextarea,
   ImageCropModal,
   Modal,
-  PageHeader,
   useToast,
 } from '../../components';
 
@@ -159,7 +158,7 @@ export default function PlatformPaymentSettings() {
       if (qrRes.status === 'fulfilled') {
         setQRCodes(qrRes.value);
       }
-    } catch  {
+    } catch {
       toast.error('Gagal memuat pengaturan pembayaran platform.');
     }
   }, [toast]);
@@ -235,7 +234,7 @@ export default function PlatformPaymentSettings() {
 
       await loadSettings();
       closeBankModal();
-    } catch  {
+    } catch {
       toast.error('Gagal menyimpan rekening bank.');
     }
   };
@@ -318,7 +317,7 @@ export default function PlatformPaymentSettings() {
 
       await loadSettings();
       closeQRModal();
-    } catch  {
+    } catch {
       toast.error('Gagal menyimpan QR code.');
     }
   };
@@ -339,24 +338,28 @@ export default function PlatformPaymentSettings() {
 
       setDeleteTarget(null);
       await loadSettings();
-    } catch  {
+    } catch {
       toast.error('Gagal menghapus data pembayaran.');
     }
   };
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Pengaturan Pembayaran Platform"
-        subtitle="Kelola rekening bank dan kode QR yang ditampilkan ke tenant saat proses langganan atau perpanjangan."
-      />
+      {/* Page Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-surface-900">Pengaturan Pembayaran Platform</h1>
+        <p className="mt-1 text-[13px] text-surface-400">
+          Kelola rekening bank dan kode QR yang ditampilkan ke tenant saat proses langganan atau perpanjangan.
+        </p>
+      </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
         <DashboardStatCard
           title="Rekening Bank"
           value={stats.banks.toLocaleString('id-ID')}
           helper="Metode transfer"
-          subtitle="Total rekening tujuan pembayaran tenant."
+          subtitle="Total rekening tujuan pembayaran."
           icon={BuildingLibraryIcon}
           tone="blue"
         />
@@ -364,7 +367,7 @@ export default function PlatformPaymentSettings() {
           title="Bank Aktif"
           value={stats.activeBanks.toLocaleString('id-ID')}
           helper="Sedang dipublikasikan"
-          subtitle="Rekening yang saat ini tampil pada flow pembayaran tenant."
+          subtitle="Rekening yang tampil pada flow pembayaran."
           icon={BuildingLibraryIcon}
           tone="green"
         />
@@ -372,7 +375,7 @@ export default function PlatformPaymentSettings() {
           title="Kode QR"
           value={stats.qrCodes.toLocaleString('id-ID')}
           helper="Pembayaran digital"
-          subtitle="Total kode QR yang tersedia untuk tenant."
+          subtitle="Total kode QR yang tersedia."
           icon={QrCodeIcon}
           tone="purple"
         />
@@ -380,108 +383,114 @@ export default function PlatformPaymentSettings() {
           title="QR Aktif"
           value={stats.activeQrCodes.toLocaleString('id-ID')}
           helper="Siap dipakai"
-          subtitle="Kode QR aktif yang dapat dipilih tenant."
+          subtitle="Kode QR aktif untuk tenant."
           icon={QrCodeIcon}
           tone="green"
         />
       </div>
 
-      <section className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
-        <p className="text-sm leading-6 text-blue-900">
+      {/* Info Banner */}
+      <section className="rounded-xl border border-brand-200 bg-brand-50 p-4">
+        <p className="text-[13px] leading-6 text-brand-700">
           Metode pembayaran di halaman ini akan muncul pada alur langganan tenant. Pastikan rekening
           dan QR code yang aktif memang siap menerima pembayaran.
         </p>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5">
+      {/* Bank Accounts Section */}
+      <section className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <BuildingLibraryIcon className="h-6 w-6 text-blue-600" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-200/60">
+                <BuildingLibraryIcon className="h-4 w-4" />
+              </div>
               <div>
-                <h2 className="text-base font-semibold text-gray-900">Rekening bank</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Rekening transfer manual yang tersedia untuk tenant.
+                <h2 className="text-[15px] font-semibold text-surface-800">Rekening bank</h2>
+                <p className="mt-0.5 text-[13px] text-surface-400">
+                  Rekening transfer manual untuk tenant.
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => openBankModal()}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
+              className="btn-primary self-start"
             >
-              <PlusIcon className="h-5 w-5" />
+              <PlusIcon className="h-4 w-4" />
               Tambah Rekening
             </button>
           </div>
         </div>
 
-        <div className="p-4 sm:p-5">
+        <div className="p-5">
           {bankAccounts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-300 px-4 py-10 text-center">
-              <BuildingLibraryIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-3 text-sm font-medium text-gray-900">
+            <div className="rounded-xl border border-dashed border-surface-200 px-4 py-10 text-center">
+              <BuildingLibraryIcon className="mx-auto h-12 w-12 text-surface-300" />
+              <p className="mt-3 text-[13px] font-medium text-surface-700">
                 Belum ada rekening bank platform.
               </p>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-[13px] text-surface-400">
                 Tambahkan rekening pertama agar tenant bisa melakukan transfer bank.
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {bankAccounts.map((bank) => (
                 <article
                   key={bank.id}
-                  className={`rounded-2xl border p-4 ${
-                    bank.isActive ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'
+                  className={`rounded-xl border p-4 transition-colors ${
+                    bank.isActive
+                      ? 'border-surface-200 bg-white hover:border-surface-300'
+                      : 'border-surface-100 bg-surface-50'
                   }`}
                 >
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
-                        <BuildingLibraryIcon className="h-6 w-6" />
+                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 ring-1 ring-inset ring-brand-200/60">
+                        <BuildingLibraryIcon className="h-5 w-5" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-semibold text-gray-900">{bank.bankName}</h3>
+                          <h3 className="text-[14px] font-semibold text-surface-800">{bank.bankName}</h3>
                           {bank.isPrimary && (
-                            <span className="rounded-full bg-purple-100 px-2.5 py-1 text-xs font-medium text-purple-700">
+                            <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-[12px] font-medium text-brand-700 ring-1 ring-inset ring-brand-200/60">
                               Utama
                             </span>
                           )}
                           {!bank.isActive && (
-                            <span className="rounded-full bg-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700">
+                            <span className="rounded-full bg-surface-100 px-2.5 py-0.5 text-[12px] font-medium text-surface-500 ring-1 ring-inset ring-surface-200/60">
                               Nonaktif
                             </span>
                           )}
                         </div>
-                        <p className="mt-2 text-sm text-gray-600">{bank.accountName}</p>
-                        <p className="mt-1 break-all font-mono text-base font-semibold text-gray-900">
+                        <p className="mt-1.5 text-[13px] text-surface-500">{bank.accountName}</p>
+                        <p className="mt-1 break-all font-mono text-[15px] font-semibold text-surface-800">
                           {bank.accountNumber}
                         </p>
-                        <p className="mt-1 text-sm text-gray-500">Kode / cabang: {bank.bankCode}</p>
+                        <p className="mt-1 text-[13px] text-surface-400">Kode / cabang: {bank.bankCode}</p>
                         {bank.description && (
-                          <p className="mt-2 text-sm text-gray-500">{bank.description}</p>
+                          <p className="mt-2 text-[13px] text-surface-400">{bank.description}</p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="flex items-center gap-1.5 self-end sm:self-auto">
                       <button
                         type="button"
                         onClick={() => openBankModal(bank)}
-                        className="inline-flex items-center justify-center rounded-lg p-2.5 text-blue-600 hover:bg-blue-50"
+                        className="rounded-lg p-2 text-brand-600 transition-colors hover:bg-brand-50"
                         aria-label="Ubah rekening bank"
                       >
-                        <PencilIcon className="h-5 w-5" />
+                        <PencilIcon className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setDeleteTarget({ type: 'bank', id: bank.id })}
-                        className="inline-flex items-center justify-center rounded-lg p-2.5 text-red-600 hover:bg-red-50"
+                        className="rounded-lg p-2 text-danger-600 transition-colors hover:bg-danger-50"
                         aria-label="Hapus rekening bank"
                       >
-                        <TrashIcon className="h-5 w-5" />
+                        <TrashIcon className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -492,35 +501,38 @@ export default function PlatformPaymentSettings() {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="space-y-4 border-b border-gray-200 p-4 sm:p-5">
+      {/* QR Codes Section */}
+      <section className="card overflow-hidden">
+        <div className="border-b border-surface-100 px-5 py-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <QrCodeIcon className="h-6 w-6 text-green-600" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success-50 text-success-600 ring-1 ring-inset ring-success-200/60">
+                <QrCodeIcon className="h-4 w-4" />
+              </div>
               <div>
-                <h2 className="text-base font-semibold text-gray-900">QR code pembayaran</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  QRIS dan QR e-wallet yang dapat dipakai tenant untuk membayar langganan.
+                <h2 className="text-[15px] font-semibold text-surface-800">QR code pembayaran</h2>
+                <p className="mt-0.5 text-[13px] text-surface-400">
+                  QRIS dan QR e-wallet untuk pembayaran langganan.
                 </p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => openQRModal()}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
+              className="inline-flex items-center gap-2 rounded-xl bg-success-600 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-success-700 self-start"
             >
-              <PlusIcon className="h-5 w-5" />
+              <PlusIcon className="h-4 w-4" />
               Tambah Kode QR
             </button>
           </div>
         </div>
 
-        <div className="p-4 sm:p-5">
+        <div className="p-5">
           {qrCodes.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-300 px-4 py-10 text-center">
-              <QrCodeIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <p className="mt-3 text-sm font-medium text-gray-900">Belum ada QR code pembayaran.</p>
-              <p className="mt-1 text-sm text-gray-500">
+            <div className="rounded-xl border border-dashed border-surface-200 px-4 py-10 text-center">
+              <QrCodeIcon className="mx-auto h-12 w-12 text-surface-300" />
+              <p className="mt-3 text-[13px] font-medium text-surface-700">Belum ada QR code pembayaran.</p>
+              <p className="mt-1 text-[13px] text-surface-400">
                 Tambahkan QR pertama agar tenant bisa membayar lewat kanal digital.
               </p>
             </div>
@@ -529,22 +541,24 @@ export default function PlatformPaymentSettings() {
               {qrCodes.map((qr) => (
                 <article
                   key={qr.id}
-                  className={`rounded-2xl border p-4 ${
-                    qr.is_active ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'
+                  className={`rounded-xl border p-4 transition-colors ${
+                    qr.is_active
+                      ? 'border-surface-200 bg-white hover:border-surface-300'
+                      : 'border-surface-100 bg-surface-50'
                   }`}
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+                      <span className="rounded-full bg-success-50 px-2.5 py-0.5 text-[12px] font-medium text-success-700 ring-1 ring-inset ring-success-200/60">
                         {qr.type}
                       </span>
                       {qr.is_primary && (
-                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
+                        <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-[12px] font-medium text-brand-700 ring-1 ring-inset ring-brand-200/60">
                           Utama
                         </span>
                       )}
                       {!qr.is_active && (
-                        <span className="rounded-full bg-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700">
+                        <span className="rounded-full bg-surface-100 px-2.5 py-0.5 text-[12px] font-medium text-surface-500 ring-1 ring-inset ring-surface-200/60">
                           Nonaktif
                         </span>
                       )}
@@ -553,7 +567,7 @@ export default function PlatformPaymentSettings() {
                       <button
                         type="button"
                         onClick={() => openQRModal(qr)}
-                        className="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50"
+                        className="rounded-lg p-1.5 text-brand-600 transition-colors hover:bg-brand-50"
                         aria-label="Ubah kode QR"
                       >
                         <PencilIcon className="h-4 w-4" />
@@ -561,7 +575,7 @@ export default function PlatformPaymentSettings() {
                       <button
                         type="button"
                         onClick={() => setDeleteTarget({ type: 'qr', id: qr.id })}
-                        className="rounded-lg p-1.5 text-red-600 hover:bg-red-50"
+                        className="rounded-lg p-1.5 text-danger-600 transition-colors hover:bg-danger-50"
                         aria-label="Hapus kode QR"
                       >
                         <TrashIcon className="h-4 w-4" />
@@ -569,7 +583,7 @@ export default function PlatformPaymentSettings() {
                     </div>
                   </div>
 
-                  <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-gray-100">
+                  <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-surface-100">
                     {qr.imageDisplayUrl ? (
                       <img
                         src={qr.imageDisplayUrl}
@@ -580,11 +594,11 @@ export default function PlatformPaymentSettings() {
                         }}
                       />
                     ) : (
-                      <QrCodeIcon className="h-20 w-20 text-gray-400" />
+                      <QrCodeIcon className="h-20 w-20 text-surface-300" />
                     )}
                   </div>
 
-                  {qr.notes && <p className="mt-3 text-sm text-gray-500">{qr.notes}</p>}
+                  {qr.notes && <p className="mt-3 text-[13px] text-surface-400">{qr.notes}</p>}
                 </article>
               ))}
             </div>
@@ -592,6 +606,7 @@ export default function PlatformPaymentSettings() {
         </div>
       </section>
 
+      {/* Bank Modal */}
       <Modal
         isOpen={showBankModal}
         onClose={closeBankModal}
@@ -643,9 +658,9 @@ export default function PlatformPaymentSettings() {
             onChange={(event) =>
               setBankForm((current) => ({ ...current, description: event.target.value }))
             }
-            placeholder="Catatan tambahan untuk tenant, misalnya khusus pembayaran langganan."
+            placeholder="Catatan tambahan untuk tenant."
           />
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+          <div className="rounded-xl border border-surface-100 bg-surface-50 p-4 space-y-3">
             <FormCheckbox
               checked={bankForm.isActive}
               onChange={(event) =>
@@ -661,17 +676,17 @@ export default function PlatformPaymentSettings() {
               label="Jadikan rekening utama"
             />
           </div>
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-surface-100 pt-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={closeBankModal}
-              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
+              className="btn-secondary"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
+              className="btn-primary"
             >
               {editingBank ? 'Simpan Perubahan' : 'Tambah Rekening'}
             </button>
@@ -679,6 +694,7 @@ export default function PlatformPaymentSettings() {
         </form>
       </Modal>
 
+      {/* QR Modal */}
       <Modal
         isOpen={showQRModal}
         onClose={closeQRModal}
@@ -706,11 +722,11 @@ export default function PlatformPaymentSettings() {
             placeholder="Contoh: QRIS utama untuk pembayaran langganan tenant."
           />
 
-          <div className="rounded-2xl border border-gray-200 p-4">
-            <label className="block text-sm font-medium text-gray-700">
+          <div className="rounded-xl border border-surface-100 p-4">
+            <label className="block text-[13px] font-medium text-surface-700">
               Gambar QR code {editingQR ? '(opsional jika tidak diganti)' : '*'}
             </label>
-            <div className="mt-3 rounded-2xl border-2 border-dashed border-gray-300 p-4">
+            <div className="mt-3 rounded-xl border-2 border-dashed border-surface-200 p-4">
               {previewUrl ? (
                 <div className="relative">
                   <img
@@ -725,7 +741,7 @@ export default function PlatformPaymentSettings() {
                       setPreviewUrl(null);
                       setQRForm((current) => ({ ...current, imageFile: null }));
                     }}
-                    className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white"
+                    className="absolute right-2 top-2 rounded-full bg-danger-500 p-1 text-white"
                     aria-label="Hapus preview QR"
                   >
                     <XMarkIcon className="h-4 w-4" />
@@ -733,8 +749,8 @@ export default function PlatformPaymentSettings() {
                 </div>
               ) : (
                 <div className="text-center">
-                  <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
-                  <label className="mt-3 inline-flex cursor-pointer items-center justify-center rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700">
+                  <CloudArrowUpIcon className="mx-auto h-12 w-12 text-surface-300" />
+                  <label className="mt-3 inline-flex cursor-pointer items-center justify-center rounded-xl bg-success-600 px-4 py-2.5 text-[13px] font-medium text-white hover:bg-success-700">
                     Upload Gambar
                     <input
                       type="file"
@@ -744,13 +760,13 @@ export default function PlatformPaymentSettings() {
                       required={!editingQR}
                     />
                   </label>
-                  <p className="mt-2 text-xs text-gray-500">JPG atau PNG, maksimal 2MB.</p>
+                  <p className="mt-2 text-[12px] text-surface-400">JPG atau PNG, maksimal 2MB.</p>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+          <div className="rounded-xl border border-surface-100 bg-surface-50 p-4 space-y-3">
             <FormCheckbox
               checked={qrForm.isActive}
               onChange={(event) =>
@@ -767,17 +783,17 @@ export default function PlatformPaymentSettings() {
             />
           </div>
 
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 border-t border-surface-100 pt-4 sm:flex-row sm:justify-end">
             <button
               type="button"
               onClick={closeQRModal}
-              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:w-auto"
+              className="btn-secondary"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="w-full rounded-xl bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
+              className="inline-flex items-center justify-center rounded-xl bg-success-600 px-4 py-2.5 text-[13px] font-medium text-white transition-colors hover:bg-success-700"
             >
               {editingQR ? 'Simpan Perubahan' : 'Tambah Kode QR'}
             </button>

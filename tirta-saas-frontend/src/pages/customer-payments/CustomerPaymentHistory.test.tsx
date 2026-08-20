@@ -20,7 +20,12 @@ vi.mock('../../components', () => ({
       {subtitle ? <p>{subtitle}</p> : null}
     </div>
   ),
-  TableSkeleton: ({ rows }: { rows?: number }) => <div>Loading rows: {rows}</div>,
+  DashboardStatCard: ({ title, value }: { title: string; value: string | number }) => (
+    <div>
+      <p>{title}</p>
+      <p>{String(value)}</p>
+    </div>
+  ),
   useToast: () => ({
     error: mockShowError,
   }),

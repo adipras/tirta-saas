@@ -24,13 +24,6 @@ vi.mock('../../services/paymentProofService', () => ({
 }));
 
 vi.mock('../../components', () => ({
-  PageHeader: ({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) => (
-    <div>
-      <h1>{title}</h1>
-      {subtitle ? <p>{subtitle}</p> : null}
-      {actions}
-    </div>
-  ),
   useToast: () => ({
     error: mockShowErrorToast,
     warning: mockShowWarningToast,
@@ -101,7 +94,7 @@ describe('CustomerPayInvoice', () => {
 
     await screen.findByText('INV-001');
 
-    fireEvent.change(screen.getByLabelText('Nama Pengirim'), {
+    fireEvent.change(screen.getByLabelText((content) => content.includes('Nama Pengirim')), {
       target: { value: 'Budi' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Kirim Bukti Pembayaran' }));

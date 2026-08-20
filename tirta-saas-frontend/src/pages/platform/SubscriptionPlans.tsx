@@ -12,7 +12,6 @@ import {
   FormInput,
   FormTextarea,
   Modal,
-  PageHeader,
   useToast,
 } from '../../components';
 
@@ -140,17 +139,11 @@ export default function SubscriptionPlans() {
   };
 
   const handleTextChange = (field: keyof PlanFormState, value: string) => {
-    setFormData((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    setFormData((current) => ({ ...current, [field]: value }));
   };
 
   const handleNumberChange = (field: keyof PlanFormState, value: string) => {
-    setFormData((current) => ({
-      ...current,
-      [field]: Number(value),
-    }));
+    setFormData((current) => ({ ...current, [field]: Number(value) }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -203,35 +196,48 @@ export default function SubscriptionPlans() {
 
   if (loading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+      <div className="space-y-6">
+        <div className="h-7 w-48 animate-pulse rounded-lg bg-surface-100" />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="card h-32 animate-pulse" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="card h-64 animate-pulse" />
+          <div className="card h-64 animate-pulse" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Paket Langganan"
-        subtitle="Kelola katalog paket platform, harga, dan batas layanan dengan struktur yang lebih nyaman di mobile."
-        actions={
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
-          >
-            <PlusIcon className="h-5 w-5" />
-            Tambah Paket
-          </button>
-        }
-      />
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-surface-900">Paket Langganan</h1>
+          <p className="mt-1 text-[13px] text-surface-400">
+            Kelola katalog paket platform, harga, dan batas layanan.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={openCreateModal}
+          className="btn-primary self-start"
+        >
+          <PlusIcon className="h-4 w-4" />
+          Tambah Paket
+        </button>
+      </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <DashboardStatCard
           title="Total Paket"
           value={formatNumber(planStats.total)}
           helper="Seluruh katalog"
-          subtitle="Semua paket yang tersimpan di platform."
+          subtitle="Semua paket yang tersimpan."
           icon={PlusIcon}
           tone="blue"
         />
@@ -239,7 +245,7 @@ export default function SubscriptionPlans() {
           title="Paket Aktif"
           value={formatNumber(planStats.active)}
           helper="Tampil ke tenant"
-          subtitle="Paket yang dapat dipilih tenant saat ini."
+          subtitle="Paket yang dapat dipilih tenant."
           icon={CheckCircleIcon}
           tone="green"
         />
@@ -247,24 +253,25 @@ export default function SubscriptionPlans() {
           title="Paket Nonaktif"
           value={formatNumber(planStats.inactive)}
           helper="Draft / disembunyikan"
-          subtitle="Paket yang masih disiapkan atau tidak dipublikasikan."
+          subtitle="Paket yang tidak dipublikasikan."
           icon={XCircleIcon}
           tone="yellow"
         />
       </div>
 
+      {/* Plans Grid */}
       {plans.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-12 text-center shadow-sm">
-          <p className="text-base font-medium text-gray-900">Belum ada paket langganan.</p>
-          <p className="mt-2 text-sm text-gray-500">
+        <div className="rounded-xl border border-dashed border-surface-200 bg-white px-6 py-12 text-center">
+          <p className="text-[15px] font-medium text-surface-800">Belum ada paket langganan.</p>
+          <p className="mt-2 text-[13px] text-surface-400">
             Buat paket pertama untuk mulai menawarkan pilihan subscription ke tenant.
           </p>
           <button
             type="button"
             onClick={openCreateModal}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+            className="btn-primary mt-4"
           >
-            <PlusIcon className="h-5 w-5" />
+            <PlusIcon className="h-4 w-4" />
             Buat Paket Pertama
           </button>
         </div>
@@ -273,104 +280,84 @@ export default function SubscriptionPlans() {
           {plans.map((plan) => (
             <article
               key={plan.id}
-              className={`rounded-2xl border bg-white p-5 shadow-sm ${
-                plan.is_active ? 'border-green-200' : 'border-gray-200'
+              className={`card p-5 ${
+                plan.is_active ? 'ring-1 ring-success-200/60' : ''
               }`}
             >
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
+                    <h3 className="text-[16px] font-semibold text-surface-800">{plan.name}</h3>
                     <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-medium ring-1 ring-inset ${
                         plan.is_active
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-700'
+                          ? 'bg-success-50 text-success-700 ring-success-200/60'
+                          : 'bg-surface-50 text-surface-500 ring-surface-200/60'
                       }`}
                     >
                       {plan.is_active ? 'Aktif' : 'Nonaktif'}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-surface-400">
                     {plan.plan}
                   </p>
-                  <p className="mt-3 text-sm leading-6 text-gray-500">
+                  <p className="mt-2 text-[13px] text-surface-400">
                     {plan.description || 'Belum ada deskripsi paket.'}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => openEditModal(plan)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="btn-secondary self-start"
                 >
                   <PencilIcon className="h-4 w-4" />
                   Ubah
                 </button>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                  <p className="text-sm text-gray-500">Harga bulanan</p>
-                  <p className="mt-2 text-2xl font-semibold text-gray-900">
+              {/* Pricing */}
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-4">
+                  <p className="text-[13px] text-surface-400">Harga bulanan</p>
+                  <p className="mt-1 text-[20px] font-semibold text-surface-800">
                     {formatCurrency(plan.monthly_price)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                  <p className="text-sm text-gray-500">Harga tahunan</p>
-                  <p className="mt-2 text-2xl font-semibold text-gray-900">
+                <div className="rounded-xl border border-surface-100 bg-surface-50/50 p-4">
+                  <p className="text-[13px] text-surface-400">Harga tahunan</p>
+                  <p className="mt-1 text-[20px] font-semibold text-surface-800">
                     {formatCurrency(plan.yearly_price)}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">Maks pengguna</p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {formatNumber(plan.max_users)}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">Maks pelanggan</p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {formatNumber(plan.max_customers)}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">Penyimpanan</p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {formatNumber(plan.max_storage_gb)} GB
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">Panggilan API / hari</p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {formatNumber(plan.max_api_calls_per_day)}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">Trial</p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {formatNumber(plan.trial_days)} hari
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-gray-200 p-4">
-                  <p className="text-sm text-gray-500">Urutan tampil</p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    #{formatNumber(plan.display_order)}
-                  </p>
-                </div>
+              {/* Limits */}
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {[
+                  { label: 'Maks pengguna', value: formatNumber(plan.max_users) },
+                  { label: 'Maks pelanggan', value: formatNumber(plan.max_customers) },
+                  { label: 'Penyimpanan', value: `${formatNumber(plan.max_storage_gb)} GB` },
+                  { label: 'API / hari', value: formatNumber(plan.max_api_calls_per_day) },
+                  { label: 'Trial', value: `${formatNumber(plan.trial_days)} hari` },
+                  { label: 'Urutan', value: `#${formatNumber(plan.display_order)}` },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl border border-surface-100 px-3 py-2.5">
+                    <p className="text-[12px] text-surface-400">{item.label}</p>
+                    <p className="mt-0.5 text-[14px] font-semibold text-surface-800">{item.value}</p>
+                  </div>
+                ))}
               </div>
 
-              <div className="mt-5 rounded-2xl border border-gray-200 p-4">
-                <h4 className="text-sm font-semibold text-gray-900">Fitur paket</h4>
+              {/* Features */}
+              <div className="mt-4 rounded-xl border border-surface-100 p-4">
+                <h4 className="text-[13px] font-semibold text-surface-800">Fitur paket</h4>
                 {plan.features.length === 0 ? (
-                  <p className="mt-3 text-sm text-gray-500">Belum ada fitur yang dicantumkan.</p>
+                  <p className="mt-2 text-[13px] text-surface-400">Belum ada fitur yang dicantumkan.</p>
                 ) : (
-                  <ul className="mt-3 space-y-2">
+                  <ul className="mt-2 space-y-1.5">
                     {plan.features.map((feature, index) => (
-                      <li key={`${plan.id}-${index}`} className="flex items-start gap-2 text-sm text-gray-600">
-                        <CheckCircleIcon className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-500" />
+                      <li key={`${plan.id}-${index}`} className="flex items-start gap-2 text-[13px] text-surface-500">
+                        <CheckCircleIcon className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-success-500" />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -382,6 +369,7 @@ export default function SubscriptionPlans() {
         </div>
       )}
 
+      {/* Modal */}
       <Modal
         isOpen={showModal}
         onClose={closeModal}
@@ -412,7 +400,7 @@ export default function SubscriptionPlans() {
             rows={3}
             value={formData.description}
             onChange={(event) => handleTextChange('description', event.target.value)}
-            placeholder="Ringkasan manfaat dan target tenant untuk paket ini."
+            placeholder="Ringkasan manfaat dan target tenant."
           />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -486,7 +474,7 @@ export default function SubscriptionPlans() {
             helperText="Isi satu fitur per baris agar mudah dibaca tenant."
           />
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <div className="rounded-xl border border-surface-100 bg-surface-50 p-4">
             <FormCheckbox
               checked={formData.is_active}
               onChange={(event) =>
@@ -496,20 +484,11 @@ export default function SubscriptionPlans() {
             />
           </div>
 
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={submitting}
-              className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 sm:w-auto"
-            >
+          <div className="flex flex-col-reverse gap-3 border-t border-surface-100 pt-4 sm:flex-row sm:justify-end">
+            <button type="button" onClick={closeModal} disabled={submitting} className="btn-secondary">
               Batal
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
-            >
+            <button type="submit" disabled={submitting} className="btn-primary">
               {submitting ? 'Menyimpan...' : editingPlan ? 'Simpan Perubahan' : 'Buat Paket'}
             </button>
           </div>

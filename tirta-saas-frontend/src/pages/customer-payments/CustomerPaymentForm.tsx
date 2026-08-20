@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  CreditCardIcon, 
-  BanknotesIcon, 
+import {
+  CreditCardIcon,
+  BanknotesIcon,
   BuildingLibraryIcon,
   DevicePhoneMobileIcon,
   CheckCircleIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
-import { PageHeader, useToast, CardSkeleton, FormSkeleton } from '../../components';
+import { useToast, CardSkeleton, FormSkeleton } from '../../components';
 import { invoiceService } from '../../services/invoiceService';
 import { paymentService } from '../../services/paymentService';
 import type { Invoice } from '../../types/invoice';
@@ -50,7 +50,7 @@ export default function CustomerPaymentForm() {
     try {
       setLoading(true);
       const data = await invoiceService.getCustomerTagihan();
-      const unpaid = data.filter(inv => inv.status !== 'paid');
+      const unpaid = data.filter((inv) => inv.status !== 'paid');
       setTagihan(unpaid);
       setError(null);
     } catch (err: unknown) {
@@ -60,17 +60,20 @@ export default function CustomerPaymentForm() {
     }
   }, []);
 
-  const handleInvoiceSelect = useCallback((invoiceId: string) => {
-    const invoice = invoices.find(inv => inv.id === invoiceId);
-    if (invoice) {
-      setSelectedInvoice(invoice);
-      setFormData(prev => ({
-        ...prev,
-        invoiceId,
-        amount: invoice.amountDue,
-      }));
-    }
-  }, [invoices]);
+  const handleInvoiceSelect = useCallback(
+    (invoiceId: string) => {
+      const invoice = invoices.find((inv) => inv.id === invoiceId);
+      if (invoice) {
+        setSelectedInvoice(invoice);
+        setFormData((prev) => ({
+          ...prev,
+          invoiceId,
+          amount: invoice.amountDue,
+        }));
+      }
+    },
+    [invoices]
+  );
 
   useEffect(() => {
     void loadUnpaidTagihan();
@@ -84,18 +87,17 @@ export default function CustomerPaymentForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'invoiceId') {
       handleInvoiceSelect(value);
     } else if (name === 'amount') {
-      setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+      setFormData((prev) => ({ ...prev, [name]: parseFloat(value) || 0 }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
 
-    // Clear error for this field
     if (errors[name]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
@@ -138,7 +140,7 @@ export default function CustomerPaymentForm() {
     try {
       setSubmitting(true);
       setError(null);
-      
+
       await paymentService.createCustomerPayment({
         invoiceId: formData.invoiceId,
         amount: formData.amount,
@@ -147,13 +149,12 @@ export default function CustomerPaymentForm() {
         notes: formData.notes || undefined,
       });
 
-      // Navigate to success page
-      navigate('/customer/payments/success', { 
-        state: { 
+      navigate('/customer/payments/success', {
+        state: {
           invoice: selectedInvoice,
           amount: formData.amount,
-          paymentMethod: formData.paymentMethod
-        } 
+          paymentMethod: formData.paymentMethod,
+        },
       });
     } catch (err: unknown) {
       const message = extractApiErrorMessage(err, 'Gagal memproses pembayaran');
@@ -164,27 +165,26 @@ export default function CustomerPaymentForm() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
-  };
 
   const getPaymentMethodIcon = (method: PaymentMethod) => {
     switch (method) {
       case 'cash':
-        return <BanknotesIcon className="h-6 w-6" />;
+        return <BanknotesIcon className="h-5 w-5" />;
       case 'bank_transfer':
-        return <BuildingLibraryIcon className="h-6 w-6" />;
+        return <BuildingLibraryIcon className="h-5 w-5" />;
       case 'credit_card':
       case 'debit_card':
-        return <CreditCardIcon className="h-6 w-6" />;
+        return <CreditCardIcon className="h-5 w-5" />;
       case 'e_wallet':
-        return <DevicePhoneMobileIcon className="h-6 w-6" />;
+        return <DevicePhoneMobileIcon className="h-5 w-5" />;
       default:
-        return <CreditCardIcon className="h-6 w-6" />;
+        return <CreditCardIcon className="h-5 w-5" />;
     }
   };
 
@@ -198,7 +198,7 @@ export default function CustomerPaymentForm() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6" aria-busy="true" aria-label="Memuat tagihan">
+      <div className="max-w-4xl mx-auto space-y-6" aria-busy="true">
         <CardSkeleton />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
@@ -206,7 +206,7 @@ export default function CustomerPaymentForm() {
             <CardSkeleton />
           </div>
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="card p-6">
               <FormSkeleton />
             </div>
           </div>
@@ -218,13 +218,13 @@ export default function CustomerPaymentForm() {
   if (invoices.length === 0) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="bg-green-50 border border-green-200 rounded-lg p-8 text-center">
-          <CheckCircleIcon className="h-16 w-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-green-900 mb-2">Semua Tagihan Lunas!</h2>
-          <p className="text-green-700 mb-6">Tidak ada tagihan yang belum dibayar saat ini.</p>
+        <div className="rounded-xl border border-success-200 bg-success-50 p-8 text-center">
+          <CheckCircleIcon className="h-16 w-16 text-success-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-success-800 mb-2">Semua Tagihan Lunas!</h2>
+          <p className="text-[13px] text-success-600 mb-6">Tidak ada tagihan yang belum dibayar saat ini.</p>
           <button
             onClick={() => navigate('/customer/invoices')}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="btn-primary"
           >
             Lihat Semua Tagihan
           </button>
@@ -235,16 +235,19 @@ export default function CustomerPaymentForm() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <PageHeader
-        title="Lakukan Pembayaran"
-        subtitle="Pilih tagihan dan metode pembayaran Anda."
-      />
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-surface-900">Lakukan Pembayaran</h1>
+        <p className="mt-1 text-[13px] text-surface-400">
+          Pilih tagihan dan metode pembayaran Anda.
+        </p>
+      </div>
 
       {/* Error Alert */}
       {error && (
-        <div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start">
-          <ExclamationTriangleIcon className="h-5 w-5 text-red-600 mr-3 mt-0.5" aria-hidden="true" />
-          <p className="text-red-600">{error}</p>
+        <div role="alert" className="rounded-xl border border-danger-200 bg-danger-50 p-4 flex items-start gap-3">
+          <ExclamationTriangleIcon className="h-5 w-5 text-danger-500 mt-0.5 flex-shrink-0" />
+          <p className="text-[13px] text-danger-700">{error}</p>
         </div>
       )}
 
@@ -253,16 +256,16 @@ export default function CustomerPaymentForm() {
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-6">
             {/* Invoice Selection */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Pilih Tagihan</h2>
+            <div className="card p-5">
+              <h2 className="text-[15px] font-semibold text-surface-800 mb-4">Pilih Tagihan</h2>
               <div className="space-y-3">
-                {invoices.map(invoice => (
+                {invoices.map((invoice) => (
                   <label
                     key={invoice.id}
-                    className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                    className={`flex items-start p-4 border-2 rounded-xl cursor-pointer transition-colors ${
                       formData.invoiceId === invoice.id
-                        ? 'border-indigo-600 bg-indigo-50'
-                        : 'border-gray-200 hover:border-indigo-300'
+                        ? 'border-brand-500 bg-brand-50'
+                        : 'border-surface-200 hover:border-brand-300'
                     }`}
                   >
                     <input
@@ -271,37 +274,37 @@ export default function CustomerPaymentForm() {
                       value={invoice.id}
                       checked={formData.invoiceId === invoice.id}
                       onChange={handleChange}
-                      className="mt-1 h-4 w-4 text-indigo-600"
+                      className="mt-1 h-4 w-4 text-brand-600"
                     />
                     <div className="ml-3 flex-1">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold text-gray-900">{invoice.invoiceNumber}</p>
-                          <p className="text-sm text-gray-600">Periode: {invoice.billingPeriod}</p>
+                          <p className="font-medium text-surface-800">{invoice.invoiceNumber}</p>
+                          <p className="text-[13px] text-surface-400">Periode: {invoice.billingPeriod}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-gray-600">Sisa Tagihan</p>
-                          <p className="text-lg font-bold text-red-600">{formatCurrency(invoice.amountDue)}</p>
+                          <p className="text-[13px] text-surface-400">Sisa Tagihan</p>
+                          <p className="text-[16px] font-bold text-danger-600">{formatCurrency(invoice.amountDue)}</p>
                         </div>
                       </div>
                     </div>
                   </label>
                 ))}
               </div>
-              {errors.invoiceId && <p className="mt-2 text-sm text-red-600">{errors.invoiceId}</p>}
+              {errors.invoiceId && <p className="mt-2 text-[13px] text-danger-600">{errors.invoiceId}</p>}
             </div>
 
             {/* Payment Method */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Metode Pembayaran</h2>
+            <div className="card p-5">
+              <h2 className="text-[15px] font-semibold text-surface-800 mb-4">Metode Pembayaran</h2>
               <div className="space-y-3">
-                {paymentMethods.map(method => (
+                {paymentMethods.map((method) => (
                   <label
                     key={method.value}
-                    className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                    className={`flex items-start p-4 border-2 rounded-xl cursor-pointer transition-colors ${
                       formData.paymentMethod === method.value
-                        ? 'border-indigo-600 bg-indigo-50'
-                        : 'border-gray-200 hover:border-indigo-300'
+                        ? 'border-brand-500 bg-brand-50'
+                        : 'border-surface-200 hover:border-brand-300'
                     }`}
                   >
                     <input
@@ -310,34 +313,34 @@ export default function CustomerPaymentForm() {
                       value={method.value}
                       checked={formData.paymentMethod === method.value}
                       onChange={handleChange}
-                      className="mt-1 h-4 w-4 text-indigo-600"
+                      className="mt-1 h-4 w-4 text-brand-600"
                     />
                     <div className="ml-3 flex items-center flex-1">
-                      <div className={`${formData.paymentMethod === method.value ? 'text-indigo-600' : 'text-gray-400'}`}>
+                      <div className={`${formData.paymentMethod === method.value ? 'text-brand-600' : 'text-surface-300'}`}>
                         {getPaymentMethodIcon(method.value as PaymentMethod)}
                       </div>
                       <div className="ml-3">
-                        <p className="font-medium text-gray-900">{method.label}</p>
-                        <p className="text-sm text-gray-600">{method.description}</p>
+                        <p className="font-medium text-surface-800 text-[14px]">{method.label}</p>
+                        <p className="text-[13px] text-surface-400">{method.description}</p>
                       </div>
                     </div>
                   </label>
                 ))}
               </div>
-              {errors.paymentMethod && <p className="mt-2 text-sm text-red-600">{errors.paymentMethod}</p>}
+              {errors.paymentMethod && <p className="mt-2 text-[13px] text-danger-600">{errors.paymentMethod}</p>}
             </div>
 
             {/* Payment Details */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Detail Pembayaran</h2>
+            <div className="card p-5">
+              <h2 className="text-[15px] font-semibold text-surface-800 mb-4">Detail Pembayaran</h2>
               <div className="space-y-4">
                 {/* Amount */}
                 <div>
-                  <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-                    Nominal Pembayaran <span className="text-red-500">*</span>
+                  <label htmlFor="amount" className="label-base">
+                    Nominal Pembayaran <span className="text-danger-500">*</span>
                   </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rp</span>
+                  <div className="relative mt-1.5">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-surface-400 text-[13px]">Rp</span>
                     <input
                       type="number"
                       id="amount"
@@ -346,14 +349,14 @@ export default function CustomerPaymentForm() {
                       onChange={handleChange}
                       min="0"
                       step="1000"
-                      className={`w-full pl-12 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                        errors.amount ? 'border-red-300' : 'border-gray-300'
+                      className={`input-base pl-12 pr-4 ${
+                        errors.amount ? 'border-danger-300 focus:ring-danger-500/20' : ''
                       }`}
                     />
                   </div>
-                  {errors.amount && <p className="mt-1 text-sm text-red-600">{errors.amount}</p>}
+                  {errors.amount && <p className="mt-1.5 text-[12px] text-danger-600">{errors.amount}</p>}
                   {selectedInvoice && (
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1.5 text-[12px] text-surface-400">
                       Maksimum: {formatCurrency(selectedInvoice.amountDue)}
                     </p>
                   )}
@@ -362,8 +365,8 @@ export default function CustomerPaymentForm() {
                 {/* Reference Number */}
                 {formData.paymentMethod !== 'cash' && (
                   <div>
-                    <label htmlFor="referenceNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                      Nomor Referensi <span className="text-red-500">*</span>
+                    <label htmlFor="referenceNumber" className="label-base">
+                      Nomor Referensi <span className="text-danger-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -372,19 +375,17 @@ export default function CustomerPaymentForm() {
                       value={formData.referenceNumber}
                       onChange={handleChange}
                       placeholder="Masukkan nomor referensi transaksi"
-                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                        errors.referenceNumber ? 'border-red-300' : 'border-gray-300'
+                      className={`input-base mt-1.5 ${
+                        errors.referenceNumber ? 'border-danger-300 focus:ring-danger-500/20' : ''
                       }`}
                     />
-                    {errors.referenceNumber && <p className="mt-1 text-sm text-red-600">{errors.referenceNumber}</p>}
+                    {errors.referenceNumber && <p className="mt-1.5 text-[12px] text-danger-600">{errors.referenceNumber}</p>}
                   </div>
                 )}
 
                 {/* Notes */}
                 <div>
-                  <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                    Catatan (Opsional)
-                  </label>
+                  <label htmlFor="notes" className="label-base">Catatan (Opsional)</label>
                   <textarea
                     id="notes"
                     name="notes"
@@ -392,7 +393,7 @@ export default function CustomerPaymentForm() {
                     onChange={handleChange}
                     rows={3}
                     placeholder="Tambahkan catatan jika perlu..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="input-base mt-1.5"
                   />
                 </div>
               </div>
@@ -401,51 +402,51 @@ export default function CustomerPaymentForm() {
 
           {/* Summary Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6 sticky top-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Ringkasan Pembayaran</h2>
+            <div className="card p-5 sticky top-6">
+              <h2 className="text-[15px] font-semibold text-surface-800 mb-4">Ringkasan Pembayaran</h2>
               <div className="space-y-3">
                 {selectedInvoice ? (
                   <>
-                    <div className="pb-3 border-b border-gray-200">
-                      <p className="text-sm text-gray-600">Nomor Tagihan</p>
-                      <p className="font-mono text-gray-900">{selectedInvoice.invoiceNumber}</p>
+                    <div className="pb-3 border-b border-surface-100">
+                      <p className="text-[13px] text-surface-400">Nomor Tagihan</p>
+                      <p className="font-mono text-surface-800 text-[14px]">{selectedInvoice.invoiceNumber}</p>
                     </div>
-                    <div className="pb-3 border-b border-gray-200">
-                      <p className="text-sm text-gray-600">Periode Tagihan</p>
-                      <p className="text-gray-900">{selectedInvoice.billingPeriod}</p>
+                    <div className="pb-3 border-b border-surface-100">
+                      <p className="text-[13px] text-surface-400">Periode Tagihan</p>
+                      <p className="text-surface-800 text-[14px]">{selectedInvoice.billingPeriod}</p>
                     </div>
-                    <div className="pb-3 border-b border-gray-200">
-                      <p className="text-sm text-gray-600">Total Tagihan</p>
-                      <p className="text-gray-900">{formatCurrency(selectedInvoice.totalAmount)}</p>
+                    <div className="pb-3 border-b border-surface-100">
+                      <p className="text-[13px] text-surface-400">Total Tagihan</p>
+                      <p className="text-surface-800 text-[14px]">{formatCurrency(selectedInvoice.totalAmount)}</p>
                     </div>
                     {selectedInvoice.amountPaid > 0 && (
-                      <div className="pb-3 border-b border-gray-200">
-                        <p className="text-sm text-gray-600">Sudah Dibayar</p>
-                        <p className="text-green-600">-{formatCurrency(selectedInvoice.amountPaid)}</p>
+                      <div className="pb-3 border-b border-surface-100">
+                        <p className="text-[13px] text-surface-400">Sudah Dibayar</p>
+                        <p className="text-success-600 text-[14px]">-{formatCurrency(selectedInvoice.amountPaid)}</p>
                       </div>
                     )}
-                    <div className="pb-3 border-b border-gray-200">
-                      <p className="text-sm font-medium text-gray-900">Sisa Tagihan</p>
-                      <p className="text-lg font-bold text-red-600">{formatCurrency(selectedInvoice.amountDue)}</p>
+                    <div className="pb-3 border-b border-surface-100">
+                      <p className="text-[13px] font-medium text-surface-700">Sisa Tagihan</p>
+                      <p className="text-[18px] font-bold text-danger-600">{formatCurrency(selectedInvoice.amountDue)}</p>
                     </div>
                     <div className="pt-3">
-                      <p className="text-sm font-medium text-gray-900">Nominal yang Dibayar</p>
-                      <p className="text-2xl font-bold text-indigo-600">{formatCurrency(formData.amount)}</p>
+                      <p className="text-[13px] font-medium text-surface-700">Nominal yang Dibayar</p>
+                      <p className="text-[24px] font-bold text-brand-600">{formatCurrency(formData.amount)}</p>
                     </div>
                   </>
                 ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">Pilih tagihan untuk melihat ringkasan</p>
+                  <p className="text-[13px] text-surface-400 text-center py-4">Pilih tagihan untuk melihat ringkasan</p>
                 )}
               </div>
 
               <button
                 type="submit"
                 disabled={submitting || !selectedInvoice}
-                className="w-full mt-6 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="btn-primary w-full mt-6"
               >
                 {submitting ? (
                   <span className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
                     Memproses...
                   </span>
                 ) : (
@@ -457,7 +458,7 @@ export default function CustomerPaymentForm() {
                 type="button"
                 onClick={() => navigate('/customer/invoices')}
                 disabled={submitting}
-                className="w-full mt-3 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="btn-secondary w-full mt-3"
               >
                 Batal
               </button>

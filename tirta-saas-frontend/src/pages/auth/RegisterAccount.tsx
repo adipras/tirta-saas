@@ -3,7 +3,14 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Link, useNavigate } from 'react-router-dom';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  UserIcon,
+  AtSymbolIcon,
+  EnvelopeIcon,
+  LockClosedIcon,
+} from '@heroicons/react/24/outline';
 import { API_BASE_URL, API_ENDPOINTS } from '../../constants/api';
 import { extractApiErrorMessage } from '../../utils/apiError';
 
@@ -83,7 +90,6 @@ const RegisterAccount = () => {
         throw new Error(result.error || 'Registrasi gagal');
       }
 
-      // Redirect to login — user will log in then be directed to setup-tenant
       navigate('/admin/login', {
         state: {
           message: 'Akun berhasil dibuat! Silakan login untuk melanjutkan setup tenant.',
@@ -105,23 +111,25 @@ const RegisterAccount = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-surface-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="mx-auto h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">T</span>
+        {/* Header */}
+        <div className="text-center">
+          <div className="mx-auto inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-lg shadow-brand-500/25">
+            <span className="text-white font-bold text-2xl">T</span>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-3xl font-extrabold text-surface-900">
             Buat Akun
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-[13px] text-surface-500">
             Langkah 1 dari 2 — Daftar akun Anda
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        {/* Form */}
+        <form className="mt-8 space-y-5" onSubmit={handleSubmit(onSubmit)}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+            <div className="rounded-xl border border-danger-200 bg-danger-50 px-4 py-3 text-[13px] text-danger-700">
               {error}
             </div>
           )}
@@ -129,65 +137,84 @@ const RegisterAccount = () => {
           <div className="space-y-4">
             {/* Name */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="name" className="block text-[13px] font-medium text-surface-700 mb-1.5">
                 Nama Lengkap
               </label>
-              <input
-                {...register('name')}
-                type="text"
-                autoComplete="name"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="Masukkan nama lengkap"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <UserIcon className="h-4 w-4 text-surface-400" />
+                </div>
+                <input
+                  {...register('name')}
+                  type="text"
+                  autoComplete="name"
+                  className="input-base pl-10"
+                  placeholder="Masukkan nama lengkap"
+                />
+              </div>
               {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                <p className="mt-1.5 text-[12px] text-danger-600">{errors.name.message}</p>
               )}
             </div>
 
+            {/* Username */}
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="username" className="block text-[13px] font-medium text-surface-700 mb-1.5">
                 Username
               </label>
-              <input
-                {...register('username')}
-                type="text"
-                autoComplete="username"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="minimal 3 karakter"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <AtSymbolIcon className="h-4 w-4 text-surface-400" />
+                </div>
+                <input
+                  {...register('username')}
+                  type="text"
+                  autoComplete="username"
+                  className="input-base pl-10"
+                  placeholder="minimal 3 karakter"
+                />
+              </div>
               {errors.username && (
-                <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
+                <p className="mt-1.5 text-[12px] text-danger-600">{errors.username.message}</p>
               )}
             </div>
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email (opsional)
+              <label htmlFor="email" className="block text-[13px] font-medium text-surface-700 mb-1.5">
+                Email <span className="text-surface-400">(opsional)</span>
               </label>
-              <input
-                {...register('email')}
-                type="email"
-                autoComplete="email"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="contoh@email.com"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <EnvelopeIcon className="h-4 w-4 text-surface-400" />
+                </div>
+                <input
+                  {...register('email')}
+                  type="email"
+                  autoComplete="email"
+                  className="input-base pl-10"
+                  placeholder="contoh@email.com"
+                />
+              </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p className="mt-1.5 text-[12px] text-danger-600">{errors.email.message}</p>
               )}
             </div>
 
             {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-[13px] font-medium text-surface-700 mb-1.5">
                 Password
               </label>
-              <div className="mt-1 relative">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <LockClosedIcon className="h-4 w-4 text-surface-400" />
+                </div>
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="input-base pl-10 pr-10"
                   placeholder="Minimal 6 karakter"
                 />
                 <button
@@ -196,28 +223,31 @@ const RegisterAccount = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                    <EyeSlashIcon className="h-4 w-4 text-surface-400 hover:text-surface-600" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400" />
+                    <EyeIcon className="h-4 w-4 text-surface-400 hover:text-surface-600" />
                   )}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p className="mt-1.5 text-[12px] text-danger-600">{errors.password.message}</p>
               )}
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="confirmPassword" className="block text-[13px] font-medium text-surface-700 mb-1.5">
                 Konfirmasi Password
               </label>
-              <div className="mt-1 relative">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <LockClosedIcon className="h-4 w-4 text-surface-400" />
+                </div>
                 <input
                   {...register('confirmPassword')}
                   type={showConfirm ? 'text' : 'password'}
                   autoComplete="new-password"
-                  className="block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="input-base pl-10 pr-10"
                   placeholder="Ulangi password"
                 />
                 <button
@@ -226,32 +256,39 @@ const RegisterAccount = () => {
                   onClick={() => setShowConfirm(!showConfirm)}
                 >
                   {showConfirm ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                    <EyeSlashIcon className="h-4 w-4 text-surface-400 hover:text-surface-600" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400" />
+                    <EyeIcon className="h-4 w-4 text-surface-400 hover:text-surface-600" />
                   )}
                 </button>
               </div>
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                <p className="mt-1.5 text-[12px] text-danger-600">{errors.confirmPassword.message}</p>
               )}
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Membuat akun...' : 'Buat Akun'}
-            </button>
-          </div>
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="btn-primary w-full"
+          >
+            {isLoading ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Membuat akun...
+              </span>
+            ) : (
+              'Buat Akun'
+            )}
+          </button>
 
+          {/* Login Link */}
           <div className="text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-[13px] text-surface-500">
               Sudah punya akun?{' '}
-              <Link to="/admin/login" className="font-medium text-blue-600 hover:text-blue-500">
+              <Link to="/admin/login" className="font-medium text-brand-600 hover:text-brand-500">
                 Login di sini
               </Link>
             </p>

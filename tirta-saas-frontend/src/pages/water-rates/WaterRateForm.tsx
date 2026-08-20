@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import {
+  BanknotesIcon,
+  CalendarDaysIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  TagIcon,
+} from '@heroicons/react/24/outline';
 import { waterRateService } from '../../services/waterRateService';
 import { subscriptionService } from '../../services/subscriptionService';
 import tariffService from '../../services/tariffService';
 import type { WaterRateFormData } from '../../types/waterRate';
 import type { SubscriptionType } from '../../types/subscription';
 import type { TariffCategory } from '../../types/tariff';
-import { PageHeader } from '../../components';
 import { useToast } from '../../components';
 
 export default function WaterRateForm() {
@@ -33,7 +38,7 @@ export default function WaterRateForm() {
     try {
       const types = await subscriptionService.getAllSubscriptionTypes();
       setSubscriptionTypes(types);
-    } catch  {
+    } catch {
       toast.error('Gagal memuat data golongan langganan');
     }
   }, [toast]);
@@ -58,7 +63,7 @@ export default function WaterRateForm() {
         categoryId: data.category_id || '',
         description: data.description || '',
       });
-    } catch  {
+    } catch {
       toast.error('Gagal memuat data tarif air');
     } finally {
       setLoading(false);
@@ -87,7 +92,7 @@ export default function WaterRateForm() {
       const selectedDate = new Date(formData.effectiveDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       if (!isEditMode && selectedDate < today) {
         newErrors.effectiveDate = 'Tanggal berlaku tidak boleh di masa lalu';
       }
@@ -106,7 +111,6 @@ export default function WaterRateForm() {
   ) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
     if (errors[name as keyof WaterRateFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -139,7 +143,7 @@ export default function WaterRateForm() {
       }
 
       navigate('/admin/water-rates');
-    } catch  {
+    } catch {
       toast.error(`Gagal ${isEditMode ? 'memperbarui' : 'membuat'} tarif air`);
     } finally {
       setLoading(false);
@@ -148,193 +152,234 @@ export default function WaterRateForm() {
 
   return (
     <div className="space-y-6">
-      <button
-        onClick={() => navigate('/admin/water-rates')}
-        className="flex items-center text-sm text-gray-500 hover:text-gray-700"
-      >
-        <ArrowLeftIcon className="mr-2 h-4 w-4" />
-        Kembali ke Tarif Air
-      </button>
-      <PageHeader
-        title={isEditMode ? 'Ubah Tarif Air' : 'Buat Tarif Air'}
-        subtitle={
-          isEditMode
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-[13px] text-surface-400">
+        <button
+          onClick={() => navigate('/admin/water-rates')}
+          className="transition-colors hover:text-surface-600"
+        >
+          Tarif Air
+        </button>
+        <span>/</span>
+        <span className="font-medium text-surface-700">
+          {isEditMode ? 'Ubah Tarif' : 'Tambah Tarif'}
+        </span>
+      </nav>
+
+      {/* Page Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-surface-900">
+          {isEditMode ? 'Ubah Tarif Air' : 'Buat Tarif Air Baru'}
+        </h1>
+        <p className="mt-1 text-[13px] text-surface-400">
+          {isEditMode
             ? 'Perbarui tarif air per meter kubik untuk golongan langganan yang dipilih.'
-            : 'Tetapkan tarif air baru per meter kubik untuk golongan langganan.'
-        }
-      />
+            : 'Tetapkan tarif air baru per meter kubik untuk golongan langganan.'}
+        </p>
+      </div>
 
-      <div className="bg-white shadow rounded-lg">
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Rate Information */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Informasi Tarif</h3>
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div>
-                <label htmlFor="subscriptionId" className="block text-sm font-medium text-gray-700">
-                  Golongan Langganan <span className="text-red-500">*</span>
-                </label>
-                <select
-                  id="subscriptionId"
-                  name="subscriptionId"
-                  value={formData.subscriptionId}
-                  onChange={handleChange}
-                  disabled={isEditMode}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.subscriptionId
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  } ${isEditMode ? 'bg-gray-100' : ''}`}
-                >
-                  <option value="">Pilih golongan langganan</option>
-                  {subscriptionTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.subscriptionId && (
-                  <p className="mt-1 text-sm text-red-600">{errors.subscriptionId}</p>
-                )}
-                {isEditMode && (
-                  <p className="mt-1 text-sm text-gray-500">
-                    Golongan langganan tidak dapat diubah setelah tarif dibuat
+      {/* Form Card */}
+      <div className="card overflow-hidden">
+        <form onSubmit={handleSubmit}>
+          {/* Form Body */}
+          <div className="p-6 space-y-6">
+            {/* Section: Informasi Tarif */}
+            <div>
+              <h3 className="mb-4 text-[15px] font-semibold text-surface-800">
+                Informasi Tarif
+              </h3>
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                {/* Golongan Langganan */}
+                <div>
+                  <label htmlFor="subscriptionId" className="label-base">
+                    Golongan Langganan <span className="text-danger-500">*</span>
+                  </label>
+                  <div className="relative mt-1.5">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <TagIcon className="h-4 w-4 text-surface-300" />
+                    </div>
+                    <select
+                      id="subscriptionId"
+                      name="subscriptionId"
+                      value={formData.subscriptionId}
+                      onChange={handleChange}
+                      disabled={isEditMode}
+                      className={`input-base pl-10 pr-4 ${
+                        errors.subscriptionId
+                          ? 'border-danger-300 focus:ring-danger-500/20 focus:border-danger-500'
+                          : ''
+                      } ${isEditMode ? 'bg-surface-50 text-surface-500' : ''}`}
+                    >
+                      <option value="">Pilih golongan langganan</option>
+                      {subscriptionTypes.map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.subscriptionId && (
+                    <p className="mt-1.5 text-[12px] text-danger-600">{errors.subscriptionId}</p>
+                  )}
+                  {isEditMode && (
+                    <p className="mt-1.5 text-[12px] text-surface-400">
+                      Golongan langganan tidak dapat diubah setelah tarif dibuat
+                    </p>
+                  )}
+                </div>
+
+                {/* Tarif per m³ */}
+                <div>
+                  <label htmlFor="amount" className="label-base">
+                    Tarif per m³ (IDR) <span className="text-danger-500">*</span>
+                  </label>
+                  <div className="relative mt-1.5">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <BanknotesIcon className="h-4 w-4 text-surface-300" />
+                    </div>
+                    <input
+                      type="number"
+                      id="amount"
+                      name="amount"
+                      value={formData.amount}
+                      onChange={handleChange}
+                      min="0"
+                      step="100"
+                      className={`input-base pl-10 pr-4 ${
+                        errors.amount
+                          ? 'border-danger-300 focus:ring-danger-500/20 focus:border-danger-500'
+                          : ''
+                      }`}
+                      placeholder="mis. 5000"
+                    />
+                  </div>
+                  {errors.amount && (
+                    <p className="mt-1.5 text-[12px] text-danger-600">{errors.amount}</p>
+                  )}
+                  <p className="mt-1.5 text-[12px] text-surface-400">
+                    Tarif yang dibebankan untuk setiap meter kubik pemakaian air
                   </p>
-                )}
-              </div>
+                </div>
 
-              <div>
-                <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                  Tarif per m³ (IDR) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  id="amount"
-                  name="amount"
-                  value={formData.amount}
-                  onChange={handleChange}
-                  min="0"
-                  step="100"
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.amount
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                  placeholder="mis. 5000"
-                />
-                {errors.amount && (
-                  <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
-                )}
-                <p className="mt-1 text-sm text-gray-500">
-                  Tarif yang dibebankan untuk setiap meter kubik pemakaian air
-                </p>
-              </div>
+                {/* Tanggal Berlaku */}
+                <div>
+                  <label htmlFor="effectiveDate" className="label-base">
+                    Tanggal Berlaku <span className="text-danger-500">*</span>
+                  </label>
+                  <div className="relative mt-1.5">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <CalendarDaysIcon className="h-4 w-4 text-surface-300" />
+                    </div>
+                    <input
+                      type="date"
+                      id="effectiveDate"
+                      name="effectiveDate"
+                      value={formData.effectiveDate}
+                      onChange={handleChange}
+                      className={`input-base pl-10 pr-4 ${
+                        errors.effectiveDate
+                          ? 'border-danger-300 focus:ring-danger-500/20 focus:border-danger-500'
+                          : ''
+                      }`}
+                    />
+                  </div>
+                  {errors.effectiveDate && (
+                    <p className="mt-1.5 text-[12px] text-danger-600">{errors.effectiveDate}</p>
+                  )}
+                  <p className="mt-1.5 text-[12px] text-surface-400">
+                    Tanggal saat tarif ini mulai aktif digunakan
+                  </p>
+                </div>
 
-              <div>
-                <label htmlFor="effectiveDate" className="block text-sm font-medium text-gray-700">
-                  Tanggal Berlaku <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  id="effectiveDate"
-                  name="effectiveDate"
-                  value={formData.effectiveDate}
-                  onChange={handleChange}
-                  className={`mt-1 block w-full rounded-md shadow-sm sm:text-sm ${
-                    errors.effectiveDate
-                      ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                  }`}
-                />
-                {errors.effectiveDate && (
-                  <p className="mt-1 text-sm text-red-600">{errors.effectiveDate}</p>
-                )}
-                <p className="mt-1 text-sm text-gray-500">
-                  Tanggal saat tarif ini mulai aktif digunakan
-                </p>
-              </div>
+                {/* Kategori Tarif Progresif */}
+                <div>
+                  <label htmlFor="categoryId" className="label-base">
+                    Kategori Tarif Progresif
+                  </label>
+                  <div className="relative mt-1.5">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <TagIcon className="h-4 w-4 text-surface-300" />
+                    </div>
+                    <select
+                      id="categoryId"
+                      name="categoryId"
+                      value={formData.categoryId}
+                      onChange={handleChange}
+                      className="input-base pl-10 pr-4"
+                    >
+                      <option value="">Tanpa kategori progresif</option>
+                      {tariffCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.code} - {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="mt-1.5 text-[12px] text-surface-400">
+                    Pilih kategori agar tarif dasar ini selaras dengan skema tarif progresif tenant.
+                  </p>
+                </div>
 
-              <div>
-                <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700">
-                  Kategori Tarif Progresif
-                </label>
-                <select
-                  id="categoryId"
-                  name="categoryId"
-                  value={formData.categoryId}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                >
-                  <option value="">Tanpa kategori progresif</option>
-                  {tariffCategories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.code} - {category.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-sm text-gray-500">
-                  Pilih kategori agar tarif dasar ini selaras dengan skema tarif progresif tenant.
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                  Deskripsi
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  rows={3}
-                  value={formData.description}
-                  onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Catatan atau keterangan opsional untuk tarif ini"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Important Notice */}
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-yellow-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clipRule="evenodd"
+                {/* Deskripsi — full width */}
+                <div className="lg:col-span-2">
+                  <label htmlFor="description" className="label-base">
+                    Deskripsi
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    rows={3}
+                    value={formData.description}
+                    onChange={handleChange}
+                    className="input-base mt-1.5"
+                    placeholder="Catatan atau keterangan opsional untuk tarif ini"
                   />
-                </svg>
+                </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  <strong>Penting:</strong> Membuat tarif baru tidak otomatis menonaktifkan tarif lama.
-                  Pastikan tarif sebelumnya dinonaktifkan bila memang sudah tidak dipakai.
-                </p>
+            </div>
+
+            {/* Important Notice */}
+            <div className="rounded-xl border border-warning-200 bg-warning-50 p-4">
+              <div className="flex gap-3">
+                <div className="flex-shrink-0 mt-0.5">
+                  <ExclamationTriangleIcon className="h-5 w-5 text-warning-500" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-medium text-warning-700">Penting</p>
+                  <p className="mt-1 text-[13px] text-warning-600">
+                    Membuat tarif baru tidak otomatis menonaktifkan tarif lama.
+                    Pastikan tarif sebelumnya dinonaktifkan bila memang sudah tidak dipakai.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Form Actions */}
-          <div className="flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:justify-end">
+          {/* Form Footer */}
+          <div className="flex items-center justify-end gap-3 border-t border-surface-100 bg-surface-50/50 px-6 py-4">
             <button
               type="button"
               onClick={() => navigate('/admin/water-rates')}
-              className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+              className="btn-secondary"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              className="btn-primary"
             >
-              {loading ? 'Menyimpan...' : isEditMode ? 'Perbarui Tarif' : 'Buat Tarif'}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Menyimpan...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <CheckCircleIcon className="h-4 w-4" />
+                  {isEditMode ? 'Perbarui Tarif' : 'Buat Tarif'}
+                </span>
+              )}
             </button>
           </div>
         </form>
