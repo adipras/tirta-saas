@@ -306,13 +306,13 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Integrasi printer thermal native sudah matang untuk paired Bluetooth Classic, preferred printer, print queue, retry gagal cetak, dan ESC/POS receipt rendering
 - ✅ Mobile security/session foundation sudah ada: JWT login, secure token storage, auto refresh, tenant status guard, dan redaksi header sensitif di network logging
 - 🟡 Namun mobile app **masih belum setara penuh** dengan seluruh surface web, terutama parity customer portal/end-user surface, QA multi-role, hardening sync conflict, dan release pipeline mobile
-- ⚠️ Room DB versi perlu di-increment manual dan migration `ALTER TABLE draft_usages ADD COLUMN meter_id TEXT` perlu ditambahkan sebelum build APK baru
+- ✅ Room DB versi sudah di-increment ke 4 dan migration `ALTER TABLE draft_usages ADD COLUMN meter_id TEXT` sudah ditambahkan — data draft offline tidak hilang saat upgrade APK
 
 ### 8. Operasional produksi masih lebih banyak terdokumentasi daripada tervalidasi otomatis
 - 🟡 Ada checklist VPS / hardening / monitoring / backup
 - ✅ Workflow validasi repo kini sudah menjalankan `go test`, `go build`, `npm run lint`, `npm run test`, dan `npm run build` untuk PR / push `main`
 - ✅ Workflow deploy/bootstrap kini menjalankan smoke check pasca-deploy untuk memastikan nginx/frontend root, deep-link publik SPA (`/admin/login`, `/customer/login`), backend `/health`, dan endpoint publik `/api/public/subscription-plans` benar-benar responsif
-- 🟡 Regression test awal sudah mulai ada di backend dan frontend, termasuk auth guard, permission/tenant boundary middleware backend, snapshot billing invoice backend, login admin/customer, notification bell, invoice detail customer, payment confirmation customer, payment proof detail action, tenant payment verification, admin payment list, payment reporting, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch), tetapi coverage flow bisnis kritis masih perlu diperluas
+- 🟡 Regression test awal sudah mulai ada di backend dan frontend, termasuk auth guard, permission/tenant boundary middleware backend, snapshot billing invoice backend, validasi format nomor invoice, login admin/customer, notification bell, invoice detail customer, payment confirmation customer, payment proof detail action, tenant payment verification, admin payment list, payment reporting, daftar tagihan admin, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch). Total frontend: 55 test hijau; backend: semua package ok. Coverage flow bisnis kritis masih perlu diperluas.
 
 ### 9. Identity & user management
 - ✅ User admin/operasional tenant kini punya `username` unik sebagai identifier login utama tambahan selain email
@@ -425,7 +425,7 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
    - ✅ regression test backend awal untuk boundary JWT auth
    - ✅ regression test backend awal untuk permission/tenant boundary middleware
    - ✅ regression test backend route-level untuk authorization boundary pada surface platform/tenant/report/tenant-user dan validasi tenant context invoice
-   - 🟡 frontend critical flow tests awal sudah ada untuk auth guard, admin/customer login branching, notification bell, customer invoice detail, customer payment confirmation, payment proof detail action, tenant payment verification, admin payment list, payment reporting, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch)
+   - 🟡 frontend critical flow tests awal sudah ada untuk auth guard, admin/customer login branching, notification bell, daftar tagihan admin (InvoiceList), customer invoice detail, customer payment confirmation, payment proof detail action, tenant payment verification, admin payment list, payment reporting, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch); validasi format nomor invoice sudah tercakup di backend; total frontend 55 test hijau
    - ✅ smoke test setelah deploy (dasar)
    - ✅ CI gate dasar sebelum merge / release
 

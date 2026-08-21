@@ -3,6 +3,7 @@ package com.adipras.tirtasaas.core.database.di
 import android.content.Context
 import androidx.room.Room
 import com.adipras.tirtasaas.core.database.TirtaDatabase
+import com.adipras.tirtasaas.core.database.MIGRATION_3_4
 import com.adipras.tirtasaas.core.database.dao.SyncQueueDao
 import com.adipras.tirtasaas.core.database.dao.TenantSettingsDao
 import dagger.Module
@@ -23,7 +24,7 @@ object DatabaseModule {
         context,
         TirtaDatabase::class.java,
         "tirta_mobile.db",
-    ).fallbackToDestructiveMigration().build()
+    ).addMigrations(MIGRATION_3_4).fallbackToDestructiveMigration().build()
 
     @Provides
     fun provideSyncQueueDao(database: TirtaDatabase): SyncQueueDao = database.syncQueueDao()

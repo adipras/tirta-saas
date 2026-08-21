@@ -10,7 +10,7 @@ import com.adipras.tirtasaas.core.database.entity.DraftUsageEntity
 
 @Database(
     entities = [SyncQueueEntity::class, TenantSettingsEntity::class, DraftUsageEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class TirtaDatabase : RoomDatabase() {

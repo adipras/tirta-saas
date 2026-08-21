@@ -1,5 +1,42 @@
 # Release Notes
 
+## v1.4.1 - 2026-08-21
+
+**Tipe rilis:** Patch
+**Cakupan:** Android + Backend + Frontend
+**Tag deploy yang disarankan:** `deploy-all-v1.4.1`
+
+### Ringkasan
+- **Android Room DB migration**: versi database naik dari 3 ke 4 dengan migration eksplisit `ALTER TABLE draft_usages ADD COLUMN meter_id TEXT`. Ini memastikan draft pemakaian yang tersimpan offline tidak hilang saat update APK.
+- **Backend test**: tambah `invoice_number_service_test.go` — 11 case untuk `ValidateInvoiceNumber` (format valid dan semua edge case invalid).
+- **Frontend test**: tambah `InvoiceList.test.tsx` — 5 test untuk halaman daftar tagihan (load data, stat cards, filter, navigasi detail, empty state). Total test frontend: 55 hijau.
+
+### Perubahan teknis
+
+**Android — `core/database/`:**
+- `TirtaDatabase.kt`: versi Room DB dinaikkan dari `3` ke `4`.
+- `Migrations.kt` (baru): `MIGRATION_3_4` menambahkan kolom `meter_id TEXT` ke tabel `draft_usages`.
+- `DatabaseModule.kt`: `.addMigrations(MIGRATION_3_4)` ditambahkan sebelum `fallbackToDestructiveMigration()` agar data draft offline existing tidak terhapus saat upgrade.
+
+**Backend — `services/invoice_number_service_test.go` (baru):**
+- `TestValidateInvoiceNumber_AcceptsValidFormat`: 3 format invoice valid (INV-YYYYMM-NNNN).
+- `TestValidateInvoiceNumber_RejectsInvalidFormat`: 8 format invalid — empty string, bulan 00/13, tahun < 2024, prefix lowercase, sequence 0, separator salah.
+
+**Frontend — `pages/invoices/InvoiceList.test.tsx` (baru):**
+- Mock `invoiceService`, `react-router-dom`, komponen UI, dan `DataTable`.
+- 5 test: render daftar tagihan, stat card, pilihan filter status, navigasi ke detail, empty state.
+
+### File yang berubah
+- `tirta-saas-android/core/database/src/main/java/com/adipras/tirtasaas/core/database/TirtaDatabase.kt`
+- `tirta-saas-android/core/database/src/main/java/com/adipras/tirtasaas/core/database/Migrations.kt` (baru)
+- `tirta-saas-android/core/database/src/main/java/com/adipras/tirtasaas/core/database/di/DatabaseModule.kt`
+- `tirta-saas-backend/services/invoice_number_service_test.go` (baru)
+- `tirta-saas-frontend/src/pages/invoices/InvoiceList.test.tsx` (baru)
+- `RELEASE_NOTES.md`
+- `FEATURE_STATUS.md`
+
+---
+
 ## v1.4.0 - 2026-08-20
 
 **Tipe rilis:** Minor (non-breaking, UI only)
