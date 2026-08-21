@@ -10,13 +10,14 @@ import (
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/adipras/tirta-saas-backend/services"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 func getInvoiceSubscription(invoice models.Invoice) *models.SubscriptionType {
@@ -306,6 +307,10 @@ func CreateInvoice(c *gin.Context) {
 		return
 	}
 
+	audit.LogCreate(c, "invoice", invoice.ID, map[string]interface{}{
+		"customer_id": invoice.CustomerID, "type": invoice.Type, "usage_month": invoice.UsageMonth,
+	})
+
 	if err := config.DB.Preload("Customer").Preload("Customer.Subscription").
 		Where("id = ? AND tenant_id = ?", invoice.ID, tenantID).
 		First(&invoice).Error; err != nil {
@@ -368,6 +373,8 @@ func GenerateMonthlyInvoice(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	audit.LogInvoiceGeneration(c, req.UsageMonth, result.Success, err == nil, "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":       "Generate invoice selesai",
@@ -645,6 +652,8 @@ func DeleteInvoice(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus invoice"})
 		return
 	}
+
+	audit.LogDelete(c, "invoice", invoiceID, map[string]interface{}{"id": invoiceID})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice berhasil dihapus"})
 }

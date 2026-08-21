@@ -12,13 +12,14 @@ import (
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/adipras/tirta-saas-backend/services"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 func parsePaymentTimestamp(paymentDate string) (time.Time, error) {
@@ -379,6 +380,7 @@ func CreatePayment(c *gin.Context) {
 	}
 
 	payment.Invoice = invoice
+	audit.LogPayment(c, payment.InvoiceID, payment.ID, payment.Amount, true, "")
 	helpers.RespondCreated(c, "Pembayaran berhasil dicatat", buildPaymentResponse(payment))
 }
 
@@ -574,6 +576,10 @@ func VoidPayment(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan pembatalan pembayaran"})
 		return
 	}
+
+	audit.LogSensitiveOperation(c, models.AuditAction("VOID"), "payment", "Payment voided", map[string]interface{}{
+		"payment_id": payment.ID, "invoice_id": payment.InvoiceID, "amount": payment.Amount,
+	})
 
 	helpers.RespondSuccess(c, "Pembayaran berhasil dibatalkan", payment)
 }

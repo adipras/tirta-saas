@@ -9,6 +9,7 @@ import (
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/adipras/tirta-saas-backend/services"
@@ -200,10 +201,14 @@ func CreateCustomer(c *gin.Context) {
 		return
 	}
 
+	audit.LogCreate(c, "customer", customer.ID, map[string]interface{}{
+		"name": customer.Name, "email": customer.Email, "tenant_id": customer.TenantID,
+	})
+
 	helpers.RespondCreated(c, "Pelanggan berhasil ditambahkan", gin.H{
-		"customer":               mapCustomerResponse(customer),
-		"meters":                 createdMeters,
-		"registration_invoices":  createdInvoices,
+		"customer":              mapCustomerResponse(customer),
+		"meters":                createdMeters,
+		"registration_invoices": createdInvoices,
 	})
 }
 
@@ -464,6 +469,7 @@ func ActivateCustomer(c *gin.Context) {
 		return
 	}
 	customer.IsActive = true
+	audit.LogActivation(c, customer.ID, true)
 
 	c.JSON(http.StatusOK, mapCustomerResponse(customer))
 }
@@ -506,6 +512,7 @@ func DeactivateCustomer(c *gin.Context) {
 		return
 	}
 	customer.IsActive = false
+	audit.LogActivation(c, customer.ID, false)
 
 	c.JSON(http.StatusOK, mapCustomerResponse(customer))
 }
@@ -550,6 +557,7 @@ func UpdateCustomer(c *gin.Context) {
 		return
 	}
 
+	oldValues := map[string]interface{}{"name": customer.Name, "address": customer.Address, "phone": customer.Phone}
 	customer.Name = input.Name
 	customer.Address = input.Address
 	customer.Phone = input.Phone
@@ -560,6 +568,10 @@ func UpdateCustomer(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui pelanggan"})
 		return
 	}
+
+	audit.LogUpdate(c, "customer", customer.ID, oldValues, map[string]interface{}{
+		"name": input.Name, "address": input.Address, "phone": input.Phone,
+	})
 
 	c.JSON(http.StatusOK, mapCustomerResponse(customer))
 }
@@ -594,6 +606,10 @@ func DeleteCustomer(c *gin.Context) {
 	if err := query.Delete(&models.Customer{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus pelanggan"})
 		return
+	}
+
+	if deletedID, parseErr := uuid.Parse(id); parseErr == nil {
+		audit.LogDelete(c, "customer", deletedID, map[string]interface{}{"id": id})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Pelanggan berhasil dihapus"})

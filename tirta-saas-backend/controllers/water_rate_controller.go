@@ -1,12 +1,13 @@
 package controllers
 
 import (
-	"github.com/adipras/tirta-saas-backend/helpers"
 	"net/http"
 	"time"
 
 	"github.com/adipras/tirta-saas-backend/config"
+	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -69,6 +70,10 @@ func CreateWaterRate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal membuat tarif"})
 		return
 	}
+
+	audit.LogCreate(c, "water_rate", rate.ID, map[string]interface{}{
+		"amount": rate.Amount, "subscription_type_id": rate.SubscriptionID,
+	})
 
 	config.DB.Preload("Subscription").Preload("Category").First(&rate, "id = ?", rate.ID)
 
@@ -221,6 +226,15 @@ func UpdateWaterRate(c *gin.Context) {
 		return
 	}
 
+	oldValues := map[string]interface{}{
+		"amount":          rate.Amount,
+		"effective_date":  rate.EffectiveDate,
+		"active":          rate.Active,
+		"category_id":     rate.CategoryID,
+		"description":     rate.Description,
+		"subscription_id": rate.SubscriptionID,
+	}
+
 	// If activating this rate, deactivate others for the same subscription
 	if input.Active != nil && *input.Active && !rate.Active {
 		config.DB.Model(&models.WaterRate{}).
@@ -289,6 +303,10 @@ func UpdateWaterRate(c *gin.Context) {
 		return
 	}
 
+	audit.LogUpdate(c, "water_rate", rate.ID, oldValues, map[string]interface{}{
+		"amount": rate.Amount,
+	})
+
 	config.DB.Preload("Subscription").Preload("Category").First(&rate, "id = ?", rate.ID)
 
 	helpers.RespondSuccess(c, "Tarif air berhasil diperbarui", rate)
@@ -323,6 +341,8 @@ func DeleteWaterRate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus tarif"})
 		return
 	}
+
+	audit.LogDelete(c, "water_rate", rateID, map[string]interface{}{"id": rateID})
 
 	helpers.RespondSuccess(c, "Tarif air berhasil dihapus", gin.H{
 		"deleted": true,
