@@ -1,5 +1,52 @@
 # Release Notes
 
+## v1.4.2 - 2026-08-21
+
+**Tipe rilis:** Patch
+**Cakupan:** Backend + Frontend
+**Tag deploy yang disarankan:** `deploy-all-v1.4.2`
+
+### Ringkasan
+- **Audit domain-level diperluas** ke operasi bisnis inti yang sebelumnya tidak punya audit trail: customer CRUD, invoice create/generate/delete, payment create/void, dan water rate CRUD.
+- **Frontend test**: tambah `UsageList.test.tsx` — 4 test untuk halaman daftar pemakaian air. Total frontend: 63 test hijau.
+
+### Perubahan teknis
+
+**Backend — `controllers/customer_controller.go`:**
+- `CreateCustomer` → `audit.LogCreate("customer", ...)`
+- `ActivateCustomer` → `audit.LogActivation(id, true)`
+- `DeactivateCustomer` → `audit.LogActivation(id, false)`
+- `UpdateCustomer` → `audit.LogUpdate("customer", ..., oldValues, newValues)` — capture old values sebelum update
+- `DeleteCustomer` → `audit.LogDelete("customer", ...)`
+
+**Backend — `controllers/invoice_controller.go`:**
+- `CreateInvoice` → `audit.LogCreate("invoice", ...)`
+- `GenerateMonthlyInvoice` → `audit.LogInvoiceGeneration(...)`
+- `DeleteInvoice` → `audit.LogDelete("invoice", ...)`
+
+**Backend — `controllers/payment_controller.go`:**
+- `CreatePayment` → `audit.LogPayment(invoiceID, paymentID, amount, true, "")`
+- `VoidPayment` → `audit.LogSensitiveOperation(AuditAction("VOID"), "payment", ...)`
+
+**Backend — `controllers/water_rate_controller.go`:**
+- `CreateWaterRate` → `audit.LogCreate("water_rate", ...)`
+- `UpdateWaterRate` → `audit.LogUpdate("water_rate", ..., oldValues, newValues)`
+- `DeleteWaterRate` → `audit.LogDelete("water_rate", ...)`
+
+**Frontend — `pages/usage/UsageList.test.tsx` (baru):**
+- 4 test: render grouped per pelanggan, stat card, buka confirm modal hapus, konfirmasi delete memanggil service.
+
+### File yang berubah
+- `tirta-saas-backend/controllers/customer_controller.go`
+- `tirta-saas-backend/controllers/invoice_controller.go`
+- `tirta-saas-backend/controllers/payment_controller.go`
+- `tirta-saas-backend/controllers/water_rate_controller.go`
+- `tirta-saas-frontend/src/pages/usage/UsageList.test.tsx` (baru)
+- `RELEASE_NOTES.md`
+- `FEATURE_STATUS.md`
+
+---
+
 ## v1.4.1 - 2026-08-21
 
 **Tipe rilis:** Patch

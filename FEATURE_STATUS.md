@@ -278,6 +278,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Audit middleware global backend kini aktif untuk request autentikasi sensitif (`POST` / `PUT` / `PATCH` / `DELETE`)
 - ✅ Audit domain-level juga sudah diperluas ke auth flow sensitif: admin login, customer login, logout, ganti password customer, dan flow bukti pembayaran (`submit`, `verify`, `reject`)
 - ✅ Audit domain-level untuk manajemen user tenant kini juga mencakup create/update/delete tenant user, create user with profile, update profil user operasional, suspend user, dan revoke semua sesi user dengan payload audit yang sudah disanitasi
+- ✅ Audit domain-level kini juga mencakup operasi bisnis inti: **customer CRUD** (create/activate/deactivate/update/delete), **invoice** (create/generate/delete), **payment** (create/void), dan **water rate** (create/update/delete)
 
 ### 5. Pembatasan akses khusus platform owner
 - ✅ Route `/api/platform/*` kini memakai `PlatformOwnerOnly()`
@@ -327,7 +328,7 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 
 ### 1. Security & access control
 - ✅ ~~`PlatformOwnerOnly` middleware belum ada~~ — selesai pada sesi hardening 25 Mei 2026
-- 🟡 Audit trail request sensitif backend sudah aktif secara global; auth flow utama, flow bukti pembayaran, dan manajemen user tenant kini sudah tercakup di level domain, tetapi audit domain-level belum merata di seluruh surface lain
+- 🟡 Audit trail request sensitif backend sudah aktif secara global; auth flow utama, flow bukti pembayaran, manajemen user tenant, dan kini juga operasi bisnis inti (customer CRUD, invoice, payment, water rate) sudah tercakup di level domain. Audit domain-level untuk subscription type, tariff category, dan service area management masih belum ada
 - 🟡 Boundary role platform vs tenant sudah lebih konsisten, dan regression test backend kini sudah mengukur middleware permission/tenant boundary (`PlatformOwnerOnly`, `RequirePermission`, `RequireTenantUser`, `EnsureSameTenant`) plus route wiring kritis (`/api/platform`, `/api/tenant`, `/api/tenant-users`, `/api/reports`, `/api/invoices`), tetapi coverage authorization lintas seluruh surface masih belum lengkap
 
 ### 2. Reliability & verification
