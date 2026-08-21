@@ -40,6 +40,7 @@ kapt {
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:network"))
+    implementation(project(":core:database"))
 
     implementation(libs.retrofit)
     implementation(libs.kotlinx.serialization.json)

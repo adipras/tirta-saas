@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/adipras/tirta-saas-backend/services"
@@ -64,6 +65,12 @@ func (ctrl *TariffController) CreateTariffCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create tariff category"})
 		return
 	}
+
+	audit.LogCreate(c, "tariff_category", category.ID, map[string]interface{}{
+		"code": category.Code,
+		"name": category.Name,
+		"type": category.Type,
+	})
 
 	response := responses.ToTariffCategoryResponse(&category)
 	c.JSON(http.StatusCreated, gin.H{"message": "Tariff category created successfully", "data": response})
@@ -148,6 +155,13 @@ func (ctrl *TariffController) UpdateTariffCategory(c *gin.Context) {
 		return
 	}
 
+	oldValues := map[string]interface{}{
+		"name":          category.Name,
+		"description":   category.Description,
+		"display_order": category.DisplayOrder,
+		"is_active":     category.IsActive,
+	}
+
 	category.Name = req.Name
 	category.Description = req.Description
 	category.DisplayOrder = req.DisplayOrder
@@ -159,6 +173,11 @@ func (ctrl *TariffController) UpdateTariffCategory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update tariff category"})
 		return
 	}
+
+	audit.LogUpdate(c, "tariff_category", category.ID, oldValues, map[string]interface{}{
+		"name":      category.Name,
+		"is_active": category.IsActive,
+	})
 
 	response := responses.ToTariffCategoryResponse(&category)
 	c.JSON(http.StatusOK, gin.H{"message": "Tariff category updated successfully", "data": response})
@@ -175,6 +194,12 @@ func (ctrl *TariffController) DeleteTariffCategory(c *gin.Context) {
 		return
 	}
 
+	var category models.TariffCategory
+	if err := ctrl.DB.Where("id = ? AND tenant_id = ?", parsedID, tenantID).First(&category).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Tariff category not found"})
+		return
+	}
+
 	// Check if has progressive rates
 	var rateCount int64
 	ctrl.DB.Model(&models.ProgressiveRate{}).Where("category_id = ?", parsedID).Count(&rateCount)
@@ -183,10 +208,17 @@ func (ctrl *TariffController) DeleteTariffCategory(c *gin.Context) {
 		return
 	}
 
+	oldValues := map[string]interface{}{
+		"code": category.Code,
+		"name": category.Name,
+	}
+
 	if err := ctrl.DB.Where("id = ? AND tenant_id = ?", parsedID, tenantID).Delete(&models.TariffCategory{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete tariff category"})
 		return
 	}
+
+	audit.LogDelete(c, "tariff_category", parsedID, oldValues)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Tariff category deleted successfully"})
 }
@@ -240,6 +272,13 @@ func (ctrl *TariffController) CreateProgressiveRate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create progressive rate"})
 		return
 	}
+
+	audit.LogCreate(c, "progressive_rate", rate.ID, map[string]interface{}{
+		"category_id":    rate.CategoryID,
+		"min_volume":     rate.MinVolume,
+		"max_volume":     rate.MaxVolume,
+		"price_per_unit": rate.PricePerUnit,
+	})
 
 	// Load category for response
 	ctrl.DB.Preload("Category").First(&rate, rate.ID)
@@ -295,6 +334,15 @@ func (ctrl *TariffController) UpdateProgressiveRate(c *gin.Context) {
 		return
 	}
 
+	oldValues := map[string]interface{}{
+		"category_id":    rate.CategoryID,
+		"min_volume":     rate.MinVolume,
+		"max_volume":     rate.MaxVolume,
+		"price_per_unit": rate.PricePerUnit,
+		"display_order":  rate.DisplayOrder,
+		"is_active":      rate.IsActive,
+	}
+
 	rate.MinVolume = req.MinVolume
 	rate.MaxVolume = req.MaxVolume
 	rate.PricePerUnit = req.PricePerUnit
@@ -307,6 +355,13 @@ func (ctrl *TariffController) UpdateProgressiveRate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update progressive rate"})
 		return
 	}
+
+	audit.LogUpdate(c, "progressive_rate", rate.ID, oldValues, map[string]interface{}{
+		"min_volume":     rate.MinVolume,
+		"max_volume":     rate.MaxVolume,
+		"price_per_unit": rate.PricePerUnit,
+		"is_active":      rate.IsActive,
+	})
 
 	ctrl.DB.Preload("Category").First(&rate, rate.ID)
 	response := responses.ToProgressiveRateResponse(&rate)
@@ -324,10 +379,25 @@ func (ctrl *TariffController) DeleteProgressiveRate(c *gin.Context) {
 		return
 	}
 
+	var rate models.ProgressiveRate
+	if err := ctrl.DB.Where("id = ? AND tenant_id = ?", parsedID, tenantID).First(&rate).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Progressive rate not found"})
+		return
+	}
+
+	oldValues := map[string]interface{}{
+		"category_id":    rate.CategoryID,
+		"min_volume":     rate.MinVolume,
+		"max_volume":     rate.MaxVolume,
+		"price_per_unit": rate.PricePerUnit,
+	}
+
 	if err := ctrl.DB.Where("id = ? AND tenant_id = ?", parsedID, tenantID).Delete(&models.ProgressiveRate{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete progressive rate"})
 		return
 	}
+
+	audit.LogDelete(c, "progressive_rate", parsedID, oldValues)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Progressive rate deleted successfully"})
 }

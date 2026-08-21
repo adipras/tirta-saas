@@ -225,26 +225,26 @@ const BulkInvoiceGeneration = () => {
                         <div className="text-[12px] text-surface-400">{inv.customer_code}</div>
                       </td>
                       <td className="px-4 py-2 text-[13px] text-right text-surface-900">
-                        {inv.usage_m3.toFixed(2)}
+                        {(inv.usage_m3 ?? 0).toFixed(2)}
                       </td>
                       <td className="px-4 py-2 text-[13px] text-right text-surface-900">
-                        {formatCurrency(inv.water_charge)}
+                        {formatCurrency(inv.water_charge ?? 0)}
                       </td>
                       <td className="px-4 py-2 text-[13px] text-right text-surface-900">
-                        {formatCurrency(inv.abonemen)}
+                        {formatCurrency(inv.abonemen ?? 0)}
                       </td>
                       <td className="px-4 py-2 text-[13px] text-right text-surface-900">
-                        {formatCurrency(inv.maintenance_fee)}
+                        {formatCurrency(inv.maintenance_fee ?? 0)}
                       </td>
                       <td className="px-4 py-2 text-[13px] text-right">
-                        {inv.penalty_amount > 0 ? (
+                        {(inv.penalty_amount ?? 0) > 0 ? (
                           <span className="text-danger-600">{formatCurrency(inv.penalty_amount)}</span>
                         ) : (
                           <span className="text-surface-300">-</span>
                         )}
                       </td>
                       <td className="px-4 py-2 text-[13px] text-right font-medium text-surface-900">
-                        {formatCurrency(inv.total_amount)}
+                        {formatCurrency(inv.total_amount ?? 0)}
                       </td>
                     </tr>
                   ))}

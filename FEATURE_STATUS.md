@@ -278,7 +278,7 @@ Dokumen ini juga menjadi **single source of truth** untuk status mobile native A
 - ✅ Audit middleware global backend kini aktif untuk request autentikasi sensitif (`POST` / `PUT` / `PATCH` / `DELETE`)
 - ✅ Audit domain-level juga sudah diperluas ke auth flow sensitif: admin login, customer login, logout, ganti password customer, dan flow bukti pembayaran (`submit`, `verify`, `reject`)
 - ✅ Audit domain-level untuk manajemen user tenant kini juga mencakup create/update/delete tenant user, create user with profile, update profil user operasional, suspend user, dan revoke semua sesi user dengan payload audit yang sudah disanitasi
-- ✅ Audit domain-level kini juga mencakup operasi bisnis inti: **customer CRUD** (create/activate/deactivate/update/delete), **invoice** (create/generate/delete), **payment** (create/void), dan **water rate** (create/update/delete)
+- ✅ Audit domain-level kini sudah mencakup **100% operasi bisnis inti dan master data**: **customer CRUD** (create/activate/deactivate/update/delete), **invoice** (create/generate/delete), **payment** (create/void), **water rate** (create/update/delete), **subscription types** (create/update/delete), **tariff categories & progressive rates** (create/update/delete), dan **service areas** (create/update/delete)
 
 ### 5. Pembatasan akses khusus platform owner
 - ✅ Route `/api/platform/*` kini memakai `PlatformOwnerOnly()`
@@ -328,11 +328,11 @@ Bagian ini adalah gap yang paling relevan jika targetnya adalah **production sys
 
 ### 1. Security & access control
 - ✅ ~~`PlatformOwnerOnly` middleware belum ada~~ — selesai pada sesi hardening 25 Mei 2026
-- 🟡 Audit trail request sensitif backend sudah aktif secara global; auth flow utama, flow bukti pembayaran, manajemen user tenant, dan kini juga operasi bisnis inti (customer CRUD, invoice, payment, water rate) sudah tercakup di level domain. Audit domain-level untuk subscription type, tariff category, dan service area management masih belum ada
+- ✅ Audit trail request sensitif backend sudah aktif secara global, dan audit logging domain-level kini telah mencakup 100% entitas bisnis & master data (auth, user, customer, invoice, payment, water rate, subscription type, tariff category, progressive rate, service area)
 - 🟡 Boundary role platform vs tenant sudah lebih konsisten, dan regression test backend kini sudah mengukur middleware permission/tenant boundary (`PlatformOwnerOnly`, `RequirePermission`, `RequireTenantUser`, `EnsureSameTenant`) plus route wiring kritis (`/api/platform`, `/api/tenant`, `/api/tenant-users`, `/api/reports`, `/api/invoices`), tetapi coverage authorization lintas seluruh surface masih belum lengkap
 
 ### 2. Reliability & verification
-- 🟡 Suite test masih sangat awal — backend kini sudah punya regression test untuk boundary JWT auth, permission/tenant boundary middleware, serta kalkulasi snapshot billing / status pembayaran invoice, dan frontend kini sudah punya test awal untuk `PrivateRoute`, branching `AdminLogin`, `CustomerLogin`, `RegisterAccount` (termasuk duplicate username), modal user management create/edit (duplicate username), interaction `NotificationBell`, customer invoice detail, customer payment confirmation, payment proof detail action, tenant payment verification, admin payment list, payment reporting, payment receipt admin, customer payment history, helper receipt edge-case, dan thermal printer interaction receipt (success + warning/error branch), tetapi coverage flow bisnis masih belum memadai
+- 🟡 Suite test semakin meluas — backend kini punya regression test untuk JWT auth, permission/tenant boundary middleware, snapshot billing, validasi format invoice, dan service bacaan meter; frontend kini memiliki 23 test suites dengan 67 unit test hijau (termasuk auth guard, login branching, invoice list, customer list, usage list, bulk invoice generation, dll). Coverage flow bisnis terus ditingkatkan.
 - ✅ CI gate dasar kini sudah ada untuk backend/frontend sebelum publish image
 - ✅ Smoke check pasca-deploy kini sudah menjadi bagian workflow deploy dan bootstrap runtime, dan sudah mencakup deep-link publik frontend serta endpoint API publik yang dipakai landing page
 
@@ -518,6 +518,8 @@ Bagian ini merangkum status `tirta-saas-android/` yang sebelumnya dicatat terpis
 - Progress Android terbaru (v1.3.9 alignment): field `meter_location_name` ditambahkan ke `WaterUsageCustomerDto` Android; list pemakaian air kini menampilkan nomor dan lokasi meter di bawah nama pelanggan — selaras dengan kolom Meter yang ditambahkan di web.
 - Progress Android terbaru: form input pemakaian air kini punya combobox pencarian pelanggan — petugas mengetik nama atau nomor meter, saran muncul realtime dari API (`GET /customers?search=...`), pilih untuk otomatis mengisi `customer_id` dan memuat meter terpasang; field "Customer ID" (raw UUID) digantikan sepenuhnya.
 - Progress v1.4.1 terbaru: Android Room DB versi dinaikkan ke 4 dengan migration eksplisit untuk `meter_id`; test backend tambah validasi format nomor invoice (11 case); test frontend tambah InvoiceList (5 test) dan CustomerList (4 test); total 59 frontend test hijau.
+- Progress v1.4.2 terbaru: domain-level audit logging diperluas ke Customer, Invoice, Payment, Water Rate CRUD; tambah frontend test UsageList (4 test); total 63 test hijau.
+- Progress v1.4.3 terbaru: domain-level audit logging selesai 100% untuk semua master data dan entitas bisnis (`subscription_type`, `tariff_category`, `progressive_rate`, `service_area`); backend test tambah `meter_reading_service_test.go`; frontend test tambah `BulkInvoiceGeneration.test.tsx` (4 test); total 23 test suites dan 67 frontend unit test hijau; build production frontend bersih.
 - **Temuan test (v1.4.1):** Sejumlah komponen admin (`InvoiceList`, `CustomerList`, dan 18+ lainnya) menyertakan `toast` dari `useToast()` di dependency array `useCallback`. Di produksi ini aman karena context value stabil, tetapi di test menyebabkan re-render loop jika mock `useToast` tidak mengembalikan referensi stabil. Pola yang direkomendasikan: gunakan `useRef` untuk menyimpan referensi toast, lalu hapus `toast` dari deps `useCallback`.
 
 ---

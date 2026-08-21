@@ -1,5 +1,60 @@
 # Release Notes
 
+## v1.4.3 - 2026-08-21
+
+**Tipe rilis:** Patch
+**Cakupan:** Backend + Frontend
+**Tag deploy yang disarankan:** `deploy-all-v1.4.3`
+
+### Ringkasan
+- **Audit domain-level selesai 100%** untuk seluruh entitas bisnis backend: menambahkan audit logging untuk `subscription_type` (CRUD), `tariff_category` (CRUD), `progressive_rate` (CRUD), dan `service_area` (CRUD).
+- **Frontend test & stability**:
+  - Tambah `BulkInvoiceGeneration.test.tsx` (4 test).
+  - Defensive rendering pada preview tabel pembuatan invoice massal.
+  - Perbaikan urutan `@import` CSS di `index.css`.
+  - Total test frontend: 23 test suites, 67 test hijau.
+- **Backend test**: tambah `meter_reading_service_test.go` (format validation & description logic).
+
+### Perubahan teknis
+
+**Backend — `controllers/subscription_controller.go`:**
+- `CreateSubscriptionType` → `audit.LogCreate("subscription_type", ...)`
+- `UpdateSubscriptionType` → `audit.LogUpdate("subscription_type", ..., oldValues, ...)`
+- `DeleteSubscriptionType` → `audit.LogDelete("subscription_type", ...)`
+
+**Backend — `controllers/tariff_controller.go`:**
+- `CreateTariffCategory` → `audit.LogCreate("tariff_category", ...)`
+- `UpdateTariffCategory` → `audit.LogUpdate("tariff_category", ..., oldValues, ...)`
+- `DeleteTariffCategory` → `audit.LogDelete("tariff_category", ...)`
+- `CreateProgressiveRate` → `audit.LogCreate("progressive_rate", ...)`
+- `UpdateProgressiveRate` → `audit.LogUpdate("progressive_rate", ..., oldValues, ...)`
+- `DeleteProgressiveRate` → `audit.LogDelete("progressive_rate", ...)`
+
+**Backend — `controllers/service_area_controller.go`:**
+- `CreateServiceArea` → `audit.LogCreate("service_area", ...)`
+- `UpdateServiceArea` → `audit.LogUpdate("service_area", ..., oldValues, ...)`
+- `DeleteServiceArea` → `audit.LogDelete("service_area", ...)`
+
+**Backend — `services/meter_reading_service_test.go` (baru):**
+- Validasi format bulan bacaan meter dan deskripsi sumber angka awal.
+
+**Frontend — `pages/invoices/bulk-generation/BulkInvoiceGeneration.tsx` & `BulkInvoiceGeneration.test.tsx` (baru):**
+- Defensive rendering dengan fallback nilai pada invoice preview.
+- 4 unit test untuk alur preview & pembuatan tagihan massal.
+
+### File yang berubah
+- `tirta-saas-backend/controllers/subscription_controller.go`
+- `tirta-saas-backend/controllers/tariff_controller.go`
+- `tirta-saas-backend/controllers/service_area_controller.go`
+- `tirta-saas-backend/services/meter_reading_service_test.go`
+- `tirta-saas-frontend/src/index.css`
+- `tirta-saas-frontend/src/pages/invoices/bulk-generation/BulkInvoiceGeneration.tsx`
+- `tirta-saas-frontend/src/pages/invoices/bulk-generation/BulkInvoiceGeneration.test.tsx`
+- `RELEASE_NOTES.md`
+- `FEATURE_STATUS.md`
+
+---
+
 ## v1.4.2 - 2026-08-21
 
 **Tipe rilis:** Patch

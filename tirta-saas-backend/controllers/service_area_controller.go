@@ -5,6 +5,7 @@ import (
 
 	"github.com/adipras/tirta-saas-backend/helpers"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/gin-gonic/gin"
@@ -76,6 +77,12 @@ func (ctrl *ServiceAreaController) CreateServiceArea(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create service area"})
 		return
 	}
+
+	audit.LogCreate(c, "service_area", serviceArea.ID, map[string]interface{}{
+		"code": serviceArea.Code,
+		"name": serviceArea.Name,
+		"type": serviceArea.Type,
+	})
 
 	response := responses.ToServiceAreaResponse(&serviceArea)
 	c.JSON(http.StatusCreated, gin.H{"message": "Service area created successfully", "data": response})
@@ -186,6 +193,14 @@ func (ctrl *ServiceAreaController) UpdateServiceArea(c *gin.Context) {
 		return
 	}
 
+	oldValues := map[string]interface{}{
+		"name":          serviceArea.Name,
+		"description":   serviceArea.Description,
+		"population":    serviceArea.Population,
+		"coverage_area": serviceArea.CoverageArea,
+		"is_active":     serviceArea.IsActive,
+	}
+
 	serviceArea.Name = req.Name
 	serviceArea.Description = req.Description
 	serviceArea.Population = req.Population
@@ -198,6 +213,11 @@ func (ctrl *ServiceAreaController) UpdateServiceArea(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update service area"})
 		return
 	}
+
+	audit.LogUpdate(c, "service_area", serviceArea.ID, oldValues, map[string]interface{}{
+		"name":      serviceArea.Name,
+		"is_active": serviceArea.IsActive,
+	})
 
 	response := responses.ToServiceAreaResponse(&serviceArea)
 	c.JSON(http.StatusOK, gin.H{"message": "Service area updated successfully", "data": response})
@@ -218,6 +238,12 @@ func (ctrl *ServiceAreaController) DeleteServiceArea(c *gin.Context) {
 		return
 	}
 
+	var serviceArea models.ServiceArea
+	if err := ctrl.DB.Where("id = ? AND tenant_id = ?", parsedID, tenantID).First(&serviceArea).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Service area not found"})
+		return
+	}
+
 	// Check if has customers
 	var customerCount int64
 	ctrl.DB.Model(&models.Customer{}).Where("service_area_id = ?", parsedID).Count(&customerCount)
@@ -234,10 +260,17 @@ func (ctrl *ServiceAreaController) DeleteServiceArea(c *gin.Context) {
 		return
 	}
 
+	oldValues := map[string]interface{}{
+		"code": serviceArea.Code,
+		"name": serviceArea.Name,
+	}
+
 	if err := ctrl.DB.Where("id = ? AND tenant_id = ?", parsedID, tenantID).Delete(&models.ServiceArea{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete service area"})
 		return
 	}
+
+	audit.LogDelete(c, "service_area", parsedID, oldValues)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Service area deleted successfully"})
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/adipras/tirta-saas-backend/config"
 	"github.com/adipras/tirta-saas-backend/models"
+	"github.com/adipras/tirta-saas-backend/pkg/audit"
 	"github.com/adipras/tirta-saas-backend/requests"
 	"github.com/adipras/tirta-saas-backend/responses"
 	"github.com/gin-gonic/gin"
@@ -59,6 +60,13 @@ func CreateSubscriptionType(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menyimpan SubscriptionType"})
 		return
 	}
+
+	audit.LogCreate(c, "subscription_type", sub.ID, map[string]interface{}{
+		"name":             sub.Name,
+		"registration_fee": sub.RegistrationFee,
+		"monthly_fee":      sub.MonthlyFee,
+		"maintenance_fee":  sub.MaintenanceFee,
+	})
 
 	res := responses.SubscriptionTypeResponse{
 		ID:              sub.ID,
@@ -217,6 +225,16 @@ func UpdateSubscriptionType(c *gin.Context) {
 		return
 	}
 
+	oldValues := map[string]interface{}{
+		"name":             sub.Name,
+		"description":      sub.Description,
+		"registration_fee": sub.RegistrationFee,
+		"monthly_fee":      sub.MonthlyFee,
+		"maintenance_fee":  sub.MaintenanceFee,
+		"late_fee_per_day": sub.LateFeePerDay,
+		"max_late_fee":     sub.MaxLateFee,
+	}
+
 	sub.Name = req.Name
 	sub.Description = req.Description
 	sub.RegistrationFee = req.RegistrationFee
@@ -229,6 +247,13 @@ func UpdateSubscriptionType(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal memperbarui subscription type"})
 		return
 	}
+
+	audit.LogUpdate(c, "subscription_type", sub.ID, oldValues, map[string]interface{}{
+		"name":             sub.Name,
+		"registration_fee": sub.RegistrationFee,
+		"monthly_fee":      sub.MonthlyFee,
+		"maintenance_fee":  sub.MaintenanceFee,
+	})
 
 	res := responses.SubscriptionTypeResponse{
 		ID:              sub.ID,
@@ -281,10 +306,16 @@ func DeleteSubscriptionType(c *gin.Context) {
 		return
 	}
 
+	oldValues := map[string]interface{}{
+		"name": sub.Name,
+	}
+
 	if err := config.DB.Delete(&sub).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal menghapus subscription type"})
 		return
 	}
+
+	audit.LogDelete(c, "subscription_type", subID, oldValues)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Subscription type berhasil dihapus"})
 }
